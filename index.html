@@ -214,8 +214,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .r-fungicidas{background:var(--azul-pale);color:var(--azul)}
 .r-fertilizantes{background:var(--amber-pale);color:var(--amber)}
 .r-semillas{background:#f0fef4;color:#16a34a}
-.r-labores{background:var(--dorado-pale);color:var(--dorado)}
-.r-cosecha{background:var(--rojo-pale);color:var(--rojo)}
+.r-laboreo{background:var(--dorado-pale);color:var(--dorado)}
 .r-flete{background:#f5f0ff;color:#7c3aed}
 .r-arrendamiento{background:#fef3c7;color:#d97706}
 .r-otros{background:#f4f4f5;color:#71717a}
@@ -312,6 +311,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .conv-box{background:var(--crema);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px}
 .conv-l{color:var(--texto-suave);margin-bottom:2px;font-size:11px}
 .conv-v{font-weight:600;font-family:'DM Mono',monospace;color:var(--verde)}
+.sub-tipo-btn{font-size:11px;padding:6px 12px;border-radius:7px;border:.5px solid var(--borde);background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-suave);transition:all .15s}
+.sub-tipo-btn.active{background:var(--verde);color:#fff;border-color:transparent}
+.sub-tipo-btn:hover:not(.active){border-color:var(--verde);color:var(--verde)}
 
 /* TOAST */
 .toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--verde);color:#fff;padding:.9rem 1.4rem;border-radius:12px;font-size:13px;font-weight:500;box-shadow:var(--sombra-lg);z-index:400;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px;line-height:1.5}
@@ -740,24 +742,84 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <!-- MODAL GASTO -->
 <div class="overlay" id="ov-gasto" onclick="if(event.target===this)closeModalGasto()">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <button class="m-close" onclick="closeModalGasto()">✕</button>
-    <div class="m-tit">Agregar gasto</div><div class="m-sub">El sistema convierte automáticamente a USD y quintales</div>
+    <div class="m-tit">Agregar gasto</div>
+    <div class="m-sub">El sistema convierte automáticamente a USD y quintales por hectárea</div>
+
     <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Rubro *</label><select class="fi" id="g-rubro" style="cursor:pointer"><option value="">Seleccioná</option><option value="herbicidas">Herbicidas</option><option value="fungicidas">Fungicidas/Insect.</option><option value="fertilizantes">Fertilizantes</option><option value="semillas">Semillas</option><option value="labores">Labores</option><option value="cosecha">Cosecha</option><option value="flete">Flete</option><option value="arrendamiento">Arrendamiento</option><option value="otros">Otros</option></select></div>
+      <div class="fg">
+        <label class="fl">Rubro *</label>
+        <select class="fi" id="g-rubro" style="cursor:pointer" onchange="onRubroChange()">
+          <option value="">Seleccioná el rubro</option>
+          <option value="herbicidas">Herbicidas</option>
+          <option value="fungicidas">Fungicidas / Insecticidas</option>
+          <option value="fertilizantes">Fertilizantes</option>
+          <option value="semillas">Semillas</option>
+          <option value="laboreo">Laboreo</option>
+          <option value="otros">Otros</option>
+        </select>
+      </div>
       <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="g-fecha"/></div>
     </div>
-    <div class="fg"><label class="fl">Descripción</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480 · 3L/ha · 480ha"/></div>
-    <div class="form-row3" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Monto ($)</label><input class="fi" type="number" id="g-pesos" placeholder="0" oninput="calcConv()"/></div>
-      <div class="fg"><label class="fl">Tipo de cambio</label><input class="fi" type="number" id="g-tc" placeholder="1085" oninput="calcConv()"/></div>
-      <div class="fg"><label class="fl">Precio cereal</label><input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/></div>
+
+    <!-- Sub-tipos de laboreo -->
+    <div id="laboreo-subtipos" style="display:none;margin-bottom:.9rem">
+      <label class="fl">Tipo de labor *</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+        <button class="sub-tipo-btn" onclick="selSubTipo(this,'siembra')">🌱 Siembra</button>
+        <button class="sub-tipo-btn" onclick="selSubTipo(this,'fumigacion')">💧 Fumigación</button>
+        <button class="sub-tipo-btn" onclick="selSubTipo(this,'cosecha')">🌾 Cosecha</button>
+        <button class="sub-tipo-btn" onclick="selSubTipo(this,'fertilizacion')">⚗️ Fertilización</button>
+        <button class="sub-tipo-btn" onclick="selSubTipo(this,'labranza')">🚜 Labranza</button>
+      </div>
     </div>
-    <div class="conv-box">
+
+    <div class="fg"><label class="fl">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg">
+        <label class="fl">Unidad de medida</label>
+        <select class="fi" id="g-unidad" style="cursor:pointer" onchange="onUnidadChange()">
+          <option value="litros">Litros / ha (L/ha)</option>
+          <option value="kg">Kilogramos / ha (kg/ha)</option>
+          <option value="dosis">Dosis / ha</option>
+          <option value="total">Monto total ($)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl" id="g-cant-label">Cantidad (L/ha)</label>
+        <input class="fi" type="number" id="g-cantidad" placeholder="Ej: 3.5" min="0" step="0.01" oninput="calcConv()"/>
+      </div>
+      <div class="fg">
+        <label class="fl" id="g-precio-unit-label">Precio ($/L)</label>
+        <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 4500" min="0" oninput="calcConv()"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg">
+        <label class="fl">Hectáreas aplicadas</label>
+        <input class="fi" type="number" id="g-ha-aplicadas" placeholder="Automático del campo" min="0" oninput="calcConv()"/>
+      </div>
+      <div class="fg">
+        <label class="fl">O monto total ($)</label>
+        <input class="fi" type="number" id="g-pesos" placeholder="Se calcula automático" min="0" oninput="calcConvPesos()"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Tipo de cambio ($/USD)</label><input class="fi" type="number" id="g-tc" placeholder="1085" oninput="calcConv()"/></div>
+      <div class="fg"><label class="fl">Precio cereal ref. (USD/t)</label><input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/></div>
+    </div>
+
+    <div class="conv-box" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div><div class="conv-l">Monto total ($)</div><div class="conv-v" id="cv-pesos">—</div></div>
       <div><div class="conv-l">USD total</div><div class="conv-v" id="cv-usd">—</div></div>
       <div><div class="conv-l">USD/ha</div><div class="conv-v" id="cv-usdha">—</div></div>
       <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
     </div>
+
     <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
   </div>
 </div>
@@ -1041,16 +1103,25 @@ function renderRentabilidad() {
   if (!gf.length) {
     elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
   } else {
-    elG.innerHTML = gf.map(g=>`<div class="gasto-row">
-      <span class="gtag r-${g.rubro||'otros'}">${RUBROS[g.rubro]||g.rubro||'Otros'}</span>
-      <div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">${g.descripcion||'Sin descripción'}</div><div style="font-size:10px;color:var(--texto-suave)">${fFecha(g.fecha)}</div></div>
-      <div style="text-align:right">
-        <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.pesos||0).toLocaleString('es-AR')}</div>
-        <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.usd_total||0).toLocaleString('es-AR')}</div>
-        ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
-      </div>
-      <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
-    </div>`).join('')
+    elG.innerHTML = gf.map(g=>{
+      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+      var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
+      var subLabel = g.sub_tipo ? ` · ${SUBS[g.sub_tipo]||g.sub_tipo}` : ''
+      var cantStr = g.cantidad && g.unidad ? ` · ${g.cantidad} ${g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad}` : ''
+      return `<div class="gasto-row">
+        <span class="gtag r-${g.rubro||'otros'}">${(RUBS[g.rubro]||g.rubro||'Otros')+subLabel}</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:var(--texto-mid)">${g.descripcion||'Sin descripción'}${cantStr}</div>
+          <div style="font-size:10px;color:var(--texto-suave)">${fFecha(g.fecha)}${g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.pesos||0).toLocaleString('es-AR')}</div>
+          <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.usd_total||0).toLocaleString('es-AR')}</div>
+          ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
+        </div>
+        <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
+      </div>`
+    }).join('')
   }
 
   // Resumen financiero
@@ -1691,56 +1762,121 @@ window.guardarCampo = async function() {
 }
 
 // ── CRUD GASTOS ──
+var gastoSubTipo = null
+window.onRubroChange = function() {
+  var rubro = document.getElementById('g-rubro').value
+  var subDiv = document.getElementById('laboreo-subtipos')
+  if(subDiv) subDiv.style.display = rubro==='laboreo' ? 'block' : 'none'
+  if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
+  // Ajustar unidad y labels según rubro
+  var unidad = document.getElementById('g-unidad')
+  var cantLabel = document.getElementById('g-cant-label')
+  var precLabel = document.getElementById('g-precio-unit-label')
+  if(rubro==='herbicidas'||rubro==='fungicidas') {
+    if(unidad) unidad.value='litros'
+    if(cantLabel) cantLabel.textContent='Cantidad (L/ha)'
+    if(precLabel) precLabel.textContent='Precio ($/L)'
+  } else if(rubro==='fertilizantes'||rubro==='semillas') {
+    if(unidad) unidad.value='kg'
+    if(cantLabel) cantLabel.textContent='Cantidad (kg/ha)'
+    if(precLabel) precLabel.textContent='Precio ($/kg)'
+  } else if(rubro==='laboreo') {
+    if(unidad) unidad.value='total'
+    if(cantLabel) cantLabel.textContent='Cantidad'
+    if(precLabel) precLabel.textContent='Precio ($/ha)'
+  }
+}
+window.onUnidadChange = function() {
+  var unidad = document.getElementById('g-unidad').value
+  var cantLabel = document.getElementById('g-cant-label')
+  var precLabel = document.getElementById('g-precio-unit-label')
+  var labels = {litros:['Cantidad (L/ha)','Precio ($/L)'],kg:['Cantidad (kg/ha)','Precio ($/kg)'],dosis:['Dosis/ha','Precio ($/dosis)'],total:['—','—']}
+  var l = labels[unidad]||labels.litros
+  if(cantLabel) cantLabel.textContent = l[0]
+  if(precLabel) precLabel.textContent = l[1]
+}
+window.selSubTipo = function(btn, tipo) {
+  document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active')
+  gastoSubTipo = tipo
+}
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
-  document.getElementById('g-tc').value=precios.bna
-  document.getElementById('g-precio').value=precios.soja
-  document.getElementById('g-fecha').value=new Date().toISOString().split('T')[0]
+  document.getElementById('g-tc').value = precios.bna
+  document.getElementById('g-precio').value = precios.soja
+  document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
+  var c = campos.find(f=>f.id===campoRent)||campos[0]
+  if(c?.hectareas) document.getElementById('g-ha-aplicadas').value = c.hectareas
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
-  var pesos=parseFloat(document.getElementById('g-pesos').value)||0
-  var tc=parseFloat(document.getElementById('g-tc').value)||precios.bna
-  var precio=parseFloat(document.getElementById('g-precio').value)||precios.soja
-  var campo=campos.find(c=>c.id===campoRent)||campos[0]
-  var ha=campo?.hectareas||1
-  var usd=pesos/tc
-  document.getElementById('cv-usd').textContent='USD '+Math.round(usd).toLocaleString('es-AR')
-  document.getElementById('cv-usdha').textContent='USD '+(usd/ha).toFixed(1)+'/ha'
-  document.getElementById('cv-qq').textContent=((usd/ha)/precio*10).toFixed(2)+' qq/ha'
+  var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
+  var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
+  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
+  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
+  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
+  if(cantidad && precioUnit) {
+    var pesosTotal = cantidad * precioUnit * ha
+    document.getElementById('g-pesos').value = Math.round(pesosTotal)
+    document.getElementById('cv-pesos').textContent = '$ '+Math.round(pesosTotal).toLocaleString('es-AR')
+    var usd = pesosTotal/tc
+    document.getElementById('cv-usd').textContent = 'USD '+Math.round(usd).toLocaleString('es-AR')
+    document.getElementById('cv-usdha').textContent = 'USD '+(usd/ha).toFixed(1)+'/ha'
+    document.getElementById('cv-qq').textContent = ((usd/ha)/prCereal*10).toFixed(2)+' qq/ha'
+  }
+}
+window.calcConvPesos = function() {
+  var pesos = parseFloat(document.getElementById('g-pesos')?.value)||0
+  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
+  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
+  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
+  if(pesos) {
+    document.getElementById('cv-pesos').textContent = '$ '+Math.round(pesos).toLocaleString('es-AR')
+    var usd = pesos/tc
+    document.getElementById('cv-usd').textContent = 'USD '+Math.round(usd).toLocaleString('es-AR')
+    document.getElementById('cv-usdha').textContent = 'USD '+(usd/ha).toFixed(1)+'/ha'
+    document.getElementById('cv-qq').textContent = ((usd/ha)/prCereal*10).toFixed(2)+' qq/ha'
+  }
 }
 window.guardarGasto = async function() {
-  var rubro=document.getElementById('g-rubro').value
-  var fecha=document.getElementById('g-fecha').value
-  var pesos=parseFloat(document.getElementById('g-pesos').value)
-  var tc=parseFloat(document.getElementById('g-tc').value)||precios.bna
-  var precio=parseFloat(document.getElementById('g-precio').value)||precios.soja
+  var rubro = document.getElementById('g-rubro').value
+  var fecha = document.getElementById('g-fecha').value
+  var pesos = parseFloat(document.getElementById('g-pesos').value)
+  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
+  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
+  if(rubro==='laboreo'&&!gastoSubTipo){showToast('⚠️ Seleccioná el tipo de labor','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
   if(!pesos||pesos<=0){showToast('⚠️ Ingresá el monto','err');return}
   if(!usuario){showToast('⚠️ Sesión expirada','err');return}
-  var campoId = campoRent==='todos'?campos[0]?.id:campoRent
+  var campoId = campoRent==='todos' ? campos[0]?.id : campoRent
   if(!campoId){showToast('⚠️ Seleccioná un campo','err');return}
-  var campo=campos.find(c=>c.id===campoId)
-  var ha=campo?.hectareas||1
-  var usdTotal=pesos/tc
-  var btn=document.getElementById('btn-gasto')
-  btn.disabled=true;btn.textContent='Guardando...'
+  var campo = campos.find(c=>c.id===campoId)
+  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||campo?.hectareas||1
+  var usdTotal = pesos/tc
+  var btn = document.getElementById('btn-gasto')
+  btn.disabled=true; btn.textContent='Guardando...'
   try{
-    const {data,error}=await sb.from('gastos').insert({
-      campo_id:campoId,usuario_id:usuario.id,rubro,fecha,
-      descripcion:document.getElementById('g-desc').value.trim()||null,
-      pesos,tipo_cambio:tc,precio_cereal:precio,hectareas:ha,
-      usd_total:usdTotal,usd_ha:usdTotal/ha,qq_ha:(usdTotal/ha)/precio*10
+    const {data,error} = await sb.from('gastos').insert({
+      campo_id:campoId, usuario_id:usuario.id, rubro, fecha,
+      sub_tipo: gastoSubTipo||null,
+      descripcion: document.getElementById('g-desc').value.trim()||null,
+      cantidad: parseFloat(document.getElementById('g-cantidad')?.value)||null,
+      unidad: document.getElementById('g-unidad')?.value||null,
+      precio_unitario: parseFloat(document.getElementById('g-precio-unit')?.value)||null,
+      ha_aplicadas: ha, pesos, tipo_cambio:tc, precio_cereal:prCereal,
+      usd_total:usdTotal, usd_ha:usdTotal/ha, qq_ha:(usdTotal/ha)/prCereal*10
     }).select().single()
-    if(error)throw error
+    if(error) throw error
     gastos.unshift(data)
-    renderRentabilidad()
-    renderDashboard()
+    renderRentabilidad(); renderDashboard()
     closeModalGasto()
     showToast('✓ Gasto guardado correctamente','ok')
-    ;['g-rubro','g-desc','g-pesos'].forEach(id=>{ var el=document.getElementById(id); if(el)el.value='' })
-    ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{ var el=document.getElementById(id); if(el)el.textContent='—' })
+    ;['g-rubro','g-desc','g-pesos','g-cantidad','g-precio-unit','g-ha-aplicadas'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    ;['cv-pesos','cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
+    document.getElementById('laboreo-subtipos').style.display='none'
+    gastoSubTipo=null
+    document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
   finally{btn.disabled=false;btn.textContent='Guardar gasto'}
 }

@@ -1872,8 +1872,6 @@ window.guardarGasto = async function() {
     if(unidad) _p.unidad = unidad
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
-    var descVal = document.getElementById("g-desc")?.value?.trim()
-    if(descVal) _p.observacion = descVal
     const {data,error} = await sb.from("gastos").insert(_p).select().single()
 
 

@@ -782,9 +782,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <label class="fl">Unidad de medida</label>
         <select class="fi" id="g-unidad" style="cursor:pointer" onchange="onUnidadChange()">
           <option value="litros">Litros / ha (L/ha)</option>
-          <option value="kg">Kilogramos / ha (kg/ha)</option>
+          <option value="kg">kg / ha</option>
           <option value="dosis">Dosis / ha</option>
-          <option value="total">Monto total ($)</option>
+          <option value="usd_ha">USD / ha directo</option>
         </select>
       </div>
       <div class="fg">
@@ -792,8 +792,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="number" id="g-cantidad" placeholder="Ej: 3.5" min="0" step="0.01" oninput="calcConv()"/>
       </div>
       <div class="fg">
-        <label class="fl" id="g-precio-unit-label">Precio ($/L)</label>
-        <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 4500" min="0" oninput="calcConv()"/>
+        <label class="fl" id="g-precio-unit-label">Precio (USD/L)</label>
+        <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 3.2" min="0" step="0.01" oninput="calcConv()"/>
       </div>
     </div>
 
@@ -803,18 +803,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="number" id="g-ha-aplicadas" placeholder="Automático del campo" min="0" oninput="calcConv()"/>
       </div>
       <div class="fg">
-        <label class="fl">O monto total ($)</label>
-        <input class="fi" type="number" id="g-pesos" placeholder="Se calcula automático" min="0" oninput="calcConvPesos()"/>
+        <label class="fl">Precio cereal ref. (USD/t)</label>
+        <input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Tipo de cambio ($/USD)</label><input class="fi" type="number" id="g-tc" placeholder="1085" oninput="calcConv()"/></div>
-      <div class="fg"><label class="fl">Precio cereal ref. (USD/t)</label><input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/></div>
-    </div>
-
-    <div class="conv-box" style="grid-template-columns:1fr 1fr 1fr 1fr">
-      <div><div class="conv-l">Monto total ($)</div><div class="conv-v" id="cv-pesos">—</div></div>
+    <!-- Resultado calculado -->
+    <div class="conv-box" style="grid-template-columns:1fr 1fr 1fr">
       <div><div class="conv-l">USD total</div><div class="conv-v" id="cv-usd">—</div></div>
       <div><div class="conv-l">USD/ha</div><div class="conv-v" id="cv-usdha">—</div></div>
       <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
@@ -1768,30 +1763,29 @@ window.onRubroChange = function() {
   var subDiv = document.getElementById('laboreo-subtipos')
   if(subDiv) subDiv.style.display = rubro==='laboreo' ? 'block' : 'none'
   if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
-  // Ajustar unidad y labels según rubro
   var unidad = document.getElementById('g-unidad')
   var cantLabel = document.getElementById('g-cant-label')
   var precLabel = document.getElementById('g-precio-unit-label')
   if(rubro==='herbicidas'||rubro==='fungicidas') {
     if(unidad) unidad.value='litros'
     if(cantLabel) cantLabel.textContent='Cantidad (L/ha)'
-    if(precLabel) precLabel.textContent='Precio ($/L)'
+    if(precLabel) precLabel.textContent='Precio (USD/L)'
   } else if(rubro==='fertilizantes'||rubro==='semillas') {
     if(unidad) unidad.value='kg'
     if(cantLabel) cantLabel.textContent='Cantidad (kg/ha)'
-    if(precLabel) precLabel.textContent='Precio ($/kg)'
+    if(precLabel) precLabel.textContent='Precio (USD/kg)'
   } else if(rubro==='laboreo') {
-    if(unidad) unidad.value='total'
-    if(cantLabel) cantLabel.textContent='Cantidad'
-    if(precLabel) precLabel.textContent='Precio ($/ha)'
+    if(unidad) unidad.value='usd_ha'
+    if(cantLabel) cantLabel.textContent='—'
+    if(precLabel) precLabel.textContent='Precio (USD/ha)'
   }
 }
 window.onUnidadChange = function() {
   var unidad = document.getElementById('g-unidad').value
   var cantLabel = document.getElementById('g-cant-label')
   var precLabel = document.getElementById('g-precio-unit-label')
-  var labels = {litros:['Cantidad (L/ha)','Precio ($/L)'],kg:['Cantidad (kg/ha)','Precio ($/kg)'],dosis:['Dosis/ha','Precio ($/dosis)'],total:['—','—']}
-  var l = labels[unidad]||labels.litros
+  var map = {litros:['Cantidad (L/ha)','Precio (USD/L)'],kg:['Cantidad (kg/ha)','Precio (USD/kg)'],dosis:['Dosis/ha','Precio (USD/dosis)'],usd_ha:['—','Precio (USD/ha)']}
+  var l = map[unidad]||map.litros
   if(cantLabel) cantLabel.textContent = l[0]
   if(precLabel) precLabel.textContent = l[1]
 }
@@ -1802,7 +1796,6 @@ window.selSubTipo = function(btn, tipo) {
 }
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
-  document.getElementById('g-tc').value = precios.bna
   document.getElementById('g-precio').value = precios.soja
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===campoRent)||campos[0]
@@ -1813,71 +1806,87 @@ window.calcConv = function() {
   var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
   var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
-  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
-  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
-  if(cantidad && precioUnit) {
-    var pesosTotal = cantidad * precioUnit * ha
-    document.getElementById('g-pesos').value = Math.round(pesosTotal)
-    document.getElementById('cv-pesos').textContent = '$ '+Math.round(pesosTotal).toLocaleString('es-AR')
-    var usd = pesosTotal/tc
-    document.getElementById('cv-usd').textContent = 'USD '+Math.round(usd).toLocaleString('es-AR')
-    document.getElementById('cv-usdha').textContent = 'USD '+(usd/ha).toFixed(1)+'/ha'
-    document.getElementById('cv-qq').textContent = ((usd/ha)/prCereal*10).toFixed(2)+' qq/ha'
+  var prCereal = parseFloat(document.getElementById('g-precio')?.value)||precios.soja
+  var unidad = document.getElementById('g-unidad')?.value||'litros'
+  var usdTotal = 0
+  if(unidad === 'usd_ha') {
+    // precio directo USD/ha
+    usdTotal = precioUnit * ha
+  } else if(cantidad && precioUnit) {
+    usdTotal = cantidad * precioUnit * ha
   }
-}
-window.calcConvPesos = function() {
-  var pesos = parseFloat(document.getElementById('g-pesos')?.value)||0
-  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
-  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
-  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
-  if(pesos) {
-    document.getElementById('cv-pesos').textContent = '$ '+Math.round(pesos).toLocaleString('es-AR')
-    var usd = pesos/tc
-    document.getElementById('cv-usd').textContent = 'USD '+Math.round(usd).toLocaleString('es-AR')
-    document.getElementById('cv-usdha').textContent = 'USD '+(usd/ha).toFixed(1)+'/ha'
-    document.getElementById('cv-qq').textContent = ((usd/ha)/prCereal*10).toFixed(2)+' qq/ha'
+  if(usdTotal > 0) {
+    document.getElementById('cv-usd').textContent = 'USD ' + usdTotal.toLocaleString('es-AR', {maximumFractionDigits:2})
+    document.getElementById('cv-usdha').textContent = 'USD ' + (usdTotal/ha).toFixed(2) + '/ha'
+    document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
   }
 }
 window.guardarGasto = async function() {
   var rubro = document.getElementById('g-rubro').value
   var fecha = document.getElementById('g-fecha').value
-  var pesos = parseFloat(document.getElementById('g-pesos').value)
-  var tc = parseFloat(document.getElementById('g-tc').value)||precios.bna
-  var prCereal = parseFloat(document.getElementById('g-precio').value)||precios.soja
+  var prCereal = parseFloat(document.getElementById('g-precio')?.value)||precios.soja
+  var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||null
+  var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||null
+  var unidad = document.getElementById('g-unidad')?.value||'litros'
+  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||0
+
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
   if(rubro==='laboreo'&&!gastoSubTipo){showToast('⚠️ Seleccioná el tipo de labor','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
-  if(!pesos||pesos<=0){showToast('⚠️ Ingresá el monto','err');return}
-  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada — volvé a ingresar','err');return}
+
   var campoId = campoRent==='todos' ? campos[0]?.id : campoRent
   if(!campoId){showToast('⚠️ Seleccioná un campo','err');return}
   var campo = campos.find(c=>c.id===campoId)
-  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||campo?.hectareas||1
-  var usdTotal = pesos/tc
+  var haFinal = ha || campo?.hectareas || 1
+
+  // Calcular USD total según unidad
+  var usdTotal = 0
+  if(unidad === 'usd_ha') {
+    usdTotal = precioUnit * haFinal
+  } else if(cantidad) {
+    usdTotal = cantidad * precioUnit * haFinal
+  } else {
+    usdTotal = precioUnit * haFinal
+  }
+
+  var usdHa = usdTotal / haFinal
+  var qqHa = usdHa / prCereal * 10
+
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
     const {data,error} = await sb.from('gastos').insert({
-      campo_id:campoId, usuario_id:usuario.id, rubro, fecha,
+      campo_id: campoId,
+      usuario_id: usuario.id,
+      rubro,
+      fecha,
       sub_tipo: gastoSubTipo||null,
-      descripcion: document.getElementById('g-desc').value.trim()||null,
-      cantidad: parseFloat(document.getElementById('g-cantidad')?.value)||null,
-      unidad: document.getElementById('g-unidad')?.value||null,
-      precio_unitario: parseFloat(document.getElementById('g-precio-unit')?.value)||null,
-      ha_aplicadas: ha, pesos, tipo_cambio:tc, precio_cereal:prCereal,
-      usd_total:usdTotal, usd_ha:usdTotal/ha, qq_ha:(usdTotal/ha)/prCereal*10
+      descripcion: document.getElementById('g-desc')?.value.trim()||null,
+      cantidad: cantidad,
+      unidad: unidad,
+      precio_unitario: precioUnit,
+      ha_aplicadas: haFinal,
+      usd_total: usdTotal,
+      usd_ha: usdHa,
+      qq_ha: qqHa
     }).select().single()
     if(error) throw error
     gastos.unshift(data)
-    renderRentabilidad(); renderDashboard()
+    renderRentabilidad()
+    renderDashboard()
     closeModalGasto()
-    showToast('✓ Gasto guardado correctamente','ok')
-    ;['g-rubro','g-desc','g-pesos','g-cantidad','g-precio-unit','g-ha-aplicadas'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
-    ;['cv-pesos','cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
+    showToast('✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
+    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
-  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
+  }catch(e){
+    console.error('Error guardando gasto:', e)
+    showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')
+  }
   finally{btn.disabled=false;btn.textContent='Guardar gasto'}
 }
 window.eliminarGasto = async function(id) {

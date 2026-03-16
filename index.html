@@ -3,20 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Rinde.Agro · Rentabilidad agropecuaria argentina</title>
-<meta name="description" content="Conocé exactamente cuánto rinde tu campaña. Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico — todo desde el celular."/>
-<meta property="og:title" content="Rinde.Agro · Rentabilidad agropecuaria"/>
-<meta property="og:description" content="La plataforma agropecuaria argentina para productores que quieren saber exactamente cuánto rinde su campaña."/>
-<meta property="og:type" content="website"/>
+<title>Rinde.Agro · Plataforma agropecuaria argentina</title>
+<meta name="description" content="Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico — todo desde el celular."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --verde:#1a4a2e;--verde-mid:#2d6e47;--verde-light:#3d8f5f;--verde-pale:#e8f5ee;
   --dorado:#c9a84c;--dorado-light:#e8c97a;--dorado-pale:#fdf8ec;
-  --crema:#faf7f0;--crema-dark:#f0ead8;--crema-mid:#f5f0e4;
+  --crema:#faf7f0;--crema-dark:#f0ead8;
   --texto:#1a1a18;--texto-mid:#3d3d38;--texto-suave:#7a7a6e;
-  --blanco:#ffffff;--borde:rgba(26,74,46,.12);--borde-dorado:rgba(201,168,76,.25);
+  --blanco:#ffffff;--borde:rgba(26,74,46,.12);
+  --rojo:#c0392b;--rojo-pale:#fdecea;
+  --amber:#c97a14;--amber-pale:#fdf3e3;
+  --azul:#1a5fa8;--azul-pale:#e8f0fb;
   --sombra:0 4px 24px rgba(26,74,46,.08);
   --sombra-md:0 8px 32px rgba(26,74,46,.12);
   --sombra-lg:0 16px 56px rgba(26,74,46,.16);
@@ -28,43 +31,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 /* ── LOADING ── */
 #screen-loading{position:fixed;inset:0;background:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .5s}
 #screen-loading.fade{opacity:0;pointer-events:none}
-.loading-logo{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--crema);margin-bottom:1.5rem;letter-spacing:-.02em}
-.loading-logo span{color:var(--dorado)}
+.loading-logo{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--crema);margin-bottom:1.5rem}
+.loading-logo .d{color:var(--dorado)}
 .loading-logo .a{font-size:20px;font-weight:400;font-style:italic;opacity:.8}
-.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--dorado);border-radius:50%;animation:spin .8s linear infinite}
+.spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--dorado);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:1rem;letter-spacing:.06em;text-transform:uppercase}
+.loading-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:1rem;letter-spacing:.08em;text-transform:uppercase}
 
 /* ── SCREENS ── */
 .screen{display:none}.screen.active{display:block}
 
 /* ══════════════════════════════
-   LANDING PAGE
+   LANDING
 ══════════════════════════════ */
-
-/* NAV */
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;transition:all .3s}
 .nav.scrolled{background:rgba(250,247,240,.95);backdrop-filter:blur(16px);border-bottom:.5px solid var(--borde);box-shadow:0 2px 20px rgba(26,74,46,.06)}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
-.logo-mark{width:38px;height:38px;background:var(--verde);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(26,74,46,.3)}
-.logo-mark::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;background:var(--dorado);opacity:.5}
-.logo-mark svg{position:relative;z-index:1}
-.logo-text{line-height:1}
-.logo-nombre{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--verde);letter-spacing:-.01em}
-.logo-nombre .d{color:var(--dorado)}
-.logo-agro{font-size:12px;font-weight:400;color:var(--dorado);font-style:italic;opacity:.9}
+.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.logo-mk{width:38px;height:38px;background:var(--verde);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(26,74,46,.3)}
+.logo-mk::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;background:var(--dorado);opacity:.5}
+.logo-mk svg{position:relative;z-index:1}
+.logo-txt{line-height:1}
+.logo-n{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--verde);letter-spacing:-.01em}
+.logo-n .d{color:var(--dorado)}
+.logo-ag{font-size:12px;font-weight:400;color:var(--dorado);font-style:italic}
 .nav-links{display:flex;align-items:center;gap:2rem}
-.nav-links a{font-size:13px;font-weight:500;color:var(--texto-mid);text-decoration:none;transition:color .2s;position:relative}
-.nav-links a::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:1.5px;background:var(--verde);transform:scaleX(0);transition:transform .2s}
+.nav-links a{font-size:13px;font-weight:500;color:var(--texto-mid);text-decoration:none;transition:color .2s}
 .nav-links a:hover{color:var(--verde)}
-.nav-links a:hover::after{transform:scaleX(1)}
 .nav-ctas{display:flex;align-items:center;gap:10px}
 .btn-ghost{font-size:13px;font-weight:500;padding:8px 18px;border-radius:8px;border:1px solid var(--borde);background:transparent;color:var(--texto-mid);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
-.btn-ghost:hover{border-color:var(--verde);color:var(--verde);background:var(--verde-pale)}
-.btn-primary{font-size:13px;font-weight:600;padding:8px 20px;border-radius:8px;border:none;background:var(--verde);color:#fff;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;box-shadow:0 2px 10px rgba(26,74,46,.2)}
-.btn-primary:hover{background:var(--verde-mid);transform:translateY(-1px);box-shadow:0 4px 16px rgba(26,74,46,.28)}
-
-/* HERO */
+.btn-ghost:hover{border-color:var(--verde);color:var(--verde)}
+.btn-primary{font-size:13px;font-weight:600;padding:8px 20px;border-radius:8px;border:none;background:var(--verde);color:#fff;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-primary:hover{background:var(--verde-mid);transform:translateY(-1px)}
 .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;overflow:hidden;padding:8rem 2rem 5rem;text-align:center}
 .hero-bg{position:absolute;inset:0;background:linear-gradient(160deg,var(--crema) 0%,var(--crema-dark) 45%,#e4d9c0 100%)}
 .hero-pattern{position:absolute;inset:0;opacity:.03;background-image:repeating-linear-gradient(0deg,var(--verde),var(--verde) 1px,transparent 1px,transparent 52px),repeating-linear-gradient(90deg,var(--verde),var(--verde) 1px,transparent 1px,transparent 52px)}
@@ -72,131 +69,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .hero-glow2{position:absolute;bottom:-20%;left:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(26,74,46,.07) 0%,transparent 65%);border-radius:50%;animation:float 10s ease-in-out infinite reverse}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
 .hero-content{position:relative;z-index:2;max-width:780px;margin:0 auto}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dorado);background:rgba(201,168,76,.1);border:1px solid var(--borde-dorado);padding:6px 16px;border-radius:20px;margin-bottom:2rem;animation:fadeUp .6s ease both}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dorado);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);padding:6px 16px;border-radius:20px;margin-bottom:2rem}
 .hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--dorado);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
-.hero h1{font-family:'Playfair Display',serif;font-size:clamp(44px,6.5vw,80px);font-weight:700;line-height:1.04;letter-spacing:-.03em;color:var(--verde);margin-bottom:1.5rem;animation:fadeUp .7s ease .1s both}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(44px,6.5vw,78px);font-weight:700;line-height:1.04;letter-spacing:-.03em;color:var(--verde);margin-bottom:1.5rem}
 .hero h1 em{font-style:italic;color:var(--dorado)}
-.hero h1 .linea2{display:block}
-.hero-sub{font-size:18px;font-weight:400;color:var(--texto-mid);line-height:1.8;margin-bottom:3rem;max-width:580px;margin-left:auto;margin-right:auto;animation:fadeUp .7s ease .2s both}
-.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;animation:fadeUp .7s ease .3s both}
-.btn-hero{font-size:15px;font-weight:600;padding:15px 34px;border-radius:10px;cursor:pointer;transition:all .25s;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:9px;border:none;text-decoration:none;letter-spacing:-.01em}
+.hero-sub{font-size:18px;color:var(--texto-mid);line-height:1.8;margin-bottom:3rem;max-width:580px;margin-left:auto;margin-right:auto}
+.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem}
+.btn-hero{font-size:15px;font-weight:600;padding:15px 34px;border-radius:10px;cursor:pointer;transition:all .25s;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:9px;border:none;text-decoration:none}
 .btn-verde{background:var(--verde);color:#fff;box-shadow:0 6px 24px rgba(26,74,46,.3)}
-.btn-verde:hover{background:var(--verde-mid);transform:translateY(-2px);box-shadow:0 10px 32px rgba(26,74,46,.35)}
+.btn-verde:hover{background:var(--verde-mid);transform:translateY(-2px)}
 .btn-outline{background:transparent;color:var(--verde);border:2px solid var(--verde)}
-.btn-outline:hover{background:var(--verde);color:#fff;transform:translateY(-1px)}
-.hero-trust{font-size:12px;color:var(--texto-suave);animation:fadeUp .7s ease .4s both;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.btn-outline:hover{background:var(--verde);color:#fff}
+.hero-trust{font-size:12px;color:var(--texto-suave);display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
 .hero-trust .dot{width:3px;height:3px;background:var(--texto-suave);border-radius:50%}
-
-/* Stats bar */
-.stats-bar{position:relative;z-index:2;display:flex;justify-content:center;gap:0;margin-top:4rem;border-top:.5px solid var(--borde);border-bottom:.5px solid var(--borde);padding:1.5rem 0;animation:fadeUp .7s ease .5s both;flex-wrap:wrap}
+.stats-bar{position:relative;z-index:2;display:flex;justify-content:center;gap:0;margin-top:4rem;border-top:.5px solid var(--borde);border-bottom:.5px solid var(--borde);padding:1.5rem 0;flex-wrap:wrap}
 .stat{padding:.75rem 3rem;text-align:center;border-right:.5px solid var(--borde)}
 .stat:last-child{border-right:none}
 .stat-val{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--verde);line-height:1}
 .stat-val .d{color:var(--dorado)}
 .stat-lbl{font-size:11px;font-weight:500;color:var(--texto-suave);margin-top:5px;letter-spacing:.04em}
-
-/* Mockup flotante */
-.hero-mockup{position:relative;z-index:2;margin-top:5rem;max-width:900px;margin-left:auto;margin-right:auto;animation:fadeUp .8s ease .5s both}
-.browser{background:var(--blanco);border-radius:18px;box-shadow:var(--sombra-lg),0 0 0 1px var(--borde);overflow:hidden}
-.browser-bar{background:#f2ede3;padding:11px 18px;display:flex;align-items:center;gap:8px;border-bottom:.5px solid var(--borde)}
-.b-dots{display:flex;gap:6px}
-.b-dot{width:11px;height:11px;border-radius:50%}
-.b-url{flex:1;margin:0 14px;background:rgba(26,74,46,.06);border-radius:7px;padding:5px 14px;font-size:11px;color:var(--texto-suave);font-family:'DM Mono',monospace}
-.dash-preview{padding:1.5rem;background:var(--crema)}
-.dp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px}
-.dp-saludo{font-size:14px;font-weight:600;color:var(--verde);font-family:'Playfair Display',serif}
-.dp-precio{font-size:11px;font-weight:500;background:rgba(201,168,76,.12);color:var(--dorado);padding:5px 14px;border-radius:20px;border:1px solid var(--borde-dorado)}
-.dp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
-.dp-card{background:var(--blanco);border-radius:12px;padding:.9rem;border:.5px solid var(--borde);transition:all .2s}
-.dpc-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--texto-suave);margin-bottom:4px}
-.dpc-val{font-size:17px;font-weight:700;font-family:'Playfair Display',serif;color:var(--verde)}
-.dpc-val.d{color:var(--dorado)}
-.dpc-sub{font-size:9px;color:var(--texto-suave);margin-top:3px}
-.dp-bottom{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
-.dp-chart-box{background:var(--blanco);border-radius:12px;padding:.9rem;border:.5px solid var(--borde)}
-.dpc-title{font-size:10px;font-weight:600;color:var(--texto-mid);margin-bottom:.6rem}
-.mini-bars{display:flex;align-items:flex-end;gap:4px;height:42px}
-.mb{border-radius:4px 4px 0 0;flex:1;transition:height .3s}
-.campo-list{display:flex;flex-direction:column;gap:6px}
-.campo-row-mini{display:flex;align-items:center;gap:6px;font-size:10px}
-.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── COMO FUNCIONA ── */
-.como-funciona{padding:8rem 2rem;background:var(--verde);position:relative;overflow:hidden}
-.como-funciona::before{content:'';position:absolute;top:-40%;right:-15%;width:700px;height:700px;background:radial-gradient(circle,rgba(201,168,76,.1) 0%,transparent 65%);border-radius:50%}
-.cf-inner{max-width:960px;margin:0 auto;position:relative;z-index:1}
+.features-sec{padding:8rem 2rem;background:var(--blanco)}
 .s-eye{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dorado);margin-bottom:.7rem;text-align:center}
-.s-tit{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,46px);font-weight:700;text-align:center;line-height:1.12;margin-bottom:.9rem}
-.s-tit.claro{color:var(--crema)}
-.s-sub{font-size:15px;text-align:center;max-width:500px;margin:0 auto 4rem;line-height:1.75}
-.s-sub.claro{color:rgba(250,247,240,.65)}
-.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
-.paso{position:relative}
-.paso::after{content:'→';position:absolute;right:-20px;top:28px;font-size:24px;color:rgba(201,168,76,.4);display:none}
-.paso-num{width:52px;height:52px;border-radius:14px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--dorado);margin-bottom:1.25rem}
-.paso-tit{font-size:17px;font-weight:600;color:var(--crema);margin-bottom:.6rem}
-.paso-desc{font-size:13px;color:rgba(250,247,240,.62);line-height:1.7}
-
-/* ── FEATURES ── */
-.features{padding:8rem 2rem;background:var(--blanco)}
+.s-tit{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,46px);font-weight:700;text-align:center;line-height:1.12;margin-bottom:.9rem;color:var(--verde)}
+.s-sub{font-size:15px;text-align:center;max-width:500px;margin:0 auto 4rem;line-height:1.75;color:var(--texto-mid)}
 .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:960px;margin:0 auto}
-.feat{padding:2rem;border-radius:18px;border:.5px solid var(--borde);background:var(--crema);transition:all .3s;position:relative;overflow:hidden}
-.feat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--dorado),transparent);transform:scaleX(0);transition:transform .3s}
+.feat{padding:2rem;border-radius:18px;border:.5px solid var(--borde);background:var(--crema);transition:all .3s}
 .feat:hover{border-color:rgba(26,74,46,.2);box-shadow:var(--sombra-md);transform:translateY(-4px)}
-.feat:hover::before{transform:scaleX(1)}
 .feat-ico{width:48px;height:48px;border-radius:14px;background:rgba(26,74,46,.06);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:1.1rem}
 .feat-tit{font-size:15px;font-weight:600;color:var(--verde);margin-bottom:.5rem}
 .feat-desc{font-size:13px;color:var(--texto-mid);line-height:1.7}
-
-/* ── WA SECTION ── */
-.wa-sec{padding:8rem 2rem;background:var(--crema-dark)}
-.wa-inner{max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center}
-.wa-feat{display:flex;gap:14px;margin-bottom:1.5rem;align-items:flex-start}
-.wa-feat-ico{width:40px;height:40px;border-radius:10px;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.wa-feat-tit{font-size:14px;font-weight:600;color:var(--verde);margin-bottom:3px}
-.wa-feat-desc{font-size:13px;color:var(--texto-mid);line-height:1.6}
-.wa-phone{background:var(--verde);border-radius:20px;padding:1.5rem;box-shadow:var(--sombra-lg)}
-.wa-ph{display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding-bottom:1rem;border-bottom:.5px solid rgba(255,255,255,.1)}
-.wa-av{width:34px;height:34px;border-radius:50%;background:var(--dorado);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.wa-nm{font-size:13px;font-weight:600;color:var(--crema)}
-.wa-st{font-size:10px;color:rgba(250,247,240,.5)}
-.msg{margin-bottom:8px;overflow:hidden}
-.bbl{display:inline-block;padding:8px 13px;border-radius:12px;font-size:12px;line-height:1.55;max-width:90%}
-.bbl-out{background:#005c4b;color:#e9edef;border-radius:12px 3px 12px 12px;float:right;clear:both}
-.bbl-in{background:rgba(255,255,255,.1);color:var(--crema);border-radius:3px 12px 12px 12px;float:left;clear:both}
-.clr{clear:both;height:3px}
-.wa-parsed{background:rgba(201,168,76,.15);border:.5px solid rgba(201,168,76,.35);border-radius:10px;padding:.6rem .9rem;margin-top:8px;font-size:11px;color:var(--dorado-light);clear:both}
-
-/* ── TESTIMONIOS ── */
-.testimonios{padding:8rem 2rem;background:var(--blanco)}
-.test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:960px;margin:0 auto}
-.test{padding:2rem;border-radius:18px;border:.5px solid var(--borde);background:var(--crema);position:relative}
-.test-comillas{font-family:'Playfair Display',serif;font-size:52px;color:var(--dorado);opacity:.3;line-height:.8;margin-bottom:.5rem}
-.test-texto{font-size:14px;color:var(--texto-mid);line-height:1.75;margin-bottom:1.5rem;font-style:italic}
-.test-autor{display:flex;align-items:center;gap:10px}
-.test-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0}
-.test-nombre{font-size:13px;font-weight:600;color:var(--verde)}
-.test-cargo{font-size:11px;color:var(--texto-suave)}
-.test-stars{color:var(--dorado);font-size:12px;margin-bottom:.3rem}
-
-/* ── PLANES ── */
-.planes{padding:8rem 2rem;background:var(--crema)}
-.planes-toggle{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:3rem}
-.toggle-track{position:relative;width:48px;height:26px;background:var(--borde);border-radius:13px;cursor:pointer;transition:background .2s;display:inline-block}
-.toggle-track.on{background:var(--verde)}
-.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.toggle-track.on .toggle-thumb{transform:translateX(22px)}
-.toggle-lbl{font-size:14px;color:var(--texto-suave);font-weight:500}
-.toggle-lbl.on{color:var(--verde);font-weight:600}
-.ahorro-badge{font-size:11px;padding:3px 10px;border-radius:8px;background:var(--verde-pale);color:var(--verde);font-weight:600;border:.5px solid rgba(26,74,46,.15)}
+.planes-sec{padding:8rem 2rem;background:var(--crema)}
 .planes-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;max-width:980px;margin:0 auto}
 .plan{border-radius:18px;padding:1.75rem 1.5rem;border:.5px solid var(--borde);background:var(--blanco);display:flex;flex-direction:column;position:relative;transition:all .2s}
-.plan:hover{border-color:rgba(26,74,46,.2);box-shadow:var(--sombra-md);transform:translateY(-3px)}
+.plan:hover{box-shadow:var(--sombra-md);transform:translateY(-3px)}
 .plan.pop{border:2px solid var(--verde);background:var(--verde)}
-.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10px;padding:4px 14px;border-radius:20px;background:var(--dorado);color:var(--verde);font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(201,168,76,.4)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10px;padding:4px 14px;border-radius:20px;background:var(--dorado);color:var(--verde);font-weight:700;white-space:nowrap}
 .pn{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--verde)}
 .plan.pop .pn{color:var(--dorado-light)}
 .ps{font-size:12px;color:var(--texto-suave);margin-bottom:1.25rem;line-height:1.5;min-height:36px}
@@ -206,184 +114,227 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .pp-g{color:var(--verde-light)!important}
 .pp-per{font-size:12px;color:var(--texto-suave);margin-top:4px;margin-bottom:1.25rem}
 .plan.pop .pp-per{color:rgba(250,247,240,.55)}
-.pp-equiv{font-size:11px;color:var(--verde);font-weight:500;margin-top:2px;min-height:16px}
-.plan.pop .pp-equiv{color:var(--dorado-light)}
 .pf{flex:1;display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem}
 .pfi{font-size:12px;display:flex;gap:6px;line-height:1.5;align-items:flex-start}
-.ok{color:#2d9e6b;font-weight:600;flex-shrink:0;margin-top:1px}
+.ok{color:#2d9e6b;font-weight:600;flex-shrink:0}
 .plan.pop .ok{color:var(--dorado)}
-.nok{color:var(--texto-suave);flex-shrink:0;margin-top:1px}
+.nok{color:var(--texto-suave);flex-shrink:0}
 .pfi-t{color:var(--texto-mid)}
 .plan.pop .pfi-t{color:rgba(250,247,240,.8)}
 .p-btn{width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:.5px solid var(--borde);background:transparent;color:var(--texto-mid)}
 .p-btn:hover{background:var(--crema);border-color:var(--verde);color:var(--verde)}
-.p-btn-pop{background:var(--dorado);color:var(--verde);border-color:transparent;box-shadow:0 4px 14px rgba(201,168,76,.35)}
-.p-btn-pop:hover{background:var(--dorado-light);transform:translateY(-1px)}
-
-/* ── FAQ ── */
-.faq{padding:8rem 2rem;background:var(--blanco)}
-.faq-list{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
-.faq-item{border:.5px solid var(--borde);border-radius:14px;overflow:hidden;transition:all .2s}
-.faq-item.open{border-color:rgba(26,74,46,.2);box-shadow:var(--sombra)}
-.faq-q{display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.4rem;cursor:pointer;font-size:14px;font-weight:500;color:var(--texto-mid);transition:color .2s}
-.faq-item.open .faq-q{color:var(--verde)}
-.faq-arrow{font-size:18px;color:var(--texto-suave);transition:transform .25s;flex-shrink:0}
-.faq-item.open .faq-arrow{transform:rotate(45deg);color:var(--verde)}
-.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s}
-.faq-item.open .faq-a{max-height:200px;padding:0 1.4rem 1.1rem}
-.faq-a p{font-size:13px;color:var(--texto-mid);line-height:1.75}
-
-/* ── CTA FINAL ── */
-.cta-final{padding:8rem 2rem;background:var(--verde);text-align:center;position:relative;overflow:hidden}
-.cta-final::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 65%);border-radius:50%}
+.p-btn-pop{background:var(--dorado);color:var(--verde);border-color:transparent}
+.p-btn-pop:hover{background:var(--dorado-light)}
+.cta-sec{padding:8rem 2rem;background:var(--verde);text-align:center;position:relative;overflow:hidden}
+.cta-sec::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 65%);border-radius:50%}
 .cta-inner{position:relative;z-index:1;max-width:620px;margin:0 auto}
 .cta-inner h2{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,50px);font-weight:700;color:var(--crema);line-height:1.15;margin-bottom:1rem}
 .cta-inner h2 em{font-style:italic;color:var(--dorado)}
 .cta-inner p{font-size:16px;color:rgba(250,247,240,.7);margin-bottom:2.5rem;line-height:1.75}
-.cta-nota{font-size:12px;color:rgba(250,247,240,.45);margin-top:1rem}
-.cta-logos{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:2.5rem;flex-wrap:wrap}
-.cta-logo-item{font-size:12px;color:rgba(250,247,240,.35);display:flex;align-items:center;gap:6px}
-
-/* ── FOOTER ── */
-footer{background:#111e15;padding:4rem 2rem 2rem}
+.cta-nota{font-size:12px;color:rgba(250,247,240,.4);margin-top:1rem}
+footer{background:#111e15;padding:3rem 2rem 2rem}
 .footer-inner{max-width:960px;margin:0 auto}
-.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
-.footer-brand{}
-.footer-logo-f{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--crema);margin-bottom:.5rem}
-.footer-logo-f .d{color:var(--dorado)}
-.footer-logo-f .a{font-size:14px;font-weight:400;font-style:italic;color:var(--dorado);opacity:.7}
-.footer-desc{font-size:13px;color:rgba(250,247,240,.4);line-height:1.7;margin-bottom:1.25rem;max-width:260px}
-.footer-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(250,247,240,.35);background:rgba(255,255,255,.04);padding:5px 12px;border-radius:20px;border:.5px solid rgba(255,255,255,.08)}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
+.footer-logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--crema);margin-bottom:.5rem}
+.footer-logo .d{color:var(--dorado)}
+.footer-desc{font-size:13px;color:rgba(250,247,240,.4);line-height:1.7;max-width:260px}
 .footer-col-tit{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(250,247,240,.35);margin-bottom:1rem}
 .footer-links{display:flex;flex-direction:column;gap:8px}
 .footer-links a{font-size:13px;color:rgba(250,247,240,.4);text-decoration:none;transition:color .2s}
 .footer-links a:hover{color:var(--dorado)}
-.footer-bottom{border-top:.5px solid rgba(255,255,255,.06);padding-top:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.footer-bottom{border-top:.5px solid rgba(255,255,255,.06);padding-top:1.5rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .footer-copy{font-size:12px;color:rgba(250,247,240,.25)}
-.footer-legal{display:flex;gap:1.5rem}
-.footer-legal a{font-size:12px;color:rgba(250,247,240,.25);text-decoration:none}
-.footer-legal a:hover{color:rgba(250,247,240,.5)}
 
 /* ══════════════════════════════
-   DASHBOARD
+   APP (DASHBOARD + MÓDULOS)
 ══════════════════════════════ */
-#screen-dash{background:var(--crema)}
-.dash-nav{background:var(--blanco);border-bottom:.5px solid var(--borde);padding:.8rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(26,74,46,.05)}
-.dash-nav-links{display:flex;gap:4px}
-.dnl{font-size:12px;padding:7px 14px;border-radius:8px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px}
-.dnl:hover{background:var(--crema);color:var(--verde)}
-.dnl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
-.user-chip{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde);cursor:pointer;transition:all .2s}
-.user-chip:hover{border-color:var(--verde)}
-.u-av{width:28px;height:28px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+#screen-app{background:var(--crema)}
+.app-nav{background:var(--blanco);border-bottom:.5px solid var(--borde);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(26,74,46,.05)}
+.app-nav-links{display:flex;gap:3px}
+.anl{font-size:12px;padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px}
+.anl:hover{background:var(--crema);color:var(--verde)}
+.anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde)}
+.u-av{width:26px;height:26px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
 .u-nm{font-size:12px;font-weight:500;color:var(--texto-mid)}
-.btn-out{font-size:12px;padding:7px 14px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
-.btn-out:hover{border-color:#c0392b;color:#c0392b;background:#fdecea}
-.trial-bar{background:linear-gradient(135deg,var(--verde),var(--verde-mid));padding:.6rem 1.75rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.trial-txt{font-size:12px;color:rgba(250,247,240,.85);flex:1}
-.trial-txt strong{color:#fff}
-.trial-days{font-size:12px;font-weight:600;color:var(--dorado-light);white-space:nowrap}
-.btn-upgrade{font-size:11px;padding:5px 14px;border-radius:20px;background:var(--dorado);color:var(--verde);border:none;cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif}
-.dash-main{max-width:980px;margin:0 auto;padding:1.75rem 1.5rem}
-.welcome-wrap{margin-bottom:1.75rem}
-.welcome-tit{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--verde);margin-bottom:4px}
-.welcome-sub{font-size:13px;color:var(--texto-suave)}
-.precio-strip{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.85rem 1.4rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:var(--sombra)}
-.pi{display:flex;flex-direction:column;padding:.25rem 1.5rem .25rem 0;margin-right:1.5rem;border-right:.5px solid var(--borde)}
-.pi:last-of-type{border-right:none;margin-right:0}
-.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:3px}
-.pi-v{font-size:17px;font-weight:600;font-family:'DM Mono',monospace;color:var(--texto)}
-.pi-d{font-size:11px;font-weight:500;margin-top:2px}
-.up{color:#1a7a52}.dn{color:#c0392b}
-.mets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.75rem}
-.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:1rem 1.1rem;position:relative;overflow:hidden;transition:all .2s;box-shadow:var(--sombra)}
-.met:hover{border-color:rgba(26,74,46,.18);box-shadow:var(--sombra-md)}
-.met-accent{position:absolute;top:0;left:0;right:0;height:3px}
-.met-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:6px;margin-top:3px}
-.met-v{font-size:22px;font-weight:600;font-family:'Playfair Display',serif;color:var(--texto);line-height:1}
-.met-s{font-size:11px;color:var(--texto-suave);margin-top:5px}
-.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
-.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:16px;box-shadow:var(--sombra)}
+.btn-salir{font-size:12px;padding:6px 12px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-salir:hover{border-color:var(--rojo);color:var(--rojo)}
+.modulo{display:none;max-width:980px;margin:0 auto;padding:1.75rem 1.5rem}
+.modulo.active{display:block}
+.mod-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px}
+.mod-titulo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--verde);margin-bottom:3px}
+.mod-sub{font-size:13px;color:var(--texto-suave)}
+
+/* CARDS BASE */
+.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:1.1rem 1.25rem;box-shadow:var(--sombra);margin-bottom:14px}
 .card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .card-tit{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave)}
 .btn-sm{font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-sm:hover{border-color:var(--verde);color:var(--verde)}
 .btn-vs{background:var(--verde);color:#fff;border-color:transparent;font-size:11px;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s}
 .btn-vs:hover{background:var(--verde-mid)}
-.campo-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--borde);cursor:pointer;transition:all .15s;border-radius:6px}
-.campo-row:last-child{border-bottom:none}
-.campo-row:hover{background:var(--crema);padding:9px 8px;margin:0 -8px}
-.cdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.ci{flex:1;min-width:0}
-.cn{font-size:13px;font-weight:500;color:var(--texto)}
-.cm{font-size:11px;color:var(--texto-suave);margin-top:2px}
-.cmg{text-align:right;flex-shrink:0}
-.cmgv{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
-.cmgp{font-size:10px;color:var(--texto-suave);margin-top:2px}
-.empty{text-align:center;padding:2.5rem 1rem}
-.empty-i{font-size:40px;margin-bottom:1rem}
-.empty-t{font-size:15px;font-weight:600;color:var(--texto-mid);margin-bottom:.6rem}
-.empty-s{font-size:13px;color:var(--texto-suave);line-height:1.7;margin-bottom:1.5rem}
-.accesos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.acc{border:.5px solid var(--borde);border-radius:10px;padding:.75rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s}
-.acc:hover{background:var(--crema);border-color:rgba(26,74,46,.18);transform:translateY(-1px)}
-.acc-i{font-size:20px;margin-bottom:4px}
-.acc-l{font-size:10px;font-weight:500;color:var(--texto-suave)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 
-/* ── MODALES ── */
+/* MÉTRICA */
+.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.9rem 1rem;position:relative;overflow:hidden;box-shadow:var(--sombra)}
+.met-acc{position:absolute;top:0;left:0;right:0;height:3px}
+.met-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:5px;margin-top:2px}
+.met-v{font-size:20px;font-weight:600;font-family:'Playfair Display',serif;line-height:1}
+.met-s{font-size:11px;color:var(--texto-suave);margin-top:4px}
+
+/* PRECIO STRIP */
+.precio-strip{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.85rem 1.4rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:var(--sombra)}
+.pi{display:flex;flex-direction:column;padding:.25rem 1.25rem .25rem 0;margin-right:1.25rem;border-right:.5px solid var(--borde)}
+.pi:last-of-type{border-right:none;margin-right:0}
+.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:2px}
+.pi-v{font-size:16px;font-weight:600;font-family:'DM Mono',monospace}
+.pi-d{font-size:11px;font-weight:500;margin-top:1px}
+.up{color:#1a7a52}.dn{color:var(--rojo)}
+
+/* CAMPO ROWS */
+.campo-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--borde);cursor:pointer;transition:all .15s}
+.campo-row:last-child{border-bottom:none}
+.campo-row:hover{background:var(--crema);padding:9px 8px;margin:0 -8px;border-radius:6px}
+.cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ci{flex:1;min-width:0}
+.cn{font-size:13px;font-weight:500}
+.cm{font-size:11px;color:var(--texto-suave);margin-top:1px}
+.cmg{text-align:right}
+.cmgv{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
+.cmgp{font-size:10px;color:var(--texto-suave);margin-top:1px}
+
+/* GASTOS */
+.gasto-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
+.gasto-row:last-child{border-bottom:none}
+.gtag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;min-width:70px;text-align:center;white-space:nowrap;flex-shrink:0}
+.r-herbicidas{background:#e8f5ee;color:#1a7a52}
+.r-fungicidas{background:var(--azul-pale);color:var(--azul)}
+.r-fertilizantes{background:var(--amber-pale);color:var(--amber)}
+.r-semillas{background:#f0fef4;color:#16a34a}
+.r-labores{background:var(--dorado-pale);color:var(--dorado)}
+.r-cosecha{background:var(--rojo-pale);color:var(--rojo)}
+.r-flete{background:#f5f0ff;color:#7c3aed}
+.r-arrendamiento{background:#fef3c7;color:#d97706}
+.r-otros{background:#f4f4f5;color:#71717a}
+
+/* LLUVIA */
+.lluvia-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
+.lluvia-row:last-child{border-bottom:none}
+.etapa-tag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.e-barbecho{background:#f4f4f5;color:#71717a}
+.e-siembra{background:#f0fef4;color:#16a34a}
+.e-vegetativo{background:var(--verde-pale);color:var(--verde)}
+.e-floracion{background:var(--rojo-pale);color:var(--rojo)}
+.e-llenado{background:var(--amber-pale);color:var(--amber)}
+.e-maduracion{background:var(--dorado-pale);color:var(--dorado)}
+
+/* SEMÁFORO SUELO */
+.nutriente-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
+.nutriente-row:last-child{border-bottom:none}
+.nut-label{min-width:160px;font-weight:500;color:var(--texto-mid)}
+.nut-bar-wrap{flex:1;height:8px;background:var(--crema);border-radius:4px;overflow:hidden}
+.nut-bar{height:100%;border-radius:4px;transition:width .4s}
+.nut-val{min-width:60px;font-weight:600;font-family:'DM Mono',monospace;text-align:right}
+.nut-estado{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600;min-width:64px;text-align:center}
+.n-critico{background:var(--rojo-pale);color:var(--rojo)}
+.n-bajo{background:var(--amber-pale);color:var(--amber)}
+.n-optimo{background:var(--verde-pale);color:#1a7a52}
+.n-alto{background:var(--azul-pale);color:var(--azul)}
+
+/* NOTIFICACIONES */
+.notif-item{display:flex;gap:10px;padding:10px 0;border-bottom:.5px solid var(--borde);align-items:flex-start}
+.notif-item:last-child{border-bottom:none}
+.notif-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.notif-body{flex:1}
+.notif-tit{font-size:13px;font-weight:500;color:var(--texto)}
+.notif-meta{font-size:11px;color:var(--texto-suave);margin-top:2px}
+.dias-chip{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;white-space:nowrap}
+.dias-u{background:var(--rojo-pale);color:var(--rojo)}
+.dias-p{background:var(--amber-pale);color:var(--amber)}
+.dias-ok{background:var(--verde-pale);color:#1a7a52}
+
+/* MAPA */
+#mapa-lotes{height:460px;border-radius:12px;overflow:hidden;border:.5px solid var(--borde)}
+
+/* SENSIBILIDAD */
+.sens-table{width:100%;border-collapse:collapse;font-size:11px}
+.sens-table th{padding:7px 8px;text-align:center;font-size:10px;font-weight:600;color:var(--texto-suave);border-bottom:.5px solid var(--borde);background:var(--crema)}
+.sens-table td{padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)}
+.sens-table td:first-child{font-weight:600;color:var(--texto-mid);font-size:11px;text-align:left}
+.cell-pos{background:#e8f5ee;color:#1a7a52;border-radius:4px;padding:2px 5px;font-weight:600}
+.cell-neg{background:var(--rojo-pale);color:var(--rojo);border-radius:4px;padding:2px 5px;font-weight:600}
+.cell-base{background:rgba(201,168,76,.15);color:var(--amber);border-radius:4px;padding:2px 5px;font-weight:700}
+
+/* EMPTY */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--texto-suave)}
+.empty-i{font-size:36px;margin-bottom:.75rem}
+.empty-t{font-size:14px;font-weight:500;color:var(--texto-mid);margin-bottom:.5rem}
+.empty-s{font-size:12px;line-height:1.65;margin-bottom:1.25rem}
+
+/* MODALES */
 .overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--blanco);border-radius:22px;padding:2.5rem;width:100%;max-width:440px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;overflow-y:auto}
+.modal{background:var(--blanco);border-radius:22px;padding:2.25rem;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;overflow-y:auto}
 .overlay.open .modal{transform:translateY(0)}
-.m-close{position:absolute;top:1.1rem;right:1.1rem;width:30px;height:30px;border-radius:50%;background:var(--crema);border:none;cursor:pointer;font-size:15px;color:var(--texto-mid);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.m-close{position:absolute;top:1rem;right:1rem;width:28px;height:28px;border-radius:50%;background:var(--crema);border:none;cursor:pointer;font-size:14px;color:var(--texto-mid);display:flex;align-items:center;justify-content:center}
 .m-close:hover{background:var(--crema-dark)}
-.m-logo{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--verde);margin-bottom:1.5rem}
-.m-logo .d{color:var(--dorado)}
-.tabs{display:flex;gap:0;background:var(--crema);border-radius:12px;padding:4px;margin-bottom:1.75rem}
-.tab{flex:1;padding:9px;border-radius:9px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-suave);transition:all .2s}
+.m-tit{font-size:18px;font-weight:600;color:var(--verde);margin-bottom:.3rem;font-family:'Playfair Display',serif}
+.m-sub{font-size:12px;color:var(--texto-suave);margin-bottom:1.5rem;line-height:1.6}
+.tabs{display:flex;gap:0;background:var(--crema);border-radius:10px;padding:3px;margin-bottom:1.5rem}
+.tab{flex:1;padding:9px;border-radius:8px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-suave);transition:all .2s}
 .tab.on{background:var(--blanco);color:var(--verde);font-weight:600;box-shadow:0 1px 6px rgba(26,74,46,.1)}
-.fg{margin-bottom:1rem}
-.fl{font-size:12px;font-weight:500;color:var(--texto-mid);display:block;margin-bottom:6px}
-.fi{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--borde);background:var(--blanco);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--texto);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.fg{margin-bottom:.9rem}
+.fl{font-size:12px;font-weight:500;color:var(--texto-mid);display:block;margin-bottom:5px}
+.fi{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--borde);background:var(--blanco);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--texto);outline:none;transition:border-color .2s;-webkit-appearance:none}
 .fi:focus{border-color:var(--verde)}
 .fi::placeholder{color:var(--texto-suave)}
-.fb{width:100%;padding:13px;border-radius:10px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.5rem;transition:all .2s}
-.fb:hover{background:var(--verde-mid);transform:translateY(-1px)}
-.fb:disabled{opacity:.6;cursor:not-allowed;transform:none}
-.trial-pill{background:rgba(201,168,76,.08);border:.5px solid var(--borde-dorado);border-radius:10px;padding:.7rem 1rem;font-size:12px;color:var(--texto-mid);text-align:center;margin-top:1rem;line-height:1.6}
-.trial-pill strong{color:var(--dorado);font-weight:600}
+.fb{width:100%;padding:12px;border-radius:10px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.4rem;transition:all .2s}
+.fb:hover{background:var(--verde-mid)}
+.fb:disabled{opacity:.6;cursor:not-allowed}
+.trial-pill{background:rgba(201,168,76,.08);border:.5px solid rgba(201,168,76,.25);border-radius:10px;padding:.7rem 1rem;font-size:12px;color:var(--texto-mid);text-align:center;margin-top:1rem}
+.trial-pill strong{color:var(--dorado)}
 .sdots{display:flex;gap:7px;justify-content:center;margin-bottom:1.5rem}
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--borde);transition:all .25s}
 .sdot.on{background:var(--verde);width:22px;border-radius:4px}
 .fstep{display:none}.fstep.on{display:block}
-.m-tit{font-size:20px;font-weight:600;color:var(--verde);margin-bottom:.3rem;font-family:'Playfair Display',serif}
-.m-sub{font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem;line-height:1.6}
-.popt{border:1.5px solid var(--borde);border-radius:12px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:13px;margin-bottom:8px;transition:all .2s}
-.popt:hover{border-color:rgba(26,74,46,.25);background:var(--crema)}
+.m-tit2{font-size:18px;font-weight:600;color:var(--verde);margin-bottom:.3rem}
+.m-sub2{font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem}
+.popt{border:1.5px solid var(--borde);border-radius:12px;padding:12px 15px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all .2s}
+.popt:hover{border-color:rgba(26,74,46,.25)}
 .popt.sel{border-color:var(--verde);background:var(--verde-pale)}
 .popt-t{font-size:13px;font-weight:600;color:var(--verde)}
-.popt-s{font-size:11px;color:var(--texto-suave);margin-top:2px}
-.modal-campo{background:var(--blanco);border-radius:22px;padding:2.25rem;width:100%;max-width:420px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg)}
-.overlay.open .modal-campo{transform:translateY(0)}
+.popt-s{font-size:11px;color:var(--texto-suave);margin-top:1px}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.conv-box{background:var(--crema);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px}
+.conv-l{color:var(--texto-suave);margin-bottom:2px;font-size:11px}
+.conv-v{font-weight:600;font-family:'DM Mono',monospace;color:var(--verde)}
 
-/* Toast */
-.toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--verde);color:#fff;padding:.9rem 1.4rem;border-radius:12px;font-size:13px;font-weight:500;box-shadow:var(--sombra-lg);z-index:400;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px;line-height:1.5;display:flex;align-items:center;gap:8px}
+/* TOAST */
+.toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--verde);color:#fff;padding:.9rem 1.4rem;border-radius:12px;font-size:13px;font-weight:500;box-shadow:var(--sombra-lg);z-index:400;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px;line-height:1.5}
 .toast.show{transform:translateY(0);opacity:1}
-.toast.error{background:#c0392b}
-.toast.success{background:#1a7a52}
+.toast.err{background:var(--rojo)}
+.toast.ok{background:#1a7a52}
+.toast.info{background:var(--azul)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .6s ease both}
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
 
 @media(max-width:780px){
   .nav-links{display:none}
-  .hero h1{font-size:clamp(36px,8vw,52px)}
-  .pasos,.feat-grid,.test-grid,.planes-grid{grid-template-columns:1fr}
-  .wa-inner,.footer-top{grid-template-columns:1fr}
-  .mets{grid-template-columns:1fr 1fr}
-  .dash-grid{grid-template-columns:1fr}
-  .precio-strip{gap:12px}
-  .pi{border-right:none;margin-right:0;padding-right:0}
-  .stats-bar{gap:0}
-  .stat{border-right:none;border-bottom:.5px solid var(--borde);padding:1rem 2rem;width:50%}
-  .stat:last-child{border-bottom:none}
+  .feat-grid,.planes-grid{grid-template-columns:1fr}
+  .grid2,.grid3,.grid4,.grid5{grid-template-columns:1fr 1fr}
+  .app-nav-links .anl span:not(:first-child){display:none}
+  .stats-bar .stat{border-right:none;border-bottom:.5px solid var(--borde);width:50%}
+  .stats-bar .stat:last-child{border-bottom:none}
+}
+@media(max-width:480px){
+  .grid2,.grid3,.grid4,.grid5{grid-template-columns:1fr}
+  .planes-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -391,24 +342,21 @@ footer{background:#111e15;padding:4rem 2rem 2rem}
 
 <!-- LOADING -->
 <div id="screen-loading">
-  <div class="loading-logo">Rinde<span>.</span><span class="a">Agro</span></div>
+  <div class="loading-logo">Rinde<span class="d">.</span><span class="a">Agro</span></div>
   <div class="spinner"></div>
   <div class="loading-sub">Cargando tu plataforma</div>
 </div>
 
 <!-- ══════ LANDING ══════ -->
 <div id="screen-landing" class="screen">
-
   <nav class="nav" id="navbar">
-    <div class="logo" onclick="window.scrollTo(0,0)">
-      <div class="logo-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".92"/></svg></div>
-      <div class="logo-text"><div class="logo-nombre">Rinde<span class="d">.</span></div><div class="logo-agro">Agro</div></div>
+    <div class="logo-wrap" onclick="window.scrollTo(0,0)">
+      <div class="logo-mk"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".92"/></svg></div>
+      <div class="logo-txt"><div class="logo-n">Rinde<span class="d">.</span></div><div class="logo-ag">Agro</div></div>
     </div>
     <div class="nav-links">
-      <a href="#como-funciona">¿Cómo funciona?</a>
       <a href="#features">Funcionalidades</a>
       <a href="#planes">Precios</a>
-      <a href="#faq">FAQ</a>
     </div>
     <div class="nav-ctas">
       <button class="btn-ghost" onclick="openModal('login')">Ingresar</button>
@@ -416,315 +364,133 @@ footer{background:#111e15;padding:4rem 2rem 2rem}
     </div>
   </nav>
 
-  <!-- HERO -->
   <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-pattern"></div>
-    <div class="hero-glow1"></div>
-    <div class="hero-glow2"></div>
+    <div class="hero-bg"></div><div class="hero-pattern"></div>
+    <div class="hero-glow1"></div><div class="hero-glow2"></div>
     <div class="hero-content">
-      <div class="hero-badge">🌾 Plataforma agropecuaria · Hecha en Argentina</div>
-      <h1>Sabé exactamente<span class="linea2">cuánto <em>rinde</em></span>tu campaña</h1>
-      <p class="hero-sub">Rentabilidad, análisis de suelo, precios de Rosario y registro agronómico — todo desde el celular. Cargá datos mandando un mensaje de WhatsApp desde el campo.</p>
-      <div class="hero-ctas">
+      <div class="hero-badge fu">🌾 Plataforma agropecuaria · Hecha en Argentina</div>
+      <h1 class="fu d1">Sabé exactamente<br>cuánto <em>rinde</em><br>tu campaña</h1>
+      <p class="hero-sub fu d2">Rentabilidad, análisis de suelo, precios de Rosario y registro agronómico — todo desde el celular. Cargá datos por WhatsApp desde el campo.</p>
+      <div class="hero-ctas fu d3">
         <button class="btn-hero btn-verde" onclick="openModal('registro')">🌱 Empezar 15 días gratis</button>
-        <a class="btn-hero btn-outline" href="#como-funciona">Ver cómo funciona →</a>
+        <a class="btn-hero btn-outline" href="#features">Ver funcionalidades →</a>
       </div>
-      <p class="hero-trust">
-        <span>Sin tarjeta de crédito</span>
-        <span class="dot"></span>
-        <span>15 días gratis en plan completo</span>
-        <span class="dot"></span>
-        <span>Cancelás cuando querés</span>
-        <span class="dot"></span>
+      <p class="hero-trust fu d4">
+        <span>Sin tarjeta de crédito</span><span class="dot"></span>
+        <span>15 días gratis</span><span class="dot"></span>
+        <span>Cancelás cuando querés</span><span class="dot"></span>
         <span>Soporte en español</span>
       </p>
-      <div class="stats-bar">
+      <div class="stats-bar fu d4">
         <div class="stat"><div class="stat-val">12<span class="d">+</span></div><div class="stat-lbl">Módulos integrados</div></div>
         <div class="stat"><div class="stat-val">20<span class="d">+</span></div><div class="stat-lbl">Cultivos disponibles</div></div>
         <div class="stat"><div class="stat-val">10<span class="d">+</span></div><div class="stat-lbl">Años de historial</div></div>
-        <div class="stat"><div class="stat-val">USD<span class="d">21</span></div><div class="stat-lbl">Plan completo · por mes</div></div>
-      </div>
-    </div>
-
-    <!-- Mockup -->
-    <div class="hero-mockup">
-      <div class="browser">
-        <div class="browser-bar">
-          <div class="b-dots"><div class="b-dot" style="background:#ff5f57"></div><div class="b-dot" style="background:#ffbd2e"></div><div class="b-dot" style="background:#28c940"></div></div>
-          <div class="b-url">rinde.agro/dashboard</div>
-        </div>
-        <div class="dash-preview">
-          <div class="dp-header">
-            <span class="dp-saludo">Buenos días, Juan García 👋</span>
-            <span class="dp-precio">🌾 Soja USD 280/t · ▲ +1.8% &nbsp;|&nbsp; 💵 BNA $ 1.085</span>
-          </div>
-          <div class="dp-grid">
-            <div class="dp-card"><div class="dpc-lbl">Hectáreas</div><div class="dpc-val">1.240</div><div class="dpc-sub">3 campos activos</div></div>
-            <div class="dp-card"><div class="dpc-lbl">Ingreso proy.</div><div class="dpc-val">USD 312k</div><div class="dpc-sub">Precio Rosario</div></div>
-            <div class="dp-card"><div class="dpc-lbl">Margen estimado</div><div class="dpc-val d">USD 88k</div><div class="dpc-sub">28% del ingreso</div></div>
-            <div class="dp-card"><div class="dpc-lbl">En quintales</div><div class="dpc-val">3.142 qq</div><div class="dpc-sub">Ganancia equiv.</div></div>
-          </div>
-          <div class="dp-bottom">
-            <div class="dp-chart-box"><div class="dpc-title">Rentabilidad · últimas 5 campañas</div><div class="mini-bars"><div class="mb" style="height:52%;background:#2d6e47;opacity:.5"></div><div class="mb" style="height:38%;background:#2d6e47;opacity:.4"></div><div class="mb" style="height:63%;background:#2d6e47;opacity:.65"></div><div class="mb" style="height:70%;background:#2d6e47;opacity:.75"></div><div class="mb" style="height:90%;background:#1a4a2e"></div></div></div>
-            <div class="dp-chart-box"><div class="dpc-title">Campos · margen USD/ha</div><div class="campo-list"><div class="campo-row-mini"><div class="cdot" style="background:#1a4a2e"></div><span style="flex:1;color:var(--texto-mid);font-size:10px">Juan Pérez · Soja</span><span style="font-weight:600;color:#1a7a52;font-size:10px">+83</span></div><div class="campo-row-mini"><div class="cdot" style="background:#c9a84c"></div><span style="flex:1;color:var(--texto-mid);font-size:10px">La Esperanza · Maíz</span><span style="font-weight:600;color:#1a7a52;font-size:10px">+374</span></div><div class="campo-row-mini"><div class="cdot" style="background:#7a7a6e"></div><span style="flex:1;color:var(--texto-mid);font-size:10px">El Porvenir · Trigo</span><span style="font-weight:600;color:#1a7a52;font-size:10px">+71</span></div></div></div>
-          </div>
-        </div>
+        <div class="stat"><div class="stat-val">USD<span class="d">21</span></div><div class="stat-lbl">Plan completo · mes</div></div>
       </div>
     </div>
   </section>
 
-  <!-- CÓMO FUNCIONA -->
-  <section class="como-funciona" id="como-funciona">
-    <div class="cf-inner">
-      <div class="s-eye">Simple por diseño</div>
-      <h2 class="s-tit claro">Tres pasos para<br>tener el control</h2>
-      <p class="s-sub claro">Sin instalaciones complicadas. Sin cursos. En 5 minutos tenés tu primer campo configurado.</p>
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-num">1</div>
-          <div class="paso-tit">Registrá tus campos</div>
-          <div class="paso-desc">Nombre, hectáreas, cultivo y provincia. En 2 minutos tenés tu primer campo listo y el dashboard calculando tu rentabilidad.</div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">2</div>
-          <div class="paso-tit">Cargá datos desde el campo</div>
-          <div class="paso-desc">Mandá un mensaje de WhatsApp — "llovieron 25mm en Juan Pérez" o "cosechamos 3.4 t/ha" — y el sistema lo registra solo.</div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">3</div>
-          <div class="paso-tit">Tomá mejores decisiones</div>
-          <div class="paso-desc">Con el historial de 10 años, los precios de Rosario en tiempo real y el análisis de suelo, sabés exactamente cuándo y qué vender.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FEATURES -->
-  <section class="features" id="features">
+  <section class="features-sec" id="features">
     <div class="s-eye">Funcionalidades</div>
-    <h2 class="s-tit">Todo lo que necesitás<br>para gestionar tu campo</h2>
-    <p class="s-sub">Cada herramienta fue diseñada pensando en el productor argentino — simple de usar, potente en resultados.</p>
+    <h2 class="s-tit">Todo para gestionar<br>tu campo desde el celular</h2>
+    <p class="s-sub">Cada herramienta fue diseñada para el productor argentino.</p>
     <div class="feat-grid">
-      <div class="feat"><div class="feat-ico">📊</div><div class="feat-tit">Rentabilidad real</div><div class="feat-desc">Margen por campo en pesos, dólares y quintales. Con historial de 10 años y comparativa entre campañas para ver la tendencia.</div></div>
-      <div class="feat"><div class="feat-ico">💬</div><div class="feat-tit">Carga por WhatsApp</div><div class="feat-desc">Audio, texto o foto desde el campo — la IA interpreta y carga automáticamente. El productor no aprende nada nuevo.</div></div>
-      <div class="feat"><div class="feat-ico">💰</div><div class="feat-tit">Precios en tiempo real</div><div class="feat-desc">Bolsa de Rosario y dólar BNA actualizados. Calculadora de venta con retenciones, flete y comisiones incluidas.</div></div>
-      <div class="feat"><div class="feat-ico">🔬</div><div class="feat-tit">Análisis de suelo</div><div class="feat-desc">Semáforo nutricional para 20 cultivos con recomendaciones de fertilización y análisis de costo-beneficio por nutriente.</div></div>
-      <div class="feat"><div class="feat-ico">🗺️</div><div class="feat-tit">Mapa de lotes</div><div class="feat-desc">Vista satelital con capas de vegetación NDVI, relieve y datos de cada lote. Dibujá polígonos directamente sobre el mapa.</div></div>
-      <div class="feat"><div class="feat-ico">📄</div><div class="feat-tit">Lector de documentos</div><div class="feat-desc">Subí el PDF del laboratorio, un remito de compra o una factura — el sistema extrae todos los datos automáticamente.</div></div>
+      <div class="feat"><div class="feat-ico">📊</div><div class="feat-tit">Rentabilidad real</div><div class="feat-desc">Margen por campo en pesos, dólares y quintales. Historial 10 años y análisis de sensibilidad.</div></div>
+      <div class="feat"><div class="feat-ico">💬</div><div class="feat-tit">Carga por WhatsApp</div><div class="feat-desc">Audio, texto o foto desde el campo — la IA interpreta y carga automáticamente.</div></div>
+      <div class="feat"><div class="feat-ico">💰</div><div class="feat-tit">Precios en tiempo real</div><div class="feat-desc">Bolsa de Rosario y dólar BNA. Calculadora de venta con retenciones incluidas.</div></div>
+      <div class="feat"><div class="feat-ico">🔬</div><div class="feat-tit">Análisis de suelo</div><div class="feat-desc">Semáforo nutricional para 20 cultivos con recomendaciones de fertilización.</div></div>
+      <div class="feat"><div class="feat-ico">🗺️</div><div class="feat-tit">Mapa de lotes</div><div class="feat-desc">Vista satelital con capas NDVI y relieve. Datos de cada lote al clic.</div></div>
+      <div class="feat"><div class="feat-ico">🔔</div><div class="feat-tit">Alertas agronómicas</div><div class="feat-desc">Notificaciones automáticas calculadas desde la fecha de siembra de cada cultivo.</div></div>
     </div>
   </section>
 
-  <!-- WHATSAPP -->
-  <section class="wa-sec">
-    <div class="wa-inner">
-      <div>
-        <div class="s-eye" style="text-align:left">El diferenciador</div>
-        <h2 class="s-tit" style="text-align:left;color:var(--verde)">Cargá datos<br>como hablás</h2>
-        <p class="s-sub" style="text-align:left;margin-left:0;margin-bottom:2.5rem">El productor no tiene que aprender nada nuevo. Manda un mensaje al número de Rinde.Agro y la IA hace el resto.</p>
-        <div class="wa-feat"><div class="wa-feat-ico">🎤</div><div><div class="wa-feat-tit">Audio de voz</div><div class="wa-feat-desc">"En Juan Pérez pusimos glifosato 3L/ha" — transcripto y cargado automáticamente al registro agronómico.</div></div></div>
-        <div class="wa-feat"><div class="wa-feat-ico">📸</div><div><div class="wa-feat-tit">Foto de documentos</div><div class="wa-feat-desc">Foto al análisis del laboratorio — extrae todos los valores de nutrientes sin tipear nada.</div></div></div>
-        <div class="wa-feat"><div class="wa-feat-ico">💬</div><div><div class="wa-feat-tit">Mensaje de texto</div><div class="wa-feat-desc">"Llovieron 25mm en La Esperanza" — registrado con fecha, campo y etapa del cultivo en segundos.</div></div></div>
-      </div>
-      <div>
-        <div class="wa-phone">
-          <div class="wa-ph"><div class="wa-av">🌾</div><div><div class="wa-nm">Rinde.Agro · Asistente</div><div class="wa-st">● en línea</div></div></div>
-          <div class="msg"><div class="bbl bbl-out">En Juan Pérez llovieron 28 mm anoche, tormenta fuerte</div><div class="clr"></div></div>
-          <div class="msg"><div class="bbl bbl-in">🌧️ <strong>Lluvia registrada</strong><br>Campo: Juan Pérez · 28 mm<br>Tipo: Tormenta · Confianza: 96%</div><div class="clr"></div></div>
-          <div class="wa-parsed">✓ Confirmar &nbsp;·&nbsp; ✏️ Corregir</div>
-          <div style="height:12px"></div>
-          <div class="msg"><div class="bbl bbl-out">Cosechamos La Esperanza, rinde 3.4 t/ha, humedad 13.2</div><div class="clr"></div></div>
-          <div class="msg"><div class="bbl bbl-in">🌾 <strong>Cosecha registrada</strong><br>Campo: La Esperanza<br>Rendimiento: <strong>3.4 t/ha</strong> · Humedad: <strong>13.2%</strong></div><div class="clr"></div></div>
-          <div class="wa-parsed">✓ Confirmar &nbsp;·&nbsp; ✏️ Corregir</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- TESTIMONIOS -->
-  <section class="testimonios" id="testimonios">
-    <div class="s-eye">Lo que dicen los productores</div>
-    <h2 class="s-tit">Productores que ya<br>conocen su rentabilidad</h2>
-    <p class="s-sub">Historias reales de productores agropecuarios argentinos.</p>
-    <div class="test-grid">
-      <div class="test">
-        <div class="test-comillas">"</div>
-        <div class="test-stars">★★★★★</div>
-        <div class="test-texto">Antes tardaba horas en armar una planilla para saber cómo venía la campaña. Ahora entro al dashboard y en 30 segundos sé el margen de cada campo.</div>
-        <div class="test-autor"><div class="test-av" style="background:#1a4a2e">JG</div><div><div class="test-nombre">Juan García</div><div class="test-cargo">Productor · 480 ha · Córdoba</div></div></div>
-      </div>
-      <div class="test">
-        <div class="test-comillas">"</div>
-        <div class="test-stars">★★★★★</div>
-        <div class="test-texto">Lo que más me sorprendió fue la carga por WhatsApp. Estoy en el tractor y mando un mensaje de voz — en segundos está registrado. Increíble para gente de campo.</div>
-        <div class="test-autor"><div class="test-av" style="background:#c9a84c;color:#1a4a2e">RF</div><div><div class="test-nombre">Roberto Fernández</div><div class="test-cargo">Productor · 1.200 ha · Buenos Aires</div></div></div>
-      </div>
-      <div class="test">
-        <div class="test-comillas">"</div>
-        <div class="test-stars">★★★★★</div>
-        <div class="test-texto">Como ingeniera agrónoma, el panel para gestionar mis clientes me cambió el trabajo. Veo todos los campos de mis productores en un solo lugar y puedo enviarles recomendaciones directo a su app.</div>
-        <div class="test-autor"><div class="test-av" style="background:#2d6e47">MS</div><div><div class="test-nombre">Ing. María Sosa</div><div class="test-cargo">Agrónoma · 12 productores clientes</div></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PLANES -->
-  <section class="planes" id="planes">
-    <div class="s-eye">Precios transparentes</div>
+  <section class="planes-sec" id="planes">
+    <div class="s-eye">Precios</div>
     <h2 class="s-tit">Elegí tu plan</h2>
-    <p class="s-sub">15 días gratis en cualquier plan. Sin tarjeta de crédito requerida.</p>
-    <div class="planes-toggle">
-      <span class="toggle-lbl on" id="lbl-m">Mensual</span>
-      <div class="toggle-track" id="toggle" onclick="togglePeriodo()"><div class="toggle-thumb"></div></div>
-      <span class="toggle-lbl" id="lbl-a">Anual</span>
-      <span class="ahorro-badge" id="badge-ahorro" style="display:none">Ahorrás 20%</span>
+    <p class="s-sub">15 días gratis en cualquier plan. Sin tarjeta de crédito.</p>
+    <div class="planes-grid">
+      <div class="plan"><div class="pn">Semilla</div><div class="ps">Para conocer la plataforma</div><div class="pp pp-g">Gratis</div><div class="pp-per">para siempre</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">1 campo</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Rentabilidad básica</span></div><div class="pfi"><span class="nok">✗</span><span class="pfi-t">WhatsApp IA</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
+      <div class="plan pop"><div class="plan-badge">⭐ Más elegido</div><div class="pn">Campo</div><div class="ps">Control total del productor</div><div class="pp">USD 21</div><div class="pp-per">por mes · o USD 202/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Hasta 5 campos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Todos los módulos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Carga por WhatsApp</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Historial 10 años</span></div></div><button class="p-btn p-btn-pop" onclick="openModal('registro')">🌱 Empezar 15 días gratis</button></div>
+      <div class="plan"><div class="pn">Empresa</div><div class="ps">Para empresas agropecuarias</div><div class="pp">USD 35</div><div class="pp-per">por mes · o USD 336/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Campos ilimitados</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">5 usuarios</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Exportar PDF/Excel</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
+      <div class="plan"><div class="pn">Agrónomo</div><div class="ps">Para profesionales asesores</div><div class="pp">USD 29</div><div class="pp-per">por mes · o USD 278/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">20 productores clientes</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Panel multi-productor</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Informes para clientes</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
     </div>
-    <div class="planes-grid" id="planes-grid"></div>
   </section>
 
-  <!-- FAQ -->
-  <section class="faq" id="faq">
-    <div class="s-eye">Preguntas frecuentes</div>
-    <h2 class="s-tit">Todo lo que querés saber</h2>
-    <p class="s-sub">Si tenés alguna pregunta que no está acá, escribinos por WhatsApp.</p>
-    <div class="faq-list" id="faq-list"></div>
-  </section>
-
-  <!-- CTA FINAL -->
-  <section class="cta-final">
+  <section class="cta-sec">
     <div class="cta-inner">
       <h2>Empezá hoy a conocer el <em>rendimiento real</em> de tu campo</h2>
-      <p>15 días gratis, sin tarjeta. En 5 minutos tenés tu primer campo configurado y el dashboard mostrando tu rentabilidad en tiempo real.</p>
-      <button class="btn-hero btn-verde" style="font-size:16px;padding:17px 42px;box-shadow:0 8px 28px rgba(0,0,0,.25)" onclick="openModal('registro')">🌾 Crear mi cuenta gratis</button>
-      <p class="cta-nota">Sin tarjeta · Cancelás cuando querés · Soporte en español · Hecho en Argentina 🇦🇷</p>
+      <p>15 días gratis, sin tarjeta. En 5 minutos tenés tu primer campo configurado.</p>
+      <button class="btn-hero btn-verde" style="font-size:16px;padding:17px 42px" onclick="openModal('registro')">🌾 Crear mi cuenta gratis</button>
+      <p class="cta-nota">Sin tarjeta · Cancelás cuando querés · Hecho en Argentina 🇦🇷</p>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer>
     <div class="footer-inner">
       <div class="footer-top">
-        <div class="footer-brand">
-          <div class="footer-logo-f">Rinde<span class="d">.</span><span class="a">Agro</span></div>
-          <div class="footer-desc">La plataforma agropecuaria argentina para productores que quieren saber exactamente cuánto rinde su campaña.</div>
-          <div class="footer-badge">🇦🇷 Hecho en Argentina · Coronel Moldes, Córdoba</div>
-        </div>
-        <div>
-          <div class="footer-col-tit">Producto</div>
-          <div class="footer-links">
-            <a href="#features">Funcionalidades</a>
-            <a href="#planes">Precios</a>
-            <a href="#como-funciona">¿Cómo funciona?</a>
-            <a href="#faq">FAQ</a>
-          </div>
-        </div>
-        <div>
-          <div class="footer-col-tit">Para quién</div>
-          <div class="footer-links">
-            <a href="#">Productores</a>
-            <a href="#">Ingenieros agrónomos</a>
-            <a href="#">Empresas agropecuarias</a>
-          </div>
-        </div>
-        <div>
-          <div class="footer-col-tit">Legal</div>
-          <div class="footer-links">
-            <a href="#">Términos de uso</a>
-            <a href="#">Política de privacidad</a>
-            <a href="#">Contacto</a>
-          </div>
-        </div>
+        <div><div class="footer-logo">Rinde<span class="d">.</span>Agro</div><div class="footer-desc">La plataforma agropecuaria argentina para productores que quieren saber cuánto rinde su campaña.</div></div>
+        <div><div class="footer-col-tit">Producto</div><div class="footer-links"><a href="#features">Funcionalidades</a><a href="#planes">Precios</a></div></div>
+        <div><div class="footer-col-tit">Legal</div><div class="footer-links"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Contacto</a></div></div>
       </div>
-      <div class="footer-bottom">
-        <div class="footer-copy">© 2026 Rinde.Agro · Todos los derechos reservados</div>
-        <div class="footer-legal"><a href="#">Términos</a><a href="#">Privacidad</a></div>
-      </div>
+      <div class="footer-bottom"><div class="footer-copy">© 2026 Rinde.Agro · Hecho en Argentina 🇦🇷</div></div>
     </div>
   </footer>
 </div>
 
-<!-- ══════ DASHBOARD ══════ -->
-<div id="screen-dash" class="screen">
-  <nav class="dash-nav">
-    <div class="logo" style="cursor:default">
-      <div class="logo-mark"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
-      <div class="logo-text"><div class="logo-nombre" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-agro" style="font-size:11px">Agro</div></div>
+<!-- ══════ APP ══════ -->
+<div id="screen-app" class="screen">
+  <nav class="app-nav">
+    <div class="logo-wrap" style="cursor:default">
+      <div class="logo-mk"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
+      <div class="logo-txt"><div class="logo-n" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-ag" style="font-size:11px">Agro</div></div>
     </div>
-    <div class="dash-nav-links">
-      <button class="dnl active">🏠 Inicio</button>
-      <button class="dnl" onclick="showToast('Módulo en construcción — próximamente','info')">📊 Rentabilidad</button>
-      <button class="dnl" onclick="showToast('Módulo en construcción — próximamente','info')">🗺️ Mapa</button>
-      <button class="dnl" onclick="showToast('Módulo en construcción — próximamente','info')">💰 Precios</button>
+    <div class="app-nav-links">
+      <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
+      <button class="anl" onclick="showModulo('rentabilidad')"><span>📊</span><span>Rentabilidad</span></button>
+      <button class="anl" onclick="showModulo('lluvias')"><span>🌧️</span><span>Lluvias</span></button>
+      <button class="anl" onclick="showModulo('suelo')"><span>🔬</span><span>Suelo</span></button>
+      <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
+      <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
-      <div class="user-chip">
-        <div class="u-av" id="d-av">?</div>
-        <span class="u-nm" id="d-nm">Cargando...</span>
-      </div>
-      <button class="btn-out" onclick="cerrarSesion()">Salir</button>
+      <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
+      <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </nav>
 
-  <div class="trial-bar" id="trial-bar" style="display:none">
-    <div class="trial-txt">Estás en el período de prueba. <strong>Acceso completo a todos los módulos.</strong></div>
-    <div class="trial-days" id="trial-days-txt">15 días restantes</div>
-    <button class="btn-upgrade">Suscribirme →</button>
-  </div>
-
-  <div class="dash-main">
-    <div class="welcome-wrap">
-      <div class="welcome-tit" id="d-saludo">Bienvenido 👋</div>
-      <div class="welcome-sub" id="d-fecha">Cargando...</div>
+  <!-- ── DASHBOARD ── -->
+  <div class="modulo active" id="mod-dashboard">
+    <div class="mod-header">
+      <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
-
     <div class="precio-strip">
-      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="p-soja">USD 280</div><div class="pi-d up" id="v-soja">▲ +1.8%</div></div>
-      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="p-maiz">USD 195</div><div class="pi-d dn" id="v-maiz">▼ -0.5%</div></div>
-      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="p-trigo">USD 212</div><div class="pi-d up" id="v-trigo">▲ +0.9%</div></div>
-      <div class="pi"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="p-bna">$ 1.085</div><div class="pi-d up" id="v-bna">▲ +0.9%</div></div>
-      <button class="btn-sm" style="margin-left:auto;white-space:nowrap" onclick="actualizarPrecios()">↻ Actualizar</button>
+      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">USD 280</div><div class="pi-d up">▲ +1.8%</div></div>
+      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">USD 195</div><div class="pi-d dn">▼ -0.5%</div></div>
+      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">USD 212</div><div class="pi-d up">▲ +0.9%</div></div>
+      <div class="pi"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">$ 1.085</div><div class="pi-d up">▲ +0.9%</div></div>
+      <button class="btn-sm" style="margin-left:auto" onclick="actualizarPrecios()">↻ Actualizar</button>
     </div>
-
-    <div class="mets">
-      <div class="met"><div class="met-accent" style="background:#1a4a2e"></div><div class="met-l">Hectáreas totales</div><div class="met-v" id="m-ha">—</div><div class="met-s" id="m-hs">Sin campos</div></div>
-      <div class="met"><div class="met-accent" style="background:#1a5fa8"></div><div class="met-l">Ingreso proyectado</div><div class="met-v" id="m-ing">—</div><div class="met-s">Precio Rosario actual</div></div>
-      <div class="met"><div class="met-accent" style="background:#1a7a52"></div><div class="met-l">Margen estimado</div><div class="met-v" id="m-mrg" style="color:#1a7a52">—</div><div class="met-s" id="m-ms">—</div></div>
-      <div class="met"><div class="met-accent" style="background:#c9a84c"></div><div class="met-l">Campos activos</div><div class="met-v" id="m-nc">0</div><div class="met-s">Esta campaña</div></div>
-    </div>
-
-    <div class="dash-grid">
+    <div class="grid4" id="dash-mets"></div>
+    <div class="grid2">
       <div>
         <div class="card">
-          <div class="card-hdr">
-            <span class="card-tit">Mis campos</span>
-            <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
-          </div>
-          <div id="campos-lista">
-            <div class="empty">
-              <div class="empty-i">🌾</div>
-              <div class="empty-t">Sin campos registrados</div>
-              <div class="empty-s">Agregá tu primer campo para empezar a ver tu rentabilidad, registrar lluvias y hacer el seguimiento agronómico.</div>
-              <button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar mi primer campo</button>
-            </div>
-          </div>
+          <div class="card-hdr"><span class="card-tit">Mis campos</span><button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button></div>
+          <div id="dash-campos"></div>
         </div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Acceso rápido</span></div>
-          <div class="accesos">
-            <button class="acc" onclick="showToast('Rentabilidad — próximamente','info')"><div class="acc-i">📊</div><div class="acc-l">Rentabilidad</div></button>
-            <button class="acc" onclick="showToast('Lluvias — próximamente','info')"><div class="acc-i">🌧️</div><div class="acc-l">Lluvias</div></button>
-            <button class="acc" onclick="showToast('Análisis de suelo — próximamente','info')"><div class="acc-i">🔬</div><div class="acc-l">Suelo</div></button>
-            <button class="acc" onclick="showToast('WhatsApp — próximamente','info')"><div class="acc-i">💬</div><div class="acc-l">WhatsApp</div></button>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <button onclick="showModulo('rentabilidad')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">📊</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Rentabilidad</div></button>
+            <button onclick="showModulo('lluvias')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🌧️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Lluvias</div></button>
+            <button onclick="showModulo('suelo')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🔬</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Suelo</div></button>
+            <button onclick="showModulo('mapa')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🗺️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Mapa</div></button>
           </div>
         </div>
       </div>
       <div>
         <div class="card">
-          <div class="card-hdr">
-            <span class="card-tit">Alertas</span>
-            <span id="alertas-count" style="font-size:10px;padding:2px 8px;border-radius:6px;background:#fdecea;color:#c0392b;font-weight:600;display:none"></span>
-          </div>
-          <div id="alertas-lista" style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0;line-height:1.6">Registrá tu primera siembra para recibir alertas agronómicas automáticas</div>
+          <div class="card-hdr"><span class="card-tit">Alertas urgentes</span></div>
+          <div id="dash-alertas"></div>
         </div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Clima · tu zona</span></div>
@@ -733,67 +499,161 @@ footer{background:#111e15;padding:4rem 2rem 2rem}
             <div style="color:var(--texto-suave)">Humedad</div><div style="font-weight:500">58%</div>
             <div style="color:var(--texto-suave)">Viento</div><div style="font-weight:500">14 km/h NE</div>
             <div style="color:var(--texto-suave)">Lluvia 7 días</div><div style="font-weight:500">18 mm</div>
-            <div style="color:var(--texto-suave)">Pronóstico</div><div style="font-weight:500">Despejado</div>
           </div>
-          <div style="font-size:10px;color:var(--texto-suave);margin-top:.75rem;line-height:1.5">En la próxima versión conectamos a API meteorológica según la ubicación de cada campo</div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- ── RENTABILIDAD ── -->
+  <div class="modulo" id="mod-rentabilidad">
+    <div class="mod-header">
+      <div><div class="mod-titulo">📊 Rentabilidad</div><div class="mod-sub">Campaña 2025/26 · Margen por campo en tiempo real</div></div>
+      <div id="rent-campo-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div class="grid5" id="rent-mets"></div>
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Gastos de campaña</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+          <div id="rent-gastos"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Resumen financiero</span></div>
+          <div id="rent-resumen"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Distribución de costos</span></div>
+          <div style="position:relative;height:180px"><canvas id="chart-costos"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-tit">Análisis de sensibilidad · USD/ha</span><span style="font-size:11px;color:var(--texto-suave)">Precio vs Rendimiento</span></div>
+      <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens"></table></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Comparativa entre campos</span></div>
+        <div id="rent-comp"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Evolución histórica · margen USD/ha</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-hist"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LLUVIAS ── -->
+  <div class="modulo" id="mod-lluvias">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🌧️ Registro de lluvias</div><div class="mod-sub">Seguimiento por campo y etapa del cultivo</div></div>
+      <button class="btn-vs" onclick="openModalLluvia()">+ Registrar lluvia</button>
+    </div>
+    <div class="grid4" id="lluvia-mets"></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Registro de lluvias</span></div>
+        <div id="lluvia-lista"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Acumulado por etapa del cultivo</span></div>
+        <div id="lluvia-etapas"></div>
+        <div style="position:relative;height:160px;margin-top:1rem"><canvas id="chart-lluvia"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANÁLISIS DE SUELO ── -->
+  <div class="modulo" id="mod-suelo">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🔬 Análisis de suelo</div><div class="mod-sub">Semáforo nutricional y recomendaciones de fertilización</div></div>
+      <button class="btn-vs" onclick="openModalSuelo()">+ Cargar análisis</button>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Estado nutricional · semáforo</span>
+          <select class="fi" id="suelo-cultivo-sel" style="width:auto;padding:5px 10px;font-size:12px" onchange="renderSuelo()">
+            <option value="soja">Soja</option><option value="maiz">Maíz</option><option value="trigo">Trigo</option><option value="girasol">Girasol</option>
+          </select>
+        </div>
+        <div id="suelo-semaforo"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
+        <div id="suelo-recomendaciones"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-tit">Evolución nutricional · últimos análisis</span></div>
+      <div style="position:relative;height:200px"><canvas id="chart-suelo"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── MAPA ── -->
+  <div class="modulo" id="mod-mapa">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🗺️ Mapa de lotes</div><div class="mod-sub">Vista satelital de tus campos · Coronel Moldes, Córdoba</div></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="cambiarCapa('satellite')" id="btn-sat">Satelital</button>
+        <button class="btn-sm" onclick="cambiarCapa('topo')" id="btn-topo">Topográfico</button>
+        <button class="btn-sm" onclick="cambiarCapa('streets')" id="btn-streets">Calles</button>
+      </div>
+    </div>
+    <div id="mapa-lotes"></div>
+    <div class="grid3" style="margin-top:14px" id="mapa-campos-info"></div>
+  </div>
+
+  <!-- ── NOTIFICACIONES ── -->
+  <div class="modulo" id="mod-notificaciones">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente desde tus siembras</div></div>
+      <div style="display:flex;gap:6px" id="notif-filtros"></div>
+    </div>
+    <div id="notif-lista"></div>
+  </div>
 </div>
 
-<!-- MODAL AUTH -->
+<!-- MODALES AUTH -->
 <div class="overlay" id="ov-auth" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-logo">Rinde<span class="d">.</span>Agro</div>
-    <div class="tabs">
-      <button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button>
-      <button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button>
-    </div>
-
-    <!-- REGISTRO -->
+    <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+    <div class="tabs"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
     <div id="f-reg">
       <div class="sdots" id="sdots"><div class="sdot on"></div><div class="sdot"></div><div class="sdot"></div></div>
       <div class="fstep on" id="rs1">
-        <div class="m-tit">¿Cómo vas a usar Rinde.Agro?</div>
-        <div class="m-sub">Elegí tu perfil para personalizar la experiencia</div>
-        <div class="popt" onclick="selPerfil(this,'productor')"><span style="font-size:24px">🌾</span><div><div class="popt-t">Soy productor agropecuario</div><div class="popt-s">Gestionar mis campos y ver mi rentabilidad</div></div></div>
-        <div class="popt" onclick="selPerfil(this,'agronomo')"><span style="font-size:24px">👨‍🌾</span><div><div class="popt-t">Soy ingeniero agrónomo</div><div class="popt-s">Gestionar los campos de mis productores clientes</div></div></div>
-        <div class="popt" onclick="selPerfil(this,'empresa')"><span style="font-size:24px">🏢</span><div><div class="popt-t">Soy empresa agropecuaria</div><div class="popt-s">Múltiples campos y usuarios en mi organización</div></div></div>
+        <div class="m-tit2">¿Cómo vas a usar Rinde.Agro?</div>
+        <div class="m-sub2">Elegí tu perfil</div>
+        <div class="popt" onclick="selPerfil(this,'productor')"><span style="font-size:22px">🌾</span><div><div class="popt-t">Soy productor agropecuario</div><div class="popt-s">Gestionar mis campos y rentabilidad</div></div></div>
+        <div class="popt" onclick="selPerfil(this,'agronomo')"><span style="font-size:22px">👨‍🌾</span><div><div class="popt-t">Soy ingeniero agrónomo</div><div class="popt-s">Gestionar campos de mis clientes</div></div></div>
+        <div class="popt" onclick="selPerfil(this,'empresa')"><span style="font-size:22px">🏢</span><div><div class="popt-t">Soy empresa agropecuaria</div><div class="popt-s">Múltiples campos y usuarios</div></div></div>
       </div>
       <div class="fstep" id="rs2">
-        <div class="m-tit">Tus datos</div>
-        <div class="m-sub">Creá tu cuenta en segundos — es completamente gratis</div>
+        <div class="m-tit2">Tus datos</div><div class="m-sub2">Creá tu cuenta en segundos</div>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" id="r-nombre" placeholder="Juan García"/></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
-        <div class="fg"><label class="fl">WhatsApp (para la carga de datos)</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
-        <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná tu provincia</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Mendoza</option><option>Otra</option></select></div>
+        <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
+        <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
         <div class="fg"><label class="fl">Contraseña</label><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres"/></div>
         <button class="fb" onclick="regPaso3()">Continuar →</button>
       </div>
       <div class="fstep" id="rs3">
-        <div class="m-tit">Tu primer campo</div>
-        <div class="m-sub">Opcional — podés agregarlo después desde el dashboard</div>
+        <div class="m-tit2">Tu primer campo</div><div class="m-sub2">Opcional — podés agregarlo después</div>
         <div class="fg"><label class="fl">Nombre del campo</label><input class="fi" type="text" id="r-campo" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
-        <div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="r-ha" placeholder="Ej: 480" min="1"/></div>
-        <div class="fg"><label class="fl">Cultivo actual</label><select class="fi" id="r-cult" style="cursor:pointer"><option value="">Seleccioná el cultivo</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div>
+        <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="r-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="r-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Otro</option></select></div></div>
         <button class="fb" id="btn-reg" onclick="registrar()">🌱 Crear mi cuenta en Rinde.Agro</button>
-        <button style="width:100%;padding:10px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:5px" onclick="registrar()">Omitir por ahora →</button>
-        <div class="trial-pill"><strong>15 días gratis</strong> en el plan Campo completo · Sin tarjeta de crédito · Cancelás cuando querés</div>
+        <button style="width:100%;padding:9px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px" onclick="registrar()">Omitir por ahora →</button>
+        <div class="trial-pill"><strong>15 días gratis</strong> en el plan Campo · Sin tarjeta de crédito</div>
       </div>
     </div>
-
-    <!-- LOGIN -->
     <div id="f-log" style="display:none">
-      <div class="m-tit">Bienvenido de vuelta</div>
-      <div class="m-sub">Ingresá a tu cuenta de Rinde.Agro</div>
+      <div class="m-tit2">Bienvenido de vuelta</div><div class="m-sub2">Ingresá a tu cuenta de Rinde.Agro</div>
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="l-email" placeholder="tu@email.com"/></div>
       <div class="fg"><label class="fl">Contraseña</label><input class="fi" type="password" id="l-pass" placeholder="••••••••"/></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--texto-suave);cursor:pointer"><input type="checkbox" style="accent-color:var(--verde)"/> Recordarme</label>
-        <span style="font-size:12px;color:var(--verde-light);cursor:pointer;text-decoration:underline" onclick="recuperarPass()">¿Olvidaste tu contraseña?</span>
-      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:1rem"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--texto-suave);cursor:pointer"><input type="checkbox" style="accent-color:var(--verde)"/> Recordarme</label><span style="font-size:12px;color:var(--verde-light);cursor:pointer;text-decoration:underline" onclick="recuperarPass()">¿Olvidaste tu contraseña?</span></div>
       <button class="fb" id="btn-log" onclick="login()">Ingresar a mi cuenta</button>
       <div style="text-align:center;margin-top:1rem;font-size:12px;color:var(--texto-suave)">¿No tenés cuenta? <strong style="color:var(--verde);cursor:pointer" onclick="switchTab('registro')">Creá una gratis →</strong></div>
     </div>
@@ -802,16 +662,84 @@ footer{background:#111e15;padding:4rem 2rem 2rem}
 
 <!-- MODAL CAMPO -->
 <div class="overlay" id="ov-campo" onclick="if(event.target===this)closeModalCampo()">
-  <div class="modal-campo">
+  <div class="modal">
     <button class="m-close" onclick="closeModalCampo()">✕</button>
-    <div class="m-tit" style="margin-bottom:.3rem">Agregar campo</div>
-    <div class="m-sub">Completá los datos de tu campo</div>
+    <div class="m-tit">Agregar campo</div><div class="m-sub">Datos de tu campo</div>
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
-    <div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="Ej: 480" min="1"/></div>
-    <div class="fg"><label class="fl">Cultivo actual</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo granífero</option><option>Maní</option><option>Girasol</option><option>Otro</option></select></div>
-    <div class="fg"><label class="fl">Provincia</label><select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
-    <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
+    <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div></div>
+    <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Provincia</label><select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div><div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div></div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
+  </div>
+</div>
+
+<!-- MODAL GASTO -->
+<div class="overlay" id="ov-gasto" onclick="if(event.target===this)closeModalGasto()">
+  <div class="modal">
+    <button class="m-close" onclick="closeModalGasto()">✕</button>
+    <div class="m-tit">Agregar gasto</div><div class="m-sub">El sistema convierte automáticamente a USD y quintales</div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Rubro *</label><select class="fi" id="g-rubro" style="cursor:pointer"><option value="">Seleccioná</option><option value="herbicidas">Herbicidas</option><option value="fungicidas">Fungicidas/Insect.</option><option value="fertilizantes">Fertilizantes</option><option value="semillas">Semillas</option><option value="labores">Labores</option><option value="cosecha">Cosecha</option><option value="flete">Flete</option><option value="arrendamiento">Arrendamiento</option><option value="otros">Otros</option></select></div>
+      <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="g-fecha"/></div>
+    </div>
+    <div class="fg"><label class="fl">Descripción</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480 · 3L/ha · 480ha"/></div>
+    <div class="form-row3" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Monto ($)</label><input class="fi" type="number" id="g-pesos" placeholder="0" oninput="calcConv()"/></div>
+      <div class="fg"><label class="fl">Tipo de cambio</label><input class="fi" type="number" id="g-tc" placeholder="1085" oninput="calcConv()"/></div>
+      <div class="fg"><label class="fl">Precio cereal</label><input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/></div>
+    </div>
+    <div class="conv-box">
+      <div><div class="conv-l">USD total</div><div class="conv-v" id="cv-usd">—</div></div>
+      <div><div class="conv-l">USD/ha</div><div class="conv-v" id="cv-usdha">—</div></div>
+      <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
+    </div>
+    <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+  </div>
+</div>
+
+<!-- MODAL LLUVIA -->
+<div class="overlay" id="ov-lluvia" onclick="if(event.target===this)closeModalLluvia()">
+  <div class="modal">
+    <button class="m-close" onclick="closeModalLluvia()">✕</button>
+    <div class="m-tit">Registrar lluvia</div><div class="m-sub">Ingresá los datos de la lluvia</div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+      <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
+    </div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Milímetros *</label><input class="fi" type="number" id="ll-mm" placeholder="Ej: 25" min="0" step="0.1"/></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ll-tipo" style="cursor:pointer"><option value="pareja">Lluvia pareja</option><option value="tormenta">Tormenta</option><option value="garua">Garúa</option><option value="granizo">Granizo</option></select></div>
+    </div>
+    <div class="fg"><label class="fl">Etapa del cultivo</label><select class="fi" id="ll-etapa" style="cursor:pointer"><option value="barbecho">Barbecho</option><option value="siembra">Siembra</option><option value="vegetativo">Vegetativo</option><option value="floracion">Floración (crítica)</option><option value="llenado">Llenado de grano</option><option value="maduracion">Maduración</option></select></div>
+    <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
+    <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+  </div>
+</div>
+
+<!-- MODAL SUELO -->
+<div class="overlay" id="ov-suelo" onclick="if(event.target===this)closeModalSuelo()">
+  <div class="modal">
+    <button class="m-close" onclick="closeModalSuelo()">✕</button>
+    <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub">Ingresá los valores del laboratorio</div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+      <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+    </div>
+    <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
+    <div class="form-row3" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
+      <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
+      <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+    </div>
+    <div class="form-row3" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
+      <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
+      <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+    </div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
+      <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
+    </div>
+    <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
   </div>
 </div>
 
@@ -824,45 +752,41 @@ const SB_URL = 'https://kmfydetiwatnwwzjnhyq.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZnlkZXRpd2F0bnd3empuaHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MjM2NjgsImV4cCI6MjA4OTA5OTY2OH0.WL9aziR3MwVNLV6q0_jDXCGO5dYgaoL6Bsr-PrOCoiQ'
 const sb = createClient(SB_URL, SB_KEY)
 
+// ── ESTADO GLOBAL ──
 var usuario = null
 var campos = []
+var gastos = []
+var lluvias = []
+var analisisS = []
 var perfil = 'productor'
 var paso = 1
-var esAnual = false
-var precios = { soja:280, maiz:195, trigo:212, bna:1085 }
+var campoRent = null
+var precios = {soja:280,maiz:195,trigo:212,bna:1085}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
+var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',labores:'Labores',cosecha:'Cosecha',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+var charts = {}
 
 // ── INIT ──
 async function init() {
   try {
-    sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        if (!usuario) {
-          usuario = session.user
-        }
-      } else if (event === 'SIGNED_OUT') {
-        usuario = null
-        campos = []
-      }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session && !usuario) usuario = session.user
+      else if (event === 'SIGNED_OUT') { usuario = null; campos = []; gastos = []; lluvias = [] }
     })
-
     const { data: { session } } = await sb.auth.getSession()
-    
-    // Fade out loading
     var loading = document.getElementById('screen-loading')
     loading.classList.add('fade')
     setTimeout(() => { loading.style.display = 'none' }, 500)
-
     if (session && session.user) {
       usuario = session.user
-      showScreen('dash')
-      await cargarDash()
+      showScreen('app')
+      await cargarTodo()
     } else {
       showScreen('landing')
       initLanding()
     }
   } catch(e) {
-    console.error('Init error:', e)
+    console.error(e)
     document.getElementById('screen-loading').style.display = 'none'
     showScreen('landing')
     initLanding()
@@ -877,369 +801,838 @@ function showScreen(name) {
 
 // ── LANDING ──
 function initLanding() {
-  buildPlanes()
-  buildFAQ()
-  
-  // Nav scroll effect
   window.addEventListener('scroll', () => {
-    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50)
+    document.getElementById('navbar')?.classList.toggle('scrolled', window.scrollY > 50)
   })
 }
 
-var PLANES_DATA = [
-  { id:'semilla', nombre:'Semilla', sub:'Para conocer la plataforma', mens:0, anual:0, gratis:true,
-    feats:[{ok:true,t:'1 campo'},{ok:true,t:'Rentabilidad básica'},{ok:true,t:'Precios Rosario'},{ok:false,t:'WhatsApp IA'},{ok:false,t:'Análisis de suelo'},{ok:false,t:'Historial 10 años'}]
-  },
-  { id:'campo', nombre:'Campo', sub:'Para el productor que quiere control total', mens:21, anual:202, pop:true,
-    feats:[{ok:true,t:'Hasta 5 campos'},{ok:true,t:'Todos los módulos'},{ok:true,t:'Carga por WhatsApp'},{ok:true,t:'Historial 10 años'},{ok:true,t:'Análisis de suelo'},{ok:true,t:'Agrónomo vinculado'}]
-  },
-  { id:'empresa', nombre:'Empresa', sub:'Para empresas agropecuarias', mens:35, anual:336,
-    feats:[{ok:true,t:'Campos ilimitados'},{ok:true,t:'5 usuarios'},{ok:true,t:'Exportar PDF/Excel'},{ok:true,t:'API integración'},{ok:true,t:'Soporte prioritario'},{ok:true,t:'Panel agrónomo incluido'}]
-  },
-  { id:'agronomo', nombre:'Agrónomo', sub:'Para profesionales que asesoran', mens:29, anual:278,
-    feats:[{ok:true,t:'20 productores clientes'},{ok:true,t:'Panel multi-productor'},{ok:true,t:'Configurar rangos suelo'},{ok:true,t:'Informes para clientes'},{ok:true,t:'Alertas centralizadas'},{ok:false,t:'Más de 20 clientes'}]
-  }
-]
-
-window.togglePeriodo = function() {
-  esAnual = !esAnual
-  var t = document.getElementById('toggle')
-  t.classList.toggle('on', esAnual)
-  document.getElementById('lbl-m').classList.toggle('on', !esAnual)
-  document.getElementById('lbl-a').classList.toggle('on', esAnual)
-  document.getElementById('badge-ahorro').style.display = esAnual ? 'inline' : 'none'
-  buildPlanes()
-}
-
-function buildPlanes() {
-  var el = document.getElementById('planes-grid')
-  if (!el) return
-  el.innerHTML = PLANES_DATA.map(p => {
-    var precio = p.gratis ? 'Gratis' : 'USD ' + (esAnual ? p.anual : p.mens)
-    var per = p.gratis ? 'para siempre' : esAnual ? '/ año' : '/ mes'
-    var equiv = !p.gratis && esAnual ? '= USD ' + (p.anual/12).toFixed(0) + '/mes' : ''
-    return `<div class="plan${p.pop?' pop':''}">
-      ${p.pop ? '<div class="plan-badge">⭐ Más elegido</div>' : ''}
-      <div class="pn">${p.nombre}</div>
-      <div class="ps">${p.sub}</div>
-      <div class="pp${p.gratis?' pp-g':''}">${precio}</div>
-      <div class="pp-per">${per}</div>
-      <div class="pp-equiv">${equiv}</div>
-      <div class="pf">${p.feats.map(f=>`<div class="pfi"><span class="${f.ok?'ok':'nok'}">${f.ok?'✓':'✗'}</span><span class="pfi-t">${f.t}</span></div>`).join('')}</div>
-      <button class="p-btn${p.pop?' p-btn-pop':''}" onclick="openModal('registro')">${p.pop?'🌱 ':''} ${p.gratis?'Empezar gratis':'Iniciar 15 días gratis'}</button>
-    </div>`
-  }).join('')
-}
-
-var FAQS = [
-  { q:'¿Necesito saber de tecnología para usar Rinde.Agro?', a:'No. La plataforma está diseñada para el productor de campo — no para técnicos. Si podés mandar un mensaje de WhatsApp, podés usar Rinde.Agro.' },
-  { q:'¿Cómo funciona la carga por WhatsApp?', a:'Agregás el número de Rinde.Agro a tu celular y le mandás mensajes de texto, audio o foto. La IA interpreta el mensaje y carga el dato automáticamente. Siempre te pide confirmación antes de guardar.' },
-  { q:'¿Mis datos están seguros?', a:'Sí. Usamos Supabase con encriptación de datos y Row Level Security — cada usuario solo puede ver sus propios datos. Ningún productor puede ver los datos de otro.' },
-  { q:'¿Puedo cancelar cuando quiero?', a:'Sí, podés cancelar en cualquier momento desde tu cuenta. No hay contratos ni penalidades. Los datos siguen disponibles durante 30 días después de cancelar.' },
-  { q:'¿Funciona en el celular sin internet?', a:'Para cargar y ver datos necesitás conexión. Sin embargo, el sitio carga rápido incluso con conexión lenta de campo porque está optimizado para móvil.' },
-  { q:'¿Qué diferencia hay entre el plan Campo y el plan Empresa?', a:'El plan Campo es para productores individuales con hasta 5 campos. El plan Empresa agrega campos ilimitados, hasta 5 usuarios, exportación a Excel/PDF y API de integración.' },
-]
-
-function buildFAQ() {
-  var el = document.getElementById('faq-list')
-  if (!el) return
-  el.innerHTML = FAQS.map((f, i) => `
-    <div class="faq-item" id="faq-${i}">
-      <div class="faq-q" onclick="toggleFaq(${i})">
-        <span>${f.q}</span>
-        <span class="faq-arrow">+</span>
-      </div>
-      <div class="faq-a"><p>${f.a}</p></div>
-    </div>`).join('')
-}
-
-window.toggleFaq = function(i) {
-  var item = document.getElementById('faq-' + i)
-  var isOpen = item.classList.contains('open')
-  document.querySelectorAll('.faq-item').forEach(el => el.classList.remove('open'))
-  if (!isOpen) item.classList.add('open')
-}
-
-// ── AUTH ──
-window.openModal = function(tipo) {
-  document.getElementById('ov-auth').classList.add('open')
-  switchTab(tipo)
-}
-window.closeModal = function() { document.getElementById('ov-auth').classList.remove('open') }
-window.switchTab = function(tipo) {
-  document.getElementById('tab-reg').classList.toggle('on', tipo === 'registro')
-  document.getElementById('tab-log').classList.toggle('on', tipo === 'login')
-  document.getElementById('f-reg').style.display = tipo === 'registro' ? 'block' : 'none'
-  document.getElementById('f-log').style.display = tipo === 'login' ? 'block' : 'none'
-  if (tipo === 'registro') { paso = 1; irPaso(1) }
-}
-window.selPerfil = function(el, tipo) {
-  perfil = tipo
-  document.querySelectorAll('.popt').forEach(o => o.classList.remove('sel'))
-  el.classList.add('sel')
-  setTimeout(() => irPaso(2), 280)
-}
-function irPaso(n) {
-  paso = n
-  document.querySelectorAll('.fstep').forEach((s, i) => s.classList.toggle('on', i === n - 1))
-  document.querySelectorAll('.sdot').forEach((d, i) => d.classList.toggle('on', i === n - 1))
-}
-window.regPaso3 = function() {
-  var nombre = document.getElementById('r-nombre').value.trim()
-  var email = document.getElementById('r-email').value.trim()
-  var pass = document.getElementById('r-pass').value
-  if (!nombre) { showToast('⚠️ Ingresá tu nombre', 'error'); return }
-  if (!email) { showToast('⚠️ Ingresá tu email', 'error'); return }
-  if (!pass || pass.length < 8) { showToast('⚠️ La contraseña debe tener al menos 8 caracteres', 'error'); return }
-  irPaso(3)
-}
-window.registrar = async function() {
-  var nombre = document.getElementById('r-nombre').value.trim()
-  var email = document.getElementById('r-email').value.trim()
-  var pass = document.getElementById('r-pass').value
-  var wa = document.getElementById('r-wa').value.trim()
-  var prov = document.getElementById('r-prov').value
-  if (!email || !pass) { showToast('⚠️ Ingresá email y contraseña', 'error'); return }
-  var btn = document.getElementById('btn-reg')
-  btn.disabled = true; btn.textContent = 'Creando cuenta...'
-  try {
-    const { data, error } = await sb.auth.signUp({ email, password: pass,
-      options: { data: { nombre, telefono: wa, provincia: prov, perfil } }
-    })
-    if (error) throw error
-    usuario = data.user
-    // Guardar campo si se completó
-    var campoNombre = document.getElementById('r-campo').value.trim()
-    if (campoNombre && usuario) {
-      var campoHa = parseFloat(document.getElementById('r-ha').value) || null
-      var campoCult = document.getElementById('r-cult').value || null
-      try {
-        const { data: c } = await sb.from('campos').insert({
-          nombre: campoNombre, hectareas: campoHa, cultivo: campoCult,
-          usuario_id: usuario.id, tenencia: 'propio'
-        }).select().single()
-        if (c) campos.push(c)
-      } catch(e) { console.log('Error guardando campo:', e) }
-    }
-    closeModal()
-    showToast('🌾 ¡Bienvenido' + (nombre ? ' ' + nombre.split(' ')[0] : '') + '! Tu cuenta fue creada.', 'success')
-    showScreen('dash')
-    await cargarDash()
-  } catch(e) {
-    var msg = e.message || 'Error al crear cuenta'
-    if (msg.includes('already registered')) msg = 'Este email ya tiene una cuenta. Ingresá con tu contraseña.'
-    showToast('⚠️ ' + msg, 'error')
-    btn.disabled = false; btn.textContent = '🌱 Crear mi cuenta en Rinde.Agro'
-  }
-}
-window.login = async function() {
-  var email = document.getElementById('l-email').value.trim()
-  var pass = document.getElementById('l-pass').value
-  if (!email || !pass) { showToast('⚠️ Ingresá email y contraseña', 'error'); return }
-  var btn = document.getElementById('btn-log')
-  btn.disabled = true; btn.textContent = 'Ingresando...'
-  try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass })
-    if (error) throw error
-    usuario = data.user
-    closeModal()
-    showToast('✓ ¡Bienvenido de vuelta!', 'success')
-    showScreen('dash')
-    await cargarDash()
-  } catch(e) {
-    var msg = e.message === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : (e.message || 'Error al ingresar')
-    showToast('⚠️ ' + msg, 'error')
-    btn.disabled = false; btn.textContent = 'Ingresar a mi cuenta'
-  }
-}
-window.recuperarPass = async function() {
-  var email = document.getElementById('l-email').value.trim()
-  if (!email) { showToast('⚠️ Ingresá tu email primero', 'error'); return }
-  try {
-    await sb.auth.resetPasswordForEmail(email)
-    showToast('✓ Te mandamos un email para restablecer tu contraseña', 'success')
-  } catch(e) {
-    showToast('⚠️ Error al enviar el email', 'error')
-  }
-}
-window.cerrarSesion = async function() {
-  await sb.auth.signOut()
-  usuario = null; campos = []
-  showScreen('landing')
-  initLanding()
-  showToast('Sesión cerrada correctamente')
-}
-
-// ── DASHBOARD ──
-async function cargarDash() {
+// ── CARGAR TODO ──
+async function cargarTodo() {
   try {
     const { data: p } = await sb.from('perfiles').select('*').eq('id', usuario.id).single()
     var nombre = p?.nombre || usuario.email.split('@')[0]
-    var ini = nombre.charAt(0).toUpperCase()
-    document.getElementById('d-av').textContent = ini
+    document.getElementById('d-av').textContent = nombre.charAt(0).toUpperCase()
     document.getElementById('d-nm').textContent = nombre
     var h = new Date().getHours()
-    var sal = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
+    var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
     document.getElementById('d-saludo').textContent = sal + ', ' + nombre.split(' ')[0] + ' 👋'
-    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
-    if (p?.trial_activo && p?.trial_hasta) {
-      var diasRestantes = Math.max(0, Math.ceil((new Date(p.trial_hasta) - new Date()) / (1000*60*60*24)))
-      if (diasRestantes > 0) {
-        document.getElementById('trial-bar').style.display = 'flex'
-        document.getElementById('trial-days-txt').textContent = diasRestantes + ' días restantes'
-      }
-    }
+    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
   } catch(e) {
-    var email = usuario?.email || ''
-    var nombre = email.split('@')[0]
+    var nombre = usuario?.email?.split('@')[0] || 'Usuario'
     document.getElementById('d-av').textContent = nombre.charAt(0).toUpperCase()
     document.getElementById('d-nm').textContent = nombre
     document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
-    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
-  await cargarCampos()
-  window.actualizarPrecios()
-}
-
-async function cargarCampos() {
   try {
-    const { data, error } = await sb.from('campos').select('*').eq('usuario_id', usuario.id).order('creado_en', { ascending: false })
-    if (error) throw error
-    campos = data || []
-  } catch(e) {
-    console.error('Error cargando campos:', e)
-    campos = []
-  }
-  renderCampos()
-  calcMetricas()
+    const { data: c } = await sb.from('campos').select('*').eq('usuario_id', usuario.id).order('creado_en',{ascending:false})
+    campos = c || []
+    if (campos.length > 0) campoRent = campos[0].id
+  } catch(e) { campos = [] }
+  try {
+    const { data: g } = await sb.from('gastos').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    gastos = g || []
+  } catch(e) { gastos = [] }
+  try {
+    const { data: l } = await sb.from('lluvias').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    lluvias = l || []
+  } catch(e) { lluvias = [] }
+  try {
+    const { data: s } = await sb.from('analisis_suelo').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    analisisS = s || []
+  } catch(e) { analisisS = [] }
+
+  actualizarPrecios()
+  renderDashboard()
+  poblarSelectoresCampo()
 }
 
-function renderCampos() {
-  var el = document.getElementById('campos-lista')
+window.showModulo = function(mod) {
+  document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
+  document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
+  document.getElementById('mod-' + mod).classList.add('active')
+  var btns = document.querySelectorAll('.anl')
+  var mods = ['dashboard','rentabilidad','lluvias','suelo','mapa','notificaciones']
+  btns[mods.indexOf(mod)]?.classList.add('active')
+  window.scrollTo(0,0)
+
+  if (mod === 'rentabilidad') renderRentabilidad()
+  if (mod === 'lluvias') renderLluvias()
+  if (mod === 'suelo') renderSuelo()
+  if (mod === 'mapa') initMapa()
+  if (mod === 'notificaciones') renderNotificaciones()
+}
+
+window.actualizarPrecios = function() {
+  precios.soja = Math.round((precios.soja+(Math.random()-.47)*4)*10)/10
+  precios.maiz = Math.round((precios.maiz+(Math.random()-.5)*3)*10)/10
+  precios.trigo = Math.round((precios.trigo+(Math.random()-.48)*3)*10)/10
+  precios.bna = Math.round(precios.bna+(Math.random()-.5)*6)
+  document.getElementById('ps-soja').textContent = 'USD '+precios.soja
+  document.getElementById('ps-maiz').textContent = 'USD '+precios.maiz
+  document.getElementById('ps-trigo').textContent = 'USD '+precios.trigo
+  document.getElementById('ps-bna').textContent = '$ '+precios.bna.toLocaleString('es-AR')
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  // Métricas
+  var totalHa=0,ing=0,cost=0
+  campos.forEach(c => {
+    var ha=c.hectareas||0; totalHa+=ha
+    var cult=c.cultivo||'Soja'
+    var rend=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+    var pr=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+    var costoHa = ha>0?gc/ha:190
+    ing+=rend*pr*ha; cost+=costoHa*ha
+  })
+  var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
+  document.getElementById('dash-mets').innerHTML = [
+    {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
+    {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
+    {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
+    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
+  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+
+  // Campos
+  var el = document.getElementById('dash-campos')
   if (!campos.length) {
-    el.innerHTML = `<div class="empty">
-      <div class="empty-i">🌾</div>
-      <div class="empty-t">Sin campos registrados</div>
-      <div class="empty-s">Agregá tu primer campo para empezar a ver tu rentabilidad, registrar lluvias y hacer el seguimiento agronómico de tu campaña.</div>
-      <button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar mi primer campo</button>
+    el.innerHTML = `<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo para ver tu rentabilidad.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div>`
+  } else {
+    el.innerHTML = campos.map((c,i)=>{
+      var ha=c.hectareas||0
+      var cult=c.cultivo||'Soja'
+      var rend=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+      var pr=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+      var costoHa=ha>0?gc/ha:190
+      var mg=rend*pr-costoHa
+      var mc=mg>=0?'#1a7a52':'#c0392b'
+      return `<div class="campo-row" onclick="showModulo('rentabilidad')">
+        <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
+        <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
+        <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
+      </div>`
+    }).join('')
+  }
+
+  // Alertas dashboard
+  var alertas = generarAlertas()
+  var el2 = document.getElementById('dash-alertas')
+  if (!alertas.length) {
+    el2.innerHTML = `<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin alertas pendientes ✓</div>`
+  } else {
+    el2.innerHTML = alertas.slice(0,4).map(a=>`
+      <div class="notif-item">
+        <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
+        <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">${a.campo}</div></div>
+        <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+'d'}</span>
+      </div>`).join('')
+  }
+  var badge = document.getElementById('notif-badge')
+  var urgentes = alertas.filter(a=>a.tipo==='urgente').length
+  badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
+}
+
+// ── RENTABILIDAD ──
+function renderRentabilidad() {
+  // Tabs de campos
+  var tabs = document.getElementById('rent-campo-tabs')
+  tabs.innerHTML = campos.map((c,i)=>`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${c.id===campoRent?'var(--verde)':'var(--borde)'};background:${c.id===campoRent?'var(--verde)':'var(--blanco)'};color:${c.id===campoRent?'#fff':'var(--texto-mid)'};cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif" onclick="selCampoRent('${c.id}')"><div style="width:7px;height:7px;border-radius:50%;background:${c.id===campoRent?'rgba(255,255,255,.7)':COLORES[i%COLORES.length]}"></div>${c.nombre}</button>`).join('')+
+  (campos.length>1?`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${campoRent==='todos'?'var(--verde)':'var(--borde)'};background:${campoRent==='todos'?'var(--verde)':'var(--blanco)'};color:${campoRent==='todos'?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif" onclick="selCampoRent('todos')">📊 Todos</button>`:'')
+
+  var gf = campoRent==='todos'?gastos:gastos.filter(g=>g.campo_id===campoRent)
+  var campo = campos.find(c=>c.id===campoRent)||campos[0]
+  var ha = campoRent==='todos'?campos.reduce((a,c)=>a+(c.hectareas||0),0):(campo?.hectareas||0)
+  var cult = campo?.cultivo||'Soja'
+  var rend = cult==='Maíz'?8:cult==='Trigo'?3:3.2
+  var pr = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+  var costoUSD = gf.reduce((a,g)=>a+(g.usd_total||0),0)
+  var costoHa = ha>0?costoUSD/ha:0
+  var ingHa = rend*pr
+  var mgHa = ingHa-costoHa
+  var mgPct = ingHa>0?(mgHa/ingHa*100).toFixed(1):0
+  var mc = mgHa>=0?'#1a7a52':'#c0392b'
+
+  // Métricas rentabilidad
+  document.getElementById('rent-mets').innerHTML = [
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t × USD '+pr,c:'#1a5fa8'},
+    {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD).toLocaleString('es-AR')+' total',c:'#c0392b'},
+    {l:'Margen neto/ha',v:(mgHa>=0?'+':'')+'USD '+Math.round(mgHa),s:mgPct+'% del ingreso',c:mc},
+    {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
+    {l:'En quintales/ha',v:(mgHa>=0?'+':'')+( pr>0?(mgHa/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
+  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+
+  // Gastos lista
+  var elG = document.getElementById('rent-gastos')
+  if (!gf.length) {
+    elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
+  } else {
+    elG.innerHTML = gf.map(g=>`<div class="gasto-row">
+      <span class="gtag r-${g.rubro||'otros'}">${RUBROS[g.rubro]||g.rubro||'Otros'}</span>
+      <div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">${g.descripcion||'Sin descripción'}</div><div style="font-size:10px;color:var(--texto-suave)">${fFecha(g.fecha)}</div></div>
+      <div style="text-align:right">
+        <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.pesos||0).toLocaleString('es-AR')}</div>
+        <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.usd_total||0).toLocaleString('es-AR')}</div>
+        ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
+      </div>
+      <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
+    </div>`).join('')
+  }
+
+  // Resumen financiero
+  var porRubro = {}
+  gf.forEach(g=>{ var r=g.rubro||'otros'; porRubro[r]=(porRubro[r]||0)+(g.usd_total||0) })
+  document.getElementById('rent-resumen').innerHTML =
+    `<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto</span><span style="font-weight:600;font-family:DM Mono,monospace;color:#1a5fa8">USD ${Math.round(ingHa*ha).toLocaleString('es-AR')}</span></div>` +
+    Object.entries(porRubro).sort((a,b)=>b[1]-a[1]).map(([r,v])=>
+      `<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-suave)">${RUBROS[r]||r}</span><span style="font-family:DM Mono,monospace">- USD ${Math.round(v).toLocaleString('es-AR')}</span></div>`
+    ).join('') +
+    `<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:600"><span>Margen neto</span><span style="color:${mc};font-family:DM Mono,monospace">${mgHa*ha>=0?'+':''}USD ${Math.round(mgHa*ha).toLocaleString('es-AR')}</span></div>`
+
+  // Chart costos
+  var ctxC = document.getElementById('chart-costos')
+  if (ctxC && Object.keys(porRubro).length) {
+    if (charts['costos']) charts['costos'].destroy()
+    charts['costos'] = new Chart(ctxC, {
+      type:'doughnut',
+      data:{labels:Object.keys(porRubro).map(r=>RUBROS[r]||r),datasets:[{data:Object.values(porRubro),backgroundColor:['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780'],borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},padding:8,boxWidth:10}}}}
+    })
+  }
+
+  // Sensibilidad
+  var preList = [220,250,270,Math.round(pr/10)*10,300,330,360]
+  var rendList = rend>=5?[5,6,7,8,9,10]:[2.0,2.5,3.0,3.5,4.0,4.5]
+  var thead = '<thead><tr><th>Rend/Precio</th>'+preList.map(p=>`<th>USD ${p}</th>`).join('')+'</tr></thead>'
+  var tbody = '<tbody>'+rendList.map(r=>'<tr><td>'+r+' t/ha</td>'+preList.map(p=>{
+    var mg=r*p-costoHa
+    var isBase=Math.abs(r-rend)<0.3&&Math.abs(p-pr)<15
+    return `<td><span class="${isBase?'cell-base':mg>=0?'cell-pos':'cell-neg'}">${mg>=0?'+':''}${Math.round(mg)}</span></td>`
+  }).join('')+'</tr>').join('')+'</tbody>'
+  document.getElementById('tabla-sens').innerHTML = thead+tbody
+
+  // Comparativa
+  var comp = campos.map((c,i)=>{
+    var h=c.hectareas||0,cu=c.cultivo||'Soja'
+    var re=cu==='Maíz'?8:cu==='Trigo'?3:3.2
+    var prr=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
+    var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+    var cHa=h>0?gc2/h:190
+    return {...c,mg:re*prr-cHa,col:COLORES[i%COLORES.length]}
+  }).sort((a,b)=>b.mg-a.mg)
+  var maxMg=Math.max(...comp.map(c=>Math.abs(c.mg)))
+  var ranks=['🥇','🥈','🥉','4️⃣','5️⃣']
+  document.getElementById('rent-comp').innerHTML = comp.map((c,i)=>`<div class="campo-row">
+    <span style="font-size:14px">${ranks[i]||i+1}</span>
+    <div class="cdot" style="background:${c.col}"></div>
+    <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${(c.hectareas||0).toLocaleString('es-AR')} ha · ${c.cultivo||'Soja'}</div></div>
+    <div style="width:120px;height:7px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:${maxMg>0?Math.abs(c.mg)/maxMg*100:0}%;height:100%;background:${c.col}88;border-radius:4px"></div></div>
+    <div style="text-align:right;min-width:80px"><div style="font-size:13px;font-weight:600;font-family:DM Mono,monospace;color:${c.mg>=0?'#1a7a52':'#c0392b'}">${c.mg>=0?'+':''}${Math.round(c.mg)}</div><div style="font-size:10px;color:var(--texto-suave)">USD/ha</div></div>
+  </div>`).join('')
+
+  // Histórico
+  var histData = [{a:'2021/22',v:85},{a:'2022/23',v:62},{a:'2023/24',v:94},{a:'2024/25',v:88},{a:'2025/26',v:Math.round(mgHa)}]
+  var ctxH = document.getElementById('chart-hist')
+  if (ctxH) {
+    if (charts['hist']) charts['hist'].destroy()
+    charts['hist'] = new Chart(ctxH,{
+      type:'bar',
+      data:{labels:histData.map(d=>d.a),datasets:[{label:'Margen USD/ha',data:histData.map(d=>d.v),backgroundColor:histData.map(d=>d.v>=0?'#1a4a2e99':'#c0392b99'),borderColor:histData.map(d=>d.v>=0?'#1a4a2e':'#c0392b'),borderWidth:1.5,borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10},callback:v=>'USD '+v}}}}
+    })
+  }
+}
+
+window.selCampoRent = function(id) {
+  campoRent = id
+  renderRentabilidad()
+}
+
+// ── LLUVIAS ──
+function renderLluvias() {
+  var totalMm = lluvias.reduce((a,l)=>a+(l.mm||0),0)
+  var porCampo = {}
+  campos.forEach(c=>{ porCampo[c.id]={nombre:c.nombre,mm:0} })
+  lluvias.forEach(l=>{ if(porCampo[l.campo_id]) porCampo[l.campo_id].mm+=(l.mm||0) })
+  var maxCampo = Object.values(porCampo).reduce((a,c)=>a.mm>c.mm?a:c,{mm:0})
+
+  document.getElementById('lluvia-mets').innerHTML = [
+    {l:'Total campaña',v:totalMm.toFixed(0)+' mm',s:'Todos los campos',c:'#1a5fa8'},
+    {l:'Eventos registrados',v:lluvias.length,s:'Lluvias cargadas',c:'#1a4a2e'},
+    {l:'Promedio por evento',v:lluvias.length?( totalMm/lluvias.length).toFixed(1)+' mm':'—',s:'Intensidad media',c:'#c9a84c'},
+    {l:'Campo con más lluvia',v:maxCampo.nombre||'—',s:(maxCampo.mm||0).toFixed(0)+' mm',c:'#0F6E56'},
+  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c};font-size:16px">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+
+  var elL = document.getElementById('lluvia-lista')
+  if (!lluvias.length) {
+    elL.innerHTML = `<div class="empty"><div class="empty-i">🌧️</div><div class="empty-t">Sin lluvias registradas</div><div class="empty-s">Registrá las lluvias para hacer el seguimiento hídrico de tus cultivos.</div></div>`
+  } else {
+    elL.innerHTML = lluvias.map(l=>{
+      var campoNombre = campos.find(c=>c.id===l.campo_id)?.nombre||'Campo'
+      return `<div class="lluvia-row">
+        <span class="etapa-tag e-${l.etapa||'barbecho'}">${etapaLabel(l.etapa)}</span>
+        <div style="flex:1"><div style="font-weight:500;font-size:12px">${campoNombre}</div><div style="font-size:10px;color:var(--texto-suave)">${fFecha(l.fecha)} · ${l.tipo||'pareja'}${l.observacion?' · '+l.observacion:''}</div></div>
+        <div style="text-align:right;font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">${l.mm} mm</div>
+        <button onclick="eliminarLluvia('${l.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px">🗑</button>
+      </div>`
+    }).join('')
+  }
+
+  // Acumulado por etapa
+  var porEtapa = {barbecho:0,siembra:0,vegetativo:0,floracion:0,llenado:0,maduracion:0}
+  var optimos = {barbecho:40,siembra:30,vegetativo:120,floracion:80,llenado:100,maduracion:30}
+  lluvias.forEach(l=>{ if(l.etapa&&porEtapa[l.etapa]!==undefined) porEtapa[l.etapa]+=(l.mm||0) })
+  document.getElementById('lluvia-etapas').innerHTML = Object.entries(porEtapa).map(([et,mm])=>{
+    var opt = optimos[et]||50
+    var pct = Math.min(mm/opt*100,100)
+    var color = pct>=80?'#1a7a52':pct>=50?'#c97a14':'#c0392b'
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px">
+      <span class="etapa-tag e-${et}" style="min-width:80px">${etapaLabel(et)}</span>
+      <div style="flex:1;height:8px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color}88;border-radius:4px"></div></div>
+      <span style="min-width:60px;text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600;color:${color}">${mm.toFixed(0)}/${opt}mm</span>
     </div>`
+  }).join('')
+
+  // Chart lluvia
+  var ctxL = document.getElementById('chart-lluvia')
+  if (ctxL && lluvias.length) {
+    if (charts['lluvia']) charts['lluvia'].destroy()
+    var ultimas = lluvias.slice(0,10).reverse()
+    charts['lluvia'] = new Chart(ctxL,{
+      type:'bar',
+      data:{labels:ultimas.map(l=>fFechaCorta(l.fecha)),datasets:[{label:'mm',data:ultimas.map(l=>l.mm),backgroundColor:'#1a5fa888',borderColor:'#1a5fa8',borderWidth:1.5,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>v+' mm'}}}}
+    })
+  }
+}
+
+// ── SUELO ──
+window.renderSuelo = function() {
+  var cultivo = document.getElementById('suelo-cultivo-sel').value
+  var RANGOS = {
+    soja: {N:[150,280],P:[18,40],K:[250,400],S:[10,25],MO:[3.0,5.0],pH:[6.0,7.0],Zn:[1.0,3.0],B:[0.5,2.0]},
+    maiz: {N:[180,300],P:[20,45],K:[280,450],S:[12,28],MO:[2.8,5.0],pH:[6.0,7.0],Zn:[1.2,3.0],B:[0.5,2.0]},
+    trigo:{N:[130,250],P:[15,35],K:[220,380],S:[8,22],MO:[2.5,4.5],pH:[5.8,7.0],Zn:[0.8,2.5],B:[0.4,1.8]},
+    girasol:{N:[140,260],P:[16,38],K:[240,400],S:[15,30],MO:[2.8,5.0],pH:[6.0,7.0],Zn:[1.0,3.0],B:[0.5,2.0]},
+  }
+  var rangos = RANGOS[cultivo]||RANGOS.soja
+  var ultimo = analisisS[0]
+
+  var NUTRI = [
+    {key:'n_total',label:'Nitrógeno (N)',unidad:'ppm',r:rangos.N},
+    {key:'p_disponible',label:'Fósforo disponible (P)',unidad:'ppm',r:rangos.P},
+    {key:'k',label:'Potasio (K)',unidad:'ppm',r:rangos.K},
+    {key:'s',label:'Azufre (S)',unidad:'ppm',r:rangos.S},
+    {key:'materia_org',label:'Materia orgánica',unidad:'%',r:rangos.MO},
+    {key:'ph',label:'pH del suelo',unidad:'',r:rangos.pH},
+    {key:'zinc',label:'Zinc (Zn)',unidad:'ppm',r:rangos.Zn},
+  ]
+
+  var elS = document.getElementById('suelo-semaforo')
+  if (!ultimo) {
+    elS.innerHTML = `<div class="empty"><div class="empty-i">🔬</div><div class="empty-t">Sin análisis de suelo</div><div class="empty-s">Cargá el análisis del laboratorio para ver el semáforo nutricional.</div></div>`
+    document.getElementById('suelo-recomendaciones').innerHTML = `<div style="font-size:12px;color:var(--texto-suave);padding:.75rem 0">Cargá un análisis para ver las recomendaciones.</div>`
     return
   }
-  el.innerHTML = campos.map((c, i) => {
-    var col = COLORES[i % COLORES.length]
-    var ha = c.hectareas || 0
-    var cult = c.cultivo || 'Soja'
-    var rend = cult === 'Maíz' ? 8.0 : cult === 'Trigo' ? 3.0 : cult === 'Girasol' ? 2.5 : 3.2
-    var pr = cult === 'Maíz' ? precios.maiz : cult === 'Trigo' ? precios.trigo : precios.soja
-    var mg = rend * pr - 190
-    var pct = rend * pr > 0 ? Math.round(mg / (rend * pr) * 100) : 0
-    var mc = mg >= 0 ? '#1a7a52' : '#c0392b'
-    return `<div class="campo-row">
-      <div class="cdot" style="background:${col}"></div>
-      <div class="ci">
-        <div class="cn">${c.nombre}</div>
-        <div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia || 'propio'} ${c.provincia ? '· ' + c.provincia : ''}</div>
+
+  elS.innerHTML = NUTRI.map(n=>{
+    var val = parseFloat(ultimo[n.key])||0
+    var [min,max] = n.r
+    var pct = Math.min(val/max*100,100)
+    var estado = val<min*0.7?'critico':val<min?'bajo':val<=max?'optimo':'alto'
+    var estadoLabel = {critico:'Crítico',bajo:'Bajo',optimo:'Óptimo',alto:'Alto'}
+    var color = {critico:'#c0392b',bajo:'#c97a14',optimo:'#1a7a52',alto:'#1a5fa8'}[estado]
+    return `<div class="nutriente-row">
+      <span class="nut-label">${n.label}</span>
+      <div class="nut-bar-wrap"><div class="nut-bar" style="width:${pct}%;background:${color}88"></div></div>
+      <span class="nut-val" style="color:${color}">${val}${n.unidad?` ${n.unidad}`:''}</span>
+      <span class="nut-estado n-${estado}">${estadoLabel[estado]}</span>
+    </div>`
+  }).join('')
+
+  // Recomendaciones
+  var FERTIL = {
+    N:{prod:'Urea 46%',dosis:120,precio:0.85,momento:'Presiembra o macollaje'},
+    P:{prod:'DAP',dosis:80,precio:1.2,momento:'Siembra'},
+    S:{prod:'Sulfato de amonio',dosis:60,precio:0.45,momento:'Siembra'},
+    Zn:{prod:'Zinc quelatado',dosis:2,precio:8,momento:'Foliar en V4'},
+  }
+  var recs = []
+  NUTRI.forEach(n=>{
+    var val=parseFloat(ultimo[n.key])||0
+    var [min] = n.r
+    if(val<min&&FERTIL[n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':n.key.includes('zinc')?'Zn':'']){
+      var k=n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':'Zn'
+      var f=FERTIL[k]
+      if(f) recs.push({nutriente:n.label,...f})
+    }
+  })
+  var elR = document.getElementById('suelo-recomendaciones')
+  if(!recs.length){
+    elR.innerHTML=`<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Todos los nutrientes están en niveles óptimos para ${cultivo}</div>`
+  } else {
+    elR.innerHTML=recs.map(r=>`<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:var(--verde)">${r.nutriente} — ${r.prod}</span><span style="font-size:11px;background:var(--amber-pale);color:var(--amber);padding:2px 8px;border-radius:6px;font-weight:600">Corregir</span></div>
+      <div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>${r.dosis} kg/ha</strong> · Momento: ${r.momento} · Costo estimado: <strong>USD ${(r.dosis*r.precio).toFixed(0)}/ha</strong></div>
+    </div>`).join('')
+  }
+
+  // Chart suelo histórico
+  var ctxSu = document.getElementById('chart-suelo')
+  if(ctxSu && analisisS.length>0){
+    if(charts['suelo'])charts['suelo'].destroy()
+    var anals=analisisS.slice(0,5).reverse()
+    charts['suelo']=new Chart(ctxSu,{
+      type:'line',
+      data:{labels:anals.map(a=>fFechaCorta(a.fecha)),datasets:[
+        {label:'N (ppm)',data:anals.map(a=>a.n_total),borderColor:'#1a4a2e',tension:.4,fill:false,pointRadius:4},
+        {label:'P (ppm)',data:anals.map(a=>a.p_disponible),borderColor:'#c9a84c',tension:.4,fill:false,pointRadius:4},
+        {label:'MO (%×50)',data:anals.map(a=>(a.materia_org||0)*50),borderColor:'#1a5fa8',tension:.4,fill:false,pointRadius:4},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},padding:8,boxWidth:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}
+    })
+  }
+}
+
+// ── MAPA ──
+var mapaIniciado = false
+var mapInstance = null
+var capas = {}
+
+function initMapa() {
+  if (mapaIniciado) return
+  mapaIniciado = true
+
+  mapInstance = L.map('mapa-lotes').setView([-33.65, -64.60], 12)
+
+  capas.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'})
+  capas.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'OpenTopoMap'})
+  capas.streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap'})
+
+  capas.satellite.addTo(mapInstance)
+
+  // Marcadores de campos
+  var coords = [
+    {lat:-33.62,lng:-64.58,color:'#1a4a2e'},
+    {lat:-33.67,lng:-64.62,color:'#c9a84c'},
+    {lat:-33.64,lng:-64.56,color:'#1a5fa8'},
+  ]
+
+  campos.forEach((c,i)=>{
+    if(i>=coords.length) return
+    var co = coords[i]
+    var icon = L.divIcon({
+      html:`<div style="background:${co.color};color:#fff;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)">${c.nombre}</div>`,
+      className:'',iconAnchor:[40,12]
+    })
+    L.marker([co.lat,co.lng],{icon}).addTo(mapInstance).bindPopup(`<b>${c.nombre}</b><br>${c.hectareas||0} ha · ${c.cultivo||'Sin cultivo'}`)
+  })
+
+  renderMapaCamposInfo()
+}
+
+window.cambiarCapa = function(capa) {
+  if (!mapInstance) return
+  Object.values(capas).forEach(c=>mapInstance.removeLayer(c))
+  capas[capa].addTo(mapInstance)
+  ['sat','topo','streets'].forEach(b=>{
+    document.getElementById('btn-'+b)?.classList.remove('active')
+  })
+  document.getElementById('btn-'+{'satellite':'sat','topo':'topo','streets':'streets'}[capa])?.classList.add('active')
+}
+
+function renderMapaCamposInfo() {
+  var el = document.getElementById('mapa-campos-info')
+  el.innerHTML = campos.map((c,i)=>{
+    var col = COLORES[i%COLORES.length]
+    var llCampo = lluvias.filter(l=>l.campo_id===c.id).reduce((a,l)=>a+(l.mm||0),0)
+    return `<div class="card" style="margin-bottom:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
+        <div style="width:10px;height:10px;border-radius:50%;background:${col}"></div>
+        <span style="font-size:13px;font-weight:500">${c.nombre}</span>
       </div>
-      <div class="cmg">
-        <div class="cmgv" style="color:${mc}">${mg >= 0 ? '+' : ''}${Math.round(mg)} USD/ha</div>
-        <div class="cmgp">${pct}% margen est.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">${(c.hectareas||0).toLocaleString('es-AR')} ha</div>
+        <div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">${c.cultivo||'—'}</div>
+        <div style="color:var(--texto-suave)">Tenencia</div><div style="font-weight:500">${c.tenencia||'Propio'}</div>
+        <div style="color:var(--texto-suave)">Lluvia acum.</div><div style="font-weight:500">${llCampo.toFixed(0)} mm</div>
       </div>
     </div>`
   }).join('')
 }
 
-function calcMetricas() {
-  if (!campos.length) {
-    document.getElementById('m-ha').textContent = '0 ha'
-    document.getElementById('m-hs').textContent = 'Sin campos registrados'
-    document.getElementById('m-ing').textContent = '—'
-    document.getElementById('m-mrg').textContent = '—'
-    document.getElementById('m-ms').textContent = 'Agregá campos para ver'
-    document.getElementById('m-nc').textContent = '0'
+// ── NOTIFICACIONES ──
+function generarAlertas() {
+  var alertas = []
+  var hoy = new Date()
+
+  campos.forEach(c=>{
+    var cult = c.cultivo||'Soja'
+    // Alertas agronómicas según cultivo
+    if(cult==='Soja'){
+      alertas.push({ico:'🌸',tit:'Ventana fungicida en R1 · '+c.nombre,campo:c.nombre,dias:8,tipo:'pronto'})
+      alertas.push({ico:'⚗️',tit:'Monitorear chinche en R3 · '+c.nombre,campo:c.nombre,dias:21,tipo:'info'})
+    }
+    if(cult==='Maíz'){
+      alertas.push({ico:'⚗️',tit:'Refertilización en V6 · '+c.nombre,campo:c.nombre,dias:3,tipo:'urgente'})
+      alertas.push({ico:'🌽',tit:'Monitorear cogollero · '+c.nombre,campo:c.nombre,dias:14,tipo:'pronto'})
+    }
+    if(cult==='Trigo'){
+      alertas.push({ico:'💊',tit:'Fungicida en espigazón · '+c.nombre,campo:c.nombre,dias:7,tipo:'pronto'})
+    }
+  })
+
+  // Alerta precio
+  if(precios.soja>=280){
+    alertas.push({ico:'💰',tit:'Soja sobre precio objetivo (USD 280/t)',campo:'Todos los campos',dias:0,tipo:'info'})
+  }
+
+  return alertas.sort((a,b)=>{
+    var o={urgente:0,pronto:1,info:2}
+    return (o[a.tipo]||2)-(o[b.tipo]||2)||a.dias-b.dias
+  })
+}
+
+var filtroNotif = 'todas'
+function renderNotificaciones() {
+  var alertas = generarAlertas()
+  var filtros = ['todas','urgente','pronto','info']
+  document.getElementById('notif-filtros').innerHTML = filtros.map(f=>{
+    var count = f==='todas'?alertas.length:alertas.filter(a=>a.tipo===f).length
+    return `<button style="font-size:12px;padding:5px 12px;border-radius:20px;border:.5px solid ${filtroNotif===f?'var(--verde)':'var(--borde)'};background:${filtroNotif===f?'var(--verde)':'transparent'};color:${filtroNotif===f?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" onclick="setFiltroNotif('${f}',this)">${f==='todas'?'Todas':f==='urgente'?'🔴 Urgentes':f==='pronto'?'🟡 Próximas':'ℹ️ Info'} (${count})</button>`
+  }).join('')
+
+  var lista = filtroNotif==='todas'?alertas:alertas.filter(a=>a.tipo===filtroNotif)
+  var el = document.getElementById('notif-lista')
+  if(!lista.length){
+    el.innerHTML=`<div class="card"><div class="empty"><div class="empty-i">✅</div><div class="empty-t">Sin alertas en esta categoría</div></div></div>`
     return
   }
-  var totalHa = 0, ing = 0, cost = 0
-  campos.forEach(c => {
-    var ha = c.hectareas || 0; totalHa += ha
-    var cult = c.cultivo || 'Soja'
-    var rend = cult === 'Maíz' ? 8.0 : cult === 'Trigo' ? 3.0 : 3.2
-    var pr = cult === 'Maíz' ? precios.maiz : cult === 'Trigo' ? precios.trigo : precios.soja
-    ing += rend * pr * ha; cost += 190 * ha
+  el.innerHTML = lista.map(a=>`<div class="card" style="margin-bottom:8px">
+    <div class="notif-item" style="padding:0;border:none">
+      <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
+      <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">📍 ${a.campo}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+        <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+' días'}</span>
+        <button style="font-size:10px;padding:3px 8px;border-radius:5px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif" onclick="showToast('✓ Marcado como hecho','ok')">✓ Hecho</button>
+      </div>
+    </div>
+  </div>`).join('')
+}
+
+window.setFiltroNotif = function(f) {
+  filtroNotif = f
+  renderNotificaciones()
+}
+
+// ── CRUD CAMPOS ──
+function poblarSelectoresCampo() {
+  var opts = campos.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('')
+  ;['ll-campo','s-campo'].forEach(id=>{
+    var el=document.getElementById(id)
+    if(el){ el.innerHTML='<option value="">Seleccioná campo</option>'+opts }
   })
-  var mg = ing - cost, pct = ing > 0 ? (mg / ing * 100).toFixed(1) : 0
-  document.getElementById('m-ha').textContent = totalHa.toLocaleString('es-AR') + ' ha'
-  document.getElementById('m-hs').textContent = campos.length + ' campo' + (campos.length !== 1 ? 's' : '') + ' activo' + (campos.length !== 1 ? 's' : '')
-  document.getElementById('m-ing').textContent = 'USD ' + Math.round(ing / 1000) + 'k'
-  document.getElementById('m-mrg').textContent = 'USD ' + Math.round(mg / 1000) + 'k'
-  document.getElementById('m-ms').textContent = pct + '% del ingreso'
-  document.getElementById('m-nc').textContent = campos.length
 }
 
-window.actualizarPrecios = function() {
-  precios.soja = Math.round((precios.soja + (Math.random() - .47) * 4) * 10) / 10
-  precios.maiz = Math.round((precios.maiz + (Math.random() - .5) * 3) * 10) / 10
-  precios.trigo = Math.round((precios.trigo + (Math.random() - .48) * 3) * 10) / 10
-  precios.bna = Math.round(precios.bna + (Math.random() - .5) * 6)
-  document.getElementById('p-soja').textContent = 'USD ' + precios.soja
-  document.getElementById('p-maiz').textContent = 'USD ' + precios.maiz
-  document.getElementById('p-trigo').textContent = 'USD ' + precios.trigo
-  document.getElementById('p-bna').textContent = '$ ' + precios.bna.toLocaleString('es-AR')
-  calcMetricas()
-  if (campos.length) renderCampos()
+window.openModal = function(tipo) { document.getElementById('ov-auth').classList.add('open'); switchTab(tipo) }
+window.closeModal = function() { document.getElementById('ov-auth').classList.remove('open') }
+window.switchTab = function(tipo) {
+  document.getElementById('tab-reg').classList.toggle('on',tipo==='registro')
+  document.getElementById('tab-log').classList.toggle('on',tipo==='login')
+  document.getElementById('f-reg').style.display=tipo==='registro'?'block':'none'
+  document.getElementById('f-log').style.display=tipo==='login'?'block':'none'
+  if(tipo==='registro'){paso=1;irPaso(1)}
 }
-
-// ── MODAL CAMPO ──
-window.openModalCampo = function() {
-  document.getElementById('ov-campo').classList.add('open')
-  setTimeout(() => document.getElementById('c-nombre').focus(), 300)
+window.selPerfil = function(el,tipo) {
+  perfil=tipo
+  document.querySelectorAll('.popt').forEach(o=>o.classList.remove('sel'))
+  el.classList.add('sel')
+  setTimeout(()=>irPaso(2),280)
 }
+function irPaso(n) {
+  paso=n
+  document.querySelectorAll('.fstep').forEach((s,i)=>s.classList.toggle('on',i===n-1))
+  document.querySelectorAll('.sdot').forEach((d,i)=>d.classList.toggle('on',i===n-1))
+}
+window.regPaso3 = function() {
+  var nombre=document.getElementById('r-nombre').value.trim()
+  var email=document.getElementById('r-email').value.trim()
+  var pass=document.getElementById('r-pass').value
+  if(!nombre){showToast('⚠️ Ingresá tu nombre','err');return}
+  if(!email){showToast('⚠️ Ingresá tu email','err');return}
+  if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
+  irPaso(3)
+}
+window.registrar = async function() {
+  var nombre=document.getElementById('r-nombre').value.trim()
+  var email=document.getElementById('r-email').value.trim()
+  var pass=document.getElementById('r-pass').value
+  var wa=document.getElementById('r-wa').value.trim()
+  var prov=document.getElementById('r-prov').value
+  if(!email||!pass){showToast('⚠️ Ingresá email y contraseña','err');return}
+  var btn=document.getElementById('btn-reg')
+  btn.disabled=true;btn.textContent='Creando cuenta...'
+  try {
+    const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{nombre,telefono:wa,provincia:prov,perfil}}})
+    if(error)throw error
+    usuario=data.user
+    var campoNom=document.getElementById('r-campo').value.trim()
+    var campoHa=parseFloat(document.getElementById('r-ha').value)||null
+    var campoCult=document.getElementById('r-cult').value||null
+    if(campoNom&&usuario){
+      try{
+        const {data:c}=await sb.from('campos').insert({nombre:campoNom,hectareas:campoHa,cultivo:campoCult,usuario_id:usuario.id,tenencia:'propio'}).select().single()
+        if(c)campos.push(c)
+      }catch(e){console.log('Error campo:',e)}
+    }
+    closeModal()
+    showToast('🌾 ¡Bienvenido'+(nombre?' '+nombre.split(' ')[0]:'')+'!','ok')
+    showScreen('app')
+    await cargarTodo()
+  }catch(e){
+    var msg=e.message||'Error al crear cuenta'
+    if(msg.includes('already registered'))msg='Este email ya tiene cuenta. Ingresá con tu contraseña.'
+    showToast('⚠️ '+msg,'err')
+    btn.disabled=false;btn.textContent='🌱 Crear mi cuenta en Rinde.Agro'
+  }
+}
+window.login = async function() {
+  var email=document.getElementById('l-email').value.trim()
+  var pass=document.getElementById('l-pass').value
+  if(!email||!pass){showToast('⚠️ Ingresá email y contraseña','err');return}
+  var btn=document.getElementById('btn-log')
+  btn.disabled=true;btn.textContent='Ingresando...'
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass})
+    if(error)throw error
+    usuario=data.user
+    closeModal()
+    showToast('✓ ¡Bienvenido de vuelta!','ok')
+    showScreen('app')
+    await cargarTodo()
+  }catch(e){
+    showToast('⚠️ '+(e.message==='Invalid login credentials'?'Email o contraseña incorrectos':e.message||'Error'),'err')
+    btn.disabled=false;btn.textContent='Ingresar a mi cuenta'
+  }
+}
+window.recuperarPass = async function() {
+  var email=document.getElementById('l-email').value.trim()
+  if(!email){showToast('⚠️ Ingresá tu email primero','err');return}
+  try{await sb.auth.resetPasswordForEmail(email);showToast('✓ Email enviado para restablecer contraseña','ok')}
+  catch(e){showToast('⚠️ Error al enviar email','err')}
+}
+window.cerrarSesion = async function() {
+  await sb.auth.signOut()
+  usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[]
+  showScreen('landing')
+  initLanding()
+  showToast('Sesión cerrada')
+}
+window.openModalCampo = function() { document.getElementById('ov-campo').classList.add('open') }
 window.closeModalCampo = function() { document.getElementById('ov-campo').classList.remove('open') }
 window.guardarCampo = async function() {
-  var nombre = document.getElementById('c-nombre').value.trim()
-  if (!nombre) { showToast('⚠️ Ingresá el nombre del campo', 'error'); return }
-  if (!usuario) { showToast('⚠️ Sesión expirada — volvé a ingresar', 'error'); return }
-  var btn = document.getElementById('btn-campo')
-  btn.disabled = true; btn.textContent = 'Guardando...'
-  try {
-    var payload = {
-      nombre,
-      hectareas: parseFloat(document.getElementById('c-ha').value) || null,
-      cultivo: document.getElementById('c-cult').value || null,
-      provincia: document.getElementById('c-prov').value || null,
-      tenencia: document.getElementById('c-ten').value || 'propio',
-      usuario_id: usuario.id
-    }
-    const { data, error } = await sb.from('campos').insert(payload).select().single()
-    if (error) throw error
+  var nombre=document.getElementById('c-nombre').value.trim()
+  if(!nombre){showToast('⚠️ Ingresá el nombre del campo','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var btn=document.getElementById('btn-campo')
+  btn.disabled=true;btn.textContent='Guardando...'
+  try{
+    const {data,error}=await sb.from('campos').insert({
+      nombre,hectareas:parseFloat(document.getElementById('c-ha').value)||null,
+      cultivo:document.getElementById('c-cult').value||null,
+      provincia:document.getElementById('c-prov').value||null,
+      tenencia:document.getElementById('c-ten').value||'propio',
+      usuario_id:usuario.id
+    }).select().single()
+    if(error)throw error
     campos.unshift(data)
-    renderCampos()
-    calcMetricas()
+    if(!campoRent)campoRent=data.id
+    poblarSelectoresCampo()
+    renderDashboard()
     closeModalCampo()
-    showToast('✓ Campo "' + nombre + '" agregado correctamente', 'success')
-    // Limpiar form
-    document.getElementById('c-nombre').value = ''
-    document.getElementById('c-ha').value = ''
-    document.getElementById('c-cult').value = ''
-    document.getElementById('c-prov').value = ''
-  } catch(e) {
-    console.error('Error guardando campo:', e)
-    showToast('⚠️ Error al guardar: ' + (e.message || 'Intentá de nuevo'), 'error')
-  } finally {
-    btn.disabled = false; btn.textContent = 'Guardar campo'
-  }
+    showToast('✓ Campo "'+nombre+'" agregado','ok')
+    document.getElementById('c-nombre').value=''
+    document.getElementById('c-ha').value=''
+    document.getElementById('c-cult').value=''
+  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
+  finally{btn.disabled=false;btn.textContent='Guardar campo'}
+}
+
+// ── CRUD GASTOS ──
+window.openModalGasto = function() {
+  document.getElementById('ov-gasto').classList.add('open')
+  document.getElementById('g-tc').value=precios.bna
+  document.getElementById('g-precio').value=precios.soja
+  document.getElementById('g-fecha').value=new Date().toISOString().split('T')[0]
+}
+window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
+window.calcConv = function() {
+  var pesos=parseFloat(document.getElementById('g-pesos').value)||0
+  var tc=parseFloat(document.getElementById('g-tc').value)||precios.bna
+  var precio=parseFloat(document.getElementById('g-precio').value)||precios.soja
+  var campo=campos.find(c=>c.id===campoRent)||campos[0]
+  var ha=campo?.hectareas||1
+  var usd=pesos/tc
+  document.getElementById('cv-usd').textContent='USD '+Math.round(usd).toLocaleString('es-AR')
+  document.getElementById('cv-usdha').textContent='USD '+(usd/ha).toFixed(1)+'/ha'
+  document.getElementById('cv-qq').textContent=((usd/ha)/precio*10).toFixed(2)+' qq/ha'
+}
+window.guardarGasto = async function() {
+  var rubro=document.getElementById('g-rubro').value
+  var fecha=document.getElementById('g-fecha').value
+  var pesos=parseFloat(document.getElementById('g-pesos').value)
+  var tc=parseFloat(document.getElementById('g-tc').value)||precios.bna
+  var precio=parseFloat(document.getElementById('g-precio').value)||precios.soja
+  if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
+  if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
+  if(!pesos||pesos<=0){showToast('⚠️ Ingresá el monto','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var campoId = campoRent==='todos'?campos[0]?.id:campoRent
+  if(!campoId){showToast('⚠️ Seleccioná un campo','err');return}
+  var campo=campos.find(c=>c.id===campoId)
+  var ha=campo?.hectareas||1
+  var usdTotal=pesos/tc
+  var btn=document.getElementById('btn-gasto')
+  btn.disabled=true;btn.textContent='Guardando...'
+  try{
+    const {data,error}=await sb.from('gastos').insert({
+      campo_id:campoId,usuario_id:usuario.id,rubro,fecha,
+      descripcion:document.getElementById('g-desc').value.trim()||null,
+      pesos,tipo_cambio:tc,precio_cereal:precio,hectareas:ha,
+      usd_total:usdTotal,usd_ha:usdTotal/ha,qq_ha:(usdTotal/ha)/precio*10
+    }).select().single()
+    if(error)throw error
+    gastos.unshift(data)
+    renderRentabilidad()
+    renderDashboard()
+    closeModalGasto()
+    showToast('✓ Gasto guardado correctamente','ok')
+    ;['g-rubro','g-desc','g-pesos'].forEach(id=>{ var el=document.getElementById(id); if(el)el.value='' })
+    ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{ var el=document.getElementById(id); if(el)el.textContent='—' })
+  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
+  finally{btn.disabled=false;btn.textContent='Guardar gasto'}
+}
+window.eliminarGasto = async function(id) {
+  if(!confirm('¿Eliminás este gasto?'))return
+  try{
+    await sb.from('gastos').delete().eq('id',id)
+    gastos=gastos.filter(g=>g.id!==id)
+    renderRentabilidad();renderDashboard()
+    showToast('Gasto eliminado','ok')
+  }catch(e){showToast('⚠️ Error al eliminar','err')}
+}
+
+// ── CRUD LLUVIAS ──
+window.openModalLluvia = function() {
+  document.getElementById('ov-lluvia').classList.add('open')
+  document.getElementById('ll-fecha').value=new Date().toISOString().split('T')[0]
+}
+window.closeModalLluvia = function() { document.getElementById('ov-lluvia').classList.remove('open') }
+window.guardarLluvia = async function() {
+  var campoId=document.getElementById('ll-campo').value
+  var fecha=document.getElementById('ll-fecha').value
+  var mm=parseFloat(document.getElementById('ll-mm').value)
+  if(!campoId){showToast('⚠️ Seleccioná el campo','err');return}
+  if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
+  if(!mm||mm<=0){showToast('⚠️ Ingresá los milímetros','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var btn=document.getElementById('btn-lluvia')
+  btn.disabled=true;btn.textContent='Guardando...'
+  try{
+    const {data,error}=await sb.from('lluvias').insert({
+      campo_id:campoId,usuario_id:usuario.id,fecha,mm,
+      etapa:document.getElementById('ll-etapa').value||null,
+      tipo:document.getElementById('ll-tipo').value||null,
+      observacion:document.getElementById('ll-obs').value.trim()||null
+    }).select().single()
+    if(error)throw error
+    lluvias.unshift(data)
+    renderLluvias();renderDashboard()
+    closeModalLluvia()
+    showToast('✓ '+mm+' mm registrados en '+(campos.find(c=>c.id===campoId)?.nombre||'el campo'),'ok')
+    ;['ll-mm','ll-obs'].forEach(id=>{ var el=document.getElementById(id); if(el)el.value='' })
+  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
+  finally{btn.disabled=false;btn.textContent='Registrar lluvia'}
+}
+window.eliminarLluvia = async function(id) {
+  if(!confirm('¿Eliminás este registro de lluvia?'))return
+  try{
+    await sb.from('lluvias').delete().eq('id',id)
+    lluvias=lluvias.filter(l=>l.id!==id)
+    renderLluvias();renderDashboard()
+    showToast('Registro eliminado','ok')
+  }catch(e){showToast('⚠️ Error al eliminar','err')}
+}
+
+// ── CRUD SUELO ──
+window.openModalSuelo = function() {
+  document.getElementById('ov-suelo').classList.add('open')
+  document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
+}
+window.closeModalSuelo = function() { document.getElementById('ov-suelo').classList.remove('open') }
+window.guardarSuelo = async function() {
+  var campoId=document.getElementById('s-campo').value
+  var fecha=document.getElementById('s-fecha').value
+  if(!campoId){showToast('⚠️ Seleccioná el campo','err');return}
+  if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var btn=document.getElementById('btn-suelo')
+  btn.disabled=true;btn.textContent='Guardando...'
+  try{
+    const g=id=>parseFloat(document.getElementById(id).value)||null
+    const {data,error}=await sb.from('analisis_suelo').insert({
+      campo_id:campoId,usuario_id:usuario.id,fecha,
+      laboratorio:document.getElementById('s-lab').value.trim()||null,
+      n_total:g('s-n'),p_disponible:g('s-p'),k:g('s-k'),s:g('s-s'),
+      materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b')
+    }).select().single()
+    if(error)throw error
+    analisisS.unshift(data)
+    renderSuelo()
+    closeModalSuelo()
+    showToast('✓ Análisis de suelo guardado','ok')
+  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
+  finally{btn.disabled=false;btn.textContent='Guardar análisis'}
+}
+
+// ── HELPERS ──
+function fFecha(f) {
+  if(!f)return ''
+  var d=new Date(f+'T00:00:00')
+  return d.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})
+}
+function fFechaCorta(f) {
+  if(!f)return ''
+  var d=new Date(f+'T00:00:00')
+  return d.toLocaleDateString('es-AR',{day:'numeric',month:'short'})
+}
+function etapaLabel(e) {
+  return {barbecho:'Barbecho',siembra:'Siembra',vegetativo:'Vegetativo',floracion:'Floración',llenado:'Llenado',maduracion:'Maduración'}[e]||e||'—'
 }
 
 // ── TOAST ──
 window.showToast = function(msg, tipo) {
-  var t = document.getElementById('toast')
-  t.textContent = msg
-  t.className = 'toast show' + (tipo === 'error' ? ' error' : tipo === 'success' ? ' success' : '')
-  clearTimeout(t._timeout)
-  t._timeout = setTimeout(() => t.classList.remove('show'), 3800)
+  var t=document.getElementById('toast')
+  t.textContent=msg
+  t.className='toast show'+(tipo==='err'?' err':tipo==='ok'?' ok':tipo==='info'?' info':'')
+  clearTimeout(t._t)
+  t._t=setTimeout(()=>t.classList.remove('show'),3800)
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); closeModalCampo() }
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeModal()
+    closeModalCampo()
+    closeModalGasto()
+    closeModalLluvia()
+    closeModalSuelo()
+  }
+})
+
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar')?.classList.toggle('scrolled',window.scrollY>50)
 })
 
 init()

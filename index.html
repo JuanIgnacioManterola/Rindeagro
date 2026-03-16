@@ -511,29 +511,90 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo">📊 Rentabilidad</div><div class="mod-sub">Campaña 2025/26 · Margen por campo en tiempo real</div></div>
       <div id="rent-campo-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
-    <div class="grid5" id="rent-mets"></div>
-    <div class="grid2">
-      <div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Gastos de campaña</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
-          <div id="rent-gastos"></div>
+
+    <!-- BANNER RENDIMIENTO REAL -->
+    <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
+      <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">📊 Datos reales de la campaña</div>
+      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:5px">Rendimiento real (t/ha)</div>
+          <input type="number" id="rent-rend-input" placeholder="Ej: 3.4" step="0.1" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendReal()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
+        </div>
+        <div>
+          <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:5px">Precio de venta (USD/t)</div>
+          <input type="number" id="rent-precio-input" placeholder="Ej: 280" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendReal()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
+        </div>
+        <button onclick="guardarRendReal()" style="padding:10px 20px;border-radius:9px;border:none;background:var(--dorado);color:var(--verde);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;margin-bottom:1px">Guardar →</button>
+        <div style="font-size:11px;color:rgba(250,247,240,.5);padding-bottom:3px">Si no cosechaste todavía,<br>dejalo vacío — se usa el estimado</div>
+      </div>
+      <div id="rent-rend-resultado" style="margin-top:14px;padding-top:14px;border-top:.5px solid rgba(255,255,255,.12);display:none">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;text-align:center">
+            <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Toneladas totales</div>
+            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="rr-tn">—</div>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;text-align:center">
+            <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Ingreso bruto</div>
+            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="rr-ing">—</div>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;text-align:center">
+            <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Ingreso en pesos</div>
+            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="rr-pesos">—</div>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;text-align:center">
+            <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Equivalente qq</div>
+            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="rr-qq">—</div>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- MÉTRICAS -->
+    <div class="grid5" id="rent-mets" style="margin-bottom:14px"></div>
+
+    <!-- GASTOS + RESUMEN -->
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Gastos de campaña</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+        <div id="rent-gastos"></div>
+      </div>
       <div>
-        <div class="card">
+        <div class="card" style="margin-bottom:14px">
           <div class="card-hdr"><span class="card-tit">Resumen financiero</span></div>
           <div id="rent-resumen"></div>
         </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Distribución de costos</span></div>
-          <div style="position:relative;height:180px"><canvas id="chart-costos"></canvas></div>
-        </div>
       </div>
     </div>
-    <div class="card">
+
+    <!-- DOS TORTAS -->
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-tit">Gastos por rubro</span>
+          <span style="font-size:11px;color:var(--texto-suave)">% del costo total</span>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="chart-torta-rubro"></canvas></div>
+        <div id="torta-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-tit">Detalle del rubro</span>
+          <select id="torta-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderTortaDetalle()">
+            <option value="todos">Todos los gastos</option>
+          </select>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="chart-torta-detalle"></canvas></div>
+        <div id="torta-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+    </div>
+
+    <!-- SENSIBILIDAD -->
+    <div class="card" style="margin-bottom:14px">
       <div class="card-hdr"><span class="card-tit">Análisis de sensibilidad · USD/ha</span><span style="font-size:11px;color:var(--texto-suave)">Precio vs Rendimiento</span></div>
       <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens"></table></div>
     </div>
+
+    <!-- COMPARATIVA + HISTÓRICO -->
     <div class="grid2">
       <div class="card">
         <div class="card-hdr"><span class="card-tit">Comparativa entre campos</span></div>
@@ -1002,16 +1063,13 @@ function renderRentabilidad() {
     ).join('') +
     `<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:600"><span>Margen neto</span><span style="color:${mc};font-family:DM Mono,monospace">${mgHa*ha>=0?'+':''}USD ${Math.round(mgHa*ha).toLocaleString('es-AR')}</span></div>`
 
-  // Chart costos
-  var ctxC = document.getElementById('chart-costos')
-  if (ctxC && Object.keys(porRubro).length) {
-    if (charts['costos']) charts['costos'].destroy()
-    charts['costos'] = new Chart(ctxC, {
-      type:'doughnut',
-      data:{labels:Object.keys(porRubro).map(r=>RUBROS[r]||r),datasets:[{data:Object.values(porRubro),backgroundColor:['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780'],borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},padding:8,boxWidth:10}}}}
-    })
-  }
+  // Tortas de costos
+  renderTortas(gf)
+
+  // Precargar inputs de rendimiento real si el campo tiene datos
+  if (campo?.rendimiento) document.getElementById('rent-rend-input').value = campo.rendimiento
+  if (campo?.precio_venta) document.getElementById('rent-precio-input').value = campo.precio_venta
+  if (campo?.rendimiento || campo?.precio_venta) calcRendReal()
 
   // Sensibilidad
   var preList = [220,250,270,Math.round(pr/10)*10,300,330,360]
@@ -1061,6 +1119,161 @@ function renderRentabilidad() {
 window.selCampoRent = function(id) {
   campoRent = id
   renderRentabilidad()
+}
+
+// ── RENDIMIENTO REAL ──
+window.calcRendReal = function() {
+  var rend = parseFloat(document.getElementById('rent-rend-input').value) || 0
+  var precio = parseFloat(document.getElementById('rent-precio-input').value) || 0
+  var campo = campos.find(c=>c.id===campoRent) || campos[0]
+  var ha = (campoRent==='todos') ? campos.reduce((a,c)=>a+(c.hectareas||0),0) : (campo?.hectareas||0)
+  var res = document.getElementById('rent-rend-resultado')
+  if (!rend || !precio || !ha) { res.style.display='none'; return }
+  res.style.display = 'block'
+  var tn = rend * ha
+  var ingUSD = tn * precio
+  var ingPesos = ingUSD * precios.bna
+  var qqEquiv = ingUSD / precio * 10
+  document.getElementById('rr-tn').textContent = tn.toLocaleString('es-AR',{maximumFractionDigits:1}) + ' t'
+  document.getElementById('rr-ing').textContent = 'USD ' + Math.round(ingUSD).toLocaleString('es-AR')
+  document.getElementById('rr-pesos').textContent = '$ ' + Math.round(ingPesos/1000000).toFixed(1) + 'M'
+  document.getElementById('rr-qq').textContent = Math.round(qqEquiv).toLocaleString('es-AR') + ' qq'
+}
+
+window.guardarRendReal = function() {
+  var rend = parseFloat(document.getElementById('rent-rend-input').value) || null
+  var precio = parseFloat(document.getElementById('rent-precio-input').value) || null
+  if (!rend && !precio) { showToast('⚠️ Ingresá el rendimiento y/o precio de venta','err'); return }
+  var campoId = campoRent === 'todos' ? campos[0]?.id : campoRent
+  if (!campoId) { showToast('⚠️ Seleccioná un campo','err'); return }
+  // Actualizar localmente
+  var idx = campos.findIndex(c=>c.id===campoId)
+  if (idx>=0) {
+    if (rend) campos[idx].rendimiento = rend
+    if (precio) campos[idx].precio_venta = precio
+  }
+  // Guardar en Supabase
+  sb.from('campos').update({
+    ...(rend?{rendimiento:rend}:{}),
+    ...(precio?{precio_venta:precio}:{})
+  }).eq('id', campoId).then(({error}) => {
+    if (error) { showToast('⚠️ Error al guardar: '+error.message,'err'); return }
+    calcRendReal()
+    renderRentabilidad()
+    renderDashboard()
+    showToast('✓ Rendimiento y precio guardados correctamente','ok')
+  })
+}
+
+// ── TORTAS ──
+var COLORES_TORTA = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780','#2d6e47']
+
+function renderTortas(gf) {
+  // TORTA 1: por rubro
+  var porRubro = {}
+  gf.forEach(g => {
+    var r = RUBROS[g.rubro] || g.rubro || 'Otros'
+    porRubro[r] = (porRubro[r]||0) + (g.usd_total||0)
+  })
+
+  var ctxR = document.getElementById('chart-torta-rubro')
+  if (ctxR) {
+    if (charts['torta-rubro']) charts['torta-rubro'].destroy()
+    if (Object.keys(porRubro).length) {
+      var labels = Object.keys(porRubro).sort((a,b)=>porRubro[b]-porRubro[a])
+      var vals = labels.map(l=>porRubro[l])
+      charts['torta-rubro'] = new Chart(ctxR, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: vals,
+            backgroundColor: COLORES_TORTA.slice(0,labels.length),
+            borderWidth: 2,
+            borderColor: '#fff',
+            hoverBorderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '62%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': USD ' + Math.round(ctx.raw).toLocaleString('es-AR') + ' (' + Math.round(ctx.raw/vals.reduce((a,v)=>a+v,0)*100) + '%)' }}
+          }
+        }
+      })
+      // Leyenda manual
+      document.getElementById('torta-rubro-leyenda').innerHTML = labels.map((l,i) =>
+        `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--texto-mid)"><div style="width:10px;height:10px;border-radius:3px;background:${COLORES_TORTA[i]};flex-shrink:0"></div>${l}</div>`
+      ).join('')
+    } else {
+      ctxR.getContext('2d').clearRect(0,0,ctxR.width,ctxR.height)
+      document.getElementById('torta-rubro-leyenda').innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;width:100%">Sin gastos cargados</div>'
+    }
+  }
+
+  // Poblar selector torta 2
+  var sel = document.getElementById('torta-rubro-sel')
+  if (sel) {
+    var current = sel.value
+    sel.innerHTML = '<option value="todos">Todos los gastos</option>' +
+      Object.keys(porRubro).map(r => `<option value="${r}">${r}</option>`).join('')
+    if (current && [...sel.options].some(o=>o.value===current)) sel.value = current
+  }
+
+  renderTortaDetalle(gf)
+}
+
+window.renderTortaDetalle = function(gfParam) {
+  var gf = gfParam || (campoRent==='todos' ? gastos : gastos.filter(g=>g.campo_id===campoRent))
+  var rubroSel = document.getElementById('torta-rubro-sel')?.value || 'todos'
+  var gfFilt = rubroSel === 'todos' ? gf : gf.filter(g => (RUBROS[g.rubro]||g.rubro||'Otros') === rubroSel)
+  
+  // Agrupar por descripción
+  var porDesc = {}
+  gfFilt.forEach(g => {
+    var key = g.descripcion || (RUBROS[g.rubro]||g.rubro||'Gasto')
+    porDesc[key] = (porDesc[key]||0) + (g.usd_total||0)
+  })
+
+  var ctxD = document.getElementById('chart-torta-detalle')
+  if (!ctxD) return
+  if (charts['torta-detalle']) charts['torta-detalle'].destroy()
+
+  if (!Object.keys(porDesc).length) {
+    document.getElementById('torta-detalle-leyenda').innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;width:100%">Sin gastos en este rubro</div>'
+    return
+  }
+
+  var labels = Object.keys(porDesc).sort((a,b)=>porDesc[b]-porDesc[a])
+  var vals = labels.map(l=>porDesc[l])
+  var total = vals.reduce((a,v)=>a+v,0)
+
+  charts['torta-detalle'] = new Chart(ctxD, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        backgroundColor: COLORES_TORTA.map((c,i) => c + (i%2===0?'dd':'aa')),
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverBorderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': USD ' + Math.round(ctx.raw).toLocaleString('es-AR') + ' (' + Math.round(ctx.raw/total*100) + '%)' }}
+      }
+    }
+  })
+
+  // Leyenda manual
+  document.getElementById('torta-detalle-leyenda').innerHTML = labels.slice(0,6).map((l,i) =>
+    `<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--texto-mid)"><div style="width:9px;height:9px;border-radius:3px;background:${COLORES_TORTA[i]};flex-shrink:0"></div>${l.length>22?l.slice(0,22)+'…':l}</div>`
+  ).join('')
 }
 
 // ── LLUVIAS ──

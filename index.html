@@ -2029,8 +2029,8 @@ window.guardarLluvia = async function() {
     const {data,error}=await sb.from('lluvias').insert({
       campo_id:campoId,usuario_id:usuario.id,fecha,mm,
       etapa:document.getElementById('ll-etapa').value||null,
-      tipo_lluvia:document.getElementById('ll-tipo').value||null,
-      "observación":document.getElementById('ll-obs').value.trim()||null
+      tipo:document.getElementById('ll-tipo').value||null,
+      observacion:document.getElementById('ll-obs').value.trim()||null
     }).select().single()
     if(error)throw error
     lluvias.unshift(data)

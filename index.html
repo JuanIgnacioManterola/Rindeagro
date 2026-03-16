@@ -1458,7 +1458,6 @@ function renderLluvias() {
   document.getElementById('lluvia-mets').innerHTML = [
     {l:'Total campaña',v:totalMm.toFixed(0)+' mm',s:'Todos los campos',c:'#1a5fa8'},
     {l:'Eventos registrados',v:lluvias.length,s:'Lluvias cargadas',c:'#1a4a2e'},
-    {l:'Promedio por evento',v:lluvias.length?( totalMm/lluvias.length).toFixed(1)+' mm':'—',s:'Intensidad media',c:'#c9a84c'},
     {l:'Campo con más lluvia',v:maxCampo.nombre||'—',s:(maxCampo.mm||0).toFixed(0)+' mm',c:'#0F6E56'},
   ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c};font-size:16px">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
 
@@ -1488,7 +1487,7 @@ function renderLluvias() {
     return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px">
       <span class="etapa-tag e-${et}" style="min-width:80px">${etapaLabel(et)}</span>
       <div style="flex:1;height:8px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color}88;border-radius:4px"></div></div>
-      <span style="min-width:60px;text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600;color:${color}">${mm.toFixed(0)}/${opt}mm</span>
+      <span style="min-width:50px;text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600;color:${color}">${mm.toFixed(0)} mm</span>
     </div>`
   }).join('')
 
@@ -2245,7 +2244,6 @@ function renderDetLluvias() {
   document.getElementById('det-lluvia-mets').innerHTML = [
     {l:'Acumulado',v:totalMm.toFixed(0)+' mm',s:'Total campaña',c:'#1a5fa8'},
     {l:'Eventos',v:lf.length,s:'Registrados',c:'#1a4a2e'},
-    {l:'Promedio',v:lf.length?(totalMm/lf.length).toFixed(1)+' mm':'—',s:'Por evento',c:'#c9a84c'},
     {l:'Última',v:lf[0]?lf[0].mm+' mm':'—',s:lf[0]?fFecha(lf[0].fecha):'Sin registros',c:'#0F6E56'},
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+';font-size:16px">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
   var el = document.getElementById('det-lluvia-lista')
@@ -2260,7 +2258,7 @@ function renderDetLluvias() {
   document.getElementById('det-lluvia-etapas').innerHTML = Object.entries(porEtapa).map(function(entry){
     var et=entry[0],mm=entry[1],opt=optimos[et]||50,pct=Math.min(mm/opt*100,100)
     var color=pct>=80?'#1a7a52':pct>=50?'#c97a14':'#c0392b'
-    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px"><span class="etapa-tag e-'+et+'" style="min-width:78px">'+etapaLabel(et)+'</span><div style="flex:1;height:7px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+'88;border-radius:4px"></div></div><span style="min-width:58px;text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600;color:'+color+'">'+mm.toFixed(0)+'/'+opt+'mm</span></div>'
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px"><span class="etapa-tag e-'+et+'" style="min-width:78px">'+etapaLabel(et)+'</span><div style="flex:1;height:7px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+'88;border-radius:4px"></div></div><span style="min-width:45px;text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600;color:'+color+'">'+mm.toFixed(0)+' mm</span></div>'
   }).join('')
   if(lf.length){var ctxL=document.getElementById('chart-det-lluvia');if(ctxL){if(charts['det-lluvia'])charts['det-lluvia'].destroy();var ult=lf.slice(0,10).reverse();charts['det-lluvia']=new Chart(ctxL,{type:'bar',data:{labels:ult.map(function(l){return fFechaCorta(l.fecha)}),datasets:[{label:'mm',data:ult.map(function(l){return l.mm}),backgroundColor:'#1a5fa888',borderColor:'#1a5fa8',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{ticks:{font:{size:9}}}}}})}}
 }

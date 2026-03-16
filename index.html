@@ -1857,21 +1857,10 @@ window.guardarGasto = async function() {
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
-    const {data,error} = await sb.from('gastos').insert({
-      campo_id: campoId,
-      usuario_id: usuario.id,
-      rubro,
-      fecha,
-      sub_tipo: gastoSubTipo||null,
-      descripcion: document.getElementById('g-desc')?.value.trim()||null,
-      cantidad: cantidad,
-      unidad: unidad,
-      precio_unitario: precioUnit,
-      ha_aplicadas: haFinal,
-      usd_total: usdTotal,
-      usd_ha: usdHa,
-      qq_ha: qqHa
-    }).select().single()
+    var _p = {campo_id:campoId,usuario_id:usuario.id,rubro,fecha,usd_total:usdTotal,usd_ha:usdHa,qq_ha:qqHa}
+    if(document.getElementById('g-desc')?.value.trim()) _p.descripcion = document.getElementById('g-desc').value.trim()
+    try{_p.sub_tipo=gastoSubTipo||null;_p.cantidad=cantidad;_p.unidad=unidad;_p.precio_unitario=precioUnit;_p.ha_aplicadas=haFinal}catch(ex){}
+    const {data,error} = await sb.from('gastos').insert(_p).select().single()
     if(error) throw error
     gastos.unshift(data)
     renderRentabilidad()

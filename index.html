@@ -315,6 +315,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .sub-tipo-btn.active{background:var(--verde);color:#fff;border-color:transparent}
 .sub-tipo-btn:hover:not(.active){border-color:var(--verde);color:var(--verde)}
 
+
+/* CAMPO DETALLE TABS */
+.campo-tab{font-size:12px;padding:7px 13px;border-radius:7px;border:none;background:transparent;color:rgba(250,247,240,.65);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.campo-tab.active{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.campo-tab:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
+.campo-seccion{display:none}.campo-seccion.active{display:block}
+/* CAMPOS CARDS */
+.campo-card{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:var(--sombra)}
+.campo-card:hover{transform:translateY(-3px);box-shadow:var(--sombra-md)}
+
 /* TOAST */
 .toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--verde);color:#fff;padding:.9rem 1.4rem;border-radius:12px;font-size:13px;font-weight:500;box-shadow:var(--sombra-lg);z-index:400;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px;line-height:1.5}
 .toast.show{transform:translateY(0);opacity:1}
@@ -448,9 +458,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
-      <button class="anl" onclick="showModulo('rentabilidad')"><span>📊</span><span>Rentabilidad</span></button>
-      <button class="anl" onclick="showModulo('lluvias')"><span>🌧️</span><span>Lluvias</span></button>
-      <button class="anl" onclick="showModulo('suelo')"><span>🔬</span><span>Suelo</span></button>
+      <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
+      <button class="anl" onclick="abrirCampo('"+c.id+"')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
@@ -609,56 +618,150 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
   </div>
 
-  <!-- ── LLUVIAS ── -->
-  <div class="modulo" id="mod-lluvias">
+  <!-- ── CAMPOS ── -->
+  <div class="modulo" id="mod-campos">
     <div class="mod-header">
-      <div><div class="mod-titulo">🌧️ Registro de lluvias</div><div class="mod-sub">Seguimiento por campo y etapa del cultivo</div></div>
-      <button class="btn-vs" onclick="openModalLluvia()">+ Registrar lluvia</button>
+      <div><div class="mod-titulo">🌾 Mis campos</div><div class="mod-sub">Hacé clic en un campo para ver su detalle completo</div></div>
+      <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
     </div>
-    <div class="grid4" id="lluvia-mets"></div>
-    <div class="grid2">
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Registro de lluvias</span></div>
-        <div id="lluvia-lista"></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Acumulado por etapa del cultivo</span></div>
-        <div id="lluvia-etapas"></div>
-        <div style="position:relative;height:160px;margin-top:1rem"><canvas id="chart-lluvia"></canvas></div>
-      </div>
-    </div>
+    <div id="campos-lista-cards"></div>
   </div>
 
-  <!-- ── ANÁLISIS DE SUELO ── -->
-  <div class="modulo" id="mod-suelo">
-    <div class="mod-header">
-      <div><div class="mod-titulo">🔬 Análisis de suelo</div><div class="mod-sub">Semáforo nutricional y recomendaciones de fertilización</div></div>
-      <button class="btn-vs" onclick="openModalSuelo()">+ Cargar análisis</button>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Estado nutricional · semáforo</span>
-          <select class="fi" id="suelo-cultivo-sel" style="width:auto;padding:5px 10px;font-size:12px" onchange="renderSuelo()">
-            <option value="soja">Soja</option><option value="maiz">Maíz</option><option value="trigo">Trigo</option><option value="girasol">Girasol</option>
-          </select>
+  <!-- ── DETALLE CAMPO ── -->
+  <div class="modulo" id="mod-campo-detalle">
+    <!-- Header del campo -->
+    <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:11px;color:rgba(250,247,240,.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Campo seleccionado</div>
+          <div style="font-size:22px;font-weight:700;color:#fff;font-family:'Playfair Display',serif" id="det-campo-nombre">—</div>
+          <div style="font-size:12px;color:rgba(250,247,240,.65);margin-top:3px" id="det-campo-meta">—</div>
         </div>
-        <div id="suelo-semaforo"></div>
+        <button onclick="volverACampos()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
       </div>
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
-        <div id="suelo-recomendaciones"></div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
+        <button class="campo-tab active" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
+        <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
+        <button class="campo-tab" onclick="switchCampoTab('ndvi',this)">🛰️ Mapa + NDVI</button>
+        <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-hdr"><span class="card-tit">Evolución nutricional · últimos análisis</span></div>
-      <div style="position:relative;height:200px"><canvas id="chart-suelo"></canvas></div>
+
+    <!-- TAB: GASTOS -->
+    <div class="campo-seccion active" id="sec-gastos">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Gastos del campo</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+        <div id="det-gastos-lista"></div>
+      </div>
+      <div class="grid2">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><span class="card-tit">Por rubro</span></div>
+          <div style="position:relative;height:220px"><canvas id="chart-det-rubro"></canvas></div>
+          <div id="det-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><span class="card-tit">Resumen</span></div>
+          <div id="det-resumen"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: LLUVIAS -->
+    <div class="campo-seccion" id="sec-lluvias">
+      <div class="grid4" id="det-lluvia-mets" style="margin-bottom:14px"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Registro de lluvias</span><button class="btn-vs" onclick="openModalLluviaCampo()">+ Registrar</button></div>
+          <div id="det-lluvia-lista"></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-hdr"><span class="card-tit">Acumulado por etapa</span></div>
+            <div id="det-lluvia-etapas"></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><span class="card-tit">Últimas lluvias</span></div>
+            <div style="position:relative;height:160px"><canvas id="chart-det-lluvia"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SUELO -->
+    <div class="campo-seccion" id="sec-suelo">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-tit">Semáforo nutricional</span>
+            <select class="fi" id="det-suelo-cultivo" style="width:auto;padding:5px 10px;font-size:12px;cursor:pointer;height:auto" onchange="renderDetSuelo()">
+              <option value="soja">Soja</option><option value="maiz">Maíz</option><option value="trigo">Trigo</option><option value="girasol">Girasol</option>
+            </select>
+          </div>
+          <div id="det-suelo-semaforo"></div>
+          <button class="btn-vs" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
+          <div id="det-suelo-recs"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Evolución histórica</span></div>
+        <div style="position:relative;height:200px"><canvas id="chart-det-suelo"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TAB: MAPA + NDVI -->
+    <div class="campo-seccion" id="sec-ndvi">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><span class="card-tit">Índices de vegetación</span></div>
+          <div id="det-ndvi-indices"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><span class="card-tit">Evolución NDVI · campaña</span></div>
+          <div style="position:relative;height:160px"><canvas id="chart-det-ndvi"></canvas></div>
+        </div>
+      </div>
+      <div id="det-mapa-campo" style="height:380px;border-radius:12px;overflow:hidden;border:.5px solid var(--borde);margin-bottom:14px"></div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr"><span class="card-tit">Interpretación agronómica</span></div>
+        <div id="det-ndvi-interp" style="font-size:13px;color:var(--texto-mid);line-height:1.75"></div>
+      </div>
+    </div>
+
+    <!-- TAB: SENSIBILIDAD -->
+    <div class="campo-seccion" id="sec-sens">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Simulador dinámico · ajustá los valores</span><button class="btn-sm" onclick="resetSensCampo()">↺ Resetear</button></div>
+        <div style="background:var(--crema);border-radius:10px;padding:1rem;margin-bottom:1rem">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+            <div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Costo base (USD/ha)</div>
+              <input type="number" id="sens-costo-campo" class="fi" style="width:130px" placeholder="190" oninput="calcSensCampo()"/>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Rendimiento base (t/ha)</div>
+              <input type="number" id="sens-rend-campo" class="fi" style="width:120px" placeholder="3.2" step="0.1" oninput="calcSensCampo()"/>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Precio base (USD/t)</div>
+              <input type="number" id="sens-precio-campo" class="fi" style="width:120px" placeholder="280" oninput="calcSensCampo()"/>
+            </div>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo"></table></div>
+        <div style="font-size:11px;color:var(--texto-suave);margin-top:.75rem">💡 Verde = rentable · Rojo = pérdida · Dorado = tu escenario actual</div>
+      </div>
     </div>
   </div>
 
-  <!-- ── MAPA ── -->
+  <!-- ── MAPA GLOBAL ── -->
   <div class="modulo" id="mod-mapa">
     <div class="mod-header">
-      <div><div class="mod-titulo">🗺️ Mapa de lotes</div><div class="mod-sub">Vista satelital de tus campos · Coronel Moldes, Córdoba</div></div>
+      <div><div class="mod-titulo">🗺️ Mapa de lotes</div><div class="mod-sub">Vista satelital · Coronel Moldes, Córdoba</div></div>
       <div style="display:flex;gap:6px">
         <button class="btn-sm" onclick="cambiarCapa('satellite')" id="btn-sat">Satelital</button>
         <button class="btn-sm" onclick="cambiarCapa('topo')" id="btn-topo">Topográfico</button>
@@ -672,10 +775,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <!-- ── NOTIFICACIONES ── -->
   <div class="modulo" id="mod-notificaciones">
     <div class="mod-header">
-      <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente desde tus siembras</div></div>
+      <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente</div></div>
       <div style="display:flex;gap:6px" id="notif-filtros"></div>
     </div>
     <div id="notif-lista"></div>
+  </div>
   </div>
 </div>
 
@@ -973,15 +1077,15 @@ async function cargarTodo() {
 window.showModulo = function(mod) {
   document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
-  document.getElementById('mod-' + mod).classList.add('active')
+  document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','rentabilidad','lluvias','suelo','mapa','notificaciones']
-  btns[mods.indexOf(mod)]?.classList.add('active')
+  var mods = ['dashboard','campos','rentabilidad','mapa','notificaciones']
+  var idx = mods.indexOf(mod)
+  if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
 
+  if (mod === 'campos') renderCamposLista()
   if (mod === 'rentabilidad') renderRentabilidad()
-  if (mod === 'lluvias') renderLluvias()
-  if (mod === 'suelo') renderSuelo()
   if (mod === 'mapa') initMapa()
   if (mod === 'notificaciones') renderNotificaciones()
 }
@@ -1036,7 +1140,7 @@ function renderDashboard() {
       var costoHa=ha>0?gc/ha:190
       var mg=rend*pr-costoHa
       var mc=mg>=0?'#1a7a52':'#c0392b'
-      return `<div class="campo-row" onclick="showModulo('rentabilidad')">
+      return `<div class="campo-row" onclick="abrirCampo('"+c.id+"')">
         <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
         <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
         <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
@@ -1899,7 +2003,7 @@ window.eliminarGasto = async function(id) {
   try{
     await sb.from('gastos').delete().eq('id',id)
     gastos=gastos.filter(g=>g.id!==id)
-    renderRentabilidad();renderDashboard()
+    if(campoDet) renderDetGastos(); renderRentabilidad();renderDashboard()
     showToast('Gasto eliminado','ok')
   }catch(e){showToast('⚠️ Error al eliminar','err')}
 }
@@ -1929,7 +2033,7 @@ window.guardarLluvia = async function() {
     }).select().single()
     if(error)throw error
     lluvias.unshift(data)
-    renderLluvias();renderDashboard()
+    if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
     closeModalLluvia()
     showToast('✓ '+mm+' mm registrados en '+(campos.find(c=>c.id===campoId)?.nombre||'el campo'),'ok')
     ;['ll-mm','ll-obs'].forEach(id=>{ var el=document.getElementById(id); if(el)el.value='' })

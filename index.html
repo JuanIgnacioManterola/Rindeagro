@@ -1008,7 +1008,7 @@ function renderDashboard() {
     var rend=c.rendimiento||rendEst  // usar real si existe
     var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
     var pr=c.precio_venta||prEst  // usar precio real si existe
-    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
     var costoHa = ha>0?gc/ha:190
     ing+=rend*pr*ha; cost+=costoHa*ha
   })
@@ -1032,7 +1032,7 @@ function renderDashboard() {
       var rend=c.rendimiento||rendEst
       var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
       var pr=c.precio_venta||prEst
-      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
       var costoHa=ha>0?gc/ha:190
       var mg=rend*pr-costoHa
       var mc=mg>=0?'#1a7a52':'#c0392b'
@@ -1077,7 +1077,7 @@ function renderRentabilidad() {
   var rend = campo?.rendimiento||rendEst
   var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
   var pr = campo?.precio_venta||prEst
-  var costoUSD = gf.reduce((a,g)=>a+(g.usd_total||0),0)
+  var costoUSD = gf.reduce((a,g)=>a+(g.total_de_usd||0),0)
   var costoHa = ha>0?costoUSD/ha:0
   var ingHa = rend*pr
   var mgHa = ingHa-costoHa
@@ -1110,8 +1110,8 @@ function renderRentabilidad() {
           <div style="font-size:10px;color:var(--texto-suave)">${fFecha(g.fecha)}${g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':''}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.pesos||0).toLocaleString('es-AR')}</div>
-          <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.usd_total||0).toLocaleString('es-AR')}</div>
+          <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.total_de_usd||0).toLocaleString('es-AR')}</div>
+          <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.total_de_usd||0).toLocaleString('es-AR')}</div>
           ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
         </div>
         <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
@@ -1121,7 +1121,7 @@ function renderRentabilidad() {
 
   // Resumen financiero
   var porRubro = {}
-  gf.forEach(g=>{ var r=g.rubro||'otros'; porRubro[r]=(porRubro[r]||0)+(g.usd_total||0) })
+  gf.forEach(g=>{ var r=g.rubro||'otros'; porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0) })
   document.getElementById('rent-resumen').innerHTML =
     `<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto</span><span style="font-weight:600;font-family:DM Mono,monospace;color:#1a5fa8">USD ${Math.round(ingHa*ha).toLocaleString('es-AR')}</span></div>` +
     Object.entries(porRubro).sort((a,b)=>b[1]-a[1]).map(([r,v])=>
@@ -1155,7 +1155,7 @@ function renderRentabilidad() {
     var re=c.rendimiento||reEst
     var prrEst=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
     var prr=c.precio_venta||prrEst
-    var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
+    var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
     var cHa=h>0?gc2/h:190
     return {...c,mg:re*prr-cHa,col:COLORES[i%COLORES.length]}
   }).sort((a,b)=>b.mg-a.mg)
@@ -1239,7 +1239,7 @@ function renderTortas(gf) {
   var porRubro = {}
   gf.forEach(g => {
     var r = RUBROS[g.rubro] || g.rubro || 'Otros'
-    porRubro[r] = (porRubro[r]||0) + (g.usd_total||0)
+    porRubro[r] = (porRubro[r]||0) + (g.total_de_usd||0)
   })
 
   var ctxR = document.getElementById('chart-torta-rubro')
@@ -1299,7 +1299,7 @@ window.renderTortaDetalle = function(gfParam) {
   var porDesc = {}
   gfFilt.forEach(g => {
     var key = g.descripcion || (RUBROS[g.rubro]||g.rubro||'Gasto')
-    porDesc[key] = (porDesc[key]||0) + (g.usd_total||0)
+    porDesc[key] = (porDesc[key]||0) + (g.total_de_usd||0)
   })
 
   var ctxD = document.getElementById('chart-torta-detalle')
@@ -1857,10 +1857,18 @@ window.guardarGasto = async function() {
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
-    var _p = {campo_id:campoId,usuario_id:usuario.id,rubro,fecha,usd_total:usdTotal,usd_ha:usdHa,qq_ha:qqHa}
-    if(document.getElementById('g-desc')?.value.trim()) _p.descripcion = document.getElementById('g-desc').value.trim()
-    try{_p.sub_tipo=gastoSubTipo||null;_p.cantidad=cantidad;_p.unidad=unidad;_p.precio_unitario=precioUnit;_p.ha_aplicadas=haFinal}catch(ex){}
-    const {data,error} = await sb.from('gastos').insert(_p).select().single()
+    var _p = {campo_id:campoId,usuario_id:usuario.id,rubro:rubro,fecha:fecha,total_de_usd:usdTotal,usd_ha:usdHa,qq_ha:qqHa,precio_cereal:prCereal}
+    _p["hect\u00e1reas"]=haFinal
+    if(document.getElementById("g-desc")?.value.trim()) _p.observacion=document.getElementById("g-desc").value.trim()
+    if(gastoSubTipo) _p.subtipo=gastoSubTipo
+    if(cantidad) _p.cantidad=cantidad
+    if(unidad) _p.unidad=unidad
+    if(precioUnit) _p.precio_unitario=precioUnit
+    const {data,error} = await sb.from("gastos").insert(_p).select().single()
+
+
+
+
     if(error) throw error
     gastos.unshift(data)
     renderRentabilidad()

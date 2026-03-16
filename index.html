@@ -2029,8 +2029,8 @@ window.guardarLluvia = async function() {
     const {data,error}=await sb.from('lluvias').insert({
       campo_id:campoId,usuario_id:usuario.id,fecha,mm,
       etapa:document.getElementById('ll-etapa').value||null,
-      tipo:document.getElementById('ll-tipo').value||null,
-      observacion:document.getElementById('ll-obs').value.trim()||null
+      tipo_lluvia:document.getElementById('ll-tipo').value||null,
+      "observación":document.getElementById('ll-obs').value.trim()||null
     }).select().single()
     if(error)throw error
     lluvias.unshift(data)
@@ -2046,7 +2046,7 @@ window.eliminarLluvia = async function(id) {
   try{
     await sb.from('lluvias').delete().eq('id',id)
     lluvias=lluvias.filter(l=>l.id!==id)
-    renderLluvias();renderDashboard()
+    if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
     showToast('Registro eliminado','ok')
   }catch(e){showToast('⚠️ Error al eliminar','err')}
 }
@@ -2071,11 +2071,12 @@ window.guardarSuelo = async function() {
       campo_id:campoId,usuario_id:usuario.id,fecha,
       laboratorio:document.getElementById('s-lab').value.trim()||null,
       n_total:g('s-n'),p_disponible:g('s-p'),k:g('s-k'),s:g('s-s'),
-      materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b')
+      materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b'),
+      notas:null
     }).select().single()
     if(error)throw error
     analisisS.unshift(data)
-    renderSuelo()
+    if(campoDet) renderDetSuelo(); else renderSuelo()
     closeModalSuelo()
     showToast('✓ Análisis de suelo guardado','ok')
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}

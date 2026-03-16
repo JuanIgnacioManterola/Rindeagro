@@ -1857,13 +1857,24 @@ window.guardarGasto = async function() {
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
-    var _p = {campo_id:campoId,usuario_id:usuario.id,rubro:rubro,fecha:fecha,total_de_usd:usdTotal,usd_ha:usdHa,qq_ha:qqHa,precio_cereal:prCereal}
-    _p["hect\u00e1reas"]=haFinal
-    if(document.getElementById("g-desc")?.value.trim()) _p.observacion=document.getElementById("g-desc").value.trim()
-    if(gastoSubTipo) _p.subtipo=gastoSubTipo
-    if(cantidad) _p.cantidad=cantidad
-    if(unidad) _p.unidad=unidad
-    if(precioUnit) _p.precio_unitario=precioUnit
+    var _p = {
+      campo_id: campoId,
+      usuario_id: usuario.id,
+      rubro: rubro,
+      fecha: fecha,
+      total_de_usd: usdTotal,
+      usd_ha: usdHa,
+      qq_ha: qqHa,
+      precio_cereal: prCereal
+    }
+    if(haFinal) _p["hectu00e1reas"] = haFinal
+    if(gastoSubTipo) _p.subtipo = gastoSubTipo
+    if(cantidad) _p.cantidad = cantidad
+    if(unidad) _p.unidad = unidad
+    if(precioUnit) _p.precio_unitario = precioUnit
+    if(haFinal) _p.ha_aplicadas = haFinal
+    var descVal = document.getElementById("g-desc")?.value?.trim()
+    if(descVal) _p.observacion = descVal
     const {data,error} = await sb.from("gastos").insert(_p).select().single()
 
 

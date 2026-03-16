@@ -667,7 +667,12 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="m-tit">Agregar campo</div><div class="m-sub">Datos de tu campo</div>
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
     <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div></div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Rendimiento real (t/ha)</label><input class="fi" type="number" id="c-rend" placeholder="Ej: 3.4" min="0" step="0.1" title="Si ya cosechaste, ingresá el rendimiento real. Si no, dejalo vacío y se usará el estimado."/></div>
+      <div class="fg"><label class="fl">Precio venta (USD/t)</label><input class="fi" type="number" id="c-precio-venta" placeholder="Ej: 280" min="0"/></div>
+    </div>
     <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Provincia</label><select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div><div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div></div>
+    <div style="background:var(--verde-pale);border-radius:10px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío — el sistema usará un rendimiento estimado según el cultivo.</div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
   </div>
 </div>
@@ -881,8 +886,10 @@ function renderDashboard() {
   campos.forEach(c => {
     var ha=c.hectareas||0; totalHa+=ha
     var cult=c.cultivo||'Soja'
-    var rend=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var pr=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+    var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+    var rend=c.rendimiento||rendEst  // usar real si existe
+    var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+    var pr=c.precio_venta||prEst  // usar precio real si existe
     var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
     var costoHa = ha>0?gc/ha:190
     ing+=rend*pr*ha; cost+=costoHa*ha
@@ -903,8 +910,10 @@ function renderDashboard() {
     el.innerHTML = campos.map((c,i)=>{
       var ha=c.hectareas||0
       var cult=c.cultivo||'Soja'
-      var rend=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-      var pr=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+      var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+      var rend=c.rendimiento||rendEst
+      var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+      var pr=c.precio_venta||prEst
       var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
       var costoHa=ha>0?gc/ha:190
       var mg=rend*pr-costoHa
@@ -946,8 +955,10 @@ function renderRentabilidad() {
   var campo = campos.find(c=>c.id===campoRent)||campos[0]
   var ha = campoRent==='todos'?campos.reduce((a,c)=>a+(c.hectareas||0),0):(campo?.hectareas||0)
   var cult = campo?.cultivo||'Soja'
-  var rend = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-  var pr = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+  var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
+  var rend = campo?.rendimiento||rendEst
+  var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+  var pr = campo?.precio_venta||prEst
   var costoUSD = gf.reduce((a,g)=>a+(g.usd_total||0),0)
   var costoHa = ha>0?costoUSD/ha:0
   var ingHa = rend*pr
@@ -957,7 +968,7 @@ function renderRentabilidad() {
 
   // Métricas rentabilidad
   document.getElementById('rent-mets').innerHTML = [
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t × USD '+pr,c:'#1a5fa8'},
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t/ha × USD '+pr+'/t'+(campo?.rendimiento?' ✓ real':' est.'),c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD).toLocaleString('es-AR')+' total',c:'#c0392b'},
     {l:'Margen neto/ha',v:(mgHa>=0?'+':'')+'USD '+Math.round(mgHa),s:mgPct+'% del ingreso',c:mc},
     {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
@@ -1016,8 +1027,10 @@ function renderRentabilidad() {
   // Comparativa
   var comp = campos.map((c,i)=>{
     var h=c.hectareas||0,cu=c.cultivo||'Soja'
-    var re=cu==='Maíz'?8:cu==='Trigo'?3:3.2
-    var prr=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
+    var reEst=cu==='Maíz'?8:cu==='Trigo'?3:3.2
+    var re=c.rendimiento||reEst
+    var prrEst=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
+    var prr=c.precio_venta||prrEst
     var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.usd_total||0),0)
     var cHa=h>0?gc2/h:190
     return {...c,mg:re*prr-cHa,col:COLORES[i%COLORES.length]}
@@ -1442,6 +1455,8 @@ window.guardarCampo = async function() {
     const {data,error}=await sb.from('campos').insert({
       nombre,hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:document.getElementById('c-cult').value||null,
+      rendimiento:parseFloat(document.getElementById('c-rend').value)||null,
+      precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
       provincia:document.getElementById('c-prov').value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
       usuario_id:usuario.id
@@ -1456,6 +1471,8 @@ window.guardarCampo = async function() {
     document.getElementById('c-nombre').value=''
     document.getElementById('c-ha').value=''
     document.getElementById('c-cult').value=''
+    document.getElementById('c-rend').value=''
+    document.getElementById('c-precio-venta').value=''
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
   finally{btn.disabled=false;btn.textContent='Guardar campo'}
 }

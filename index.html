@@ -757,15 +757,25 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <!-- ── MAPA GLOBAL ── -->
   <div class="modulo" id="mod-mapa">
     <div class="mod-header">
-      <div><div class="mod-titulo">🗺️ Mapa de lotes</div><div class="mod-sub">Vista satelital · Coronel Moldes, Córdoba</div></div>
+      <div><div class="mod-titulo">🗺️ Mapa de lotes</div><div class="mod-sub" id="mapa-sub">Vista satelital</div></div>
       <div style="display:flex;gap:6px">
         <button class="btn-sm" onclick="cambiarCapa('satellite')" id="btn-sat">Satelital</button>
         <button class="btn-sm" onclick="cambiarCapa('topo')" id="btn-topo">Topográfico</button>
         <button class="btn-sm" onclick="cambiarCapa('streets')" id="btn-streets">Calles</button>
       </div>
     </div>
+    <!-- Buscador de ciudad -->
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input id="mapa-ciudad-input" class="fi" type="text" placeholder="🔍 Buscar ciudad o localidad..." style="margin-bottom:0;flex:1;font-size:13px" onkeydown="if(event.key==='Enter')buscarCiudadMapa_global()"/>
+      <button onclick="buscarCiudadMapa_global()" style="padding:8px 16px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+    </div>
+    <div id="mapa-ciudad-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:8px;max-height:130px;overflow-y:auto;font-size:13px;box-shadow:var(--sombra)"></div>
     <div id="mapa-lotes"></div>
-    <div class="grid3" style="margin-top:14px" id="mapa-campos-info"></div>
+    <!-- Cards de campos — clickeables para ir al campo en el mapa -->
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px">Mis campos — hacé clic para ir al lote</div>
+      <div class="grid3" id="mapa-campos-info"></div>
+    </div>
   </div>
 
   <!-- ── NOTIFICACIONES ── -->
@@ -1916,22 +1926,108 @@ window.cambiarCapa = function(capa) {
 
 function renderMapaCamposInfo() {
   var el = document.getElementById('mapa-campos-info')
+  if(!el) return
+  if(!campos.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);padding:.75rem 0">No tenés campos cargados todavía.</div>'
+    return
+  }
   el.innerHTML = campos.map((c,i)=>{
     var col = COLORES[i%COLORES.length]
     var llCampo = lluvias.filter(l=>l.campo_id===c.id).reduce((a,l)=>a+(l.mm||0),0)
-    return `<div class="card" style="margin-bottom:0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
-        <div style="width:10px;height:10px;border-radius:50%;background:${col}"></div>
-        <span style="font-size:13px;font-weight:500">${c.nombre}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
-        <div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">${(c.hectareas||0).toLocaleString('es-AR')} ha</div>
-        <div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">${c.cultivo||'—'}</div>
-        <div style="color:var(--texto-suave)">Tenencia</div><div style="font-weight:500">${c.tenencia||'Propio'}</div>
-        <div style="color:var(--texto-suave)">Lluvia acum.</div><div style="font-weight:500">${llCampo.toFixed(0)} mm</div>
-      </div>
-    </div>`
+    var tienePoly = !!c.poligono
+    var tienePunto = !!(c.lat && c.lng)
+    var ubicacion = tienePoly ? '📐 Con polígono' : tienePunto ? '📍 Con coordenadas' : '⚪ Sin ubicación'
+    var puedeIr = tienePoly || tienePunto
+    return '<div class="card" style="margin-bottom:0;cursor:'+(puedeIr?'pointer':'default')+';transition:all .2s;border:.5px solid var(--borde)" ' +
+      (puedeIr ? 'data-campo-id="'+c.id+'" onclick="irACampoEnMapa(this.dataset.campoId)"' : '') +
+      ' onmouseover="if(this.dataset.campoId){this.style.borderColor=\''+col+'\';this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'var(--sombra-md)\'}"' +
+      ' onmouseout="this.style.borderColor=\'\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+      '<div style="width:12px;height:12px;border-radius:50%;background:'+col+';flex-shrink:0"></div>' +
+      '<span style="font-size:13px;font-weight:600;color:var(--verde)">'+c.nombre+'</span>' +
+      '</div>' +
+      (puedeIr ? '<span style="font-size:11px;color:'+col+';font-weight:600">Ver →</span>' : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.5rem">' +
+      '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+(c.hectareas||0).toLocaleString('es-AR')+' ha</div>' +
+      '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+(c.cultivo||'—')+'</div>' +
+      '<div style="color:var(--texto-suave)">Lluvia acum.</div><div style="font-weight:500">'+llCampo.toFixed(0)+' mm</div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:'+(puedeIr?col:'var(--texto-suave)')+';font-weight:'+(puedeIr?'600':'400')+'">'+ubicacion+'</div>' +
+      '</div>'
   }).join('')
+}
+
+window.irACampoEnMapa = function(id) {
+  var c = campos.find(function(f){ return f.id===id })
+  if(!c || !mapInstance) return
+
+  // Si tiene polígono, hacer zoom al polígono y abrirlo
+  if(c.poligono) {
+    try {
+      var pts = typeof c.poligono==='string' ? JSON.parse(c.poligono) : c.poligono
+      if(pts && pts.length >= 3) {
+        // Buscar el layer del polígono entre _mapaLayers
+        var poly = null
+        _mapaLayers.forEach(function(l) {
+          if(l.getBounds && !l.getLatLng) poly = l // es un polígono, no un marker
+        })
+        mapInstance.fitBounds(pts, {padding:[40,40], maxZoom:15})
+        // Resaltar brevemente el polígono
+        if(poly) {
+          var colOriginal = poly.options.color
+          poly.setStyle({color:'#c9a84c',weight:4,fillOpacity:.4})
+          setTimeout(function(){ poly.setStyle({color:colOriginal,weight:2.5,fillOpacity:.25}) }, 1500)
+          setTimeout(function(){ poly.openPopup() }, 300)
+        }
+        // Scroll al mapa
+        document.getElementById('mapa-lotes')?.scrollIntoView({behavior:'smooth',block:'start'})
+        return
+      }
+    } catch(e) {}
+  }
+
+  // Si solo tiene coordenadas, ir al punto
+  if(c.lat && c.lng) {
+    mapInstance.setView([c.lat, c.lng], 14)
+    // Buscar el marker de ese campo
+    _mapaLayers.forEach(function(l) {
+      if(l.getLatLng) {
+        var ll = l.getLatLng()
+        if(Math.abs(ll.lat - c.lat) < 0.001 && Math.abs(ll.lng - c.lng) < 0.001) {
+          setTimeout(function(){ l.openPopup() }, 300)
+        }
+      }
+    })
+    document.getElementById('mapa-lotes')?.scrollIntoView({behavior:'smooth',block:'start'})
+  }
+}
+
+window.buscarCiudadMapa_global = async function() {
+  var q = document.getElementById('mapa-ciudad-input')?.value?.trim()
+  if(!q) return
+  var res = document.getElementById('mapa-ciudad-results')
+  res.style.display='block'
+  res.innerHTML='<div style="padding:8px 14px;color:var(--texto-suave)">Buscando...</div>'
+  try {
+    var resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&accept-language=es')
+    var data = await resp.json()
+    if(!data.length) { res.innerHTML='<div style="padding:8px 14px;color:var(--texto-suave)">Sin resultados</div>'; return }
+    res.innerHTML = data.map(function(r) {
+      var nom2 = r.display_name.substring(0,60).replace(/"/g,'&quot;')
+      return '<div data-lat="'+r.lat+'" data-lng="'+r.lon+'" data-nom="'+nom2+'" onclick="irACiudadMapa_global(parseFloat(this.dataset.lat),parseFloat(this.dataset.lng),this.dataset.nom)" style="padding:9px 14px;cursor:pointer;border-bottom:.5px solid var(--borde)" onmouseover="this.style.background=\'var(--crema)\'" onmouseout="this.style.background=\'\' ">'+r.display_name.substring(0,65)+'</div>'
+    }).join('')
+  } catch(e) { res.innerHTML='<div style="padding:8px 14px;color:var(--rojo)">Error al buscar</div>' }
+}
+
+window.irACiudadMapa_global = function(lat, lng, nombre) {
+  if(!mapInstance) return
+  mapInstance.setView([lat, lng], 13)
+  var res = document.getElementById('mapa-ciudad-results')
+  if(res) res.style.display='none'
+  var inp = document.getElementById('mapa-ciudad-input')
+  if(inp) inp.value = nombre
 }
 
 // ── NOTIFICACIONES ──

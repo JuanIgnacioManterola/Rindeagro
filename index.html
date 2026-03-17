@@ -1173,16 +1173,18 @@ window.actualizarPrecios = async function() {
   var ant = {soja:precios.soja, maiz:precios.maiz, trigo:precios.trigo, girasol:precios.girasol||0, sorgo:precios.sorgo||0, bna:precios.bna}
 
   try {
-    // 1. Dólar BNA divisa comprador
-    var rDolar = await fetch('https://dolarapi.com/v1/dolares/oficial')
+    // 1. Dólar BNA divisa tipo comprador — se obtiene del mayorista que equivale al divisa BNA
+    // Intentamos primero dolarapi mayorista, que refleja el TC divisa comprador del BNA
+    var rDolar = await fetch('https://dolarapi.com/v1/dolares/mayorista')
     if(rDolar.ok) {
       var dDolar = await rDolar.json()
+      // El mayorista compra es el tipo de cambio divisa comprador del BNA
       if(dDolar.compra) {
         precios.bna = dDolar.compra
         var elBna = document.getElementById('ps-bna')
         var dBna = document.getElementById('ps-bna-d')
         if(elBna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
-        if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='BNA comprador' }
+        if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
       }
     }
   } catch(e) {
@@ -1197,13 +1199,17 @@ window.actualizarPrecios = async function() {
     if(rGranos.ok) {
       var dGranos = await rGranos.json()
       // La API devuelve array con objetos {nombre, moneda, precio, ...}
+      console.log('Granos API response:', JSON.stringify(dGranos).substring(0,500))
       var map = {}
-      dGranos.forEach(function(g) { map[(g.nombre||g.cereal||'').toLowerCase()] = g })
+      dGranos.forEach(function(g) { 
+        var key = (g.nombre||g.cereal||g.grano||'').toLowerCase()
+        map[key] = g
+      })
       
       var soja = map['soja'] || map['soja disponible'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('soja'))
       var maiz = map['maiz'] || map['maíz'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('ma'))
       var trigo = map['trigo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('trigo'))
-      var girasol = map['girasol'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('girasol'))
+      var girasol = map['girasol'] || map['girasol disponible'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('girasol'))
       var sorgo = map['sorgo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('sorgo'))
 
       if(soja?.precio) { precios.soja = parseFloat(soja.precio); setPrecio('ps-soja', precios.soja, ant.soja) }

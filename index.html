@@ -519,7 +519,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <!-- ── RENTABILIDAD ── -->
   <div class="modulo" id="mod-rentabilidad">
     <div class="mod-header">
-      <div><div class="mod-titulo">📊 Rentabilidad</div><div class="mod-sub">Campaña 2025/26 · Margen por campo en tiempo real</div></div>
+      <div><div class="mod-titulo">📊 Rentabilidad</div><div class="mod-sub">Seleccioná un campo para ver su análisis completo</div></div>
+    </div>
+    <!-- SELECTOR DE CAMPO -->
+    <div id="rent-selector-campos" style="margin-bottom:1.5rem"></div>
+    <!-- DETALLE (oculto hasta seleccionar campo) -->
+    <div id="rent-detalle" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px">
+      <div id="rent-campo-nombre" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--verde)"></div>
       <div id="rent-campo-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
 
@@ -566,7 +573,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- GASTOS + RESUMEN -->
     <div class="grid2">
       <div class="card">
-        <div class="card-hdr"><span class="card-tit">Gastos de campaña</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+        <div class="card-hdr"><span class="card-tit">Gastos del campo</span></div>
         <div id="rent-gastos"></div>
       </div>
       <div>
@@ -616,7 +623,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="position:relative;height:200px"><canvas id="chart-hist"></canvas></div>
       </div>
     </div>
-  </div>
+  </div><!-- /rent-detalle -->
+  </div><!-- /mod-rentabilidad -->
 
   <!-- ── CAMPOS ── -->
   <div class="modulo" id="mod-campos">
@@ -644,7 +652,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button class="campo-tab active" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
         <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
-        <button class="campo-tab" onclick="switchCampoTab('ndvi',this)">🛰️ Mapa + NDVI</button>
         <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
       </div>
     </div>
@@ -710,25 +717,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="card">
         <div class="card-hdr"><span class="card-tit">Evolución histórica</span></div>
         <div style="position:relative;height:200px"><canvas id="chart-det-suelo"></canvas></div>
-      </div>
-    </div>
-
-    <!-- TAB: MAPA + NDVI -->
-    <div class="campo-seccion" id="sec-ndvi">
-      <div class="grid2" style="margin-bottom:14px">
-        <div class="card" style="margin-bottom:0">
-          <div class="card-hdr"><span class="card-tit">Índices de vegetación</span></div>
-          <div id="det-ndvi-indices"></div>
-        </div>
-        <div class="card" style="margin-bottom:0">
-          <div class="card-hdr"><span class="card-tit">Evolución NDVI · campaña</span></div>
-          <div style="position:relative;height:160px"><canvas id="chart-det-ndvi"></canvas></div>
-        </div>
-      </div>
-      <div id="det-mapa-campo" style="height:380px;border-radius:12px;overflow:hidden;border:.5px solid var(--borde);margin-bottom:14px"></div>
-      <div class="card" style="margin-bottom:0">
-        <div class="card-hdr"><span class="card-tit">Interpretación agronómica</span></div>
-        <div id="det-ndvi-interp" style="font-size:13px;color:var(--texto-mid);line-height:1.75"></div>
       </div>
     </div>
 
@@ -829,17 +817,51 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <!-- MODAL CAMPO -->
 <div class="overlay" id="ov-campo" onclick="if(event.target===this)closeModalCampo()">
-  <div class="modal">
+  <div class="modal" style="max-width:540px">
     <button class="m-close" onclick="closeModalCampo()">✕</button>
-    <div class="m-tit">Agregar campo</div><div class="m-sub">Datos de tu campo</div>
+    <div class="m-tit">Agregar campo</div><div class="m-sub">Completá los datos de tu campo</div>
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
-    <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div></div>
     <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Rendimiento real (t/ha)</label><input class="fi" type="number" id="c-rend" placeholder="Ej: 3.4" min="0" step="0.1" title="Si ya cosechaste, ingresá el rendimiento real. Si no, dejalo vacío y se usará el estimado."/></div>
+      <div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
+      <div class="fg"><label class="fl">Cultivo</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div>
+    </div>
+    <!-- País -->
+    <div class="fg">
+      <label class="fl">País *</label>
+      <select class="fi" id="c-pais" style="cursor:pointer" onchange="onPaisChange()">
+        <option value="">Seleccioná el país</option>
+        <option value="argentina">Argentina</option>
+        <option value="brasil">Brasil</option>
+        <option value="uruguay">Uruguay</option>
+        <option value="paraguay">Paraguay</option>
+        <option value="chile">Chile</option>
+        <option value="bolivia">Bolivia</option>
+      </select>
+    </div>
+    <!-- Provincia dinámica -->
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg">
+        <label class="fl">Provincia / Estado</label>
+        <select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná el país primero</option></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Localidad</label>
+        <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..."/>
+      </div>
+    </div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Rendimiento real (t/ha)</label><input class="fi" type="number" id="c-rend" placeholder="Ej: 3.4" min="0" step="0.1"/></div>
       <div class="fg"><label class="fl">Precio venta (USD/t)</label><input class="fi" type="number" id="c-precio-venta" placeholder="Ej: 280" min="0"/></div>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Provincia</label><select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div><div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div></div>
-    <div style="background:var(--verde-pale);border-radius:10px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío — el sistema usará un rendimiento estimado según el cultivo.</div>
+    <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
+    <!-- Mapa para marcar lote -->
+    <div style="margin-top:.9rem;margin-bottom:.9rem">
+      <label class="fl">Ubicación del lote (opcional)</label>
+      <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Hacé clic en el mapa para marcar la ubicación del campo</div>
+      <div id="mapa-campo-modal" style="height:200px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
+      <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
+    </div>
+    <div style="background:var(--verde-pale);border-radius:10px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío.</div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
   </div>
 </div>
@@ -1141,7 +1163,7 @@ function renderDashboard() {
       var costoHa=ha>0?gc/ha:190
       var mg=rend*pr-costoHa
       var mc=mg>=0?'#1a7a52':'#c0392b'
-      return `<div class="campo-row" onclick="abrirCampo('"+c.id+"')">
+      return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
         <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
         <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
         <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
@@ -1169,7 +1191,46 @@ function renderDashboard() {
 
 // ── RENTABILIDAD ──
 function renderRentabilidad() {
-  // Tabs de campos
+  // Selector de campos
+  var selEl = document.getElementById('rent-selector-campos')
+  var detEl = document.getElementById('rent-detalle')
+  if(selEl) {
+    var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
+    if(!campos.length) {
+      selEl.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div><div class="empty-s">Agregá un campo para ver la rentabilidad.</div></div></div>'
+      if(detEl) detEl.style.display='none'
+      return
+    }
+    selEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
+      campos.map(function(c,i){
+        var ha=c.hectareas||0,cult=c.cultivo||'Soja'
+        var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+        var rend=c.rendimiento||rendEst
+        var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+        var pr=c.precio_venta||prEst
+        var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        var cHa=ha>0?gc/ha:190,mg=rend*pr-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
+        var sel=c.id===campoRent
+        return '<div onclick="selCampoRent(\'' + c.id + '\')" style="border:2px solid '+(sel?'var(--verde)':'var(--borde)')+';background:'+(sel?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s">' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:'+(sel?'rgba(255,255,255,.7)':COLS[i%COLS.length])+'"></div><span style="font-size:13px;font-weight:600;color:'+(sel?'#fff':'var(--verde)')+'">'+c.nombre+'</span></div>' +
+          '<div style="font-size:11px;color:'+(sel?'rgba(250,247,240,.7)':'var(--texto-suave)')+'">'+ha+' ha · '+cult+'</div>' +
+          '<div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:'+(sel?'var(--dorado-light)':mc)+';margin-top:4px">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>' +
+          '</div>'
+      }).join('') +
+      (campos.length>1?'<div onclick="selCampoRent('todos')" style="border:2px solid '+(campoRent==='todos'?'var(--verde)':'var(--borde)')+';background:'+(campoRent==='todos'?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px"><span style="font-size:18px">📊</span><span style="font-size:12px;font-weight:600;color:'+(campoRent==='todos'?'#fff':'var(--verde)')+'">Todos los campos</span></div>':'') +
+      '</div>'
+    if(detEl) detEl.style.display = campoRent ? 'block' : 'none'
+    if(!campoRent) return
+  }
+
+  // Nombre del campo seleccionado
+  var nEl = document.getElementById('rent-campo-nombre')
+  if(nEl) {
+    var cSel = campos.find(function(c){return c.id===campoRent})
+    nEl.textContent = campoRent==='todos' ? '📊 Todos los campos' : (cSel?.nombre||'')
+  }
+
+  // Tabs de campos (ahora solo para comparativa)
   var tabs = document.getElementById('rent-campo-tabs')
   tabs.innerHTML = campos.map((c,i)=>`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${c.id===campoRent?'var(--verde)':'var(--borde)'};background:${c.id===campoRent?'var(--verde)':'var(--blanco)'};color:${c.id===campoRent?'#fff':'var(--texto-mid)'};cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif" onclick="selCampoRent('${c.id}')"><div style="width:7px;height:7px;border-radius:50%;background:${c.id===campoRent?'rgba(255,255,255,.7)':COLORES[i%COLORES.length]}"></div>${c.nombre}</button>`).join('')+
   (campos.length>1?`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${campoRent==='todos'?'var(--verde)':'var(--borde)'};background:${campoRent==='todos'?'var(--verde)':'var(--blanco)'};color:${campoRent==='todos'?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif" onclick="selCampoRent('todos')">📊 Todos</button>`:'')
@@ -1243,15 +1304,30 @@ function renderRentabilidad() {
   if (campo?.rendimiento || campo?.precio_venta) calcRendReal()
 
   // Sensibilidad
-  var preList = [220,250,270,Math.round(pr/10)*10,300,330,360]
-  var rendList = rend>=5?[5,6,7,8,9,10]:[2.0,2.5,3.0,3.5,4.0,4.5]
-  var thead = '<thead><tr><th>Rend/Precio</th>'+preList.map(p=>`<th>USD ${p}</th>`).join('')+'</tr></thead>'
-  var tbody = '<tbody>'+rendList.map(r=>'<tr><td>'+r+' t/ha</td>'+preList.map(p=>{
-    var mg=r*p-costoHa
-    var isBase=Math.abs(r-rend)<0.3&&Math.abs(p-pr)<15
-    return `<td><span class="${isBase?'cell-base':mg>=0?'cell-pos':'cell-neg'}">${mg>=0?'+':''}${Math.round(mg)}</span></td>`
-  }).join('')+'</tr>').join('')+'</tbody>'
-  document.getElementById('tabla-sens').innerHTML = thead+tbody
+  // Sensibilidad: variar precio -20%,-10%,0,+10%,+20% y rendimiento -20%,-10%,0,+10%,+20%
+  var rendVar = [-20,-10,0,10,20]
+  var prVar   = [-20,-10,0,10,20]
+  var rendList2 = rendVar.map(function(v){ return Math.round(rend*(1+v/100)*10)/10 })
+  var prList2   = prVar.map(function(v){ return Math.round(pr*(1+v/100)) })
+  var thead2 = '<thead><tr>'
+  thead2 += '<th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend \ Precio</th>'
+  prVar.forEach(function(v,i){ thead2 += '<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+prList2[i]+'<div style="font-size:9px;opacity:.6">'+(v===0?'Base':(v>0?'+':'')+v+'%')+'</div></th>' })
+  thead2 += '</tr></thead>'
+  var tbody2 = '<tbody>'
+  rendList2.forEach(function(r,ri){
+    tbody2 += '<tr>'
+    tbody2 += '<td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha<div style="font-size:9px;color:var(--texto-suave);font-weight:400">'+(rendVar[ri]===0?'Base':(rendVar[ri]>0?'+':'')+rendVar[ri]+'%')+'</div></td>'
+    prList2.forEach(function(p,pi){
+      var mg = r*p - costoHa
+      // Solo dorado si EXACTAMENTE rendimiento=base Y precio=base
+      var isExactBase = (rendVar[ri]===0 && prVar[pi]===0)
+      var cls = isExactBase ? 'cell-base' : mg>=0 ? 'cell-pos' : 'cell-neg'
+      tbody2 += '<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+(mg>=0?'+':'')+Math.round(mg)+'</span></td>'
+    })
+    tbody2 += '</tr>'
+  })
+  tbody2 += '</tbody>'
+  document.getElementById('tabla-sens').innerHTML = thead2+tbody2
 
   // Comparativa
   var comp = campos.map((c,i)=>{
@@ -1289,6 +1365,8 @@ function renderRentabilidad() {
 
 window.selCampoRent = function(id) {
   campoRent = id
+  var detEl = document.getElementById('rent-detalle')
+  if(detEl) detEl.style.display = 'block'
   renderRentabilidad()
 }
 
@@ -1826,7 +1904,55 @@ window.cerrarSesion = async function() {
   initLanding()
   showToast('Sesión cerrada')
 }
-window.openModalCampo = function() { document.getElementById('ov-campo').classList.add('open') }
+
+// ── PAÍSES Y PROVINCIAS ──
+var PROVINCIAS = {
+  argentina: ['Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'],
+  brasil: ['Mato Grosso','Mato Grosso do Sul','Paraná','Rio Grande do Sul','São Paulo','Goiás','Minas Gerais','Bahia','Tocantins','Piauí','Maranhão','Pará','Rondônia','Mato Grosso','Otro'],
+  uruguay: ['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres'],
+  paraguay: ['Alto Paraguay','Alto Paraná','Amambay','Boquerón','Caaguazú','Caazapá','Canindeyú','Central','Concepción','Cordillera','Guairá','Itapúa','Misiones','Ñeembucú','Paraguarí','Presidente Hayes','San Pedro'],
+  chile: ['Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo','Valparaíso','Metropolitana','O'Higgins','Maule','Ñuble','Biobío','La Araucanía','Los Ríos','Los Lagos','Aysén','Magallanes'],
+  bolivia: ['Beni','Chuquisaca','Cochabamba','La Paz','Oruro','Pando','Potosí','Santa Cruz','Tarija']
+}
+
+window.onPaisChange = function() {
+  var pais = document.getElementById('c-pais').value
+  var sel = document.getElementById('c-prov')
+  if(!pais) { sel.innerHTML='<option value="">Seleccioná el país primero</option>'; return }
+  var provs = PROVINCIAS[pais]||[]
+  sel.innerHTML = '<option value="">Seleccioná la provincia</option>' + provs.map(function(p){return '<option value="'+p+'">'+p+'</option>'}).join('')
+  // Centrar mapa en el país
+  var centros = {argentina:[-34,-64,5],brasil:[-14,-52,4],uruguay:[-32.5,-55.5,7],paraguay:[-23,-58,6],chile:[-35,-71,5],bolivia:[-17,-65,6]}
+  var centro = centros[pais]||[-34,-64,5]
+  if(window._mapaCampoModal) window._mapaCampoModal.setView([centro[0],centro[1]],centro[2])
+}
+
+var _campoCoordsLat = null
+var _campoCoordsLng = null
+
+window.openModalCampo = function() {
+  document.getElementById('ov-campo').classList.add('open')
+  setTimeout(function(){
+    if(!window._mapaCampoModal) {
+      window._mapaCampoModal = L.map('mapa-campo-modal').setView([-33.65,-64.60],6)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(window._mapaCampoModal)
+      var marcador = null
+      window._mapaCampoModal.on('click',function(e){
+        if(marcador) window._mapaCampoModal.removeLayer(marcador)
+        _campoCoordsLat = e.latlng.lat.toFixed(5)
+        _campoCoordsLng = e.latlng.lng.toFixed(5)
+        marcador = L.marker([e.latlng.lat,e.latlng.lng]).addTo(window._mapaCampoModal)
+        var el = document.getElementById('campo-coords')
+        var txt = document.getElementById('campo-coords-txt')
+        if(el) el.style.display='block'
+        if(txt) txt.textContent = 'Lat: '+_campoCoordsLat+' · Lng: '+_campoCoordsLng
+      })
+    } else {
+      window._mapaCampoModal.invalidateSize()
+    }
+  },300)
+}
+
 window.closeModalCampo = function() { document.getElementById('ov-campo').classList.remove('open') }
 window.guardarCampo = async function() {
   var nombre=document.getElementById('c-nombre').value.trim()
@@ -1841,6 +1967,7 @@ window.guardarCampo = async function() {
       rendimiento:parseFloat(document.getElementById('c-rend').value)||null,
       precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
       provincia:document.getElementById('c-prov').value||null,
+      pais:document.getElementById('c-pais')?.value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
       usuario_id:usuario.id
     }).select().single()
@@ -1902,7 +2029,7 @@ window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
   document.getElementById('g-precio').value = precios.soja
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
-  var c = campos.find(f=>f.id===campoRent)||campos[0]
+  var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
   if(c?.hectareas) document.getElementById('g-ha-aplicadas').value = c.hectareas
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
@@ -1940,7 +2067,7 @@ window.guardarGasto = async function() {
   if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
   if(!usuario){showToast('⚠️ Sesión expirada — volvé a ingresar','err');return}
 
-  var campoId = campoRent==='todos' ? campos[0]?.id : campoRent
+  var campoId = campoDet || (campoRent==='todos' ? campos[0]?.id : campoRent)
   if(!campoId){showToast('⚠️ Seleccioná un campo','err');return}
   var campo = campos.find(c=>c.id===campoId)
   var haFinal = ha || campo?.hectareas || 1
@@ -2326,11 +2453,24 @@ window.calcSensCampo = function() {
   var prBase=parseFloat(document.getElementById('sens-precio-campo')?.value)||280
   var c=campos.find(function(f){return f.id===campoDet})
   var rendActual=c?.rendimiento||rendBase,prActual=c?.precio_venta||prBase
-  var rendList=[rendBase*.6,rendBase*.8,rendBase,rendBase*1.2,rendBase*1.4].map(function(r){return Math.round(r*10)/10})
-  var prList=[prBase*.75,prBase*.9,prBase,prBase*1.1,prBase*1.25].map(function(p){return Math.round(p)})
-  var thead='<thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend/Precio</th>'+prList.map(function(p){return '<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+p+'</th>'}).join('')+'</tr></thead>'
-  var tbody='<tbody>'+rendList.map(function(r){return '<tr><td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha</td>'+prList.map(function(p){var mg=r*p-costo,isBase=Math.abs(r-rendActual)<rendBase*.15&&Math.abs(p-prActual)<prBase*.1,cls=isBase?'cell-base':mg>=0?'cell-pos':'cell-neg';return '<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+(mg>=0?'+':'')+Math.round(mg)+'</span></td>'}).join('')+'</tr>'}).join('')+'</tbody>'
-  document.getElementById('tabla-sens-campo').innerHTML=thead+tbody
+  var rendVarC=[-20,-10,0,10,20]
+  var prVarC=[-20,-10,0,10,20]
+  var rendListC=rendVarC.map(function(v){return Math.round(rendActual*(1+v/100)*10)/10})
+  var prListC=prVarC.map(function(v){return Math.round(prActual*(1+v/100))})
+  var theadC='<thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend \ Precio</th>'
+  prVarC.forEach(function(v,i){theadC+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+prListC[i]+'<div style="font-size:9px;opacity:.6">'+(v===0?'Base':(v>0?'+':'')+v+'%')+'</div></th>'})
+  theadC+='</tr></thead>'
+  var tbodyC='<tbody>'
+  rendListC.forEach(function(r,ri){
+    tbodyC+='<tr><td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha<div style="font-size:9px;color:var(--texto-suave);font-weight:400">'+(rendVarC[ri]===0?'Base':(rendVarC[ri]>0?'+':'')+rendVarC[ri]+'%')+'</div></td>'
+    prListC.forEach(function(p,pi){
+      var mg=r*p-costo,isExact=(rendVarC[ri]===0&&prVarC[pi]===0),cls=isExact?'cell-base':mg>=0?'cell-pos':'cell-neg'
+      tbodyC+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+(mg>=0?'+':'')+Math.round(mg)+'</span></td>'
+    })
+    tbodyC+='</tr>'
+  })
+  tbodyC+='</tbody>'
+  document.getElementById('tabla-sens-campo').innerHTML=theadC+tbodyC
 }
 
 window.resetSensCampo = function() {

@@ -475,11 +475,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
     <div class="precio-strip">
-      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">USD 280</div><div class="pi-d up">▲ +1.8%</div></div>
-      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">USD 195</div><div class="pi-d dn">▼ -0.5%</div></div>
-      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">USD 212</div><div class="pi-d up">▲ +0.9%</div></div>
-      <div class="pi"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">$ 1.085</div><div class="pi-d up">▲ +0.9%</div></div>
-      <button class="btn-sm" style="margin-left:auto" onclick="actualizarPrecios()">↻ Actualizar</button>
+      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Dólar BNA comprador</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <button class="btn-sm" onclick="actualizarPrecios()">↻ Actualizar</button>
+        <div id="ps-hora" style="font-size:10px;color:var(--texto-suave)"></div>
+      </div>
     </div>
     <div class="grid4" id="dash-mets"></div>
     <div class="grid2">
@@ -1038,7 +1043,7 @@ var analisisS = []
 var perfil = 'productor'
 var paso = 1
 var campoRent = null
-var precios = {soja:280,maiz:195,trigo:212,bna:1085}
+var precios = {soja:280,maiz:195,trigo:212,girasol:340,sorgo:165,bna:1085}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',labores:'Labores',cosecha:'Cosecha',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
@@ -1142,15 +1147,97 @@ window.showModulo = function(mod) {
   if (mod === 'notificaciones') renderNotificaciones()
 }
 
-window.actualizarPrecios = function() {
-  precios.soja = Math.round((precios.soja+(Math.random()-.47)*4)*10)/10
-  precios.maiz = Math.round((precios.maiz+(Math.random()-.5)*3)*10)/10
-  precios.trigo = Math.round((precios.trigo+(Math.random()-.48)*3)*10)/10
-  precios.bna = Math.round(precios.bna+(Math.random()-.5)*6)
-  document.getElementById('ps-soja').textContent = 'USD '+precios.soja
-  document.getElementById('ps-maiz').textContent = 'USD '+precios.maiz
-  document.getElementById('ps-trigo').textContent = 'USD '+precios.trigo
-  document.getElementById('ps-bna').textContent = '$ '+precios.bna.toLocaleString('es-AR')
+window.actualizarPrecios = async function() {
+  var btn = document.querySelector('[onclick="actualizarPrecios()"]')
+  if(btn) btn.textContent = '⏳'
+
+  // Helper para mostrar precio en el strip
+  function setPrecio(id, valorUSD, anterior) {
+    var el = document.getElementById(id)
+    var dEl = document.getElementById(id+'-d')
+    if(!el) return
+    el.textContent = valorUSD ? 'USD '+Math.round(valorUSD) : '—'
+    if(dEl && anterior && valorUSD) {
+      var diff = valorUSD - anterior
+      var pct = anterior > 0 ? (diff/anterior*100).toFixed(1) : 0
+      dEl.className = 'pi-d ' + (diff >= 0 ? 'up' : 'dn')
+      dEl.textContent = (diff >= 0 ? '▲' : '▼') + ' ' + (diff >= 0 ? '+' : '') + pct + '%'
+    } else if(dEl) {
+      dEl.className = 'pi-d'
+      dEl.style.color = 'var(--texto-suave)'
+      dEl.textContent = 'Bolsa Rosario'
+    }
+  }
+
+  // Guardar anteriores para calcular variación
+  var ant = {soja:precios.soja, maiz:precios.maiz, trigo:precios.trigo, girasol:precios.girasol||0, sorgo:precios.sorgo||0, bna:precios.bna}
+
+  try {
+    // 1. Dólar BNA divisa comprador
+    var rDolar = await fetch('https://dolarapi.com/v1/dolares/oficial')
+    if(rDolar.ok) {
+      var dDolar = await rDolar.json()
+      if(dDolar.compra) {
+        precios.bna = dDolar.compra
+        var elBna = document.getElementById('ps-bna')
+        var dBna = document.getElementById('ps-bna-d')
+        if(elBna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
+        if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='BNA comprador' }
+      }
+    }
+  } catch(e) {
+    // fallback dólar — mantener valor anterior
+    var elBna = document.getElementById('ps-bna')
+    if(elBna && precios.bna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
+  }
+
+  try {
+    // 2. Precios granos Rosario
+    var rGranos = await fetch('https://api.argentinadatos.com/v1/cotizaciones/granos')
+    if(rGranos.ok) {
+      var dGranos = await rGranos.json()
+      // La API devuelve array con objetos {nombre, moneda, precio, ...}
+      var map = {}
+      dGranos.forEach(function(g) { map[(g.nombre||g.cereal||'').toLowerCase()] = g })
+      
+      var soja = map['soja'] || map['soja disponible'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('soja'))
+      var maiz = map['maiz'] || map['maíz'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('ma'))
+      var trigo = map['trigo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('trigo'))
+      var girasol = map['girasol'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('girasol'))
+      var sorgo = map['sorgo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('sorgo'))
+
+      if(soja?.precio) { precios.soja = parseFloat(soja.precio); setPrecio('ps-soja', precios.soja, ant.soja) }
+      if(maiz?.precio) { precios.maiz = parseFloat(maiz.precio); setPrecio('ps-maiz', precios.maiz, ant.maiz) }
+      if(trigo?.precio) { precios.trigo = parseFloat(trigo.precio); setPrecio('ps-trigo', precios.trigo, ant.trigo) }
+      if(girasol?.precio) { precios.girasol = parseFloat(girasol.precio); setPrecio('ps-girasol', precios.girasol, ant.girasol) }
+      if(sorgo?.precio) { precios.sorgo = parseFloat(sorgo.precio); setPrecio('ps-sorgo', precios.sorgo, ant.sorgo) }
+    } else {
+      throw new Error('API granos error')
+    }
+  } catch(e) {
+    // Fallback — usar valores anteriores o defaults
+    if(!precios.soja) precios.soja = 280
+    if(!precios.maiz) precios.maiz = 195
+    if(!precios.trigo) precios.trigo = 212
+    if(!precios.girasol) precios.girasol = 340
+    if(!precios.sorgo) precios.sorgo = 165
+    setPrecio('ps-soja', precios.soja, null)
+    setPrecio('ps-maiz', precios.maiz, null)
+    setPrecio('ps-trigo', precios.trigo, null)
+    setPrecio('ps-girasol', precios.girasol, null)
+    setPrecio('ps-sorgo', precios.sorgo, null)
+    var elBna = document.getElementById('ps-bna')
+    if(elBna && precios.bna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
+  }
+
+  // Hora de actualización
+  var horaEl = document.getElementById('ps-hora')
+  if(horaEl) {
+    var now = new Date()
+    horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
+  }
+
+  if(btn) btn.textContent = '↻ Actualizar'
 }
 
 // ── DASHBOARD ──

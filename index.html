@@ -994,8 +994,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <div class="toast" id="toast"></div>
 
+<script>
+// Safety timeout — si el módulo no carga en 6s, muestra la landing igual
+window._loadingTimeout = setTimeout(() => {
+  var l = document.getElementById('screen-loading')
+  if (l && l.style.display !== 'none') {
+    l.classList.add('fade')
+    setTimeout(() => { l.style.display = 'none' }, 500)
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    var land = document.getElementById('screen-landing')
+    if (land) land.classList.add('active')
+    window.scrollTo(0,0)
+  }
+}, 6000)
+</script>
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
 const SB_URL = 'https://kmfydetiwatnwwzjnhyq.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZnlkZXRpd2F0bnd3empuaHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MjM2NjgsImV4cCI6MjA4OTA5OTY2OH0.WL9aziR3MwVNLV6q0_jDXCGO5dYgaoL6Bsr-PrOCoiQ'
@@ -1017,6 +1031,7 @@ var charts = {}
 
 // ── INIT ──
 async function init() {
+  clearTimeout(window._loadingTimeout)
   try {
     sb.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session && !usuario) usuario = session.user
@@ -1217,7 +1232,7 @@ function renderRentabilidad() {
           '<div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:'+(sel?'var(--dorado-light)':mc)+';margin-top:4px">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>' +
           '</div>'
       }).join('') +
-      (campos.length>1?'<div onclick="selCampoRent('todos')" style="border:2px solid '+(campoRent==='todos'?'var(--verde)':'var(--borde)')+';background:'+(campoRent==='todos'?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px"><span style="font-size:18px">📊</span><span style="font-size:12px;font-weight:600;color:'+(campoRent==='todos'?'#fff':'var(--verde)')+'">Todos los campos</span></div>':'') +
+      (campos.length>1?'<div onclick="selCampoRent(\'todos\')" style="border:2px solid '+(campoRent==='todos'?'var(--verde)':'var(--borde)')+';background:'+(campoRent==='todos'?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px"><span style="font-size:18px">📊</span><span style="font-size:12px;font-weight:600;color:'+(campoRent==='todos'?'#fff':'var(--verde)')+'">Todos los campos</span></div>':'') +
       '</div>'
     if(detEl) detEl.style.display = campoRent ? 'block' : 'none'
     if(!campoRent) return
@@ -1911,7 +1926,7 @@ var PROVINCIAS = {
   brasil: ['Mato Grosso','Mato Grosso do Sul','Paraná','Rio Grande do Sul','São Paulo','Goiás','Minas Gerais','Bahia','Tocantins','Piauí','Maranhão','Pará','Rondônia','Mato Grosso','Otro'],
   uruguay: ['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres'],
   paraguay: ['Alto Paraguay','Alto Paraná','Amambay','Boquerón','Caaguazú','Caazapá','Canindeyú','Central','Concepción','Cordillera','Guairá','Itapúa','Misiones','Ñeembucú','Paraguarí','Presidente Hayes','San Pedro'],
-  chile: ['Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo','Valparaíso','Metropolitana','O'Higgins','Maule','Ñuble','Biobío','La Araucanía','Los Ríos','Los Lagos','Aysén','Magallanes'],
+  chile: ['Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo','Valparaíso','Metropolitana','O\'Higgins','Maule','Ñuble','Biobío','La Araucanía','Los Ríos','Los Lagos','Aysén','Magallanes'],
   bolivia: ['Beni','Chuquisaca','Cochabamba','La Paz','Oruro','Pando','Potosí','Santa Cruz','Tarija']
 }
 

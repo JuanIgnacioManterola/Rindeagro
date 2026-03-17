@@ -1043,7 +1043,7 @@ var analisisS = []
 var perfil = 'productor'
 var paso = 1
 var campoRent = null
-var precios = {soja:280,maiz:195,trigo:212,girasol:340,sorgo:165,bna:1085}
+var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',labores:'Labores',cosecha:'Cosecha',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
@@ -1149,101 +1149,100 @@ window.showModulo = function(mod) {
 
 window.actualizarPrecios = async function() {
   var btn = document.querySelector('[onclick="actualizarPrecios()"]')
-  if(btn) btn.textContent = '⏳'
+  if(btn) { btn.textContent = '⏳'; btn.disabled = true }
 
-  // Helper para mostrar precio en el strip
-  function setPrecio(id, valorUSD, anterior) {
-    var el = document.getElementById(id)
-    var dEl = document.getElementById(id+'-d')
-    if(!el) return
-    el.textContent = valorUSD ? 'USD '+Math.round(valorUSD) : '—'
-    if(dEl && anterior && valorUSD) {
-      var diff = valorUSD - anterior
-      var pct = anterior > 0 ? (diff/anterior*100).toFixed(1) : 0
-      dEl.className = 'pi-d ' + (diff >= 0 ? 'up' : 'dn')
-      dEl.textContent = (diff >= 0 ? '▲' : '▼') + ' ' + (diff >= 0 ? '+' : '') + pct + '%'
-    } else if(dEl) {
-      dEl.className = 'pi-d'
-      dEl.style.color = 'var(--texto-suave)'
-      dEl.textContent = 'Bolsa Rosario'
-    }
-  }
-
-  // Guardar anteriores para calcular variación
-  var ant = {soja:precios.soja, maiz:precios.maiz, trigo:precios.trigo, girasol:precios.girasol||0, sorgo:precios.sorgo||0, bna:precios.bna}
+  // Mostrar estado de carga
+  ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
+    var d = document.getElementById('ps-'+g+'-d')
+    if(d) { d.className='pi-d'; d.style.color='var(--texto-suave)'; d.textContent='consultando...' }
+  })
 
   try {
-    // 1. Dólar BNA divisa tipo comprador — se obtiene del mayorista que equivale al divisa BNA
-    // Intentamos primero dolarapi mayorista, que refleja el TC divisa comprador del BNA
-    var rDolar = await fetch('https://dolarapi.com/v1/dolares/mayorista')
-    if(rDolar.ok) {
-      var dDolar = await rDolar.json()
-      // El mayorista compra es el tipo de cambio divisa comprador del BNA
-      if(dDolar.compra) {
-        precios.bna = dDolar.compra
-        var elBna = document.getElementById('ps-bna')
-        var dBna = document.getElementById('ps-bna-d')
-        if(elBna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
-        if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
+    // Usar Claude API para obtener precios reales en tiempo real
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: 'Sos un asistente que devuelve precios de granos de la Bolsa de Rosario. Respondé SOLO con JSON válido sin explicaciones ni markdown, con este formato exacto: {"soja":341,"maiz":181,"trigo":183,"girasol":390,"sorgo":189,"bna":1387,"fecha":"2026-03-17","fuente":"CAC Rosario"}. Todos los precios en USD por tonelada excepto bna que es en pesos ARS tipo divisa comprador BNA.',
+        messages: [{
+          role: 'user',
+          content: 'Buscá los precios de pizarra de hoy de la Cámara Arbitral de Cereales de Rosario (cac.bcr.com.ar) para soja, maiz, trigo, girasol y sorgo en USD/tonelada, y el dolar BNA divisa tipo comprador. Devolvé solo el JSON.'
+        }]
+      })
+    })
+
+    if(resp.ok) {
+      var data = await resp.json()
+      // Extraer texto de la respuesta
+      var texto = ''
+      if(data.content) {
+        data.content.forEach(function(blk) { if(blk.type==='text') texto += blk.text })
+      }
+      // Parsear JSON de la respuesta
+      var match = texto.match(/\{[^}]+\}/)
+      if(match) {
+        var precios_nuevos = JSON.parse(match[0])
+        // Actualizar precios y UI
+        var campos_precios = ['soja','maiz','trigo','girasol','sorgo']
+        campos_precios.forEach(function(g) {
+          if(precios_nuevos[g] && precios_nuevos[g] > 0) {
+            var anterior = precios[g] || 0
+            var nuevo = parseFloat(precios_nuevos[g])
+            precios[g] = nuevo
+            var el = document.getElementById('ps-'+g)
+            var dEl = document.getElementById('ps-'+g+'-d')
+            if(el) el.textContent = 'USD ' + Math.round(nuevo)
+            if(dEl) {
+              if(anterior > 0) {
+                var diff = nuevo - anterior
+                var pct = (diff/anterior*100).toFixed(1)
+                dEl.className = 'pi-d ' + (diff >= 0 ? 'up' : 'dn')
+                dEl.style.color = ''
+                dEl.textContent = (diff >= 0 ? '▲ +' : '▼ ') + pct + '%'
+              } else {
+                dEl.className = 'pi-d'
+                dEl.style.color = 'var(--texto-suave)'
+                dEl.textContent = precios_nuevos.fuente || 'CAC Rosario'
+              }
+            }
+          }
+        })
+        // Dólar BNA
+        if(precios_nuevos.bna && precios_nuevos.bna > 0) {
+          precios.bna = parseFloat(precios_nuevos.bna)
+          var elBna = document.getElementById('ps-bna')
+          var dBna = document.getElementById('ps-bna-d')
+          if(elBna) elBna.textContent = '$ ' + Math.round(precios.bna).toLocaleString('es-AR')
+          if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
+        }
+        var horaEl = document.getElementById('ps-hora')
+        if(horaEl) {
+          var now = new Date()
+          horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' · ' + (precios_nuevos.fuente||'CAC Rosario')
+        }
+        if(btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false }
+        return
       }
     }
-  } catch(e) {
-    // fallback dólar — mantener valor anterior
-    var elBna = document.getElementById('ps-bna')
-    if(elBna && precios.bna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
-  }
+  } catch(e) { console.log('Claude API error:', e) }
 
-  try {
-    // 2. Precios granos Rosario
-    var rGranos = await fetch('https://api.argentinadatos.com/v1/cotizaciones/granos')
-    if(rGranos.ok) {
-      var dGranos = await rGranos.json()
-      // La API devuelve array con objetos {nombre, moneda, precio, ...}
-      console.log('Granos API response:', JSON.stringify(dGranos).substring(0,500))
-      var map = {}
-      dGranos.forEach(function(g) { 
-        var key = (g.nombre||g.cereal||g.grano||'').toLowerCase()
-        map[key] = g
-      })
-      
-      var soja = map['soja'] || map['soja disponible'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('soja'))
-      var maiz = map['maiz'] || map['maíz'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('ma'))
-      var trigo = map['trigo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('trigo'))
-      var girasol = map['girasol'] || map['girasol disponible'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('girasol'))
-      var sorgo = map['sorgo'] || Object.values(map).find(g=>(g.nombre||'').toLowerCase().includes('sorgo'))
-
-      if(soja?.precio) { precios.soja = parseFloat(soja.precio); setPrecio('ps-soja', precios.soja, ant.soja) }
-      if(maiz?.precio) { precios.maiz = parseFloat(maiz.precio); setPrecio('ps-maiz', precios.maiz, ant.maiz) }
-      if(trigo?.precio) { precios.trigo = parseFloat(trigo.precio); setPrecio('ps-trigo', precios.trigo, ant.trigo) }
-      if(girasol?.precio) { precios.girasol = parseFloat(girasol.precio); setPrecio('ps-girasol', precios.girasol, ant.girasol) }
-      if(sorgo?.precio) { precios.sorgo = parseFloat(sorgo.precio); setPrecio('ps-sorgo', precios.sorgo, ant.sorgo) }
-    } else {
-      throw new Error('API granos error')
-    }
-  } catch(e) {
-    // Fallback — usar valores anteriores o defaults
-    if(!precios.soja) precios.soja = 280
-    if(!precios.maiz) precios.maiz = 195
-    if(!precios.trigo) precios.trigo = 212
-    if(!precios.girasol) precios.girasol = 340
-    if(!precios.sorgo) precios.sorgo = 165
-    setPrecio('ps-soja', precios.soja, null)
-    setPrecio('ps-maiz', precios.maiz, null)
-    setPrecio('ps-trigo', precios.trigo, null)
-    setPrecio('ps-girasol', precios.girasol, null)
-    setPrecio('ps-sorgo', precios.sorgo, null)
-    var elBna = document.getElementById('ps-bna')
-    if(elBna && precios.bna) elBna.textContent = '$ '+Math.round(precios.bna).toLocaleString('es-AR')
-  }
-
-  // Hora de actualización
+  // Fallback: mostrar valores actuales con etiqueta
+  ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
+    var el = document.getElementById('ps-'+g)
+    var dEl = document.getElementById('ps-'+g+'-d')
+    if(el && precios[g]) el.textContent = 'USD ' + Math.round(precios[g])
+    if(dEl) { dEl.className='pi-d'; dEl.style.color='var(--texto-suave)'; dEl.textContent='último conocido' }
+  })
+  var elBna = document.getElementById('ps-bna')
+  var dBna = document.getElementById('ps-bna-d')
+  if(elBna) elBna.textContent = '$ ' + Math.round(precios.bna).toLocaleString('es-AR')
+  if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
   var horaEl = document.getElementById('ps-hora')
-  if(horaEl) {
-    var now = new Date()
-    horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
-  }
-
-  if(btn) btn.textContent = '↻ Actualizar'
+  if(horaEl) horaEl.textContent = 'Sin conexión · valores del ' + new Date().toLocaleDateString('es-AR')
+  if(btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false }
 }
 
 // ── DASHBOARD ──

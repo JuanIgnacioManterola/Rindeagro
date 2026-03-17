@@ -849,19 +849,29 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..."/>
       </div>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
+    <div class="form-row2" style="margin-bottom:.5rem">
       <div class="fg"><label class="fl">Rendimiento real (t/ha)</label><input class="fi" type="number" id="c-rend" placeholder="Ej: 3.4" min="0" step="0.1"/></div>
       <div class="fg"><label class="fl">Precio venta (USD/t)</label><input class="fi" type="number" id="c-precio-venta" placeholder="Ej: 280" min="0"/></div>
     </div>
+    <div style="background:var(--verde-pale);border-radius:10px;padding:.6rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío.</div>
     <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
       <label class="fl">Ubicación del lote (opcional)</label>
-      <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Hacé clic en el mapa para marcar la ubicación del campo</div>
-      <div id="mapa-campo-modal" style="height:200px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
+      <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono del lote haciendo clic.</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar ciudad (ej: Río Cuarto)..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
+        <button onclick="buscarCiudadMapa()" style="padding:7px 14px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+      </div>
+      <div id="map-search-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
+      <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
+        <button id="btn-poly-start" onclick="togglePoligono()" style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Dibujar polígono</button>
+        <button onclick="limpiarPoligono()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
+        <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
+      </div>
+      <div id="mapa-campo-modal" style="height:220px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
       <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
     </div>
-    <div style="background:var(--verde-pale);border-radius:10px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío.</div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
   </div>
 </div>
@@ -1944,23 +1954,29 @@ window.onPaisChange = function() {
 
 var _campoCoordsLat = null
 var _campoCoordsLng = null
+var _polyPuntos = []
+var _polyLayer = null
+var _polyTempLines = []
+var _polyModo = false
 
 window.openModalCampo = function() {
   document.getElementById('ov-campo').classList.add('open')
   setTimeout(function(){
     if(!window._mapaCampoModal) {
-      window._mapaCampoModal = L.map('mapa-campo-modal').setView([-33.65,-64.60],6)
+      window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(window._mapaCampoModal)
-      var marcador = null
       window._mapaCampoModal.on('click',function(e){
-        if(marcador) window._mapaCampoModal.removeLayer(marcador)
-        _campoCoordsLat = e.latlng.lat.toFixed(5)
-        _campoCoordsLng = e.latlng.lng.toFixed(5)
-        marcador = L.marker([e.latlng.lat,e.latlng.lng]).addTo(window._mapaCampoModal)
-        var el = document.getElementById('campo-coords')
-        var txt = document.getElementById('campo-coords-txt')
-        if(el) el.style.display='block'
-        if(txt) txt.textContent = 'Lat: '+_campoCoordsLat+' · Lng: '+_campoCoordsLng
+        if(!_polyModo) return
+        _polyPuntos.push([e.latlng.lat,e.latlng.lng])
+        _dibujarPolyTemp()
+        var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
+        _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
+        if(el)el.style.display='block'
+        if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+      })
+      window._mapaCampoModal.on('dblclick',function(){
+        if(!_polyModo||_polyPuntos.length<3)return
+        _cerrarPoligono()
       })
     } else {
       window._mapaCampoModal.invalidateSize()
@@ -1968,7 +1984,88 @@ window.openModalCampo = function() {
   },300)
 }
 
-window.closeModalCampo = function() { document.getElementById('ov-campo').classList.remove('open') }
+function _dibujarPolyTemp(){
+  var m=window._mapaCampoModal; if(!m)return
+  _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
+  if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  if(_polyPuntos.length>1){
+    var pl=L.polyline(_polyPuntos,{color:'#c9a84c',weight:2,dashArray:'4,4'}).addTo(m)
+    _polyTempLines.push(pl)
+  }
+  _polyPuntos.forEach(function(p,i){
+    var mk=L.circleMarker(p,{radius:5,color:'#c9a84c',fillColor:'#fff',fillOpacity:1,weight:2}).addTo(m)
+    _polyTempLines.push(mk)
+  })
+}
+
+function _cerrarPoligono(){
+  var m=window._mapaCampoModal; if(!m)return
+  _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
+  if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
+  _polyModo=false
+  document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
+  document.getElementById('poly-hint').style.display='none'
+  var txt=document.getElementById('campo-coords-txt')
+  var centroid=_polyPuntos.reduce(function(a,p){return[a[0]+p[0],a[1]+p[1]];},[0,0])
+  _campoCoordsLat=(centroid[0]/_polyPuntos.length).toFixed(5)
+  _campoCoordsLng=(centroid[1]/_polyPuntos.length).toFixed(5)
+  if(txt)txt.textContent='Polígono cerrado · '+_polyPuntos.length+' puntos · centroide: '+_campoCoordsLat+', '+_campoCoordsLng
+}
+
+window.togglePoligono = function(){
+  _polyModo=!_polyModo
+  var btn=document.getElementById('btn-poly-start'),hint=document.getElementById('poly-hint')
+  if(_polyModo){
+    btn.textContent='⏹ Detener dibujo';btn.style.background='var(--verde)';btn.style.color='#fff'
+    hint.style.display='inline'
+  } else {
+    btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
+    hint.style.display='none'
+    if(_polyPuntos.length>=3)_cerrarPoligono()
+  }
+}
+
+window.limpiarPoligono = function(){
+  var m=window._mapaCampoModal;if(!m)return
+  _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
+  if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  _polyPuntos=[];_polyModo=false;_campoCoordsLat=null;_campoCoordsLng=null
+  var btn=document.getElementById('btn-poly-start')
+  btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
+  document.getElementById('poly-hint').style.display='none'
+  var el=document.getElementById('campo-coords');if(el)el.style.display='none'
+}
+
+window.buscarCiudadMapa = async function(){
+  var q=document.getElementById('map-search-input')?.value?.trim()
+  if(!q)return
+  var res=document.getElementById('map-search-results')
+  res.style.display='block';res.innerHTML='<div style="padding:8px 12px;color:var(--texto-suave)">Buscando...</div>'
+  try{
+    var resp=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&accept-language=es')
+    var data=await resp.json()
+    if(!data.length){res.innerHTML='<div style="padding:8px 12px;color:var(--texto-suave)">Sin resultados</div>';return}
+    res.innerHTML=data.map(function(r){
+      var nom=r.display_name.substring(0,60).replace(/"/g,'&quot;')
+      return '<div data-lat="'+r.lat+'" data-lng="'+r.lon+'" data-nom="'+nom+'" onclick="irACiudad(parseFloat(this.dataset.lat),parseFloat(this.dataset.lng),this.dataset.nom)" style="padding:8px 12px;cursor:pointer;border-bottom:.5px solid var(--borde);transition:background .15s" onmouseover="this.style.background=\'var(--crema)\'" onmouseout="this.style.background=\'\'">'+r.display_name.substring(0,60)+'</div>'
+    }).join('')
+  }catch(e){res.innerHTML='<div style="padding:8px 12px;color:var(--rojo)">Error al buscar</div>'}
+}
+
+window.irACiudad = function(lat,lng,nombre){
+  var m=window._mapaCampoModal;if(!m)return
+  m.setView([lat,lng],12)
+  var res=document.getElementById('map-search-results');if(res)res.style.display='none'
+  var inp=document.getElementById('map-search-input');if(inp)inp.value=nombre
+}
+
+window.closeModalCampo = function() {
+  document.getElementById('ov-campo').classList.remove('open')
+  limpiarPoligono()
+  var inp=document.getElementById('map-search-input');if(inp)inp.value=''
+  var res=document.getElementById('map-search-results');if(res)res.style.display='none'
+}
 window.guardarCampo = async function() {
   var nombre=document.getElementById('c-nombre').value.trim()
   if(!nombre){showToast('⚠️ Ingresá el nombre del campo','err');return}
@@ -1976,14 +2073,18 @@ window.guardarCampo = async function() {
   var btn=document.getElementById('btn-campo')
   btn.disabled=true;btn.textContent='Guardando...'
   try{
+    var poligonoData = _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null
     const {data,error}=await sb.from('campos').insert({
       nombre,hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:document.getElementById('c-cult').value||null,
       rendimiento:parseFloat(document.getElementById('c-rend').value)||null,
       precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
       provincia:document.getElementById('c-prov').value||null,
-      pais:document.getElementById('c-pais')?.value||null,
+      localidad:document.getElementById('c-localidad')?.value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
+      lat:_campoCoordsLat?parseFloat(_campoCoordsLat):null,
+      lng:_campoCoordsLng?parseFloat(_campoCoordsLng):null,
+      poligono:poligonoData,
       usuario_id:usuario.id
     }).select().single()
     if(error)throw error

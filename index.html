@@ -2074,19 +2074,31 @@ window.guardarCampo = async function() {
   btn.disabled=true;btn.textContent='Guardando...'
   try{
     var poligonoData = _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null
-    const {data,error}=await sb.from('campos').insert({
-      nombre,hectareas:parseFloat(document.getElementById('c-ha').value)||null,
+    // Armar objeto solo con columnas que existen en la tabla
+    var insertData = {
+      nombre,
+      hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:document.getElementById('c-cult').value||null,
       rendimiento:parseFloat(document.getElementById('c-rend').value)||null,
       precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
       provincia:document.getElementById('c-prov').value||null,
-      localidad:document.getElementById('c-localidad')?.value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
-      lat:_campoCoordsLat?parseFloat(_campoCoordsLat):null,
-      lng:_campoCoordsLng?parseFloat(_campoCoordsLng):null,
-      poligono:poligonoData,
       usuario_id:usuario.id
-    }).select().single()
+    }
+    // Columnas opcionales — se agregan solo si existen en el schema
+    // Para activarlas, crear las columnas en Supabase: localidad (text), lat (float8), lng (float8), poligono (text)
+    var colsExtra = {
+      localidad: document.getElementById('c-localidad')?.value||null,
+      lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
+      lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
+      poligono: poligonoData
+    }
+    // Intentar con columnas extra; si falla, reintentar sin ellas
+    var {data,error} = await sb.from('campos').insert({...insertData,...colsExtra}).select().single()
+    if(error && (error.message||'').includes('column')) {
+      var r2 = await sb.from('campos').insert(insertData).select().single()
+      data = r2.data; error = r2.error
+    }
     if(error)throw error
     campos.unshift(data)
     if(!campoRent)campoRent=data.id

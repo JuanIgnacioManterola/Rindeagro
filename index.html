@@ -645,7 +645,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div style="font-size:22px;font-weight:700;color:#fff;font-family:'Playfair Display',serif" id="det-campo-nombre">—</div>
           <div style="font-size:12px;color:rgba(250,247,240,.65);margin-top:3px" id="det-campo-meta">—</div>
         </div>
+        <div style="display:flex;gap:6px">
+        <button onclick="editarCampoActual()" style="padding:7px 14px;border-radius:8px;border:.5px solid rgba(201,168,76,.5);background:rgba(201,168,76,.15);color:var(--dorado-light);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">✏️ Editar</button>
         <button onclick="volverACampos()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
+      </div>
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
@@ -819,7 +822,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="overlay" id="ov-campo" onclick="if(event.target===this)closeModalCampo()">
   <div class="modal" style="max-width:540px">
     <button class="m-close" onclick="closeModalCampo()">✕</button>
-    <div class="m-tit">Agregar campo</div><div class="m-sub">Completá los datos de tu campo</div>
+    <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub">Completá los datos de tu campo</div>
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
     <div class="form-row2" style="margin-bottom:.9rem">
       <div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
@@ -873,6 +876,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
     </div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
+    <input type="hidden" id="c-edit-id" value=""/>
   </div>
 </div>
 
@@ -1151,6 +1155,8 @@ window.actualizarPrecios = function() {
 
 // ── DASHBOARD ──
 function renderDashboard() {
+  // Actualizar polígonos en el mapa si está iniciado
+  if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() }
   // Métricas
   var totalHa=0,ing=0,cost=0
   campos.forEach(c => {
@@ -1700,36 +1706,110 @@ var mapaIniciado = false
 var mapInstance = null
 var capas = {}
 
+var _mapaLayers = []
+
 function initMapa() {
   if (mapaIniciado) return
   mapaIniciado = true
 
-  mapInstance = L.map('mapa-lotes').setView([-33.65, -64.60], 12)
+  mapInstance = L.map('mapa-lotes').setView([-33.65, -64.60], 10)
 
   capas.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'})
   capas.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'OpenTopoMap'})
   capas.streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap'})
-
   capas.satellite.addTo(mapInstance)
 
-  // Marcadores de campos
-  var coords = [
-    {lat:-33.62,lng:-64.58,color:'#1a4a2e'},
-    {lat:-33.67,lng:-64.62,color:'#c9a84c'},
-    {lat:-33.64,lng:-64.56,color:'#1a5fa8'},
-  ]
+  renderPoligonosMapa()
+  renderMapaCamposInfo()
+}
 
-  campos.forEach((c,i)=>{
-    if(i>=coords.length) return
-    var co = coords[i]
-    var icon = L.divIcon({
-      html:`<div style="background:${co.color};color:#fff;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)">${c.nombre}</div>`,
-      className:'',iconAnchor:[40,12]
-    })
-    L.marker([co.lat,co.lng],{icon}).addTo(mapInstance).bindPopup(`<b>${c.nombre}</b><br>${c.hectareas||0} ha · ${c.cultivo||'Sin cultivo'}`)
+function renderPoligonosMapa() {
+  if(!mapInstance) return
+  // Limpiar capas anteriores
+  _mapaLayers.forEach(function(l){ mapInstance.removeLayer(l) })
+  _mapaLayers = []
+
+  var bounds = []
+
+  campos.forEach(function(c, i) {
+    var col = COLORES[i % COLORES.length]
+
+    // Si tiene polígono guardado, dibujarlo
+    if(c.poligono) {
+      try {
+        var pts = typeof c.poligono === 'string' ? JSON.parse(c.poligono) : c.poligono
+        if(pts && pts.length >= 3) {
+          var poly = L.polygon(pts, {
+            color: col,
+            fillColor: col,
+            fillOpacity: 0.25,
+            weight: 2.5
+          }).addTo(mapInstance)
+
+          var ha = c.hectareas || '?'
+          var cult = c.cultivo || 'Sin cultivo'
+          var mg = c.rendimiento && c.precio_venta ? Math.round(c.rendimiento * c.precio_venta) : null
+          poly.bindPopup(
+            '<div style="font-family:DM Sans,sans-serif;min-width:160px">' +
+            '<div style="font-weight:700;font-size:13px;color:#1a4a2e;margin-bottom:6px">' + c.nombre + '</div>' +
+            '<div style="font-size:12px;color:#555;line-height:1.8">' +
+            '📐 ' + ha + ' ha · ' + cult + '<br>' +
+            (c.provincia ? '📍 ' + c.provincia + (c.localidad?', '+c.localidad:'') + '<br>' : '') +
+            (mg ? '💰 Margen est: <strong style="color:#1a4a2e">USD ' + mg + '/ha</strong>' : '') +
+            '</div></div>'
+          )
+
+          // Label centrado en el polígono
+          var center = poly.getBounds().getCenter()
+          var label = L.divIcon({
+            html: '<div style="background:' + col + ';color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);font-family:DM Sans,sans-serif">' + c.nombre + '</div>',
+            className: '',
+            iconAnchor: [40, 10]
+          })
+          var marker = L.marker(center, {icon: label, interactive: false}).addTo(mapInstance)
+
+          _mapaLayers.push(poly)
+          _mapaLayers.push(marker)
+          pts.forEach(function(p){ bounds.push(p) })
+          return
+        }
+      } catch(e) {}
+    }
+
+    // Sin polígono — mostrar marcador si tiene coordenadas
+    if(c.lat && c.lng) {
+      var icon = L.divIcon({
+        html: '<div style="background:' + col + ';color:#fff;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:DM Sans,sans-serif">' + c.nombre + '</div>',
+        className: '', iconAnchor: [40, 12]
+      })
+      var mk = L.marker([c.lat, c.lng], {icon}).addTo(mapInstance)
+      mk.bindPopup(
+        '<div style="font-family:DM Sans,sans-serif;min-width:140px">' +
+        '<div style="font-weight:700;font-size:13px;color:#1a4a2e;margin-bottom:5px">' + c.nombre + '</div>' +
+        '<div style="font-size:12px;color:#555;line-height:1.8">' +
+        '📐 ' + (c.hectareas||'?') + ' ha · ' + (c.cultivo||'Sin cultivo') + '<br>' +
+        '<span style="color:#aaa;font-size:11px">Sin polígono dibujado</span>' +
+        '</div></div>'
+      )
+      _mapaLayers.push(mk)
+      bounds.push([c.lat, c.lng])
+    }
   })
 
-  renderMapaCamposInfo()
+  // Ajustar zoom para mostrar todos los campos
+  if(bounds.length > 0) {
+    try { mapInstance.fitBounds(bounds, {padding:[30,30], maxZoom:14}) } catch(e){}
+  }
+
+  // Actualizar subtítulo con resumen
+  var sub = document.querySelector('#mod-mapa .mod-sub')
+  if(sub) {
+    var conPoly = campos.filter(function(c){ return c.poligono }).length
+    var sinPoly = campos.length - conPoly
+    sub.textContent = campos.length + ' campo' + (campos.length!==1?'s':'') +
+      (conPoly ? ' · ' + conPoly + ' con polígono' : '') +
+      (sinPoly && conPoly ? ' · ' + sinPoly + ' sin polígono' : '')
+  }
 }
 
 window.cambiarCapa = function(capa) {
@@ -1960,6 +2040,12 @@ var _polyTempLines = []
 var _polyModo = false
 
 window.openModalCampo = function() {
+  // Reset to "Agregar" mode
+  var tit=document.getElementById('campo-modal-tit'),sub=document.getElementById('campo-modal-sub'),btn=document.getElementById('btn-campo'),eid=document.getElementById('c-edit-id')
+  if(tit)tit.textContent='Agregar campo'
+  if(sub)sub.textContent='Completá los datos de tu campo'
+  if(btn)btn.textContent='Guardar campo'
+  if(eid)eid.value=''
   document.getElementById('ov-campo').classList.add('open')
   setTimeout(function(){
     if(!window._mapaCampoModal) {
@@ -2070,12 +2156,13 @@ window.guardarCampo = async function() {
   var nombre=document.getElementById('c-nombre').value.trim()
   if(!nombre){showToast('⚠️ Ingresá el nombre del campo','err');return}
   if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var editId = document.getElementById('c-edit-id')?.value||''
+  var isEdit = !!editId
   var btn=document.getElementById('btn-campo')
-  btn.disabled=true;btn.textContent='Guardando...'
+  btn.disabled=true;btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
   try{
     var poligonoData = _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null
-    // Armar objeto solo con columnas que existen en la tabla
-    var insertData = {
+    var baseData = {
       nombre,
       hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:document.getElementById('c-cult').value||null,
@@ -2083,36 +2170,108 @@ window.guardarCampo = async function() {
       precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
       provincia:document.getElementById('c-prov').value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
-      usuario_id:usuario.id
     }
-    // Columnas opcionales — se agregan solo si existen en el schema
-    // Para activarlas, crear las columnas en Supabase: localidad (text), lat (float8), lng (float8), poligono (text)
     var colsExtra = {
       localidad: document.getElementById('c-localidad')?.value||null,
       lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
       lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
       poligono: poligonoData
     }
-    // Intentar con columnas extra; si falla, reintentar sin ellas
-    var {data,error} = await sb.from('campos').insert({...insertData,...colsExtra}).select().single()
-    if(error && (error.message||'').includes('column')) {
-      var r2 = await sb.from('campos').insert(insertData).select().single()
-      data = r2.data; error = r2.error
+    var payload = {...baseData,...colsExtra}
+    var data, error
+    if(isEdit) {
+      // UPDATE
+      var r = await sb.from('campos').update(payload).eq('id',editId).select().single()
+      if(r.error && (r.error.message||'').includes('column')) {
+        r = await sb.from('campos').update(baseData).eq('id',editId).select().single()
+      }
+      data=r.data; error=r.error
+      if(!error) {
+        var idx=campos.findIndex(function(c){return c.id===editId})
+        if(idx>=0) campos[idx]=data
+      }
+    } else {
+      // INSERT
+      var r = await sb.from('campos').insert({...payload,usuario_id:usuario.id}).select().single()
+      if(r.error && (r.error.message||'').includes('column')) {
+        r = await sb.from('campos').insert({...baseData,usuario_id:usuario.id}).select().single()
+      }
+      data=r.data; error=r.error
+      if(!error) {
+        campos.unshift(data)
+        if(!campoRent)campoRent=data.id
+      }
     }
     if(error)throw error
-    campos.unshift(data)
-    if(!campoRent)campoRent=data.id
     poblarSelectoresCampo()
     renderDashboard()
     closeModalCampo()
-    showToast('✓ Campo "'+nombre+'" agregado','ok')
-    document.getElementById('c-nombre').value=''
-    document.getElementById('c-ha').value=''
-    document.getElementById('c-cult').value=''
-    document.getElementById('c-rend').value=''
-    document.getElementById('c-precio-venta').value=''
+    showToast(isEdit?'✓ Campo actualizado':'✓ Campo "'+nombre+'" agregado','ok')
+    ;['c-nombre','c-ha','c-cult','c-rend','c-precio-venta'].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.value=''
+    })
+    if(document.getElementById('c-edit-id'))document.getElementById('c-edit-id').value=''
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
-  finally{btn.disabled=false;btn.textContent='Guardar campo'}
+  finally{btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
+}
+
+window.editarCampoActual = function() {
+  var c = campos.find(function(f){return f.id===campoDet})
+  if(!c) return
+  // Cargar datos en el modal
+  document.getElementById('campo-modal-tit').textContent = 'Editar campo'
+  document.getElementById('campo-modal-sub').textContent = 'Modificá los datos de ' + c.nombre
+  document.getElementById('btn-campo').textContent = 'Guardar cambios'
+  document.getElementById('c-edit-id').value = c.id
+  document.getElementById('c-nombre').value = c.nombre||''
+  document.getElementById('c-ha').value = c.hectareas||''
+  document.getElementById('c-cult').value = c.cultivo||''
+  document.getElementById('c-rend').value = c.rendimiento||''
+  document.getElementById('c-precio-venta').value = c.precio_venta||''
+  document.getElementById('c-ten').value = c.tenencia||'propio'
+  if(document.getElementById('c-localidad'))document.getElementById('c-localidad').value=c.localidad||''
+  // Seleccionar país y provincia
+  if(c.provincia) {
+    // Intentar detectar el país por la provincia
+    var paisDetectado = ''
+    Object.keys(PROVINCIAS).forEach(function(p){
+      if(PROVINCIAS[p].indexOf(c.provincia)>=0) paisDetectado=p
+    })
+    if(paisDetectado) {
+      document.getElementById('c-pais').value=paisDetectado
+      onPaisChange()
+      setTimeout(function(){document.getElementById('c-prov').value=c.provincia},50)
+    }
+  }
+  // Abrir modal
+  document.getElementById('ov-campo').classList.add('open')
+  // Cargar polígono existente en el mapa
+  setTimeout(function(){
+    if(!window._mapaCampoModal) {
+      // Inicializar mapa si no existe aún
+      openModalCampo._initMap && openModalCampo._initMap()
+    }
+    var m = window._mapaCampoModal
+    if(!m) return
+    m.invalidateSize()
+    // Si tiene polígono, cargarlo
+    if(c.poligono) {
+      try {
+        var pts = typeof c.poligono==='string'?JSON.parse(c.poligono):c.poligono
+        if(pts&&pts.length>=3) {
+          _polyPuntos = pts
+          _cerrarPoligono()
+          m.fitBounds(pts,{padding:[20,20]})
+          var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
+          if(el)el.style.display='block'
+          if(txt)txt.textContent='Polígono cargado · '+pts.length+' puntos'
+          return
+        }
+      } catch(e){}
+    }
+    // Si tiene coordenadas, centrar el mapa ahí
+    if(c.lat&&c.lng) m.setView([c.lat,c.lng],13)
+  },350)
 }
 
 // ── CRUD GASTOS ──

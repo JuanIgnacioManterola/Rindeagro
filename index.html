@@ -2433,32 +2433,52 @@ window.editarCampoActual = function() {
   }
   // Abrir modal
   document.getElementById('ov-campo').classList.add('open')
-  // Cargar polígono existente en el mapa
+  // Inicializar mapa si no existe, o refrescarlo
   setTimeout(function(){
-    if(!window._mapaCampoModal) {
-      // Inicializar mapa si no existe aún
-      openModalCampo._initMap && openModalCampo._initMap()
+    var inicializado = !!window._mapaCampoModal
+    if(!inicializado) {
+      // Crear el mapa igual que en openModalCampo
+      window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(window._mapaCampoModal)
+      window._mapaCampoModal.on('click',function(e){
+        if(!_polyModo) return
+        _polyPuntos.push([e.latlng.lat,e.latlng.lng])
+        _dibujarPolyTemp()
+        var elC=document.getElementById('campo-coords'),txtC=document.getElementById('campo-coords-txt')
+        _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
+        if(elC)elC.style.display='block'
+        if(txtC)txtC.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+      })
+      window._mapaCampoModal.on('dblclick',function(){
+        if(!_polyModo||_polyPuntos.length<3)return
+        _cerrarPoligono()
+      })
     }
     var m = window._mapaCampoModal
-    if(!m) return
     m.invalidateSize()
-    // Si tiene polígono, cargarlo
+    // Si tiene polígono, cargarlo y mostrar
     if(c.poligono) {
       try {
         var pts = typeof c.poligono==='string'?JSON.parse(c.poligono):c.poligono
         if(pts&&pts.length>=3) {
           _polyPuntos = pts
           _cerrarPoligono()
-          m.fitBounds(pts,{padding:[20,20]})
-          var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
-          if(el)el.style.display='block'
-          if(txt)txt.textContent='Polígono cargado · '+pts.length+' puntos'
+          setTimeout(function(){ m.fitBounds(pts,{padding:[20,20]}) }, 100)
+          var elC=document.getElementById('campo-coords'),txtC=document.getElementById('campo-coords-txt')
+          if(elC)elC.style.display='block'
+          if(txtC)txtC.textContent='Polígono cargado · '+pts.length+' puntos'
           return
         }
       } catch(e){}
     }
     // Si tiene coordenadas, centrar el mapa ahí
-    if(c.lat&&c.lng) m.setView([c.lat,c.lng],13)
+    if(c.lat&&c.lng) {
+      m.setView([c.lat,c.lng],13)
+    } else if(c.provincia) {
+      // Centrar en la provincia si no hay coordenadas
+      var centros = {argentina:[-34,-64,5],brasil:[-14,-52,4],uruguay:[-32.5,-55.5,7]}
+      m.setView([-33.65,-64.60],6)
+    }
   },350)
 }
 

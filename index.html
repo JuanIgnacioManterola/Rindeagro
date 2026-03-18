@@ -425,8 +425,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="planes-grid">
       <div class="plan"><div class="pn">Semilla</div><div class="ps">Para conocer la plataforma</div><div class="pp pp-g">Gratis</div><div class="pp-per">para siempre</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">1 campo</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Rentabilidad básica</span></div><div class="pfi"><span class="nok">✗</span><span class="pfi-t">WhatsApp IA</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
       <div class="plan pop"><div class="plan-badge">⭐ Más elegido</div><div class="pn">Campo</div><div class="ps">Control total del productor</div><div class="pp">USD 21</div><div class="pp-per">por mes · o USD 202/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Hasta 5 campos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Todos los módulos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Carga por WhatsApp</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Historial 10 años</span></div></div><button class="p-btn p-btn-pop" onclick="openModal('registro')">🌱 Empezar 15 días gratis</button></div>
-      <div class="plan"><div class="pn">Empresa</div><div class="ps">Para empresas agropecuarias</div><div class="pp">USD 35</div><div class="pp-per">por mes · o USD 336/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Campos ilimitados</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">5 usuarios</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Exportar PDF/Excel</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
       <div class="plan"><div class="pn">Agrónomo</div><div class="ps">Para profesionales asesores</div><div class="pp">USD 29</div><div class="pp-per">por mes · o USD 278/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">20 productores clientes</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Panel multi-productor</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Informes para clientes</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
+      <div class="plan"><div class="pn">Empresa</div><div class="ps">Para empresas agropecuarias</div><div class="pp">USD 35</div><div class="pp-per">por mes · o USD 336/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Campos ilimitados</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">5 usuarios</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Exportar PDF/Excel</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
     </div>
   </section>
 
@@ -455,8 +455,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div id="screen-app" class="screen">
   <nav class="app-nav">
     <div class="logo-wrap" style="cursor:default">
-      <div class="logo-mk"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
-      <div class="logo-txt"><div class="logo-n" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-ag" style="font-size:11px">Agro</div></div>
+      <div class="logo-mk" onclick="showModulo('dashboard')" style="cursor:pointer"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
+      <div class="logo-txt" onclick="showModulo('dashboard')" style="cursor:pointer"><div class="logo-n" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-ag" style="font-size:11px">Agro</div></div>
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
@@ -478,12 +478,12 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
     <div class="precio-strip">
-      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Dólar BNA comprador</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi" style="border-right:none"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <button onclick="actualizarPrecios()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
         <div id="ps-hora" style="font-size:10px;color:rgba(250,247,240,.55)"></div>
@@ -503,15 +503,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit">Alertas urgentes</span></div>
           <div id="dash-alertas"></div>
         </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Clima · tu zona</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px">
-            <div style="color:var(--texto-suave)">Temperatura</div><div style="font-weight:500">22°C ☀️</div>
-            <div style="color:var(--texto-suave)">Humedad</div><div style="font-weight:500">58%</div>
-            <div style="color:var(--texto-suave)">Viento</div><div style="font-weight:500">14 km/h NE</div>
-            <div style="color:var(--texto-suave)">Lluvia 7 días</div><div style="font-weight:500">18 mm</div>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>

@@ -460,6 +460,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
       <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
 
+      <button class="anl" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
@@ -835,6 +836,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo"></table></div>
         <div style="font-size:11px;color:var(--texto-suave);margin-top:.75rem">💡 Verde = rentable · Rojo = pérdida · Dorado = tu escenario actual</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── RENTABILIDAD TOTAL ── -->
+  <div class="modulo" id="mod-rentabilidad-total">
+    <div class="mod-header">
+      <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
+    </div>
+    <!-- Métricas globales -->
+    <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
+    <!-- Cards por campo -->
+    <div id="rt-campos" style="margin-bottom:14px"></div>
+    <!-- Tortas globales -->
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Gastos por rubro · todos los campos</span></div>
+        <div style="position:relative;height:260px"><canvas id="chart-rt-rubro"></canvas></div>
+        <div id="rt-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-tit">Detalle por producto</span>
+          <select id="rt-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderRtTortaDetalle()">
+            <option value="todos">Todos los rubros</option>
+          </select>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chart-rt-detalle"></canvas></div>
+        <div id="rt-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+    </div>
+    <!-- Comparativa entre campos -->
+    <div class="card">
+      <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
+      <div id="rt-comparativa"></div>
     </div>
   </div>
 
@@ -1231,13 +1266,13 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad','mapa','notificaciones']
+  var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
 
   if (mod === 'campos') renderCamposLista()
-  if (mod === 'rentabilidad') renderRentabilidad()
+  if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
   if (mod === 'notificaciones') renderNotificaciones()
 }
@@ -3155,6 +3190,121 @@ window.calcRendCampo = function() {
   if(ingEl) ingEl.textContent='USD '+Math.round(ingUSD).toLocaleString('es-AR')
   if(pesosEl) pesosEl.textContent='$ '+Math.round(ingPesos/1000000).toFixed(1)+'M'
   if(qqEl) qqEl.textContent=Math.round(qqEquiv).toLocaleString('es-AR')+' qq'
+}
+
+window.renderRentabilidadTotal = function() {
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+
+  // Calcular totales globales
+  var totalHa=0, totalCosto=0, totalIngreso=0
+  var porRubroGlobal={}
+  var datosCampos = campos.map(function(c){
+    var ha = c.hectareas||1
+    var cult = c.cultivo||'Soja'
+    var rend = c.rendimiento||(cult==='Maíz'?8:cult==='Trigo'?3:3.2)
+    var pr = c.precio_venta||(cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja)
+    var gf = gastos.filter(function(g){return g.campo_id===c.id})
+    var costo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    var costoHa = ha>0?costo/ha:0
+    var ingHa = rend*pr
+    var mgHa = ingHa-costoHa
+    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingHa*ha
+    gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubroGlobal[r]=(porRubroGlobal[r]||0)+(g.total_de_usd||0)})
+    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa, rend:rend, pr:pr}
+  })
+  var mgTotal = totalIngreso-totalCosto
+  var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
+  var mc = mgHaGlobal>=0?'#1a7a52':'#c0392b'
+
+  // Métricas globales
+  var mEl = document.getElementById('rt-mets')
+  if(mEl) mEl.innerHTML = [
+    {l:'Hectáreas totales',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
+    {l:'Costo total',v:'USD '+Math.round(totalCosto/1000)+'k',s:'USD '+Math.round(totalHa>0?totalCosto/totalHa:0)+'/ha promedio',c:'#c0392b'},
+    {l:'Ingreso bruto',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a5fa8'},
+    {l:'Margen neto total',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
+  ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+
+  // Cards por campo
+  var cEl = document.getElementById('rt-campos')
+  if(cEl) {
+    if(!datosCampos.length){cEl.innerHTML='<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div></div>';return}
+    var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+    cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
+      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
+      var pct=d.ingHa>0?Math.round(d.mgHa/d.ingHa*100):0
+      return '<div class="card" style="cursor:pointer;margin-bottom:0" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+        '<div><div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
+        '<div style="font-size:11px;color:var(--texto-suave)">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
+        '<div style="text-align:right"><div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+mc2+'">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div>'+
+        '<div style="font-size:10px;color:var(--texto-suave)">USD/ha</div></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Costo/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.costoHa)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Ingreso/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.ingHa)+'</span></div>'+
+        '<div style="margin-top:8px;background:var(--crema);border-radius:6px;height:6px;overflow:hidden">'+
+        '<div style="height:100%;width:'+Math.min(100,Math.max(0,50+pct/2))+'%;background:'+mc2+';border-radius:6px;transition:width .4s"></div></div>'+
+        '<div style="font-size:10px;color:'+mc2+';text-align:right;margin-top:3px">'+pct+'% del ingreso</div></div>'
+    }).join('')+'</div>'
+  }
+
+  // Torta por rubro global
+  var ctxR = document.getElementById('chart-rt-rubro')
+  if(ctxR && Object.keys(porRubroGlobal).length) {
+    if(charts['rt-rubro']) charts['rt-rubro'].destroy()
+    var lblR = Object.keys(porRubroGlobal).sort(function(a,b){return porRubroGlobal[b]-porRubroGlobal[a]})
+    var valR = lblR.map(function(l){return porRubroGlobal[l]})
+    var tot = valR.reduce(function(a,v){return a+v},0)
+    charts['rt-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:COLORES.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/tot*100)+'%)'}}}}}})
+    var legEl = document.getElementById('rt-rubro-leyenda')
+    if(legEl) legEl.innerHTML = lblR.map(function(l,i){var pct=Math.round(valR[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div><strong>'+pct+'%</strong> '+l+'</div>'}).join('')
+    var selR = document.getElementById('rt-rubro-sel')
+    if(selR) selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
+  }
+  renderRtTortaDetalle()
+
+  // Comparativa
+  var compEl = document.getElementById('rt-comparativa')
+  if(compEl && datosCampos.length) {
+    var sortedComp = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+    var maxAbs = Math.max.apply(null, sortedComp.map(function(d){return Math.abs(d.mgHa)}))
+    compEl.innerHTML = sortedComp.map(function(d){
+      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
+      var w = maxAbs>0?Math.round(Math.abs(d.mgHa)/maxAbs*100):0
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--borde)">'+
+        '<div style="width:120px;font-size:13px;font-weight:500;flex-shrink:0">'+d.c.nombre+'</div>'+
+        '<div style="flex:1;background:var(--crema);border-radius:4px;height:22px;overflow:hidden">'+
+        '<div style="height:100%;width:'+w+'%;background:'+mc2+';border-radius:4px;transition:width .5s;display:flex;align-items:center;padding-left:8px">'+
+        '<span style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+' USD/ha</span></div></div>'+
+        '<div style="width:70px;text-align:right;font-size:12px;font-family:DM Mono,monospace;color:'+mc2+';flex-shrink:0">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div></div>'
+    }).join('')
+  }
+}
+
+window.renderRtTortaDetalle = function() {
+  var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var rubroSel = document.getElementById('rt-rubro-sel')?.value||'todos'
+  var gAll = gastos
+  var gFilt = rubroSel==='todos' ? gAll : gAll.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===rubroSel})
+  var porDesc={}
+  gFilt.forEach(function(g){var k=(g.descripcion||'').trim()||(g.rubro||'Sin nombre'); porDesc[k]=(porDesc[k]||0)+(g.total_de_usd||0)})
+  var ctxD = document.getElementById('chart-rt-detalle'); if(!ctxD) return
+  if(charts['rt-detalle']) charts['rt-detalle'].destroy()
+  var legEl = document.getElementById('rt-detalle-leyenda')
+  if(!Object.keys(porDesc).length){if(legEl)legEl.innerHTML='<div style="font-size:12px;color:var(--texto-suave)">Sin gastos</div>';return}
+  var lblD=Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
+  var valD=lblD.map(function(l){return porDesc[l]})
+  var tot=valD.reduce(function(a,v){return a+v},0)
+  charts['rt-detalle']=new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:COLORES.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}}  )
+  if(legEl) legEl.innerHTML=lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i%COLORES.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
+}
+
+window.verCampoDesdeRent = function(id) {
+  showModulo('campos')
+  setTimeout(function(){ verCampo(id) }, 100)
 }
 
 window.guardarRendCampo = function() {

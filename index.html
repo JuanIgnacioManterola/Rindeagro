@@ -1598,23 +1598,34 @@ function renderTortas(gf) {
   var sel = document.getElementById('torta-rubro-sel')
   if (sel) {
     var current = sel.value
+    // Guardar la clave del rubro como value y el label como texto visible
+    var rubrosEnGastos = {}
+    gf.forEach(function(g){ if(g.rubro) rubrosEnGastos[g.rubro] = RUBROS[g.rubro]||g.rubro })
     sel.innerHTML = '<option value="todos">Todos los gastos</option>' +
-      Object.keys(porRubro).map(r => `<option value="${r}">${r}</option>`).join('')
-    if (current && [...sel.options].some(o=>o.value===current)) sel.value = current
+      Object.entries(rubrosEnGastos).map(function(e){ return '<option value="'+e[0]+'">'+e[1]+'</option>' }).join('')
+    if (current && [...sel.options].some(function(o){ return o.value===current })) sel.value = current
   }
 
   renderTortaDetalle(gf)
 }
 
 window.renderTortaDetalle = function(gfParam) {
-  var gf = gfParam || (campoRent==='todos' ? gastos : gastos.filter(g=>g.campo_id===campoRent))
+  var gf = gfParam || (campoRent==='todos' ? gastos : gastos.filter(function(g){return g.campo_id===campoRent}))
   var rubroSel = document.getElementById('torta-rubro-sel')?.value || 'todos'
-  var gfFilt = rubroSel === 'todos' ? gf : gf.filter(g => (RUBROS[g.rubro]||g.rubro||'Otros') === rubroSel)
-  
-  // Agrupar por descripción
+
+  // Filtrar por rubro — el value del selector ahora es la clave (ej: 'herbicidas')
+  var gfFilt
+  if(rubroSel === 'todos') {
+    gfFilt = gf
+  } else {
+    gfFilt = gf.filter(function(g){ return g.rubro === rubroSel })
+  }
+
+  // Agrupar por descripción del producto
   var porDesc = {}
-  gfFilt.forEach(g => {
-    var key = g.descripcion || (RUBROS[g.rubro]||g.rubro||'Gasto')
+  gfFilt.forEach(function(g) {
+    var key = (g.descripcion || '').trim()
+    if(!key) key = RUBROS[g.rubro] || g.rubro || 'Sin nombre'
     porDesc[key] = (porDesc[key]||0) + (g.total_de_usd||0)
   })
 
@@ -1622,40 +1633,54 @@ window.renderTortaDetalle = function(gfParam) {
   if (!ctxD) return
   if (charts['torta-detalle']) charts['torta-detalle'].destroy()
 
+  var tituloDetalle = rubroSel === 'todos' ? 'Todos los gastos' : rubroSel
+
   if (!Object.keys(porDesc).length) {
-    document.getElementById('torta-detalle-leyenda').innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;width:100%">Sin gastos en este rubro</div>'
+    document.getElementById('torta-detalle-leyenda').innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;width:100%">Sin gastos en ' + tituloDetalle + '</div>'
     return
   }
 
-  var labels = Object.keys(porDesc).sort((a,b)=>porDesc[b]-porDesc[a])
-  var vals = labels.map(l=>porDesc[l])
-  var total = vals.reduce((a,v)=>a+v,0)
+  var labels = Object.keys(porDesc).sort(function(a,b){ return porDesc[b]-porDesc[a] })
+  var vals = labels.map(function(l){ return porDesc[l] })
+  var total = vals.reduce(function(a,v){ return a+v }, 0)
 
   charts['torta-detalle'] = new Chart(ctxD, {
     type: 'doughnut',
     data: {
-      labels,
+      labels: labels,
       datasets: [{
         data: vals,
-        backgroundColor: COLORES_TORTA.map((c,i) => c + (i%2===0?'dd':'aa')),
+        backgroundColor: COLORES_TORTA.map(function(c,i){ return c + (i%2===0?'dd':'aa') }),
         borderWidth: 2,
         borderColor: '#fff',
         hoverBorderWidth: 3
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      responsive: true, maintainAspectRatio: false, cutout: '58%',
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': USD ' + Math.round(ctx.raw).toLocaleString('es-AR') + ' (' + Math.round(ctx.raw/total*100) + '%)' }}
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var pct = Math.round(ctx.raw/total*100)
+              return ' ' + ctx.label + ': ' + pct + '% (USD ' + Math.round(ctx.raw).toLocaleString('es-AR') + ')'
+            }
+          }
+        }
       }
     }
   })
 
-  // Leyenda manual
-  document.getElementById('torta-detalle-leyenda').innerHTML = labels.slice(0,6).map((l,i) =>
-    `<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--texto-mid)"><div style="width:9px;height:9px;border-radius:3px;background:${COLORES_TORTA[i]};flex-shrink:0"></div>${l.length>22?l.slice(0,22)+'…':l}</div>`
-  ).join('')
+  // Leyenda manual con porcentaje visible
+  document.getElementById('torta-detalle-leyenda').innerHTML = labels.map(function(l,i) {
+    var pct = Math.round(vals[i]/total*100)
+    var nombre = l.length > 20 ? l.slice(0,20)+'…' : l
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--texto-mid)">' +
+      '<div style="width:10px;height:10px;border-radius:3px;background:'+COLORES_TORTA[i%COLORES_TORTA.length]+';flex-shrink:0"></div>' +
+      '<span><strong style="color:var(--texto)">' + pct + '%</strong> ' + nombre + '</span>' +
+      '</div>'
+  }).join('')
 }
 
 // ── LLUVIAS ──
@@ -2770,7 +2795,7 @@ window.renderCamposLista = function() {
     html += '<div style="padding:1.1rem 1.25rem">'
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
     html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
-    html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px;flex-shrink:0">🗑 Eliminar</button>'
+    html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:var(--rojo);border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;transition:opacity .15s" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑 Eliminar</button>'
     html += '</div>'
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
     html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'

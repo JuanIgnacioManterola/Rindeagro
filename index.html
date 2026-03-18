@@ -1844,9 +1844,19 @@ function renderPoligonosMapa() {
           var poly = L.polygon(pts, {
             color: col,
             fillColor: col,
-            fillOpacity: 0.25,
-            weight: 2.5
+            fillOpacity: 0.35,
+            weight: 3.5,
+            opacity: 1
           }).addTo(mapInstance)
+          // Agregar borde blanco por debajo para contraste sobre el satélite
+          var polyBorder = L.polygon(pts, {
+            color: '#ffffff',
+            fillOpacity: 0,
+            weight: 6,
+            opacity: 0.5,
+            interactive: false
+          }).addTo(mapInstance)
+          _mapaLayers.push(polyBorder)
 
           var ha = c.hectareas || '?'
           var cult = c.cultivo || 'Sin cultivo'
@@ -1864,9 +1874,9 @@ function renderPoligonosMapa() {
           // Label centrado en el polígono
           var center = poly.getBounds().getCenter()
           var label = L.divIcon({
-            html: '<div style="background:' + col + ';color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);font-family:DM Sans,sans-serif">' + c.nombre + '</div>',
+            html: '<div style="background:' + col + ';color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.8);font-family:DM Sans,sans-serif;letter-spacing:.01em">' + c.nombre + '</div>',
             className: '',
-            iconAnchor: [40, 10]
+            iconAnchor: [40, 12]
           })
           var marker = L.marker(center, {icon: label, interactive: false}).addTo(mapInstance)
 
@@ -2760,7 +2770,7 @@ window.renderCamposLista = function() {
     html += '<div style="padding:1.1rem 1.25rem">'
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
     html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
-    html += '<button onclick="event.stopPropagation();eliminarCampo(\''+c.id+'\',\''+c.nombre.replace(/'/g,'')+'\');" title="Eliminar campo" style="background:none;border:.5px solid var(--borde);border-radius:7px;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:4px 8px;transition:all .15s" onmouseover="this.style.borderColor=\'var(--rojo)\';this.style.color=\'var(--rojo)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">🗑</button>'
+    html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px;flex-shrink:0">🗑 Eliminar</button>'
     html += '</div>'
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
     html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'

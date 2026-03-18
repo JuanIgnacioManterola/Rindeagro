@@ -887,7 +887,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button onclick="limpiarPoligono()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
         <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
       </div>
-      <div id="mapa-campo-modal" style="height:220px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
+      <div id="mapa-campo-modal" style="height:380px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
       <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
     </div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
@@ -2238,7 +2238,7 @@ window.openModalCampo = function() {
   setTimeout(function(){
     if(!window._mapaCampoModal) {
       window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(window._mapaCampoModal)
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapaCampoModal)
       window._mapaCampoModal.on('click',function(e){
         if(!_polyModo) return
         _polyPuntos.push([e.latlng.lat,e.latlng.lng])
@@ -2439,7 +2439,7 @@ window.editarCampoActual = function() {
     if(!inicializado) {
       // Crear el mapa igual que en openModalCampo
       window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(window._mapaCampoModal)
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapaCampoModal)
       window._mapaCampoModal.on('click',function(e){
         if(!_polyModo) return
         _polyPuntos.push([e.latlng.lat,e.latlng.lng])
@@ -2758,7 +2758,10 @@ window.renderCamposLista = function() {
     html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')">'
     html += '<div style="height:5px;background:'+col+'"></div>'
     html += '<div style="padding:1.1rem 1.25rem">'
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.85rem"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
+    html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
+    html += '<button onclick="event.stopPropagation();eliminarCampo(\''+c.id+'\',\''+c.nombre.replace(/'/g,'')+'\');" title="Eliminar campo" style="background:none;border:.5px solid var(--borde);border-radius:7px;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:4px 8px;transition:all .15s" onmouseover="this.style.borderColor=\'var(--rojo)\';this.style.color=\'var(--rojo)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">🗑</button>'
+    html += '</div>'
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
     html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'
     html += '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+cult+'</div>'
@@ -2801,6 +2804,32 @@ window.volverACampos = function() {
   document.querySelectorAll('.anl')[1]?.classList.add('active')
   renderCamposLista()
   window.scrollTo(0,0)
+}
+
+window.eliminarCampo = async function(id, nombre) {
+  if(!confirm('¿Eliminar el campo "'+nombre+'"? Se van a borrar también todos sus gastos, lluvias y análisis de suelo. Esta acción no se puede deshacer.')) return
+  try {
+    // Eliminar datos relacionados primero
+    await sb.from('gastos').delete().eq('campo_id', id)
+    await sb.from('lluvias').delete().eq('campo_id', id)
+    await sb.from('analisis_suelo').delete().eq('campo_id', id)
+    // Eliminar el campo
+    var {error} = await sb.from('campos').delete().eq('id', id)
+    if(error) throw error
+    // Actualizar estado local
+    campos = campos.filter(function(c){ return c.id !== id })
+    gastos = gastos.filter(function(g){ return g.campo_id !== id })
+    lluvias = lluvias.filter(function(l){ return l.campo_id !== id })
+    analisisS = analisisS.filter(function(a){ return a.campo_id !== id })
+    if(campoRent === id) campoRent = campos.length > 0 ? campos[0].id : null
+    poblarSelectoresCampo()
+    renderDashboard()
+    renderCamposLista()
+    if(mapaIniciado) renderPoligonosMapa()
+    showToast('✓ Campo "'+nombre+'" eliminado','ok')
+  } catch(e) {
+    showToast('⚠️ Error al eliminar: '+(e.message||'Intentá de nuevo'),'err')
+  }
 }
 
 window.switchCampoTab = function(tab, btn) {

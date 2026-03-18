@@ -2626,7 +2626,8 @@ window.guardarGasto = async function() {
       total_de_usd: usdTotal,
       usd_ha: usdHa,
       qq_ha: qqHa,
-      precio_cereal: prCereal
+      precio_cereal: prCereal,
+      descripcion: document.getElementById('g-desc')?.value?.trim() || null
     }
     if(gastoSubTipo) _p.subtipo = gastoSubTipo
     if(cantidad) _p.cantidad = cantidad

@@ -151,7 +151,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 #screen-app{background:var(--crema)}
 .app-nav{background:var(--blanco);border-bottom:.5px solid var(--borde);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(26,74,46,.05)}
 .app-nav-links{display:flex;gap:3px}
-.anl{font-size:12px;padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px}
+.anl{font-size:15px;padding:9px 16px;border-radius:9px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:6px;font-weight:500}
 .anl:hover{background:var(--crema);color:var(--verde)}
 .anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
 .user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde)}
@@ -159,14 +159,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .u-nm{font-size:12px;font-weight:500;color:var(--texto-mid)}
 .btn-salir{font-size:12px;padding:6px 12px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-salir:hover{border-color:var(--rojo);color:var(--rojo)}
-.modulo{display:none;max-width:980px;margin:0 auto;padding:1.75rem 1.5rem}
+.modulo{display:none;max-width:1000px;margin:0 auto;padding:2rem 1.75rem}
 .modulo.active{display:block}
 .mod-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px}
-.mod-titulo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--verde);margin-bottom:3px}
+.mod-titulo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--verde);margin-bottom:4px}
 .mod-sub{font-size:13px;color:var(--texto-suave)}
 
 /* CARDS BASE */
-.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:1.1rem 1.25rem;box-shadow:var(--sombra);margin-bottom:14px}
+.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;padding:1.25rem 1.4rem;box-shadow:var(--sombra);margin-bottom:14px}
 .card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .card-tit{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave)}
 .btn-sm{font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif;transition:all .15s}
@@ -179,18 +179,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 
 /* MÉTRICA */
-.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.9rem 1rem;position:relative;overflow:hidden;box-shadow:var(--sombra)}
-.met-acc{position:absolute;top:0;left:0;right:0;height:3px}
-.met-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:5px;margin-top:2px}
-.met-v{font-size:20px;font-weight:600;font-family:'Playfair Display',serif;line-height:1}
-.met-s{font-size:11px;color:var(--texto-suave);margin-top:4px}
+.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;box-shadow:var(--sombra);transition:box-shadow .2s,transform .2s}
+.met:hover{box-shadow:var(--sombra-md);transform:translateY(-2px)}
+.met-acc{position:absolute;top:0;left:0;right:0;height:4px;border-radius:16px 16px 0 0}
+.met-l{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px;margin-top:3px}
+.met-v{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
+.met-s{font-size:11px;color:var(--texto-suave);margin-top:6px;font-weight:500}
 
 /* PRECIO STRIP */
-.precio-strip{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.85rem 1.4rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:var(--sombra)}
-.pi{display:flex;flex-direction:column;padding:.25rem 1.25rem .25rem 0;margin-right:1.25rem;border-right:.5px solid var(--borde)}
+.precio-strip{background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);border:none;border-radius:16px;padding:1rem 1.5rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:0 6px 24px rgba(26,74,46,.2)}
+.pi{display:flex;flex-direction:column;padding:.25rem 1.25rem .25rem 0;margin-right:1.25rem;border-right:.5px solid rgba(255,255,255,.2)}
 .pi:last-of-type{border-right:none;margin-right:0}
-.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:2px}
-.pi-v{font-size:16px;font-weight:600;font-family:'DM Mono',monospace}
+.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(250,247,240,.65);margin-bottom:2px}
+.pi-v{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#fff}
 .pi-d{font-size:11px;font-weight:500;margin-top:1px}
 .up{color:#1a7a52}.dn{color:var(--rojo)}
 
@@ -217,6 +218,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .r-laboreo{background:var(--dorado-pale);color:var(--dorado)}
 .r-flete{background:#f5f0ff;color:#7c3aed}
 .r-arrendamiento{background:#fef3c7;color:#d97706}
+.r-empleados{background:#fce7f3;color:#9d174d}
 .r-otros{background:#f4f4f5;color:#71717a}
 
 /* LLUVIA */
@@ -318,7 +320,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 /* CAMPO DETALLE TABS */
 .campo-tab{font-size:12px;padding:7px 13px;border-radius:7px;border:none;background:transparent;color:rgba(250,247,240,.65);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
-.campo-tab.active{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.campo-tab.active{background:rgba(255,255,255,.22);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .campo-tab:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
 .campo-seccion{display:none}.campo-seccion.active{display:block}
 /* CAMPOS CARDS */
@@ -423,8 +425,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="planes-grid">
       <div class="plan"><div class="pn">Semilla</div><div class="ps">Para conocer la plataforma</div><div class="pp pp-g">Gratis</div><div class="pp-per">para siempre</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">1 campo</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Rentabilidad básica</span></div><div class="pfi"><span class="nok">✗</span><span class="pfi-t">WhatsApp IA</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
       <div class="plan pop"><div class="plan-badge">⭐ Más elegido</div><div class="pn">Campo</div><div class="ps">Control total del productor</div><div class="pp">USD 21</div><div class="pp-per">por mes · o USD 202/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Hasta 5 campos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Todos los módulos</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Carga por WhatsApp</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Historial 10 años</span></div></div><button class="p-btn p-btn-pop" onclick="openModal('registro')">🌱 Empezar 15 días gratis</button></div>
-      <div class="plan"><div class="pn">Empresa</div><div class="ps">Para empresas agropecuarias</div><div class="pp">USD 35</div><div class="pp-per">por mes · o USD 336/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Campos ilimitados</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">5 usuarios</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Exportar PDF/Excel</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
       <div class="plan"><div class="pn">Agrónomo</div><div class="ps">Para profesionales asesores</div><div class="pp">USD 29</div><div class="pp-per">por mes · o USD 278/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">20 productores clientes</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Panel multi-productor</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Informes para clientes</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
+      <div class="plan"><div class="pn">Empresa</div><div class="ps">Para empresas agropecuarias</div><div class="pp">USD 35</div><div class="pp-per">por mes · o USD 336/año</div><div class="pf"><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Campos ilimitados</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">5 usuarios</span></div><div class="pfi"><span class="ok">✓</span><span class="pfi-t">Exportar PDF/Excel</span></div></div><button class="p-btn" onclick="openModal('registro')">Empezar gratis</button></div>
     </div>
   </section>
 
@@ -453,13 +455,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div id="screen-app" class="screen">
   <nav class="app-nav">
     <div class="logo-wrap" style="cursor:default">
-      <div class="logo-mk"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
-      <div class="logo-txt"><div class="logo-n" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-ag" style="font-size:11px">Agro</div></div>
+      <div class="logo-mk" onclick="showModulo('dashboard')" style="cursor:pointer"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" fill="white" opacity=".9"/></svg></div>
+      <div class="logo-txt" onclick="showModulo('dashboard')" style="cursor:pointer"><div class="logo-n" style="font-size:16px">Rinde<span class="d">.</span></div><div class="logo-ag" style="font-size:11px">Agro</div></div>
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
       <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
-      <button class="anl" onclick="showModulo('rentabilidad')"><span>📊</span><span>Rentabilidad</span></button>
+
+      <button class="anl" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
@@ -475,15 +478,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
     <div class="precio-strip">
-      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:var(--texto-suave)">cargando...</div></div>
-      <div class="pi"><div class="pi-l">Dólar BNA comprador</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:var(--texto-suave)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi" style="border-right:none"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <button class="btn-sm" onclick="actualizarPrecios()">↻ Actualizar</button>
-        <div id="ps-hora" style="font-size:10px;color:var(--texto-suave)"></div>
+        <button onclick="actualizarPrecios()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
+        <div id="ps-hora" style="font-size:10px;color:rgba(250,247,240,.55)"></div>
       </div>
     </div>
     <div class="grid4" id="dash-mets"></div>
@@ -493,30 +496,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit">Mis campos</span><button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button></div>
           <div id="dash-campos"></div>
         </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Acceso rápido</span></div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-            <button onclick="showModulo('rentabilidad')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">📊</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Rentabilidad</div></button>
-            <button onclick="showModulo('lluvias')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🌧️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Lluvias</div></button>
-            <button onclick="showModulo('suelo')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🔬</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Suelo</div></button>
-            <button onclick="showModulo('mapa')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🗺️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Mapa</div></button>
-          </div>
-        </div>
+
       </div>
       <div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Alertas urgentes</span></div>
           <div id="dash-alertas"></div>
         </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Clima · tu zona</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px">
-            <div style="color:var(--texto-suave)">Temperatura</div><div style="font-weight:500">22°C ☀️</div>
-            <div style="color:var(--texto-suave)">Humedad</div><div style="font-weight:500">58%</div>
-            <div style="color:var(--texto-suave)">Viento</div><div style="font-weight:500">14 km/h NE</div>
-            <div style="color:var(--texto-suave)">Lluvia 7 días</div><div style="font-weight:500">18 mm</div>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -657,15 +644,55 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
-        <button class="campo-tab active" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab active" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
+        <button class="campo-tab" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
+        <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
         <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
-        <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
+      </div>
+    </div>
+
+    <!-- TAB: INGRESOS -->
+    <div class="campo-seccion active" id="sec-ingresos">
+      <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
+        <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px">📊 Datos reales de la campaña</div>
+        <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:20px">
+          <div>
+            <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:6px">Rendimiento real (t/ha)</div>
+            <input type="number" id="cr-rend-input" placeholder="Ej: 3.4" step="0.1" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendCampo()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:6px">Precio de venta (USD/t)</div>
+            <input type="number" id="cr-precio-input" placeholder="Ej: 280" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendCampo()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
+          </div>
+          <button onclick="guardarRendCampo()" style="padding:10px 22px;border-radius:9px;border:none;background:var(--dorado);color:var(--verde);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Guardar →</button>
+        </div>
+        <div id="cr-resultado" style="padding-top:16px;border-top:.5px solid rgba(255,255,255,.12);display:none">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
+              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Toneladas totales</div>
+              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="cr-tn">—</div>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
+              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Ingreso bruto</div>
+              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="cr-ing">—</div>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
+              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Ingreso en pesos</div>
+              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="cr-pesos">—</div>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
+              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Equiv. quintales</div>
+              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="cr-qq">—</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- TAB: GASTOS -->
-    <div class="campo-seccion active" id="sec-gastos">
+    <div class="campo-seccion" id="sec-gastos">
       <div class="card">
         <div class="card-hdr"><span class="card-tit">Gastos del campo</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
         <div id="det-gastos-lista"></div>
@@ -679,6 +706,41 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="card" style="margin-bottom:0">
           <div class="card-hdr"><span class="card-tit">Resumen</span></div>
           <div id="det-resumen"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RENTABILIDAD -->
+    <div class="campo-seccion" id="sec-rentabilidad">
+      <!-- Metricas -->
+      <div class="grid5" id="cr-mets" style="margin-bottom:14px"></div>
+      <!-- Gastos + Resumen -->
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Gastos del campo</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar</button></div>
+          <div id="cr-gastos-lista"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Resumen financiero</span></div>
+          <div id="cr-resumen"></div>
+        </div>
+      </div>
+      <!-- Tortas -->
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-hdr"><span class="card-tit">Gastos por rubro</span></div>
+          <div style="position:relative;height:220px"><canvas id="chart-cr-rubro"></canvas></div>
+          <div id="cr-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-tit">Detalle del rubro</span>
+            <select id="cr-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderCrTortaDetalle()">
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+          <div style="position:relative;height:220px"><canvas id="chart-cr-detalle"></canvas></div>
+          <div id="cr-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
         </div>
       </div>
     </div>
@@ -751,6 +813,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo"></table></div>
         <div style="font-size:11px;color:var(--texto-suave);margin-top:.75rem">💡 Verde = rentable · Rojo = pérdida · Dorado = tu escenario actual</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── RENTABILIDAD TOTAL ── -->
+  <div class="modulo" id="mod-rentabilidad-total">
+    <div class="mod-header">
+      <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
+    </div>
+    <!-- Métricas globales -->
+    <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
+    <!-- Cards por campo -->
+    <div id="rt-campos" style="margin-bottom:14px"></div>
+    <!-- Tortas globales -->
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Gastos por rubro · todos los campos</span></div>
+        <div style="position:relative;height:260px"><canvas id="chart-rt-rubro"></canvas></div>
+        <div id="rt-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-tit">Detalle por producto</span>
+          <select id="rt-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderRtTortaDetalle()">
+            <option value="todos">Todos los rubros</option>
+          </select>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chart-rt-detalle"></canvas></div>
+        <div id="rt-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+    </div>
+    <!-- Comparativa entre campos -->
+    <div class="card">
+      <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
+      <div id="rt-comparativa"></div>
     </div>
   </div>
 
@@ -913,6 +1009,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <option value="fertilizantes">Fertilizantes</option>
           <option value="semillas">Semillas</option>
           <option value="laboreo">Laboreo</option>
+          <option value="flete">Flete</option>
+          <option value="empleados">Gastos de empleados</option>
+          <option value="arrendamiento">Arrendamiento</option>
           <option value="otros">Otros</option>
         </select>
       </div>
@@ -1056,7 +1155,7 @@ var paso = 1
 var campoRent = null
 var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',labores:'Labores',cosecha:'Cosecha',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
 
 // ── INIT ──
@@ -1147,13 +1246,13 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad','mapa','notificaciones']
+  var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
 
   if (mod === 'campos') renderCamposLista()
-  if (mod === 'rentabilidad') renderRentabilidad()
+  if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
   if (mod === 'notificaciones') renderNotificaciones()
 }
@@ -1399,7 +1498,7 @@ function renderRentabilidad() {
     elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
   } else {
     elG.innerHTML = gf.map(g=>{
-      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',arrendamiento:'Arrendamiento',otros:'Otros'}
+      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
       var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
       var subLabel = g.sub_tipo ? ` · ${SUBS[g.sub_tipo]||g.sub_tipo}` : ''
       var cantStr = g.cantidad && g.unidad ? ` · ${g.cantidad} ${g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad}` : ''
@@ -2815,7 +2914,8 @@ window.renderCamposLista = function() {
   }
   var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
-  campos.forEach(function(c,i) {
+  var camposOrdenados = campos.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"","es") })
+  camposOrdenados.forEach(function(c,i) {
     var ha = c.hectareas||0, cult = c.cultivo||'Soja'
     var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
     var rend = c.rendimiento||rendEst
@@ -2864,7 +2964,7 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
   document.querySelectorAll('.campo-tab')[0]?.classList.add('active')
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
-  document.getElementById('sec-gastos')?.classList.add('active')
+  document.getElementById('sec-ingresos')?.classList.add('active')
   renderDetGastos()
   window.scrollTo(0,0)
 }
@@ -2912,11 +3012,298 @@ window.switchCampoTab = function(tab, btn) {
   var sec = document.getElementById('sec-'+tab)
   if(sec) sec.classList.add('active')
   if(btn) btn.classList.add('active')
+  if(tab==='ingresos') renderIngresosTab()
   if(tab==='gastos') renderDetGastos()
+  if(tab==='rentabilidad') renderCampoRent()
   if(tab==='lluvias') renderDetLluvias()
   if(tab==='suelo') renderDetSuelo()
   if(tab==='ndvi') renderDetNDVI()
   if(tab==='sens') initSensCampo()
+}
+
+window.renderIngresosTab = function() {
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var ri = document.getElementById('cr-rend-input')
+  var pi = document.getElementById('cr-precio-input')
+  if(ri) ri.value = c.rendimiento||''
+  if(pi) pi.value = c.precio_venta||''
+  if(c.rendimiento||c.precio_venta) calcRendCampo()
+  else { var res=document.getElementById('cr-resultado'); if(res) res.style.display='none' }
+}
+
+function renderCampoRent() {
+  var c = campos.find(function(f){return f.id===campoDet})
+  if(!c) return
+  var ha = c.hectareas||1
+  var cult = c.cultivo||'Soja'
+  var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
+  var rend = c.rendimiento||rendEst
+  var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+  var pr = c.precio_venta||prEst
+  var gf = gastos.filter(function(g){return g.campo_id===campoDet})
+  var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  var costoHa = ha>0?costoUSD/ha:0
+  var ingHa = rend*pr
+  var mgHa = ingHa-costoHa
+  var mc = mgHa>=0?'#1a7a52':'#c0392b'
+
+  // Metricas
+  var mEl = document.getElementById('cr-mets')
+  if(mEl) mEl.innerHTML = [
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t × USD '+Math.round(pr),c:'#1a5fa8'},
+    {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD)+' total',c:'#c0392b'},
+    {l:'Margen neto/ha',v:(mgHa>=0?'+':'')+'USD '+Math.round(mgHa),s:(ingHa>0?(mgHa/ingHa*100).toFixed(0):0)+'% del ingreso',c:mc},
+    {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
+    {l:'En quintales/ha',v:(mgHa>=0?'+':'')+( pr>0?(mgHa/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
+  ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+
+  // Gastos lista
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
+  var gEl = document.getElementById('cr-gastos-lista')
+  if(gEl) {
+    if(!gf.length) {
+      gEl.innerHTML = '<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div></div>'
+    } else {
+      gEl.innerHTML = gf.map(function(g){
+        var sub = g.subtipo?' · '+(SUBS[g.subtipo]||g.subtipo):''
+        var cant = g.cantidad&&g.unidad?' · '+g.cantidad+' '+(g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad):''
+        return '<div class="gasto-row"><span class="gtag r-'+(g.rubro||'otros')+'">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span>'+
+          '<div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">'+(g.descripcion||'Sin descripción')+cant+'</div>'+
+          '<div style="font-size:10px;color:var(--texto-suave)">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div></div>'+
+          '<div style="text-align:right"><div style="font-weight:600;font-family:DM Mono,monospace">USD '+Math.round(g.total_de_usd||0).toLocaleString('es-AR')+'</div></div>'+
+          '<button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:5px;cursor:pointer;color:#1a5fa8;font-size:11px;padding:3px 7px">✏️</button>'+
+          '<button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">🗑</button></div>'
+      }).join('')
+    }
+  }
+
+  // Resumen
+  var porRubro = {}
+  gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0)})
+  var rEl = document.getElementById('cr-resumen')
+  if(rEl) rEl.innerHTML =
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto</span><span style="font-weight:600;color:#1a5fa8">USD '+Math.round(ingHa*ha).toLocaleString('es-AR')+'</span></div>'+
+    Object.entries(porRubro).sort(function(a,b){return b[1]-a[1]}).map(function(e){
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-suave)">'+e[0]+'</span><span style="font-family:DM Mono,monospace">- USD '+Math.round(e[1]).toLocaleString('es-AR')+'</span></div>'
+    }).join('')+
+    '<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:600"><span>Margen neto</span><span style="color:'+mc+';font-family:DM Mono,monospace">'+(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha).toLocaleString('es-AR')+'</span></div>'
+
+  // Tortas
+  var COLORES_T = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+  var ctxR = document.getElementById('chart-cr-rubro')
+  if(ctxR && Object.keys(porRubro).length) {
+    if(charts['cr-rubro']) charts['cr-rubro'].destroy()
+    var lblR = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
+    var valR = lblR.map(function(l){return porRubro[l]})
+    charts['cr-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:COLORES_T.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/valR.reduce(function(a,v){return a+v},0)*100)+'%)'}}}}}})
+    var legEl = document.getElementById('cr-rubro-leyenda')
+    if(legEl) legEl.innerHTML = lblR.map(function(l,i){return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES_T[i]+'"></div>'+l+'</div>'}).join('')
+  }
+
+  // Poblar selector torta detalle
+  var selR = document.getElementById('cr-rubro-sel')
+  if(selR) {
+    var rubrosEnGf = {}
+    gf.forEach(function(g){ if(g.rubro) rubrosEnGf[g.rubro] = RUBS[g.rubro]||g.rubro })
+    selR.innerHTML = '<option value="todos">Todos</option>'+Object.entries(rubrosEnGf).map(function(e){return '<option value="'+e[0]+'">'+e[1]+'</option>'}).join('')
+  }
+  renderCrTortaDetalle()
+
+  // Sensibilidad
+  var sc = document.getElementById('sens-costo-campo')
+  var sr = document.getElementById('sens-rend-campo')
+  var sp = document.getElementById('sens-precio-campo')
+  if(sc&&!sc.value) sc.value = Math.round(costoHa)||190
+  if(sr&&!sr.value) sr.value = rend
+  if(sp&&!sp.value) sp.value = Math.round(pr)
+  // Render sens table (reuse existing but with different table id)
+  var rendVar=[-20,-10,0,10,20],prVar=[-20,-10,0,10,20]
+  var rendList=rendVar.map(function(v){return Math.round(rend*(1+v/100)*10)/10})
+  var prList=prVar.map(function(v){return Math.round(pr*(1+v/100))})
+  var thead='<thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend \ Precio</th>'
+  prVar.forEach(function(v,i){thead+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+prList[i]+'<div style="font-size:9px;opacity:.6">'+(v===0?'Base':(v>0?'+':'')+v+'%')+'</div></th>'})
+  thead+='</tr></thead>'
+  var tbody='<tbody>'
+  rendList.forEach(function(r,ri){
+    tbody+='<tr><td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha</td>'
+    prList.forEach(function(p,pi){
+      var mg=r*p-costoHa,isBase=(rendVar[ri]===0&&prVar[pi]===0),cls=isBase?'cell-base':mg>=0?'cell-pos':'cell-neg'
+      tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+(mg>=0?'+':'')+Math.round(mg)+'</span></td>'
+    })
+    tbody+='</tr>'
+  })
+  tbody+='</tbody>'
+  var tEl = document.getElementById('tabla-sens-campo-r')
+  if(tEl) tEl.innerHTML = thead+tbody
+}
+
+window.renderCrTortaDetalle = function() {
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var gf = gastos.filter(function(g){return g.campo_id===campoDet})
+  var rubroSel = document.getElementById('cr-rubro-sel')?.value||'todos'
+  var gfFilt = rubroSel==='todos' ? gf : gf.filter(function(g){return g.rubro===rubroSel})
+  var COLORES_T = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+  var porDesc = {}
+  gfFilt.forEach(function(g){
+    var key = (g.descripcion||'').trim() || (g.rubro||'Sin nombre')
+    porDesc[key] = (porDesc[key]||0)+(g.total_de_usd||0)
+  })
+  var ctxD = document.getElementById('chart-cr-detalle')
+  if(!ctxD) return
+  if(charts['cr-detalle']) charts['cr-detalle'].destroy()
+  var legEl = document.getElementById('cr-detalle-leyenda')
+  if(!Object.keys(porDesc).length) { if(legEl) legEl.innerHTML='<div style="font-size:12px;color:var(--texto-suave)">Sin gastos</div>'; return }
+  var lblD = Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
+  var valD = lblD.map(function(l){return porDesc[l]})
+  var tot = valD.reduce(function(a,v){return a+v},0)
+  charts['cr-detalle'] = new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:COLORES_T.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}}  )
+  if(legEl) legEl.innerHTML = lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100); return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES_T[i%COLORES_T.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
+}
+
+window.calcRendCampo = function() {
+  var rend = parseFloat(document.getElementById('cr-rend-input')?.value)||0
+  var precio = parseFloat(document.getElementById('cr-precio-input')?.value)||0
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var ha = c.hectareas||0
+  var res = document.getElementById('cr-resultado')
+  if(!rend||!precio||!ha){if(res)res.style.display='none';return}
+  if(res) res.style.display='block'
+  var tn=rend*ha, ingUSD=tn*precio, ingPesos=ingUSD*precios.bna, qqEquiv=ingUSD/precio*10
+  var tnEl=document.getElementById('cr-tn'),ingEl=document.getElementById('cr-ing'),pesosEl=document.getElementById('cr-pesos'),qqEl=document.getElementById('cr-qq')
+  if(tnEl) tnEl.textContent=tn.toLocaleString('es-AR',{maximumFractionDigits:1})+' t'
+  if(ingEl) ingEl.textContent='USD '+Math.round(ingUSD).toLocaleString('es-AR')
+  if(pesosEl) pesosEl.textContent='$ '+Math.round(ingPesos/1000000).toFixed(1)+'M'
+  if(qqEl) qqEl.textContent=Math.round(qqEquiv).toLocaleString('es-AR')+' qq'
+}
+
+window.renderRentabilidadTotal = function() {
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+
+  // Calcular totales globales
+  var totalHa=0, totalCosto=0, totalIngreso=0
+  var porRubroGlobal={}
+  var datosCampos = campos.map(function(c){
+    var ha = c.hectareas||1
+    var cult = c.cultivo||'Soja'
+    var rend = c.rendimiento||(cult==='Maíz'?8:cult==='Trigo'?3:3.2)
+    var pr = c.precio_venta||(cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja)
+    var gf = gastos.filter(function(g){return g.campo_id===c.id})
+    var costo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    var costoHa = ha>0?costo/ha:0
+    var ingHa = rend*pr
+    var mgHa = ingHa-costoHa
+    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingHa*ha
+    gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubroGlobal[r]=(porRubroGlobal[r]||0)+(g.total_de_usd||0)})
+    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa, rend:rend, pr:pr}
+  })
+  var mgTotal = totalIngreso-totalCosto
+  var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
+  var mc = mgHaGlobal>=0?'#1a7a52':'#c0392b'
+
+  // Métricas globales
+  var mEl = document.getElementById('rt-mets')
+  if(mEl) mEl.innerHTML = [
+    {l:'Hectáreas totales',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
+    {l:'Costo total',v:'USD '+Math.round(totalCosto/1000)+'k',s:'USD '+Math.round(totalHa>0?totalCosto/totalHa:0)+'/ha promedio',c:'#c0392b'},
+    {l:'Ingreso bruto',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a5fa8'},
+    {l:'Margen neto total',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
+  ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+
+  // Cards por campo
+  var cEl = document.getElementById('rt-campos')
+  if(cEl) {
+    if(!datosCampos.length){cEl.innerHTML='<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div></div>';return}
+    var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+    cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
+      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
+      var pct=d.ingHa>0?Math.round(d.mgHa/d.ingHa*100):0
+      return '<div class="card" style="cursor:pointer;margin-bottom:0" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+        '<div><div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
+        '<div style="font-size:11px;color:var(--texto-suave)">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
+        '<div style="text-align:right"><div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+mc2+'">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div>'+
+        '<div style="font-size:10px;color:var(--texto-suave)">USD/ha</div></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Costo/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.costoHa)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Ingreso/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.ingHa)+'</span></div>'+
+        '<div style="margin-top:8px;background:var(--crema);border-radius:6px;height:6px;overflow:hidden">'+
+        '<div style="height:100%;width:'+Math.min(100,Math.max(0,50+pct/2))+'%;background:'+mc2+';border-radius:6px;transition:width .4s"></div></div>'+
+        '<div style="font-size:10px;color:'+mc2+';text-align:right;margin-top:3px">'+pct+'% del ingreso</div></div>'
+    }).join('')+'</div>'
+  }
+
+  // Torta por rubro global
+  var ctxR = document.getElementById('chart-rt-rubro')
+  if(ctxR && Object.keys(porRubroGlobal).length) {
+    if(charts['rt-rubro']) charts['rt-rubro'].destroy()
+    var lblR = Object.keys(porRubroGlobal).sort(function(a,b){return porRubroGlobal[b]-porRubroGlobal[a]})
+    var valR = lblR.map(function(l){return porRubroGlobal[l]})
+    var tot = valR.reduce(function(a,v){return a+v},0)
+    charts['rt-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:COLORES.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/tot*100)+'%)'}}}}}})
+    var legEl = document.getElementById('rt-rubro-leyenda')
+    if(legEl) legEl.innerHTML = lblR.map(function(l,i){var pct=Math.round(valR[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div><strong>'+pct+'%</strong> '+l+'</div>'}).join('')
+    var selR = document.getElementById('rt-rubro-sel')
+    if(selR) selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
+  }
+  renderRtTortaDetalle()
+
+  // Comparativa
+  var compEl = document.getElementById('rt-comparativa')
+  if(compEl && datosCampos.length) {
+    var sortedComp = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+    var maxAbs = Math.max.apply(null, sortedComp.map(function(d){return Math.abs(d.mgHa)}))
+    compEl.innerHTML = sortedComp.map(function(d){
+      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
+      var w = maxAbs>0?Math.round(Math.abs(d.mgHa)/maxAbs*100):0
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--borde)">'+
+        '<div style="width:120px;font-size:13px;font-weight:500;flex-shrink:0">'+d.c.nombre+'</div>'+
+        '<div style="flex:1;background:var(--crema);border-radius:4px;height:22px;overflow:hidden">'+
+        '<div style="height:100%;width:'+w+'%;background:'+mc2+';border-radius:4px;transition:width .5s;display:flex;align-items:center;padding-left:8px">'+
+        '<span style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+' USD/ha</span></div></div>'+
+        '<div style="width:70px;text-align:right;font-size:12px;font-family:DM Mono,monospace;color:'+mc2+';flex-shrink:0">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div></div>'
+    }).join('')
+  }
+}
+
+window.renderRtTortaDetalle = function() {
+  var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var rubroSel = document.getElementById('rt-rubro-sel')?.value||'todos'
+  var gAll = gastos
+  var gFilt = rubroSel==='todos' ? gAll : gAll.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===rubroSel})
+  var porDesc={}
+  gFilt.forEach(function(g){var k=(g.descripcion||'').trim()||(g.rubro||'Sin nombre'); porDesc[k]=(porDesc[k]||0)+(g.total_de_usd||0)})
+  var ctxD = document.getElementById('chart-rt-detalle'); if(!ctxD) return
+  if(charts['rt-detalle']) charts['rt-detalle'].destroy()
+  var legEl = document.getElementById('rt-detalle-leyenda')
+  if(!Object.keys(porDesc).length){if(legEl)legEl.innerHTML='<div style="font-size:12px;color:var(--texto-suave)">Sin gastos</div>';return}
+  var lblD=Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
+  var valD=lblD.map(function(l){return porDesc[l]})
+  var tot=valD.reduce(function(a,v){return a+v},0)
+  charts['rt-detalle']=new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:COLORES.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}}  )
+  if(legEl) legEl.innerHTML=lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i%COLORES.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
+}
+
+window.verCampoDesdeRent = function(id) {
+  showModulo('campos')
+  setTimeout(function(){ verCampo(id) }, 100)
+}
+
+window.guardarRendCampo = function() {
+  var rend = parseFloat(document.getElementById('cr-rend-input')?.value)||null
+  var precio = parseFloat(document.getElementById('cr-precio-input')?.value)||null
+  if(!rend&&!precio){showToast('⚠️ Ingresá el rendimiento y/o precio','err');return}
+  if(!campoDet){showToast('⚠️ Seleccioná un campo','err');return}
+  var idx = campos.findIndex(function(c){return c.id===campoDet})
+  if(idx>=0){if(rend)campos[idx].rendimiento=rend;if(precio)campos[idx].precio_venta=precio}
+  sb.from('campos').update(Object.assign({},rend?{rendimiento:rend}:{},precio?{precio_venta:precio}:{})).eq('id',campoDet).then(function(r){
+    if(r.error){showToast('⚠️ Error: '+r.error.message,'err');return}
+    calcRendCampo(); renderCampoRent(); renderDashboard()
+    showToast('✓ Rendimiento y precio guardados','ok')
+  })
 }
 
 function renderDetGastos() {
@@ -2933,7 +3320,7 @@ function renderDetGastos() {
   var pr = c.precio_venta||prEst
   var ingHa = rend*pr, mgHa = ingHa-costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
-  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',otros:'Otros'}
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
   var el = document.getElementById('det-gastos-lista')
   if(!gf.length) {

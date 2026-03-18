@@ -151,7 +151,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 #screen-app{background:var(--crema)}
 .app-nav{background:var(--blanco);border-bottom:.5px solid var(--borde);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(26,74,46,.05)}
 .app-nav-links{display:flex;gap:3px}
-.anl{font-size:12px;padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px}
+.anl{font-size:12px;padding:8px 14px;border-radius:9px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:6px;font-weight:500}
 .anl:hover{background:var(--crema);color:var(--verde)}
 .anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
 .user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde)}
@@ -159,14 +159,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .u-nm{font-size:12px;font-weight:500;color:var(--texto-mid)}
 .btn-salir{font-size:12px;padding:6px 12px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-salir:hover{border-color:var(--rojo);color:var(--rojo)}
-.modulo{display:none;max-width:980px;margin:0 auto;padding:1.75rem 1.5rem}
+.modulo{display:none;max-width:1000px;margin:0 auto;padding:2rem 1.75rem}
 .modulo.active{display:block}
 .mod-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px}
-.mod-titulo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--verde);margin-bottom:3px}
+.mod-titulo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--verde);margin-bottom:4px}
 .mod-sub{font-size:13px;color:var(--texto-suave)}
 
 /* CARDS BASE */
-.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:1.1rem 1.25rem;box-shadow:var(--sombra);margin-bottom:14px}
+.card{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;padding:1.25rem 1.4rem;box-shadow:var(--sombra);margin-bottom:14px}
 .card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .card-tit{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave)}
 .btn-sm{font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif;transition:all .15s}
@@ -179,18 +179,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 
 /* MÉTRICA */
-.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.9rem 1rem;position:relative;overflow:hidden;box-shadow:var(--sombra)}
-.met-acc{position:absolute;top:0;left:0;right:0;height:3px}
-.met-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:5px;margin-top:2px}
-.met-v{font-size:20px;font-weight:600;font-family:'Playfair Display',serif;line-height:1}
-.met-s{font-size:11px;color:var(--texto-suave);margin-top:4px}
+.met{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;box-shadow:var(--sombra);transition:box-shadow .2s,transform .2s}
+.met:hover{box-shadow:var(--sombra-md);transform:translateY(-2px)}
+.met-acc{position:absolute;top:0;left:0;right:0;height:4px;border-radius:16px 16px 0 0}
+.met-l{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px;margin-top:3px}
+.met-v{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
+.met-s{font-size:11px;color:var(--texto-suave);margin-top:6px;font-weight:500}
 
 /* PRECIO STRIP */
-.precio-strip{background:var(--blanco);border:.5px solid var(--borde);border-radius:14px;padding:.85rem 1.4rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:var(--sombra)}
-.pi{display:flex;flex-direction:column;padding:.25rem 1.25rem .25rem 0;margin-right:1.25rem;border-right:.5px solid var(--borde)}
+.precio-strip{background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);border:none;border-radius:16px;padding:1rem 1.5rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:0 6px 24px rgba(26,74,46,.2)}
+.pi{display:flex;flex-direction:column;padding:.25rem 1.25rem .25rem 0;margin-right:1.25rem;border-right:.5px solid rgba(255,255,255,.2)}
 .pi:last-of-type{border-right:none;margin-right:0}
-.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:2px}
-.pi-v{font-size:16px;font-weight:600;font-family:'DM Mono',monospace}
+.pi-l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(250,247,240,.65);margin-bottom:2px}
+.pi-v{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#fff}
 .pi-d{font-size:11px;font-weight:500;margin-top:1px}
 .up{color:#1a7a52}.dn{color:var(--rojo)}
 
@@ -319,7 +320,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 /* CAMPO DETALLE TABS */
 .campo-tab{font-size:12px;padding:7px 13px;border-radius:7px;border:none;background:transparent;color:rgba(250,247,240,.65);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
-.campo-tab.active{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.campo-tab.active{background:rgba(255,255,255,.22);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .campo-tab:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
 .campo-seccion{display:none}.campo-seccion.active{display:block}
 /* CAMPOS CARDS */
@@ -484,8 +485,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:var(--texto-suave)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Dólar BNA comprador</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:var(--texto-suave)">cargando...</div></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <button class="btn-sm" onclick="actualizarPrecios()">↻ Actualizar</button>
-        <div id="ps-hora" style="font-size:10px;color:var(--texto-suave)"></div>
+        <button onclick="actualizarPrecios()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
+        <div id="ps-hora" style="font-size:10px;color:rgba(250,247,240,.55)"></div>
       </div>
     </div>
     <div class="grid4" id="dash-mets"></div>
@@ -495,15 +496,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit">Mis campos</span><button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button></div>
           <div id="dash-campos"></div>
         </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Acceso rápido</span></div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-            <button onclick="showModulo('rentabilidad')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">📊</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Rentabilidad</div></button>
-            <button onclick="showModulo('lluvias')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🌧️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Lluvias</div></button>
-            <button onclick="showModulo('suelo')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🔬</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Suelo</div></button>
-            <button onclick="showModulo('mapa')" style="border:.5px solid var(--borde);border-radius:10px;padding:.65rem .4rem;text-align:center;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='var(--crema)'" onmouseout="this.style.background='transparent'"><div style="font-size:18px;margin-bottom:3px">🗺️</div><div style="font-size:10px;font-weight:500;color:var(--texto-suave)">Mapa</div></button>
-          </div>
-        </div>
+
       </div>
       <div>
         <div class="card">
@@ -757,19 +750,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div style="position:relative;height:220px"><canvas id="chart-cr-detalle"></canvas></div>
           <div id="cr-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
         </div>
-      </div>
-      <!-- Sensibilidad -->
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Análisis de sensibilidad · USD/ha</span><button class="btn-sm" onclick="resetSensCampo()">↺ Resetear</button></div>
-        <div style="background:var(--crema);border-radius:10px;padding:1rem;margin-bottom:1rem">
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-            <div><div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Costo base (USD/ha)</div><input type="number" id="sens-costo-campo" class="fi" style="width:130px" placeholder="190" oninput="calcSensCampo()"/></div>
-            <div><div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Rendimiento (t/ha)</div><input type="number" id="sens-rend-campo" class="fi" style="width:120px" placeholder="3.2" step="0.1" oninput="calcSensCampo()"/></div>
-            <div><div style="font-size:11px;color:var(--texto-suave);margin-bottom:4px">Precio (USD/t)</div><input type="number" id="sens-precio-campo" class="fi" style="width:120px" placeholder="280" oninput="calcSensCampo()"/></div>
-          </div>
-        </div>
-        <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo-r"></table></div>
-        <div style="font-size:11px;color:var(--texto-suave);margin-top:.75rem">💡 Verde = rentable · Rojo = pérdida · Dorado = tu escenario actual</div>
       </div>
     </div>
 

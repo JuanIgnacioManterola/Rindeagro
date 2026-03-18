@@ -899,9 +899,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="overlay" id="ov-gasto" onclick="if(event.target===this)closeModalGasto()">
   <div class="modal" style="max-width:520px">
     <button class="m-close" onclick="closeModalGasto()">✕</button>
-    <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
+    <div class="m-tit">Agregar gasto</div>
     <div class="m-sub">El sistema convierte automáticamente a USD y quintales por hectárea</div>
-    <input type="hidden" id="g-edit-id" value=""/>
 
     <div class="form-row2" style="margin-bottom:.9rem">
       <div class="fg">
@@ -1414,7 +1413,7 @@ function renderRentabilidad() {
           <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.total_de_usd||0).toLocaleString('es-AR')}</div>
           ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
         </div>
-        <button onclick="editarGasto('${g.id}')" style="background:none;border:.5px solid var(--azul);border-radius:5px;cursor:pointer;color:var(--azul);font-size:11px;padding:3px 7px" title="Editar">✏️</button> <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
+        <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
       </div>`
     }).join('')
   }
@@ -2619,83 +2618,42 @@ window.guardarGasto = async function() {
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
-    var editId = document.getElementById('g-edit-id')?.value||''
-    var isEdit = !!editId
-    var descVal = document.getElementById('g-desc')?.value?.trim()||null
     var _p = {
+      campo_id: campoId,
+      usuario_id: usuario.id,
       rubro: rubro,
       fecha: fecha,
       total_de_usd: usdTotal,
       usd_ha: usdHa,
       qq_ha: qqHa,
-      precio_cereal: prCereal,
-      descripcion: descVal
+      precio_cereal: prCereal
     }
     if(gastoSubTipo) _p.subtipo = gastoSubTipo
     if(cantidad) _p.cantidad = cantidad
     if(unidad) _p.unidad = unidad
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
-    var data, error
-    if(isEdit) {
-      var r = await sb.from('gastos').update(_p).eq('id',editId).select().single()
-      data=r.data; error=r.error
-      if(!error) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=data }
-    } else {
-      _p.campo_id = campoId
-      _p.usuario_id = usuario.id
-      var r = await sb.from('gastos').insert(_p).select().single()
-      data=r.data; error=r.error
-      if(!error) gastos.unshift(data)
-    }
+    const {data,error} = await sb.from("gastos").insert(_p).select().single()
 
 
 
 
     if(error) throw error
-    if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
+    gastos.unshift(data)
+    renderRentabilidad()
+    renderDashboard()
     closeModalGasto()
-    showToast(isEdit ? '✓ Gasto actualizado' : '✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
-    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    showToast('✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
+    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
-    var tit=document.getElementById('gasto-modal-tit'); if(tit) tit.textContent='Agregar gasto'
-    var btn2=document.getElementById('btn-gasto'); if(btn2) btn2.textContent='Guardar gasto'
   }catch(e){
     console.error('Error guardando gasto:', e)
     showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')
   }
-  finally{btn.disabled=false;btn.textContent=document.getElementById('g-edit-id')?.value?'Guardar cambios':'Guardar gasto'}
-}
-
-window.editarGasto = function(id) {
-  var g = gastos.find(function(x){ return x.id===id })
-  if(!g) return
-  var RUBROS_LABEL = {herbicidas:'Herbicidas',fungicidas:'Fungicidas / Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',otros:'Otros'}
-  // Abrir modal en modo edición
-  document.getElementById('ov-gasto').classList.add('open')
-  document.getElementById('gasto-modal-tit').textContent = 'Editar gasto'
-  document.getElementById('btn-gasto').textContent = 'Guardar cambios'
-  document.getElementById('g-edit-id').value = g.id
-  document.getElementById('g-rubro').value = g.rubro||''
-  document.getElementById('g-fecha').value = g.fecha||''
-  document.getElementById('g-desc').value = g.descripcion||''
-  document.getElementById('g-cantidad').value = g.cantidad||''
-  document.getElementById('g-precio-unit').value = g.precio_unitario||''
-  document.getElementById('g-ha-aplicadas').value = g.ha_aplicadas||''
-  document.getElementById('g-precio').value = g.precio_cereal||precios.soja
-  if(g.unidad) document.getElementById('g-unidad').value = g.unidad
-  if(g.subtipo) {
-    document.getElementById('laboreo-subtipos').style.display='block'
-    gastoSubTipo = g.subtipo
-    document.querySelectorAll('.sub-tipo-btn').forEach(function(b){
-      if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(g.subtipo)) b.classList.add('active')
-    })
-  }
-  onRubroChange()
-  calcConv()
+  finally{btn.disabled=false;btn.textContent='Guardar gasto'}
 }
 window.eliminarGasto = async function(id) {
   if(!confirm('¿Eliminás este gasto?'))return
@@ -2945,7 +2903,7 @@ function renderDetGastos() {
     el.innerHTML = gf.map(function(g){
       var sub = g.subtipo ? ' · '+(SUBS[g.subtipo]||g.subtipo) : ''
       var cant = g.cantidad&&g.unidad ? ' · '+g.cantidad+' '+(g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad) : ''
-      return '<div class="gasto-row"><span class="gtag r-'+(g.rubro||'otros')+'">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span><div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">'+(g.descripcion||'Sin descripción')+cant+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div></div><div style="text-align:right"><div style="font-weight:600;font-family:DM Mono,monospace">USD '+Math.round(g.total_de_usd||0).toLocaleString('es-AR')+'</div>'+(g.qq_ha?'<div style="font-size:10px;color:var(--verde)">'+parseFloat(g.qq_ha).toFixed(2)+' qq/ha</div>':'')+'</div><button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:5px;cursor:pointer;color:#1a5fa8;font-size:11px;padding:3px 7px">✏️</button> <button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">🗑</button></div>'
+      return '<div class="gasto-row"><span class="gtag r-'+(g.rubro||'otros')+'">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span><div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">'+(g.descripcion||'Sin descripción')+cant+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div></div><div style="text-align:right"><div style="font-weight:600;font-family:DM Mono,monospace">USD '+Math.round(g.total_de_usd||0).toLocaleString('es-AR')+'</div>'+(g.qq_ha?'<div style="font-size:10px;color:var(--verde)">'+parseFloat(g.qq_ha).toFixed(2)+' qq/ha</div>':'')+'</div><button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">🗑</button></div>'
     }).join('')
   }
   var porRubro = {}

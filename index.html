@@ -1153,6 +1153,7 @@ var analisisS = []
 var perfil = 'productor'
 var paso = 1
 var campoRent = null
+var SERVER_URL = 'https://rindeagro-server-production.up.railway.app' // ← se actualiza cuando tengamos el servidor
 var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
@@ -1260,98 +1261,78 @@ window.showModulo = function(mod) {
 window.actualizarPrecios = async function() {
   var btn = document.querySelector('[onclick="actualizarPrecios()"]')
   if(btn) { btn.textContent = '⏳'; btn.disabled = true }
-
-  // Mostrar estado de carga
   ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
     var d = document.getElementById('ps-'+g+'-d')
-    if(d) { d.className='pi-d'; d.style.color='var(--texto-suave)'; d.textContent='consultando...' }
+    if(d) { d.style.color='rgba(250,247,240,.6)'; d.textContent='consultando...' }
   })
 
-  try {
-    // Usar Claude API para obtener precios reales en tiempo real
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 300,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'Sos un asistente que devuelve precios de granos de la Bolsa de Rosario. Respondé SOLO con JSON válido sin explicaciones ni markdown, con este formato exacto: {"soja":341,"maiz":181,"trigo":183,"girasol":390,"sorgo":189,"bna":1387,"fecha":"2026-03-17","fuente":"CAC Rosario"}. Todos los precios en USD por tonelada excepto bna que es en pesos ARS tipo divisa comprador BNA.',
-        messages: [{
-          role: 'user',
-          content: 'Buscá los precios de pizarra de hoy de la Cámara Arbitral de Cereales de Rosario (cac.bcr.com.ar) para soja, maiz, trigo, girasol y sorgo en USD/tonelada, y el dolar BNA divisa tipo comprador. Devolvé solo el JSON.'
-        }]
-      })
-    })
+  var ok = false
 
-    if(resp.ok) {
-      var data = await resp.json()
-      // Extraer texto de la respuesta
-      var texto = ''
-      if(data.content) {
-        data.content.forEach(function(blk) { if(blk.type==='text') texto += blk.text })
-      }
-      // Parsear JSON de la respuesta
-      var match = texto.match(/\{[^}]+\}/)
-      if(match) {
-        var precios_nuevos = JSON.parse(match[0])
-        // Actualizar precios y UI
-        var campos_precios = ['soja','maiz','trigo','girasol','sorgo']
-        campos_precios.forEach(function(g) {
-          if(precios_nuevos[g] && precios_nuevos[g] > 0) {
-            var anterior = precios[g] || 0
-            var nuevo = parseFloat(precios_nuevos[g])
-            precios[g] = nuevo
+  // ── 1. Intentar servidor RindeAgro (precio real BCR) ──
+  try {
+    var rServ = await fetch(SERVER_URL + '/precios', {signal: AbortSignal.timeout(5000)})
+    if(rServ.ok) {
+      var jServ = await rServ.json()
+      if(jServ.ok && jServ.cereales) {
+        var cer = jServ.cereales
+        ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
+          if(cer[g] && cer[g] > 0) {
+            precios[g] = cer[g]
             var el = document.getElementById('ps-'+g)
             var dEl = document.getElementById('ps-'+g+'-d')
-            if(el) el.textContent = 'USD ' + Math.round(nuevo)
-            if(dEl) {
-              if(anterior > 0) {
-                var diff = nuevo - anterior
-                var pct = (diff/anterior*100).toFixed(1)
-                dEl.className = 'pi-d ' + (diff >= 0 ? 'up' : 'dn')
-                dEl.style.color = ''
-                dEl.textContent = (diff >= 0 ? '▲ +' : '▼ ') + pct + '%'
-              } else {
-                dEl.className = 'pi-d'
-                dEl.style.color = 'var(--texto-suave)'
-                dEl.textContent = precios_nuevos.fuente || 'CAC Rosario'
-              }
-            }
+            if(el) el.textContent = 'USD ' + Math.round(cer[g])
+            if(dEl) { dEl.style.color='rgba(250,247,240,.6)'; dEl.textContent = jServ.fuente || 'BCR Rosario' }
           }
         })
-        // Dólar BNA
-        if(precios_nuevos.bna && precios_nuevos.bna > 0) {
-          precios.bna = parseFloat(precios_nuevos.bna)
+        if(jServ.bna && jServ.bna > 0) {
+          precios.bna = jServ.bna
           var elBna = document.getElementById('ps-bna')
           var dBna = document.getElementById('ps-bna-d')
-          if(elBna) elBna.textContent = '$ ' + Math.round(precios.bna).toLocaleString('es-AR')
-          if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
+          if(elBna) elBna.textContent = '$ ' + Math.round(jServ.bna).toLocaleString('es-AR')
+          if(dBna) { dBna.style.color='rgba(250,247,240,.6)'; dBna.textContent='BNA oficial' }
         }
         var horaEl = document.getElementById('ps-hora')
         if(horaEl) {
           var now = new Date()
-          horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' · ' + (precios_nuevos.fuente||'CAC Rosario')
+          horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' · BCR Rosario'
         }
         if(btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false }
         return
       }
     }
-  } catch(e) { console.log('Claude API error:', e) }
+  } catch(e) { console.log('Servidor no disponible aún, usando fallback') }
 
-  // Fallback: mostrar valores actuales con etiqueta
+  // ── 2. Fallback: dolarapi.com para el BNA ──
+  try {
+    var rBna = await fetch('https://dolarapi.com/v1/dolares/oficial', {signal: AbortSignal.timeout(5000)})
+    if(rBna.ok) {
+      var jBna = await rBna.json()
+      var valBna = parseFloat(jBna.compra || jBna.venta || 0)
+      if(valBna > 0) {
+        precios.bna = valBna
+        var elBna = document.getElementById('ps-bna')
+        var dBna = document.getElementById('ps-bna-d')
+        if(elBna) elBna.textContent = '$ ' + Math.round(valBna).toLocaleString('es-AR')
+        if(dBna) { dBna.style.color='rgba(250,247,240,.6)'; dBna.textContent='BNA oficial' }
+        ok = true
+      }
+    }
+  } catch(e) { console.log('Dolar API error:', e) }
+
+  // ── 3. Mostrar valores de referencia para cereales ──
+  var defaults = {soja:341, maiz:181, trigo:183, girasol:390, sorgo:189}
   ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
     var el = document.getElementById('ps-'+g)
     var dEl = document.getElementById('ps-'+g+'-d')
-    if(el && precios[g]) el.textContent = 'USD ' + Math.round(precios[g])
-    if(dEl) { dEl.className='pi-d'; dEl.style.color='var(--texto-suave)'; dEl.textContent='último conocido' }
+    if(el) el.textContent = 'USD ' + Math.round(precios[g] || defaults[g])
+    if(dEl) { dEl.style.color='rgba(250,247,240,.55)'; dEl.textContent='ref. CAC Rosario' }
   })
-  var elBna = document.getElementById('ps-bna')
-  var dBna = document.getElementById('ps-bna-d')
-  if(elBna) elBna.textContent = '$ ' + Math.round(precios.bna).toLocaleString('es-AR')
-  if(dBna) { dBna.className='pi-d'; dBna.style.color='var(--texto-suave)'; dBna.textContent='Divisa comprador' }
+
   var horaEl = document.getElementById('ps-hora')
-  if(horaEl) horaEl.textContent = 'Sin conexión · valores del ' + new Date().toLocaleDateString('es-AR')
+  if(horaEl) {
+    var now = new Date()
+    horaEl.textContent = (ok ? 'Dólar actualizado · ' : 'Referencia · ') + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
+  }
   if(btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false }
 }
 

@@ -1293,7 +1293,7 @@ window.openModalPrecios = function() {
   document.getElementById('ep-girasol').value = precios.girasol || ''
   document.getElementById('ep-sorgo').value = precios.sorgo || ''
   document.getElementById('ep-bna').value = precios.bna || ''
-  document.getElementById('ov-precios').style.display = 'flex'
+  document.getElementById('ov-precios').classList.add('open')
 }
 
 window.guardarPrecios = async function() {
@@ -1351,7 +1351,7 @@ window.guardarPrecios = async function() {
     showToast('✓ Precios actualizados localmente', 'ok')
   }
 
-  document.getElementById('ov-precios').style.display = 'none'
+  document.getElementById('ov-precios').classList.remove('open')
   btn.disabled = false; btn.textContent = 'Guardar precios'
   renderDashboard()
 }
@@ -3571,9 +3571,9 @@ window.addEventListener('scroll',()=>{
 init()
 </script>
   <!-- ── MODAL EDITAR PRECIOS ── -->
-  <div class="overlay" id="ov-precios" style="display:none;align-items:center;justify-content:center">
+  <div class="overlay" id="ov-precios">
     <div class="modal" style="max-width:420px">
-      <button class="m-close" onclick="document.getElementById('ov-precios').style.display='none'">✕</button>
+      <button class="m-close" onclick="document.getElementById('ov-precios').classList.remove('open')">✕</button>
       <div class="m-tit">✏️ Actualizar precios pizarra</div>
       <div class="m-sub">Ingresá los precios del día · Fuente: BCR / CAC Rosario</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem">

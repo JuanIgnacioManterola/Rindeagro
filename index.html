@@ -484,8 +484,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi" style="border-right:none"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
-      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <button onclick="actualizarPrecios()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div style="display:flex;gap:6px">
+          <button onclick="actualizarPrecios()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
+          <button onclick="openModalPrecios()" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Editar</button>
+        </div>
         <div id="ps-hora" style="font-size:10px;color:rgba(250,247,240,.55)"></div>
       </div>
     </div>
@@ -1236,7 +1239,31 @@ async function cargarTodo() {
     analisisS = s || []
   } catch(e) { analisisS = [] }
 
-  actualizarPrecios()
+  // Cargar precios desde Supabase (más recientes)
+  try {
+    var {data: preciosSB} = await sb.from('precios_pizarra').select('*').order('fecha',{ascending:false}).limit(1)
+    if(preciosSB && preciosSB.length) {
+      var p = preciosSB[0]
+      if(p.soja) precios.soja = p.soja
+      if(p.maiz) precios.maiz = p.maiz
+      if(p.trigo) precios.trigo = p.trigo
+      if(p.girasol) precios.girasol = p.girasol
+      if(p.sorgo) precios.sorgo = p.sorgo
+      if(p.bna) precios.bna = p.bna
+      ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
+        var el=document.getElementById('ps-'+g),dEl=document.getElementById('ps-'+g+'-d')
+        if(el) el.textContent='USD '+Math.round(precios[g])
+        if(dEl){dEl.style.color='rgba(250,247,240,.6)';dEl.textContent='CAC Rosario'}
+      })
+      var elBna=document.getElementById('ps-bna'),dBna=document.getElementById('ps-bna-d')
+      if(elBna) elBna.textContent='$ '+Math.round(precios.bna).toLocaleString('es-AR')
+      if(dBna){dBna.style.color='rgba(250,247,240,.6)';dBna.textContent='BNA divisa'}
+      var horaEl=document.getElementById('ps-hora')
+      if(horaEl) horaEl.textContent='Precios del '+p.fecha+' · CAC Rosario'
+    } else {
+      actualizarPrecios()
+    }
+  } catch(e) { actualizarPrecios() }
   renderDashboard()
   poblarSelectoresCampo()
   if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
@@ -1256,6 +1283,77 @@ window.showModulo = function(mod) {
   if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
   if (mod === 'notificaciones') renderNotificaciones()
+}
+
+window.openModalPrecios = function() {
+  // Precargar con valores actuales
+  document.getElementById('ep-soja').value = precios.soja || ''
+  document.getElementById('ep-maiz').value = precios.maiz || ''
+  document.getElementById('ep-trigo').value = precios.trigo || ''
+  document.getElementById('ep-girasol').value = precios.girasol || ''
+  document.getElementById('ep-sorgo').value = precios.sorgo || ''
+  document.getElementById('ep-bna').value = precios.bna || ''
+  document.getElementById('ov-precios').style.display = 'flex'
+}
+
+window.guardarPrecios = async function() {
+  var btn = document.getElementById('btn-guardar-precios')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+
+  var nuevos = {
+    soja:    parseFloat(document.getElementById('ep-soja').value) || precios.soja,
+    maiz:    parseFloat(document.getElementById('ep-maiz').value) || precios.maiz,
+    trigo:   parseFloat(document.getElementById('ep-trigo').value) || precios.trigo,
+    girasol: parseFloat(document.getElementById('ep-girasol').value) || precios.girasol,
+    sorgo:   parseFloat(document.getElementById('ep-sorgo').value) || precios.sorgo,
+    bna:     parseFloat(document.getElementById('ep-bna').value) || precios.bna,
+  }
+
+  // Actualizar en memoria
+  Object.assign(precios, nuevos)
+
+  // Actualizar el strip visualmente
+  var cereales = ['soja','maiz','trigo','girasol','sorgo']
+  cereales.forEach(function(g) {
+    var el = document.getElementById('ps-'+g)
+    var dEl = document.getElementById('ps-'+g+'-d')
+    if(el) el.textContent = 'USD ' + Math.round(nuevos[g])
+    if(dEl) { dEl.style.color='rgba(250,247,240,.6)'; dEl.textContent='CAC Rosario' }
+  })
+  var elBna = document.getElementById('ps-bna')
+  var dBna = document.getElementById('ps-bna-d')
+  if(elBna) elBna.textContent = '$ ' + Math.round(nuevos.bna).toLocaleString('es-AR')
+  if(dBna) { dBna.style.color='rgba(250,247,240,.6)'; dBna.textContent='BNA divisa' }
+
+  var horaEl = document.getElementById('ps-hora')
+  if(horaEl) {
+    var now = new Date()
+    horaEl.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' · CAC Rosario'
+  }
+
+  // Guardar en Supabase para que todos los usuarios vean los mismos precios
+  try {
+    var hoy = new Date().toISOString().split('T')[0]
+    var {error} = await sb.from('precios_pizarra').upsert({
+      fecha: hoy,
+      soja: nuevos.soja,
+      maiz: nuevos.maiz,
+      trigo: nuevos.trigo,
+      girasol: nuevos.girasol,
+      sorgo: nuevos.sorgo,
+      bna: nuevos.bna,
+      actualizado_por: usuario?.id || null
+    }, {onConflict: 'fecha'})
+    if(error) console.log('Supabase precios error:', error)
+    else showToast('✓ Precios actualizados', 'ok')
+  } catch(e) {
+    console.log('Error guardando precios:', e)
+    showToast('✓ Precios actualizados localmente', 'ok')
+  }
+
+  document.getElementById('ov-precios').style.display = 'none'
+  btn.disabled = false; btn.textContent = 'Guardar precios'
+  renderDashboard()
 }
 
 window.actualizarPrecios = async function() {
@@ -3472,5 +3570,24 @@ window.addEventListener('scroll',()=>{
 
 init()
 </script>
+  <!-- ── MODAL EDITAR PRECIOS ── -->
+  <div class="overlay" id="ov-precios" style="display:none;align-items:center;justify-content:center">
+    <div class="modal" style="max-width:420px">
+      <button class="m-close" onclick="document.getElementById('ov-precios').style.display='none'">✕</button>
+      <div class="m-tit">✏️ Actualizar precios pizarra</div>
+      <div class="m-sub">Ingresá los precios del día · Fuente: BCR / CAC Rosario</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem">
+        <div class="fg"><label class="fl">Soja (USD/t)</label><input class="fi" type="number" id="ep-soja" placeholder="341" min="0"/></div>
+        <div class="fg"><label class="fl">Maíz (USD/t)</label><input class="fi" type="number" id="ep-maiz" placeholder="181" min="0"/></div>
+        <div class="fg"><label class="fl">Trigo (USD/t)</label><input class="fi" type="number" id="ep-trigo" placeholder="183" min="0"/></div>
+        <div class="fg"><label class="fl">Girasol (USD/t)</label><input class="fi" type="number" id="ep-girasol" placeholder="390" min="0"/></div>
+        <div class="fg"><label class="fl">Sorgo (USD/t)</label><input class="fi" type="number" id="ep-sorgo" placeholder="189" min="0"/></div>
+        <div class="fg"><label class="fl">Dólar BNA divisa</label><input class="fi" type="number" id="ep-bna" placeholder="1385" min="0"/></div>
+      </div>
+      <div style="font-size:11px;color:var(--texto-suave);margin-top:8px">💡 Precio pizarra Rosario · con retenciones descontadas · en USD/tonelada</div>
+      <button id="btn-guardar-precios" class="btn-full" onclick="guardarPrecios()" style="margin-top:1.25rem">Guardar precios</button>
+    </div>
+  </div>
+
 </body>
 </html>

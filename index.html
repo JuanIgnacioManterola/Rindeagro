@@ -1197,29 +1197,32 @@ async function init() {
     loading.classList.add('fade')
     setTimeout(() => { loading.style.display = 'none' }, 500)
     if (session && session.user) {
-      // Cerrar sesión para que el usuario confirme el login manualmente
-      await sb.auth.signOut()
+      // Sesion activa — entrar directo a la app
+      usuario = session.user
+      showScreen('app')
+      await cargarTodo()
+    } else {
+      // Sin sesion — mostrar landing con credenciales precargadas si tildó Recordarme
+      showScreen('landing')
+      initLanding()
+      setTimeout(function() {
+        try {
+          var email = localStorage.getItem('ra_email')
+          var pass = localStorage.getItem('ra_pass')
+          if(email && pass) {
+            openModal('login')
+            setTimeout(function() {
+              var eEl = document.getElementById('l-email')
+              var pEl = document.getElementById('l-pass')
+              var cEl = document.getElementById('chk-recordar')
+              if(eEl) eEl.value = email
+              if(pEl) pEl.value = pass
+              if(cEl) cEl.checked = true
+            }, 100)
+          }
+        } catch(e) {}
+      }, 600)
     }
-    showScreen('landing')
-    initLanding()
-    // Precargar credenciales guardadas si tildó Recordarme
-    setTimeout(function() {
-      try {
-        var email = localStorage.getItem('ra_email')
-        var pass = localStorage.getItem('ra_pass')
-        if(email && pass) {
-          openModal('login')
-          setTimeout(function() {
-            var eEl = document.getElementById('l-email')
-            var pEl = document.getElementById('l-pass')
-            var cEl = document.getElementById('chk-recordar')
-            if(eEl) eEl.value = email
-            if(pEl) pEl.value = pass
-            if(cEl) cEl.checked = true
-          }, 100)
-        }
-      } catch(e) {}
-    }, 600)
   } catch(e) {
     console.error(e)
     document.getElementById('screen-loading').style.display = 'none'

@@ -467,6 +467,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
       <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
       <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
@@ -878,6 +879,27 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 
   <!-- ── NOTIFICACIONES ── -->
+  <!-- ── MI PLAN ── -->
+  <div class="modulo" id="mod-mi-plan">
+    <div class="mod-header">
+      <div><div class="mod-titulo">⭐ Mi plan</div><div class="mod-sub">Administrá tu suscripción a RindeAgro</div></div>
+    </div>
+    <!-- Plan actual -->
+    <div class="card" id="mp-plan-actual" style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Plan actual</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--verde)" id="mp-nombre-plan">Semilla</div>
+          <div style="font-size:13px;color:var(--texto-suave);margin-top:4px" id="mp-estado-plan">Plan gratuito</div>
+        </div>
+        <div id="mp-badge-plan" style="background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700;padding:8px 16px;border-radius:20px">Activo</div>
+      </div>
+    </div>
+    <!-- Planes disponibles -->
+    <div style="font-size:13px;font-weight:600;color:var(--texto-mid);margin-bottom:1rem">Cambiar de plan</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="mp-planes-lista"></div>
+  </div>
+
   <div class="modulo" id="mod-notificaciones">
     <div class="mod-header">
       <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente</div></div>
@@ -1298,6 +1320,7 @@ window.showModulo = function(mod) {
   if (mod === 'campos') renderCamposLista()
   if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
+  if (mod === 'mi-plan') renderMiPlan()
   if (mod === 'notificaciones') renderNotificaciones()
 }
 
@@ -2439,6 +2462,65 @@ window.recuperarPass = async function() {
   try{await sb.auth.resetPasswordForEmail(email);showToast('✓ Email enviado para restablecer contraseña','ok')}
   catch(e){showToast('⚠️ Error al enviar email','err')}
 }
+window.renderMiPlan = async function() {
+  var planActual = usuario?.user_metadata?.plan || 'semilla'
+  var nombres = {semilla:'Semilla',lote:'Lote',agronomo:'Agrónomo',corporativo:'Corporativo'}
+  var precios = {semilla:'Gratis',lote:'USD 29/mes',agronomo:'USD 36/mes',corporativo:'USD 45/mes'}
+  document.getElementById('mp-nombre-plan').textContent = nombres[planActual] || 'Semilla'
+  document.getElementById('mp-estado-plan').textContent = precios[planActual] || 'Plan gratuito'
+
+  var lista = document.getElementById('mp-planes-lista')
+  if(!lista) return
+  lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">Cargando planes...</div>'
+
+  try {
+    var r = await fetch(SERVER_URL + '/mp/planes')
+    var data = await r.json()
+    if(!data.ok) throw new Error('Error cargando planes')
+
+    lista.innerHTML = Object.entries(data.planes).map(function(entry) {
+      var id = entry[0], plan = entry[1]
+      var esActual = id === planActual
+      return '<div class="card" style="margin-bottom:0;border:' + (esActual ? '2px solid var(--verde)' : '.5px solid var(--borde)') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">' +
+        '<div><div style="font-size:16px;font-weight:700;color:var(--verde)">' + plan.nombre + '</div>' +
+        '<div style="font-size:12px;color:var(--texto-suave);margin-top:3px">' + plan.descripcion + '</div></div>' +
+        '<div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde-mid)">USD ' + plan.precio + '</div></div>' +
+        '<div style="font-size:11px;color:var(--texto-suave);margin-bottom:12px">por mes · renovación automática</div>' +
+        (esActual
+          ? '<div style="text-align:center;padding:9px;border-radius:9px;background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700">✓ Plan actual</div>'
+          : '<button onclick="suscribirse(\'' + id + '\')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>'
+        ) + '</div>'
+    }).join('')
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No se pudieron cargar los planes. Intentá de nuevo.</div>'
+  }
+}
+
+window.suscribirse = async function(planId) {
+  if(!usuario) { showToast('⚠️ Debés estar logueado','err'); return }
+  showToast('⏳ Generando link de pago...','ok')
+  try {
+    var r = await fetch(SERVER_URL + '/mp/crear-suscripcion', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        plan: planId,
+        usuario_id: usuario.id,
+        email: usuario.email
+      })
+    })
+    var data = await r.json()
+    if(data.url) {
+      window.open(data.url, '_blank')
+    } else {
+      showToast('⚠️ Error generando el pago: ' + (data.detail||'Intentá de nuevo'), 'err')
+    }
+  } catch(e) {
+    showToast('⚠️ Error de conexión', 'err')
+  }
+}
+
 window.cerrarSesion = async function() {
   await sb.auth.signOut()
   usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[]

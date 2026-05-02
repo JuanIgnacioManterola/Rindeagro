@@ -3809,7 +3809,7 @@ function _buildNdviCanvas(pts, ndviBase) {
   var lats=pts.map(function(p){return p[0]}),lngs=pts.map(function(p){return p[1]})
   var minLat=Math.min.apply(null,lats),maxLat=Math.max.apply(null,lats)
   var minLng=Math.min.apply(null,lngs),maxLng=Math.max.apply(null,lngs)
-  var W=320,H=320
+  var W=280,H=280
   var canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H
   var ctx=canvas.getContext('2d')
   var img=ctx.createImageData(W,H); var d=img.data
@@ -3820,11 +3820,14 @@ function _buildNdviCanvas(pts, ndviBase) {
       var lng=minLng+(px/W)*(maxLng-minLng)
       var idx=(py*W+px)*4
       if(!_pepNdvi(lat,lng,pts)){d[idx+3]=0;continue}
-      // 3-octave spatially correlated noise
-      var n=0.50*_snNdvi(lat,lng,55,s)+0.30*_snNdvi(lat,lng,150,s+7)+0.20*_snNdvi(lat,lng,380,s+13)
-      var v=Math.max(0.04,Math.min(0.96,ndviBase*0.78+n*0.44-0.06))
+      // 4-octave noise: frecuencias altas = parches 50-300m como Sentinel-2
+      var n = 0.38*_snNdvi(lat,lng,600,s)
+            + 0.28*_snNdvi(lat,lng,1600,s+7)
+            + 0.20*_snNdvi(lat,lng,4000,s+13)
+            + 0.14*_snNdvi(lat,lng,9000,s+19)
+      var v=Math.max(0.04,Math.min(0.96,ndviBase*0.62+n*0.82-0.18))
       var rgb=_ndviRgbVal(v)
-      d[idx]=rgb[0];d[idx+1]=rgb[1];d[idx+2]=rgb[2];d[idx+3]=215
+      d[idx]=rgb[0];d[idx+1]=rgb[1];d[idx+2]=rgb[2];d[idx+3]=222
     }
   }
   ctx.putImageData(img,0,0)

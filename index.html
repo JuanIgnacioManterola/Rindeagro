@@ -1007,7 +1007,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
       </div>
       <div id="mapa-campo-modal" style="height:380px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
-      <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
+      <div id="campo-coords" style="display:none;margin-top:12px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:14px 20px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Superficie calculada</div>
+        <div style="font-size:32px;font-weight:800;color:var(--verde);font-family:'DM Mono',monospace;line-height:1"><span id="campo-ha-valor">0</span> <span style="font-size:16px;font-weight:600">ha</span></div>
+        <div id="campo-coords-txt" style="font-size:11px;color:var(--texto-suave);margin-top:4px"></div>
+      </div>
     </div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
     <input type="hidden" id="c-edit-id" value=""/>
@@ -2696,9 +2700,10 @@ function _cerrarPoligono(){
   var ha = _calcHaDesdePoligono(_polyPuntos)
   var haInput = document.getElementById('c-ha')
   if(haInput) haInput.value = ha
-  var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
+  var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt'),haVal=document.getElementById('campo-ha-valor')
   if(el)el.style.display='block'
-  if(txt)txt.textContent='✅ Polígono cerrado · '+_polyPuntos.length+' puntos · 📐 '+ha+' ha calculadas'
+  if(haVal)haVal.textContent=ha
+  if(txt)txt.textContent=_polyPuntos.length+' puntos marcados'
 }
 
 window.togglePoligono = function(){

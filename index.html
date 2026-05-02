@@ -444,7 +444,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="footer-top">
         <div><div class="footer-logo">Rinde<span class="d">.</span>Agro</div><div class="footer-desc">La plataforma agropecuaria argentina para productores que quieren saber cuánto rinde su campaña.</div></div>
         <div><div class="footer-col-tit">Producto</div><div class="footer-links"><a href="#features">Funcionalidades</a><a href="#planes">Precios</a></div></div>
-        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="/cdn-cgi/l/email-protection#f4869d9a90919593869bda979b9a809597809bb49399959d98da979b99"><span class="__cf_email__" data-cfemail="681a01060c0d090f1a07460b07061c090b1c07280f05090104460b0705">[email&#160;protected]</span></a><a href="#">Términos</a><a href="#">Privacidad</a></div></div>
+        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="mailto:rindeagro.contacto@gmail.com">rindeagro.contacto@gmail.com</a><a href="#">Términos</a><a href="#">Privacidad</a></div></div>
       </div>
       <div class="footer-bottom"><div class="footer-copy">© 2026 Rinde.Agro · Hecho en Argentina 🇦🇷</div></div>
     </div>
@@ -884,18 +884,20 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo">⭐ Mi plan</div><div class="mod-sub">Administrá tu suscripción a RindeAgro</div></div>
     </div>
-    <div class="card" id="mp-plan-actual" style="margin-bottom:1.5rem;background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);border:none">
+    <!-- Plan actual -->
+    <div class="card" id="mp-plan-actual" style="margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div>
-          <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Plan actual</div>
-          <div style="font-size:26px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="mp-nombre-plan">Semilla</div>
-          <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px" id="mp-estado-plan">Plan gratuito</div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Plan actual</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--verde)" id="mp-nombre-plan">Semilla</div>
+          <div style="font-size:13px;color:var(--texto-suave);margin-top:4px" id="mp-estado-plan">Plan gratuito</div>
         </div>
-        <div id="mp-badge-plan" style="background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;padding:8px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.3)">● Activo</div>
+        <div id="mp-badge-plan" style="background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700;padding:8px 16px;border-radius:20px">Activo</div>
       </div>
     </div>
+    <!-- Planes disponibles -->
     <div style="font-size:13px;font-weight:600;color:var(--texto-mid);margin-bottom:1rem">Cambiar de plan</div>
-    <div id="mp-planes-lista"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="mp-planes-lista"></div>
   </div>
 
   <div class="modulo" id="mod-notificaciones">
@@ -1146,7 +1148,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // Safety timeout — si el módulo no carga en 6s, muestra la landing igual
 window._loadingTimeout = setTimeout(() => {
   var l = document.getElementById('screen-loading')
@@ -2464,16 +2466,14 @@ window.recuperarPass = async function() {
   catch(e){showToast('⚠️ Error al enviar email','err')}
 }
 var miPlanData = { planes: {}, bna: 0, anual: false, cuotas: 1 }
-
-// Tabla de intereses por cuotas (anual)
 var INTERESES_CUOTAS = {1:0, 2:0, 3:0, 4:10, 5:14, 6:18, 7:22, 8:26, 9:30, 10:34, 11:38, 12:42}
 
 window.renderMiPlan = async function() {
   var planActual = usuario?.user_metadata?.plan || 'semilla'
   var nombres = {semilla:'Semilla',lote:'Lote',agronomo:'Agrónomo',corporativo:'Corporativo'}
-  var precios = {semilla:'Gratis',lote:'USD 29/mes',agronomo:'USD 36/mes',corporativo:'USD 45/mes'}
+  var preciosPlanes = {semilla:'Gratis',lote:'USD 29/mes',agronomo:'USD 36/mes',corporativo:'USD 45/mes'}
   document.getElementById('mp-nombre-plan').textContent = nombres[planActual] || 'Semilla'
-  document.getElementById('mp-estado-plan').textContent = precios[planActual] || 'Plan gratuito'
+  document.getElementById('mp-estado-plan').textContent = preciosPlanes[planActual] || 'Plan gratuito'
   var lista = document.getElementById('mp-planes-lista')
   if(!lista) return
   lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:1rem">Cargando planes...</div>'
@@ -2495,7 +2495,6 @@ function renderTarjetasPlanes() {
   var bna = miPlanData.bna
   var cuotas = miPlanData.cuotas
 
-  // Toggle mensual/anual
   var toggleHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;padding:12px 16px;background:var(--verde-pale);border-radius:12px;width:fit-content">' +
     '<span onclick="setAnual(false)" style="font-size:13px;font-weight:' + (!anual?'700':'400') + ';color:var(--verde);cursor:pointer">Mensual</span>' +
     '<div onclick="setAnual(!miPlanData.anual)" style="width:46px;height:26px;border-radius:13px;background:' + (anual?'var(--verde)':'rgba(26,74,46,.2)') + ';cursor:pointer;position:relative;transition:all .2s;flex-shrink:0">' +
@@ -2503,7 +2502,6 @@ function renderTarjetasPlanes() {
     '<span onclick="setAnual(true)" style="font-size:13px;font-weight:' + (anual?'700':'400') + ';color:var(--verde);cursor:pointer">Anual <span style="background:var(--dorado);color:var(--verde);font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;margin-left:4px">Ahorrás 20%</span></span>' +
     '</div>'
 
-  // Selector de cuotas (solo en anual)
   var cuotasHtml = ''
   if(anual) {
     var opciones = Object.keys(INTERESES_CUOTAS).map(function(c) {
@@ -2520,7 +2518,6 @@ function renderTarjetasPlanes() {
     miPlanData.cuotas = 1
   }
 
-  // Tarjetas de planes
   var tarjetas = Object.entries(miPlanData.planes).map(function(entry) {
     var id = entry[0], plan = entry[1]
     var esActual = id === planActual
@@ -2535,8 +2532,7 @@ function renderTarjetasPlanes() {
       var porCuota = Math.round(precioArsTotal / cuotas)
       cuotaStr = '<div style="font-size:11px;color:var(--dorado);font-weight:700;margin-top:3px">' + cuotas + ' cuotas de $' + porCuota.toLocaleString('es-AR') + '</div>'
     }
-
-    return '<div style="background:var(--blanco);border-radius:16px;padding:1.4rem 1.5rem;border:' + (esActual?'2px solid var(--verde)':'.5px solid var(--borde)') + ';display:flex;flex-direction:column;gap:0;position:relative">' +
+    return '<div style="background:var(--blanco);border-radius:16px;padding:1.4rem 1.5rem;border:' + (esActual?'2px solid var(--verde)':'.5px solid var(--borde)') + ';display:flex;flex-direction:column;position:relative">' +
       (esActual ? '<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--verde);color:#fff;font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap">Plan actual</div>' : '') +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">' +
       '<div><div style="font-size:17px;font-weight:700;color:var(--verde)">' + plan.nombre + '</div>' +
@@ -2544,12 +2540,11 @@ function renderTarjetasPlanes() {
       '<div style="text-align:right;flex-shrink:0;margin-left:12px">' +
       '<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">USD ' + precioUsdBase + '<span style="font-size:11px;font-weight:400;color:var(--texto-suave)">' + periodo + '</span></div>' +
       '<div style="font-size:12px;color:var(--texto-suave);margin-top:2px">$ ' + precioArsStr + ' ARS' + periodo + '</div>' +
-      cuotaStr +
-      '</div></div>' +
+      cuotaStr + '</div></div>' +
       '<div style="font-size:11px;color:var(--texto-suave);margin-bottom:14px;padding-top:8px;border-top:.5px solid var(--borde)">Dólar BNA: $' + Math.round(bna).toLocaleString('es-AR') + ' · renovación automática' + (interes>0?' · interés '+interes+'%':'') + '</div>' +
       (esActual
         ? '<div style="text-align:center;padding:9px;border-radius:9px;background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700">✓ Plan actual</div>'
-        : '<button onclick="suscribirse('' + id + '')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Suscribirme →</button>'
+        : '<button onclick="suscribirse(\'' + id + '\')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>'
       ) + '</div>'
   }).join('')
 
@@ -3765,4 +3760,9 @@ init()
         <div class="fg"><label class="fl">Dólar BNA divisa</label><input class="fi" type="number" id="ep-bna" placeholder="1385" min="0"/></div>
       </div>
       <div style="font-size:11px;color:var(--texto-suave);margin-top:8px">💡 Precio pizarra Rosario · con retenciones descontadas · en USD/tonelada</div>
-      <button id="btn-guardar-precios" onclick="guardarPrecios()" style="margin-top:1.5rem;width:100%;padding:13px;border-radius:11px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;box-shadow:0 4px 16px rgba(26,74,46,.3);transit
+      <button id="btn-guardar-precios" onclick="guardarPrecios()" style="margin-top:1.5rem;width:100%;padding:13px;border-radius:11px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;box-shadow:0 4px 16px rgba(26,74,46,.3);transition:all .2s" onmouseover="this.style.background='var(--verde-mid)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='var(--verde)';this.style.transform='none'">✓ Guardar precios del día</button>
+    </div>
+  </div>
+
+</body>
+</html>

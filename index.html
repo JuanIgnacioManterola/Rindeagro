@@ -810,17 +810,52 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div style="position:relative;margin-bottom:1rem">
         <div id="mapa-ndvi" style="height:420px;border-radius:12px;overflow:hidden;border:.5px solid var(--borde)"></div>
-        <div style="position:absolute;bottom:12px;left:12px;background:rgba(10,20,12,.82);backdrop-filter:blur(6px);border-radius:10px;padding:10px 14px;z-index:500">
-          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Índice NDVI</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:10px;color:rgba(255,255,255,.6)">Bajo</span>
-            <div style="width:100px;height:10px;border-radius:5px;background:linear-gradient(to right,#a50026,#f46d43,#fdae61,#fee08b,#d9ef8b,#a6d96a,#66bd63,#1a9850)"></div>
-            <span style="font-size:10px;color:rgba(255,255,255,.6)">Alto</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;padding:0 2px"><span>0.0</span><span>0.5</span><span>1.0</span></div>
-        </div>
-        <div style="position:absolute;bottom:12px;right:12px;background:rgba(10,20,12,.82);backdrop-filter:blur(6px);border-radius:10px;padding:8px 12px;z-index:500;font-size:10px;color:rgba(255,255,255,.5)">NASA GIBS · MODIS</div>
+        <div style="position:absolute;bottom:12px;right:12px;background:rgba(10,20,12,.82);backdrop-filter:blur(6px);border-radius:8px;padding:6px 10px;z-index:500;font-size:10px;color:rgba(255,255,255,.45)">NASA GIBS · MODIS 250m</div>
       </div>
+      <!-- Leyenda NDVI -->
+      <div style="background:var(--blanco);border:.5px solid var(--borde);border-radius:12px;padding:14px 16px;margin-bottom:1rem">
+        <div style="font-size:12px;font-weight:700;color:var(--texto-mid);margin-bottom:10px">Interpretación del color NDVI</div>
+        <div style="display:flex;height:14px;border-radius:6px;overflow:hidden;margin-bottom:8px">
+          <div style="flex:1;background:#a50026"></div>
+          <div style="flex:1;background:#d73027"></div>
+          <div style="flex:1;background:#f46d43"></div>
+          <div style="flex:1;background:#fdae61"></div>
+          <div style="flex:1;background:#fee08b"></div>
+          <div style="flex:1;background:#d9ef8b"></div>
+          <div style="flex:1;background:#a6d96a"></div>
+          <div style="flex:1;background:#66bd63"></div>
+          <div style="flex:1;background:#1a9850"></div>
+          <div style="flex:1;background:#006837"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#d73027;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#c0392b">0.0 – 0.2</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Sin vegetación<br>Suelo / barbecho</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#fdae61;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#c97a14">0.2 – 0.4</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Vegetación<br>escasa / inicial</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#d9ef8b;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#7a8c1a">0.4 – 0.55</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Desarrollo<br>moderado</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#66bd63;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#2a7a28">0.55 – 0.7</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Buen<br>desarrollo</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#006837;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#1a4a2e">0.7 – 1.0</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Excelente<br>cobertura</div>
+          </div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem">
         <div class="card" style="text-align:center">
           <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">NDVI estimado</div>
@@ -3813,12 +3848,11 @@ function _actualizarNdvi(campo) {
     if(!window._mapaNdvi) {
       window._mapaNdvi = L.map('mapa-ndvi', {zoomControl:true}).setView(center, zoom)
       L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {attribution:'Google', maxZoom:20}).addTo(window._mapaNdvi)
-      if(pts) L.polygon(pts, {color:'#c9a84c', fillOpacity:0, weight:2.5, dashArray:'6,3'}).addTo(window._mapaNdvi)
-      else if(c.lat && c.lng) L.circleMarker([c.lat,c.lng], {radius:8, color:'#c9a84c', fillColor:'#c9a84c', fillOpacity:.5}).addTo(window._mapaNdvi)
     } else {
       window._mapaNdvi.invalidateSize()
     }
 
+    // NDVI WMS primero (debajo del polígono)
     if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
     window._ndviWmsLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
       layers: 'MODIS_Terra_L3_NDVI_Color_16Day',
@@ -3826,9 +3860,18 @@ function _actualizarNdvi(campo) {
       transparent: true,
       version: '1.3.0',
       time: fecha,
-      opacity: 0.75,
+      opacity: 0.85,
       attribution: 'NASA GIBS'
     }).addTo(window._mapaNdvi)
+
+    // Polígono encima del NDVI — borde doble para que resalte sobre cualquier color
+    if(window._ndviPolyLayer) { window._mapaNdvi.removeLayer(window._ndviPolyLayer); window._ndviPolyLayer2 && window._mapaNdvi.removeLayer(window._ndviPolyLayer2) }
+    if(pts) {
+      window._ndviPolyLayer  = L.polygon(pts, {color:'#000', fillOpacity:0, weight:5, opacity:0.5}).addTo(window._mapaNdvi)
+      window._ndviPolyLayer2 = L.polygon(pts, {color:'#fff', fillOpacity:0, weight:2.5}).addTo(window._mapaNdvi)
+    } else if(c.lat && c.lng) {
+      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:10, color:'#fff', weight:3, fillColor:'#fff', fillOpacity:.2}).addTo(window._mapaNdvi)
+    }
   }, 300)
 
   // Gráfico tendencia

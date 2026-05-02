@@ -3838,55 +3838,64 @@ function _actualizarNdvi(campo) {
 
   // Color del polígono según condición NDVI
   var ndviVal = _ndviSerieBase[_ndviIdx]
-  var ndviColor = ndviVal >= 0.65 ? '#1a7a52' : ndviVal >= 0.45 ? '#5cb85c' : ndviVal >= 0.30 ? '#f0ad4e' : ndviVal >= 0.15 ? '#e67e22' : '#c0392b'
+  var ndviColor = ndviVal >= 0.65 ? '#27ae60' : ndviVal >= 0.45 ? '#82c341' : ndviVal >= 0.30 ? '#f1c40f' : ndviVal >= 0.15 ? '#e67e22' : '#c0392b'
 
   // Mapa Leaflet
   setTimeout(function() {
-    var center = [-33.65, -64.60], zoom = 12
-    var pts = null
+    var center = [-33.65, -64.60], zoom = 13
+    var pts = null, bounds = null
     if(c.poligono) {
       try { pts = typeof c.poligono==='string' ? JSON.parse(c.poligono) : c.poligono } catch(e){}
-      if(pts && pts.length) {
+      if(pts && pts.length >= 3) {
         var lats=pts.map(function(p){return p[0]}), lngs=pts.map(function(p){return p[1]})
         center = [(Math.min.apply(null,lats)+Math.max.apply(null,lats))/2, (Math.min.apply(null,lngs)+Math.max.apply(null,lngs))/2]
-        zoom = 14
+        bounds = L.latLngBounds(pts.map(function(p){return L.latLng(p[0],p[1])}))
       }
-    } else if(c.lat && c.lng) { center=[c.lat,c.lng]; zoom=13 }
+    } else if(c.lat && c.lng) { center=[c.lat,c.lng] }
 
     if(!window._mapaNdvi) {
-      window._mapaNdvi = L.map('mapa-ndvi', {zoomControl:true}).setView(center, zoom)
-      L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {attribution:'Google', maxZoom:20}).addTo(window._mapaNdvi)
+      window._mapaNdvi = L.map('mapa-ndvi', {zoomControl:true, attributionControl:false}).setView(center, zoom)
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {maxZoom:20}).addTo(window._mapaNdvi)
+      L.control.attribution({prefix:false}).addTo(window._mapaNdvi)
     } else {
-      window._mapaNdvi.setView(center, zoom)
       window._mapaNdvi.invalidateSize()
     }
 
-    // NDVI tiles NASA GIBS como textura de fondo
-    if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
-    window._ndviWmsLayer = L.tileLayer(
-      'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_NDVI_16Day/default/' + fecha + '/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png',
-      { maxNativeZoom: 9, maxZoom: 20, opacity: 0.6, attribution: 'NASA GIBS · MODIS' }
-    ).addTo(window._mapaNdvi)
-
-    // Limpiar capas anteriores de polígono y máscara
-    ['_ndviMaskLayer','_ndviPolyLayer','_ndviPolyLayer2'].forEach(function(k){
+    // Limpiar todas las capas anteriores
+    if(window._ndviWmsLayer) { window._mapaNdvi.removeLayer(window._ndviWmsLayer); window._ndviWmsLayer=null }
+    ;['_ndviMaskLayer','_ndviPolyLayer','_ndviPolyLayer2'].forEach(function(k){
       if(window[k]) { window._mapaNdvi.removeLayer(window[k]); window[k]=null }
     })
 
-    if(pts) {
-      // Relleno del polígono con color según condición NDVI
+    if(pts && bounds) {
+      // Oscurecer todo excepto el campo
+      var mundo = [[-85,-180],[-85,180],[85,180],[85,-180]]
+      window._ndviMaskLayer = L.polygon([mundo, pts], {
+        color:'none', fillColor:'#000', fillOpacity:0.55, interactive:false
+      }).addTo(window._mapaNdvi)
+
+      // Relleno del campo con color NDVI
       window._ndviPolyLayer = L.polygon(pts, {
-        color: '#ffffff', weight: 3, opacity: 1,
-        fillColor: ndviColor, fillOpacity: 0.45,
+        color:'#ffffff', weight:2.5, opacity:0.9,
+        fillColor: ndviColor, fillOpacity: 0.55,
         interactive: false
       }).addTo(window._mapaNdvi)
-      // Borde exterior grueso en el color NDVI para máxima visibilidad
+
+      // Borde grueso en color NDVI para contraste
       window._ndviPolyLayer2 = L.polygon(pts, {
-        color: ndviColor, weight: 5, opacity: 0.85,
+        color: ndviColor, weight: 4, opacity: 1,
         fillOpacity: 0, interactive: false
       }).addTo(window._mapaNdvi)
+
+      // Centrar y hacer zoom al campo
+      window._mapaNdvi.fitBounds(bounds.pad(0.3))
+
     } else if(c.lat && c.lng) {
-      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:14, color:ndviColor, weight:4, fillColor:ndviColor, fillOpacity:.35, interactive:false}).addTo(window._mapaNdvi)
+      window._mapaNdvi.setView([c.lat,c.lng], 13)
+      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {
+        radius:16, color:'#fff', weight:3,
+        fillColor:ndviColor, fillOpacity:0.6, interactive:false
+      }).addTo(window._mapaNdvi)
     }
   }, 300)
 

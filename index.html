@@ -3782,8 +3782,11 @@ async function _getSHToken() {
   try {
     var r = await fetch('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token', {
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'grant_type=client_credentials&client_id='+_SH_CID+'&client_secret='+_SH_SEC
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'Authorization':'Basic '+btoa(_SH_CID+':'+_SH_SEC)
+      },
+      body:'grant_type=client_credentials'
     })
     if(!r.ok) return null
     var d = await r.json()

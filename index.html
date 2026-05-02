@@ -3852,17 +3852,12 @@ function _actualizarNdvi(campo) {
       window._mapaNdvi.invalidateSize()
     }
 
-    // NDVI WMS primero (debajo del polígono)
+    // NDVI via WMTS tiles (más compatible que WMS, funciona desde cualquier dominio)
     if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
-    window._ndviWmsLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
-      layers: 'MODIS_Terra_L3_NDVI_Color_16Day',
-      format: 'image/png',
-      transparent: true,
-      version: '1.3.0',
-      time: fecha,
-      opacity: 0.85,
-      attribution: 'NASA GIBS'
-    }).addTo(window._mapaNdvi)
+    window._ndviWmsLayer = L.tileLayer(
+      'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_NDVI_Color_16Day/default/' + fecha + '/250m/{z}/{y}/{x}.png',
+      { maxNativeZoom: 7, maxZoom: 20, opacity: 0.88, attribution: 'NASA GIBS · MODIS' }
+    ).addTo(window._mapaNdvi)
 
     // Limpiar capas anteriores de polígono y máscara
     ['_ndviMaskLayer','_ndviPolyLayer','_ndviPolyLayer2'].forEach(function(k){

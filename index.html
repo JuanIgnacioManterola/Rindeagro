@@ -3773,7 +3773,8 @@ var _ndviIdx = 0
 var _ndviSerieBase = []
 
 // ── Sentinel Hub / Copernicus Data Space ──────────────────────────────────
-var _SH_CID = 'sh-5ece9669-6e27-4453-9cca-e572438ad699'
+var _SH_CID = 'sh-ccc0d43e-6e9b-477f-b2b8-9a198dba7b3e'
+var _SH_SEC = 'IedWC13sJR5HMeWTClXUEc53YUDl5WCt'
 var _shToken = null, _shTokenExp = 0
 
 async function _getSHToken() {
@@ -3782,7 +3783,7 @@ async function _getSHToken() {
     var r = await fetch('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'grant_type=client_credentials&client_id='+_SH_CID
+      body:'grant_type=client_credentials&client_id='+_SH_CID+'&client_secret='+_SH_SEC
     })
     if(!r.ok) return null
     var d = await r.json()

@@ -3773,8 +3773,8 @@ var _ndviIdx = 0
 var _ndviSerieBase = []
 
 // ── Sentinel Hub / Copernicus Data Space ──────────────────────────────────
-var _SH_CID = 'sh-ccc0d43e-6e9b-477f-b2b8-9a198dba7b3e'
-var _SH_SEC = 'IedWC13sJR5HMeWTClXUEc53YUDl5WCt'
+var _SH_CID = 'sh-ddf61f8e-7229-4845-9d24-4a8df1e4ca1b'
+var _SH_SEC = 'tWUuVJ2OcJZfjQVzI1LLHR2lpAgsC6dB'
 var _shToken = null, _shTokenExp = 0
 
 async function _getSHToken() {
@@ -3783,10 +3783,9 @@ async function _getSHToken() {
     var r = await fetch('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token', {
       method:'POST',
       headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'Authorization':'Basic '+btoa(_SH_CID+':'+_SH_SEC)
+        'Content-Type':'application/x-www-form-urlencoded'
       },
-      body:'grant_type=client_credentials'
+      body:'grant_type=client_credentials&client_id='+encodeURIComponent(_SH_CID)+'&client_secret='+encodeURIComponent(_SH_SEC)
     })
     if(!r.ok) return null
     var d = await r.json()
@@ -4015,15 +4014,30 @@ function _actualizarNdvi(campo) {
             if(lbl) { lbl.textContent = '⚠️ Usando estimación (sin imagen satelital disponible)'; lbl.style.color='#888' }
             return
           }
-          // Reemplazar canvas con imagen real
-          if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
           var lats2=ptsLocal.map(function(p){return p[0]}), lngs2=ptsLocal.map(function(p){return p[1]})
           var minLat2=Math.min.apply(null,lats2), maxLat2=Math.max.apply(null,lats2)
           var minLng2=Math.min.apply(null,lngs2), maxLng2=Math.max.apply(null,lngs2)
-          window._ndviWmsLayer = L.imageOverlay(url, [[minLat2,minLng2],[maxLat2,maxLng2]], {
-            opacity:1, interactive:false, zIndex:400
-          }).addTo(window._mapaNdvi)
-          if(lbl) { lbl.textContent = '🛰️ Sentinel-2 · Imagen real'; lbl.style.color='#1a7a52' }
+          // Enmascarar la imagen al polígono del campo via canvas
+          var img2 = new Image()
+          img2.onload = function() {
+            var W=img2.width, H=img2.height
+            var mc=document.createElement('canvas'); mc.width=W; mc.height=H
+            var mx=mc.getContext('2d')
+            mx.beginPath()
+            ptsLocal.forEach(function(pt,i){
+              var px=(pt[1]-minLng2)/(maxLng2-minLng2)*W
+              var py=(1-(pt[0]-minLat2)/(maxLat2-minLat2))*H
+              if(i===0) mx.moveTo(px,py); else mx.lineTo(px,py)
+            })
+            mx.closePath(); mx.clip()
+            mx.drawImage(img2,0,0,W,H)
+            if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
+            window._ndviWmsLayer = L.imageOverlay(mc.toDataURL('image/png'), [[minLat2,minLng2],[maxLat2,maxLng2]], {
+              opacity:1, interactive:false, zIndex:400
+            }).addTo(window._mapaNdvi)
+            if(lbl) { lbl.textContent = '🛰️ Sentinel-2 · Imagen real'; lbl.style.color='#1a7a52' }
+          }
+          img2.src = url
         })
       })(_ptsSnap, _fechaSnap, _boundsSnap)
 

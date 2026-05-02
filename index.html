@@ -3836,6 +3836,10 @@ function _actualizarNdvi(campo) {
   document.getElementById('ndvi-stat-tend').textContent = tendStr
   document.getElementById('ndvi-stat-tend').style.color = tendColor
 
+  // Color del polígono según condición NDVI
+  var ndviVal = _ndviSerieBase[_ndviIdx]
+  var ndviColor = ndviVal >= 0.65 ? '#1a7a52' : ndviVal >= 0.45 ? '#5cb85c' : ndviVal >= 0.30 ? '#f0ad4e' : ndviVal >= 0.15 ? '#e67e22' : '#c0392b'
+
   // Mapa Leaflet
   setTimeout(function() {
     var center = [-33.65, -64.60], zoom = 12
@@ -3853,14 +3857,15 @@ function _actualizarNdvi(campo) {
       window._mapaNdvi = L.map('mapa-ndvi', {zoomControl:true}).setView(center, zoom)
       L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {attribution:'Google', maxZoom:20}).addTo(window._mapaNdvi)
     } else {
+      window._mapaNdvi.setView(center, zoom)
       window._mapaNdvi.invalidateSize()
     }
 
-    // NDVI via WMTS tiles (más compatible que WMS, funciona desde cualquier dominio)
+    // NDVI tiles NASA GIBS como textura de fondo
     if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
     window._ndviWmsLayer = L.tileLayer(
       'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_NDVI_16Day/default/' + fecha + '/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png',
-      { maxNativeZoom: 9, maxZoom: 20, opacity: 0.88, attribution: 'NASA GIBS · MODIS' }
+      { maxNativeZoom: 9, maxZoom: 20, opacity: 0.6, attribution: 'NASA GIBS · MODIS' }
     ).addTo(window._mapaNdvi)
 
     // Limpiar capas anteriores de polígono y máscara
@@ -3869,18 +3874,19 @@ function _actualizarNdvi(campo) {
     })
 
     if(pts) {
-      // Máscara: cubre todo el mundo con un hueco en el polígono del campo
-      // → el NDVI se ve pintado SOLO dentro del lote
-      var mundoBounds = [[-85,-180],[-85,180],[85,180],[85,-180]]
-      window._ndviMaskLayer = L.polygon([mundoBounds, pts], {
-        color: 'none', fillColor: '#111', fillOpacity: 0.55, interactive: false
+      // Relleno del polígono con color según condición NDVI
+      window._ndviPolyLayer = L.polygon(pts, {
+        color: '#ffffff', weight: 3, opacity: 1,
+        fillColor: ndviColor, fillOpacity: 0.45,
+        interactive: false
       }).addTo(window._mapaNdvi)
-
-      // Borde del polígono encima de todo — doble trazo para máximo contraste
-      window._ndviPolyLayer  = L.polygon(pts, {color:'#000', fillOpacity:0, weight:5, opacity:0.45, interactive:false}).addTo(window._mapaNdvi)
-      window._ndviPolyLayer2 = L.polygon(pts, {color:'#ffffff', fillOpacity:0, weight:2, interactive:false}).addTo(window._mapaNdvi)
+      // Borde exterior grueso en el color NDVI para máxima visibilidad
+      window._ndviPolyLayer2 = L.polygon(pts, {
+        color: ndviColor, weight: 5, opacity: 0.85,
+        fillOpacity: 0, interactive: false
+      }).addTo(window._mapaNdvi)
     } else if(c.lat && c.lng) {
-      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:10, color:'#fff', weight:3, fillColor:'#fff', fillOpacity:.15, interactive:false}).addTo(window._mapaNdvi)
+      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:14, color:ndviColor, weight:4, fillColor:ndviColor, fillOpacity:.35, interactive:false}).addTo(window._mapaNdvi)
     }
   }, 300)
 

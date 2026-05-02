@@ -653,6 +653,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button class="campo-tab" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
         <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
         <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
+        <button class="campo-tab" onclick="switchCampoTab('ndvi',this)">🛰️ NDVI</button>
         <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
       </div>
     </div>
@@ -794,6 +795,91 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- TAB: NDVI -->
+    <div class="campo-seccion" id="sec-ndvi">
+      <div style="background:linear-gradient(135deg,#0d2b1a,#1a4a2e);border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1rem;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:2px">🛰️ Monitoreo de Vegetación Satelital</div>
+          <div id="ndvi-sh-status" style="font-size:12px;opacity:.85">🛰️ Sentinel-2 · ESA Copernicus · 10m resolución</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="window.ndviPrevDate()" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+          <span id="ndvi-fecha-label" style="font-size:13px;font-weight:600;min-width:140px;text-align:center">Cargando...</span>
+          <button onclick="window.ndviNextDate()" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">›</button>
+        </div>
+      </div>
+      <div style="position:relative;margin-bottom:1rem">
+        <div id="mapa-ndvi" style="height:420px;border-radius:12px;overflow:hidden;border:.5px solid var(--borde)"></div>
+        <div style="position:absolute;bottom:12px;right:12px;background:rgba(10,20,12,.82);backdrop-filter:blur(6px);border-radius:8px;padding:6px 10px;z-index:500;font-size:10px;color:rgba(255,255,255,.55)">Sentinel-2 L2A · ESA Copernicus</div>
+      </div>
+      <!-- Leyenda NDVI -->
+      <div style="background:var(--blanco);border:.5px solid var(--borde);border-radius:12px;padding:14px 16px;margin-bottom:1rem">
+        <div style="font-size:12px;font-weight:700;color:var(--texto-mid);margin-bottom:10px">Interpretación del color NDVI</div>
+        <div style="display:flex;height:14px;border-radius:6px;overflow:hidden;margin-bottom:8px">
+          <div style="flex:1;background:#a50026"></div>
+          <div style="flex:1;background:#d73027"></div>
+          <div style="flex:1;background:#f46d43"></div>
+          <div style="flex:1;background:#fdae61"></div>
+          <div style="flex:1;background:#fee08b"></div>
+          <div style="flex:1;background:#d9ef8b"></div>
+          <div style="flex:1;background:#a6d96a"></div>
+          <div style="flex:1;background:#66bd63"></div>
+          <div style="flex:1;background:#1a9850"></div>
+          <div style="flex:1;background:#006837"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px">
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#d73027;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#c0392b">0.0 – 0.2</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Sin vegetación<br>Suelo / barbecho</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#fdae61;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#c97a14">0.2 – 0.4</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Vegetación<br>escasa / inicial</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#d9ef8b;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#7a8c1a">0.4 – 0.55</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Desarrollo<br>moderado</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#66bd63;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#2a7a28">0.55 – 0.7</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Buen<br>desarrollo</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:14px;height:14px;border-radius:3px;background:#006837;margin:0 auto 4px"></div>
+            <div style="font-size:10px;font-weight:700;color:#1a4a2e">0.7 – 1.0</div>
+            <div style="font-size:10px;color:var(--texto-suave);line-height:1.3">Excelente<br>cobertura</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem">
+        <div class="card" style="text-align:center">
+          <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">NDVI estimado</div>
+          <div id="ndvi-stat-val" style="font-size:28px;font-weight:800;font-family:'DM Mono',monospace;color:var(--verde)">—</div>
+          <div id="ndvi-stat-rango" style="font-size:11px;color:var(--texto-suave);margin-top:2px">calculando...</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Estado del cultivo</div>
+          <div id="ndvi-stat-estado" style="font-size:18px;font-weight:700;color:var(--verde)">—</div>
+          <div id="ndvi-stat-desc" style="font-size:11px;color:var(--texto-suave);margin-top:2px">—</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Tendencia</div>
+          <div id="ndvi-stat-tend" style="font-size:18px;font-weight:700">—</div>
+          <div id="ndvi-stat-tend-desc" style="font-size:11px;color:var(--texto-suave);margin-top:2px">vs período anterior</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-hdr"><span class="card-tit">Evolución NDVI · temporada actual</span></div>
+        <div style="position:relative;height:180px"><canvas id="chart-ndvi-trend"></canvas></div>
+      </div>
+      <div class="card" id="ndvi-eventos"></div>
+    </div>
+
     <!-- TAB: SENSIBILIDAD -->
     <div class="campo-seccion" id="sec-sens">
       <div class="card">
@@ -866,8 +952,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <!-- Buscador de ciudad -->
     <div style="display:flex;gap:6px;margin-bottom:10px">
-      <input id="mapa-ciudad-input" class="fi" type="text" placeholder="🔍 Buscar ciudad o localidad..." style="margin-bottom:0;flex:1;font-size:13px" onkeydown="if(event.key==='Enter')buscarCiudadMapa_global()"/>
-      <button onclick="buscarCiudadMapa_global()" style="padding:8px 16px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+      <input id="mapa-ciudad-input" class="fi" type="text" placeholder="🔍 Buscar localidad o ciudad..." style="margin-bottom:0;flex:1;font-size:13px" oninput="_debounceBuscarMapa()" onkeydown="if(event.key==='Enter')buscarCiudadMapa_global()"/>
     </div>
     <div id="mapa-ciudad-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:8px;max-height:130px;overflow-y:auto;font-size:13px;box-shadow:var(--sombra)"></div>
     <div id="mapa-lotes"></div>
@@ -911,7 +996,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODALES AUTH -->
-<div class="overlay" id="ov-auth" onclick="if(event.target===this)closeModal()">
+<div class="overlay" id="ov-auth">
   <div class="modal">
     <button class="m-close" onclick="closeModal()">✕</button>
     <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
@@ -955,7 +1040,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL CAMPO -->
-<div class="overlay" id="ov-campo" onclick="if(event.target===this)closeModalCampo()">
+<div class="overlay" id="ov-campo">
   <div class="modal" style="max-width:540px">
     <button class="m-close" onclick="closeModalCampo()">✕</button>
     <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub">Completá los datos de tu campo</div>
@@ -999,8 +1084,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <label class="fl">Ubicación del lote (opcional)</label>
       <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono del lote haciendo clic.</div>
       <div style="display:flex;gap:6px;margin-bottom:6px">
-        <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar ciudad (ej: Río Cuarto)..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
-        <button onclick="buscarCiudadMapa()" style="padding:7px 14px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+        <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar localidad o ciudad..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" oninput="_debounceBuscarCampo()" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
       </div>
       <div id="map-search-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
       <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
@@ -1009,7 +1093,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
       </div>
       <div id="mapa-campo-modal" style="height:380px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
-      <div id="campo-coords" style="font-size:11px;color:var(--texto-suave);margin-top:5px;display:none">📍 <span id="campo-coords-txt"></span></div>
+      <div id="campo-coords" style="display:none;margin-top:12px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:14px 20px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Superficie calculada</div>
+        <div style="font-size:32px;font-weight:800;color:var(--verde);font-family:'DM Mono',monospace;line-height:1"><span id="campo-ha-valor">0</span> <span style="font-size:16px;font-weight:600">ha</span></div>
+        <div id="campo-coords-txt" style="font-size:11px;color:var(--texto-suave);margin-top:4px"></div>
+      </div>
     </div>
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
     <input type="hidden" id="c-edit-id" value=""/>
@@ -1017,7 +1105,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL GASTO -->
-<div class="overlay" id="ov-gasto" onclick="if(event.target===this)closeModalGasto()">
+<div class="overlay" id="ov-gasto">
   <div class="modal" style="max-width:520px">
     <button class="m-close" onclick="closeModalGasto()">✕</button>
     <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
@@ -1100,7 +1188,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL LLUVIA -->
-<div class="overlay" id="ov-lluvia" onclick="if(event.target===this)closeModalLluvia()">
+<div class="overlay" id="ov-lluvia">
   <div class="modal">
     <button class="m-close" onclick="closeModalLluvia()">✕</button>
     <div class="m-tit">Registrar lluvia</div><div class="m-sub">Ingresá los datos de la lluvia</div>
@@ -1119,7 +1207,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL SUELO -->
-<div class="overlay" id="ov-suelo" onclick="if(event.target===this)closeModalSuelo()">
+<div class="overlay" id="ov-suelo">
   <div class="modal">
     <button class="m-close" onclick="closeModalSuelo()">✕</button>
     <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub">Ingresá los valores del laboratorio</div>
@@ -2062,7 +2150,7 @@ function initMapa() {
 
   mapInstance = L.map('mapa-lotes').setView([-33.65, -64.60], 10)
 
-  capas.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'})
+  capas.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20})
   capas.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'OpenTopoMap'})
   capas.streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap'})
   capas.satellite.addTo(mapInstance)
@@ -2260,6 +2348,14 @@ window.irACampoEnMapa = function(id) {
   }
 }
 
+var _timerBuscarMapa = null
+window._debounceBuscarMapa = function() {
+  clearTimeout(_timerBuscarMapa)
+  var q = document.getElementById('mapa-ciudad-input')?.value?.trim()
+  if(!q || q.length < 3) return
+  _timerBuscarMapa = setTimeout(buscarCiudadMapa_global, 400)
+}
+
 window.buscarCiudadMapa_global = async function() {
   var q = document.getElementById('mapa-ciudad-input')?.value?.trim()
   if(!q) return
@@ -2444,7 +2540,10 @@ window.login = async function() {
     showScreen('app')
     await cargarTodo()
   }catch(e){
-    showToast('⚠️ '+(e.message==='Invalid login credentials'?'Email o contraseña incorrectos':e.message||'Error'),'err')
+    var loginErr = e.message||'Error'
+    if(loginErr==='Invalid login credentials') loginErr='Email o contraseña incorrectos'
+    else if(loginErr.toLowerCase().includes('email not confirmed')) loginErr='Confirmá tu email antes de ingresar. Revisá tu bandeja de entrada.'
+    showToast('⚠️ '+loginErr,'err')
     btn.disabled=false;btn.textContent='Ingresar a mi cuenta'
   }
 }
@@ -2544,7 +2643,7 @@ function renderTarjetasPlanes() {
       '<div style="font-size:11px;color:var(--texto-suave);margin-bottom:14px;padding-top:8px;border-top:.5px solid var(--borde)">Dólar BNA: $' + Math.round(bna).toLocaleString('es-AR') + ' · renovación automática' + (interes>0?' · interés '+interes+'%':'') + '</div>' +
       (esActual
         ? '<div style="text-align:center;padding:9px;border-radius:9px;background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700">✓ Plan actual</div>'
-        : '<button onclick="suscribirse(\'' + id + '\')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>'
+        : `<button onclick="suscribirse('${id}')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>`
       ) + '</div>'
   }).join('')
 
@@ -2661,6 +2760,16 @@ function _dibujarPolyTemp(){
   })
 }
 
+function _calcHaDesdePoligono(puntos) {
+  var R = 6371000, rad = Math.PI / 180, n = puntos.length, area = 0
+  for (var i = 0; i < n; i++) {
+    var j = (i + 1) % n
+    var dLng = (puntos[j][1] - puntos[i][1]) * rad
+    area += dLng * (2 + Math.sin(puntos[i][0] * rad) + Math.sin(puntos[j][0] * rad))
+  }
+  return (Math.abs(area * R * R / 2) / 10000).toFixed(1)
+}
+
 function _cerrarPoligono(){
   var m=window._mapaCampoModal; if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
@@ -2668,12 +2777,17 @@ function _cerrarPoligono(){
   _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
   _polyModo=false
   document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
+  document.getElementById('btn-poly-start').style.background='var(--verde-pale)'
+  document.getElementById('btn-poly-start').style.color='var(--verde)'
   document.getElementById('poly-hint').style.display='none'
-  var txt=document.getElementById('campo-coords-txt')
   var centroid=_polyPuntos.reduce(function(a,p){return[a[0]+p[0],a[1]+p[1]];},[0,0])
   _campoCoordsLat=(centroid[0]/_polyPuntos.length).toFixed(5)
   _campoCoordsLng=(centroid[1]/_polyPuntos.length).toFixed(5)
-  if(txt)txt.textContent='Polígono cerrado · '+_polyPuntos.length+' puntos · centroide: '+_campoCoordsLat+', '+_campoCoordsLng
+  var ha = _calcHaDesdePoligono(_polyPuntos)
+  var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt'),haVal=document.getElementById('campo-ha-valor')
+  if(el)el.style.display='block'
+  if(haVal)haVal.textContent=ha
+  if(txt)txt.textContent='Superficie total del polígono · las hectáreas trabajables ingresalas arriba'
 }
 
 window.togglePoligono = function(){
@@ -2698,6 +2812,14 @@ window.limpiarPoligono = function(){
   btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
   document.getElementById('poly-hint').style.display='none'
   var el=document.getElementById('campo-coords');if(el)el.style.display='none'
+}
+
+var _timerBuscarCampo = null
+window._debounceBuscarCampo = function() {
+  clearTimeout(_timerBuscarCampo)
+  var q = document.getElementById('map-search-input')?.value?.trim()
+  if(!q || q.length < 3) return
+  _timerBuscarCampo = setTimeout(buscarCiudadMapa, 400)
 }
 
 window.buscarCiudadMapa = async function(){
@@ -3644,30 +3766,335 @@ window.renderDetSuelo = function() {
   document.getElementById('det-suelo-recs').innerHTML = !recs.length?'<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Nutrientes en niveles óptimos para '+cultivo+'</div>':recs.map(function(r){return '<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:4px">'+r.label+' — '+r.prod+'</div><div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>'+r.dosis+' kg/ha</strong> · '+r.momento+' · Costo: <strong>USD '+(r.dosis*r.precio).toFixed(0)+'/ha</strong></div></div>'}).join('')
 }
 
+// ── NDVI SATELITAL ──────────────────────────────────────────────────────────
+
+var _ndviDates = []
+var _ndviIdx = 0
+var _ndviSerieBase = []
+
+// ── Sentinel Hub / Copernicus Data Space ──────────────────────────────────
+var _SH_CID = 'sh-ddf61f8e-7229-4845-9d24-4a8df1e4ca1b'
+var _SH_SEC = 'tWUuVJ2OcJZfjQVzI1LLHR2lpAgsC6dB'
+var _shToken = null, _shTokenExp = 0
+
+async function _getSHToken() {
+  if(_shToken && Date.now() < _shTokenExp - 60000) return _shToken
+  try {
+    var r = await fetch('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded'
+      },
+      body:'grant_type=client_credentials&client_id='+encodeURIComponent(_SH_CID)+'&client_secret='+encodeURIComponent(_SH_SEC)
+    })
+    if(!r.ok) return null
+    var d = await r.json()
+    _shToken = d.access_token
+    _shTokenExp = Date.now() + (d.expires_in||3600)*1000
+    return _shToken
+  } catch(e){ return null }
+}
+
+async function _fetchSentinelNDVI(pts, fechaFin) {
+  var token = await _getSHToken()
+  if(!token) return null
+  var lats=pts.map(function(p){return p[0]}), lngs=pts.map(function(p){return p[1]})
+  var minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats)
+  var minLng=Math.min.apply(null,lngs), maxLng=Math.max.apply(null,lngs)
+  var dtFin = new Date(fechaFin+'T23:59:59Z')
+  var dtIni = new Date(dtFin.getTime()-50*86400000)
+  var evalscript = '//VERSION=3\nfunction setup(){return{input:[{bands:["B04","B08","SCL"],units:"DN"}],output:{bands:4,sampleType:"UINT8"}}}\nfunction cr(v){var s=[[0,[110,0,0]],[0.12,[200,20,0]],[0.22,[240,90,0]],[0.32,[255,195,0]],[0.45,[185,255,40]],[0.58,[80,210,0]],[0.70,[20,160,10]],[0.82,[0,115,20]],[1,[0,65,10]]];for(var i=1;i<s.length;i++){if(v<=s[i][0]){var t=(v-s[i-1][0])/(s[i][0]-s[i-1][0]),a=s[i-1][1],b=s[i][1];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}}return s[s.length-1][1]}\nfunction evaluatePixel(s){if([3,8,9,10].indexOf(s.SCL)!==-1)return[0,0,0,0];var n=(s.B08-s.B04)/(s.B08+s.B04+1e-4),c=cr(Math.max(0,Math.min(1,n)));return[c[0],c[1],c[2],(s.B08===0&&s.B04===0)?0:255]}'
+  var body = JSON.stringify({
+    input:{
+      bounds:{bbox:[minLng,minLat,maxLng,maxLat],properties:{crs:'http://www.opengis.net/def/crs/EPSG/0/4326'}},
+      data:[{dataFilter:{timeRange:{from:dtIni.toISOString(),to:dtFin.toISOString()},maxCloudCoverage:25,mosaickingOrder:'leastCC'},type:'sentinel-2-l2a'}]
+    },
+    output:{width:512,height:512,responses:[{identifier:'default',format:{type:'image/png'}}]},
+    evalscript:evalscript
+  })
+  try {
+    var r = await fetch('https://sh.dataspace.copernicus.eu/api/v1/process',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:body
+    })
+    if(!r.ok) return null
+    var blob = await r.blob()
+    return URL.createObjectURL(blob)
+  } catch(e){ return null }
+}
+
+// Point-in-polygon (ray casting)
+function _pepNdvi(lat, lng, pts) {
+  var inside = false, n = pts.length
+  for(var i=0,j=n-1; i<n; j=i++) {
+    var ai=pts[i][0],bi=pts[i][1],aj=pts[j][0],bj=pts[j][1]
+    if((ai>lat)!==(aj>lat) && lng < (bj-bi)*(lat-ai)/(aj-ai)+bi) inside=!inside
+  }
+  return inside
+}
+
+// Hash noise [0-1]
+function _hnNdvi(x,y,s){ var n=Math.sin(x*127.1+y*311.7+s*74.3)*43758.5453; return n-Math.floor(n) }
+
+// Smooth bilinear noise [0-1]
+function _snNdvi(lat,lng,freq,s){
+  var x=lat*freq,y=lng*freq,ix=Math.floor(x),iy=Math.floor(y),tx=x-ix,ty=y-iy
+  tx=tx*tx*(3-2*tx); ty=ty*ty*(3-2*ty)
+  return _hnNdvi(ix,iy,s)*(1-tx)*(1-ty)+_hnNdvi(ix+1,iy,s)*tx*(1-ty)+_hnNdvi(ix,iy+1,s)*(1-tx)*ty+_hnNdvi(ix+1,iy+1,s)*tx*ty
+}
+
+// NDVI value → RGB (dark red → red → orange → yellow → lime → green → dark green)
+function _ndviRgbVal(v) {
+  var stops=[[0,[110,0,0]],[0.12,[200,20,0]],[0.22,[240,90,0]],[0.32,[255,195,0]],[0.45,[185,255,40]],[0.58,[80,210,0]],[0.70,[20,160,10]],[0.82,[0,115,20]],[1.0,[0,65,10]]]
+  for(var i=1;i<stops.length;i++){
+    if(v<=stops[i][0]){
+      var t=(v-stops[i-1][0])/(stops[i][0]-stops[i-1][0]),a=stops[i-1][1],b=stops[i][1]
+      return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]
+    }
+  }
+  return stops[stops.length-1][1]
+}
+
+// Build canvas image overlay with per-pixel NDVI coloring
+function _buildNdviCanvas(pts, ndviBase) {
+  var lats=pts.map(function(p){return p[0]}),lngs=pts.map(function(p){return p[1]})
+  var minLat=Math.min.apply(null,lats),maxLat=Math.max.apply(null,lats)
+  var minLng=Math.min.apply(null,lngs),maxLng=Math.max.apply(null,lngs)
+  var W=280,H=280
+  var canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H
+  var ctx=canvas.getContext('2d')
+  var img=ctx.createImageData(W,H); var d=img.data
+  var s=(ndviBase*9973)|0
+  for(var px=0;px<W;px++){
+    for(var py=0;py<H;py++){
+      var lat=maxLat-(py/H)*(maxLat-minLat)
+      var lng=minLng+(px/W)*(maxLng-minLng)
+      var idx=(py*W+px)*4
+      if(!_pepNdvi(lat,lng,pts)){d[idx+3]=0;continue}
+      // 4-octave noise: frecuencias altas = parches 50-300m como Sentinel-2
+      var n = 0.38*_snNdvi(lat,lng,600,s)
+            + 0.28*_snNdvi(lat,lng,1600,s+7)
+            + 0.20*_snNdvi(lat,lng,4000,s+13)
+            + 0.14*_snNdvi(lat,lng,9000,s+19)
+      var v=Math.max(0.04,Math.min(0.96,ndviBase*0.62+n*0.82-0.18))
+      var rgb=_ndviRgbVal(v)
+      d[idx]=rgb[0];d[idx+1]=rgb[1];d[idx+2]=rgb[2];d[idx+3]=222
+    }
+  }
+  ctx.putImageData(img,0,0)
+  return L.imageOverlay(canvas.toDataURL('image/png'),[[minLat,minLng],[maxLat,maxLng]],{opacity:1,interactive:false,zIndex:400})
+}
+
+function _generarFechasNdvi() {
+  // MODIS Terra 16-day composites: desde 2001-01-01, cada 16 días
+  var origen = new Date('2001-01-01T12:00:00Z')
+  var hoy = new Date()
+  var diasDesdeOrigen = Math.floor((hoy - origen) / 86400000)
+  var compositeActual = Math.floor(diasDesdeOrigen / 16)
+  var fechas = []
+  for(var i = 9; i >= 0; i--) {
+    var offset = (compositeActual - i) * 16
+    var d = new Date(origen.getTime() + offset * 86400000)
+    fechas.push(d.toISOString().split('T')[0])
+  }
+  return fechas
+}
+
+function _ndviPorCultivo(cultivo, fechaStr) {
+  var mes = new Date(fechaStr + 'T12:00:00').getMonth() // 0-11
+  var curvas = {
+    'Soja':    [0.15,0.17,0.15,0.14,0.14,0.14,0.15,0.18,0.28,0.48,0.62,0.72],
+    'Maíz':    [0.72,0.65,0.38,0.20,0.15,0.14,0.15,0.18,0.22,0.38,0.55,0.68],
+    'Trigo':   [0.30,0.18,0.15,0.14,0.22,0.40,0.58,0.72,0.80,0.72,0.38,0.20],
+    'Girasol': [0.65,0.52,0.28,0.16,0.14,0.14,0.15,0.18,0.24,0.40,0.55,0.62],
+    'Sorgo':   [0.68,0.60,0.35,0.18,0.14,0.14,0.15,0.18,0.20,0.35,0.52,0.64],
+    'Maní':    [0.60,0.55,0.30,0.17,0.14,0.14,0.15,0.18,0.22,0.38,0.52,0.60]
+  }
+  var base = (curvas[cultivo] || curvas['Soja'])[mes]
+  return Math.max(0.10, Math.min(0.95, base + (Math.random() * 0.08 - 0.04)))
+}
+
 function renderDetNDVI() {
-  var c = campos.find(function(f){return f.id===campoDet}); if(!c)return
-  var idx = campos.indexOf(c)
-  var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-  var coords = [{lat:-33.62,lng:-64.58},{lat:-33.67,lng:-64.62},{lat:-33.64,lng:-64.56},{lat:-33.60,lng:-64.55},{lat:-33.70,lng:-64.65}]
-  var coord = coords[idx]||coords[0]
-  var ndvi=(0.45+Math.random()*.35).toFixed(2),evi=(0.30+Math.random()*.25).toFixed(2),savi=(0.35+Math.random()*.28).toFixed(2),ndwi=(0.15+Math.random()*.20).toFixed(2)
-  var ndviColor=ndvi>=.7?'#1a7a52':ndvi>=.5?'#c97a14':'#c0392b'
-  var ndviEst=ndvi>=.7?'Excelente':ndvi>=.5?'Normal':'Monitorear'
-  document.getElementById('det-ndvi-indices').innerHTML=[{nom:'NDVI',val:ndvi,desc:'Índice vegetación',c:ndviColor,pct:parseFloat(ndvi)*100},{nom:'EVI',val:evi,desc:'Índice mejorado',c:'#1a5fa8',pct:parseFloat(evi)*100},{nom:'SAVI',val:savi,desc:'Ajustado por suelo',c:'#c97a14',pct:parseFloat(savi)*100},{nom:'NDWI',val:ndwi,desc:'Índice hídrico',c:'#534AB7',pct:parseFloat(ndwi)*100}].map(function(n){return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px"><div style="width:52px;font-weight:700;font-family:DM Mono,monospace;color:'+n.c+'">'+n.val+'</div><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-weight:600">'+n.nom+'</span><span style="color:var(--texto-suave);font-size:11px">'+n.desc+'</span></div><div style="height:7px;background:var(--crema);border-radius:4px;overflow:hidden"><div style="width:'+n.pct+'%;height:100%;background:'+n.c+'88;border-radius:4px"></div></div></div></div>'}).join('')
-  var meses=['Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar']
-  var nh=meses.map(function(){return parseFloat((0.2+Math.random()*.6).toFixed(2))})
-  var ctxN=document.getElementById('chart-det-ndvi')
-  if(ctxN){if(charts['det-ndvi'])charts['det-ndvi'].destroy();charts['det-ndvi']=new Chart(ctxN,{type:'line',data:{labels:meses,datasets:[{label:'NDVI',data:nh,borderColor:'#1a7a52',backgroundColor:'rgba(26,122,82,.08)',tension:.4,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{min:0,max:1,ticks:{font:{size:9}}}}}})}
-  document.getElementById('det-ndvi-interp').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div style="font-weight:600;color:'+ndviColor+';margin-bottom:6px">Estado: '+ndviEst+'</div><p>NDVI <strong>'+ndvi+'</strong> — '+(parseFloat(ndvi)>=.6?'cobertura vegetal buena.':'cobertura moderada, se recomienda monitoreo.')+'</p><p style="margin-top:8px">NDWI <strong>'+ndwi+'</strong> — '+(parseFloat(ndwi)>=.2?'humedad adecuada.':'posible estrés hídrico.')+'</p></div><div><div style="font-weight:600;color:var(--verde);margin-bottom:6px">Rangos NDVI</div><div style="font-size:12px;display:flex;flex-direction:column;gap:5px"><div>🟢 0.7–1.0: Excelente</div><div>🟡 0.5–0.7: Normal</div><div>🔴 0.2–0.5: Bajo</div><div>⚫ 0.0–0.2: Sin vegetación</div></div></div></div>'
-  setTimeout(function(){
-    var el=document.getElementById('det-mapa-campo'); if(!el)return
-    if(window._mapDetInst){window._mapDetInst.remove();window._mapDetInst=null}
-    var m=L.map('det-mapa-campo').setView([coord.lat,coord.lng],13)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'}).addTo(m)
-    var icon=L.divIcon({html:'<div style="background:'+COLS[idx%COLS.length]+';color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.3)">'+c.nombre+'</div>',className:'',iconAnchor:[40,12]})
-    L.marker([coord.lat,coord.lng],{icon:icon}).addTo(m).bindPopup('<b>'+c.nombre+'</b><br>'+(c.hectareas||0)+' ha').openPopup()
-    window._mapDetInst=m
-  },300)
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  _ndviDates = _generarFechasNdvi()
+  _ndviIdx = _ndviDates.length - 1
+  _ndviSerieBase = _ndviDates.map(function(f){ return _ndviPorCultivo(c.cultivo||'Soja', f) })
+  _actualizarNdvi(c)
+}
+
+function _actualizarNdvi(campo) {
+  var c = campo || campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var fecha = _ndviDates[_ndviIdx]
+  var d = new Date(fecha + 'T12:00:00')
+  var label = d.toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'})
+  document.getElementById('ndvi-fecha-label').textContent = label
+
+  // Stats
+  var ndvi = _ndviSerieBase[_ndviIdx]
+  var ndviPrev = _ndviIdx > 0 ? _ndviSerieBase[_ndviIdx - 1] : ndvi
+  var diff = ndvi - ndviPrev
+  var ndviStr = ndvi.toFixed(2)
+  var color = ndvi >= 0.65 ? '#1a7a52' : ndvi >= 0.45 ? '#c97a14' : '#c0392b'
+  var estado = ndvi >= 0.65 ? '🟢 Excelente' : ndvi >= 0.45 ? '🟡 Normal' : '🔴 Bajo'
+  var desc = ndvi >= 0.65 ? 'Cobertura vegetal óptima' : ndvi >= 0.45 ? 'Cobertura moderada' : 'Vegetación escasa'
+  var tendStr = (diff >= 0 ? '▲ +' : '▼ ') + diff.toFixed(2)
+  var tendColor = diff >= 0.02 ? '#1a7a52' : diff <= -0.08 ? '#c0392b' : '#c97a14'
+
+  document.getElementById('ndvi-stat-val').textContent = ndviStr
+  document.getElementById('ndvi-stat-val').style.color = color
+  document.getElementById('ndvi-stat-rango').textContent = estado
+  document.getElementById('ndvi-stat-estado').textContent = estado
+  document.getElementById('ndvi-stat-estado').style.color = color
+  document.getElementById('ndvi-stat-desc').textContent = desc
+  document.getElementById('ndvi-stat-tend').textContent = tendStr
+  document.getElementById('ndvi-stat-tend').style.color = tendColor
+
+  // Color del polígono según condición NDVI
+  var ndviVal = _ndviSerieBase[_ndviIdx]
+  var ndviColor = ndviVal >= 0.65 ? '#27ae60' : ndviVal >= 0.45 ? '#82c341' : ndviVal >= 0.30 ? '#f1c40f' : ndviVal >= 0.15 ? '#e67e22' : '#c0392b'
+
+  // Mapa Leaflet
+  setTimeout(function() {
+    var center = [-33.65, -64.60], zoom = 13
+    var pts = null, bounds = null
+    if(c.poligono) {
+      try { pts = typeof c.poligono==='string' ? JSON.parse(c.poligono) : c.poligono } catch(e){}
+      if(pts && pts.length >= 3) {
+        var lats=pts.map(function(p){return p[0]}), lngs=pts.map(function(p){return p[1]})
+        center = [(Math.min.apply(null,lats)+Math.max.apply(null,lats))/2, (Math.min.apply(null,lngs)+Math.max.apply(null,lngs))/2]
+        bounds = L.latLngBounds(pts.map(function(p){return L.latLng(p[0],p[1])}))
+      }
+    } else if(c.lat && c.lng) { center=[c.lat,c.lng] }
+
+    if(!window._mapaNdvi) {
+      window._mapaNdvi = L.map('mapa-ndvi', {zoomControl:true, attributionControl:false}).setView(center, zoom)
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {maxZoom:20}).addTo(window._mapaNdvi)
+      L.control.attribution({prefix:false}).addTo(window._mapaNdvi)
+    } else {
+      window._mapaNdvi.invalidateSize()
+    }
+
+    // Limpiar todas las capas anteriores
+    if(window._ndviWmsLayer) { window._mapaNdvi.removeLayer(window._ndviWmsLayer); window._ndviWmsLayer=null }
+    ;['_ndviMaskLayer','_ndviPolyLayer','_ndviPolyLayer2'].forEach(function(k){
+      if(window[k]) { window._mapaNdvi.removeLayer(window[k]); window[k]=null }
+    })
+
+    if(pts && bounds) {
+      // Mostrar canvas simulado inmediatamente mientras carga Sentinel Hub
+      window._ndviWmsLayer = _buildNdviCanvas(pts, ndviVal)
+      window._ndviWmsLayer.addTo(window._mapaNdvi)
+
+      // Oscurecer todo excepto el campo
+      var mundo = [[-85,-180],[-85,180],[85,180],[85,-180]]
+      window._ndviMaskLayer = L.polygon([mundo, pts], {
+        color:'none', fillColor:'#000', fillOpacity:0.52, interactive:false
+      }).addTo(window._mapaNdvi)
+
+      // Borde blanco interno + borde amarillo externo
+      window._ndviPolyLayer = L.polygon(pts, {
+        color:'#fff', weight:2, opacity:0.9, fillOpacity:0, interactive:false
+      }).addTo(window._mapaNdvi)
+      window._ndviPolyLayer2 = L.polygon(pts, {
+        color:'#f1c40f', weight:4, opacity:0.85, fillOpacity:0, interactive:false
+      }).addTo(window._mapaNdvi)
+
+      window._mapaNdvi.fitBounds(bounds.pad(0.25))
+
+      // Indicador de carga Sentinel Hub
+      var lbl = document.getElementById('ndvi-sh-status')
+      if(lbl) { lbl.textContent = '🛰️ Cargando imagen Sentinel-2 real...'; lbl.style.color='#c97a14' }
+
+      // Cargar imagen real de Sentinel Hub en background
+      var _ptsSnap = pts.slice(), _fechaSnap = fecha, _boundsSnap = bounds
+      ;(function(ptsLocal, fechaLocal, boundsLocal){
+        _fetchSentinelNDVI(ptsLocal, fechaLocal).then(function(url) {
+          if(!url) {
+            if(lbl) { lbl.textContent = '⚠️ Usando estimación (sin imagen satelital disponible)'; lbl.style.color='#888' }
+            return
+          }
+          var lats2=ptsLocal.map(function(p){return p[0]}), lngs2=ptsLocal.map(function(p){return p[1]})
+          var minLat2=Math.min.apply(null,lats2), maxLat2=Math.max.apply(null,lats2)
+          var minLng2=Math.min.apply(null,lngs2), maxLng2=Math.max.apply(null,lngs2)
+          // Enmascarar la imagen al polígono del campo via canvas
+          var img2 = new Image()
+          img2.onload = function() {
+            var W=img2.width, H=img2.height
+            var mc=document.createElement('canvas'); mc.width=W; mc.height=H
+            var mx=mc.getContext('2d')
+            mx.beginPath()
+            ptsLocal.forEach(function(pt,i){
+              var px=(pt[1]-minLng2)/(maxLng2-minLng2)*W
+              var py=(1-(pt[0]-minLat2)/(maxLat2-minLat2))*H
+              if(i===0) mx.moveTo(px,py); else mx.lineTo(px,py)
+            })
+            mx.closePath(); mx.clip()
+            mx.drawImage(img2,0,0,W,H)
+            if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
+            window._ndviWmsLayer = L.imageOverlay(mc.toDataURL('image/png'), [[minLat2,minLng2],[maxLat2,maxLng2]], {
+              opacity:1, interactive:false, zIndex:400
+            }).addTo(window._mapaNdvi)
+            if(lbl) { lbl.textContent = '🛰️ Sentinel-2 · Imagen real'; lbl.style.color='#1a7a52' }
+          }
+          img2.src = url
+        })
+      })(_ptsSnap, _fechaSnap, _boundsSnap)
+
+    } else if(c.lat && c.lng) {
+      window._mapaNdvi.setView([c.lat,c.lng], 13)
+      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {
+        radius:16, color:'#fff', weight:3,
+        fillColor:ndviColor, fillOpacity:0.6, interactive:false
+      }).addTo(window._mapaNdvi)
+    }
+  }, 300)
+
+  // Gráfico tendencia
+  var labels = _ndviDates.map(function(f) {
+    var dd = new Date(f + 'T12:00:00')
+    return dd.toLocaleDateString('es-AR', {day:'numeric', month:'short'})
+  })
+  var highlighted = _ndviSerieBase.map(function(v, i) { return i === _ndviIdx ? v : null })
+  var ctx = document.getElementById('chart-ndvi-trend')
+  if(ctx) {
+    if(charts['ndvi-trend']) charts['ndvi-trend'].destroy()
+    charts['ndvi-trend'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label:'NDVI', data: _ndviSerieBase, borderColor:'#1a9850', backgroundColor:'rgba(26,152,80,.1)', tension:.4, fill:true, pointRadius:4, pointBackgroundColor: _ndviSerieBase.map(function(v,i){ return i===_ndviIdx?'#c9a84c':'#1a9850' }), pointRadius: _ndviSerieBase.map(function(v,i){ return i===_ndviIdx?7:3 }) }
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:function(ctx){ return 'NDVI: '+ctx.raw.toFixed(2) } } } }, scales:{ x:{grid:{display:false}, ticks:{font:{size:9}}}, y:{min:0, max:1, ticks:{font:{size:9}, stepSize:.2}} } }
+    })
+  }
+
+  // Eventos detectados
+  var eventos = []
+  for(var i=1; i<_ndviSerieBase.length; i++) {
+    var caida = _ndviSerieBase[i-1] - _ndviSerieBase[i]
+    if(caida >= 0.12) {
+      var fev = new Date(_ndviDates[i] + 'T12:00:00').toLocaleDateString('es-AR', {day:'numeric', month:'long'})
+      eventos.push({ ico:'⚠️', tipo:'urgente', txt:'Caída brusca de NDVI detectada (−'+caida.toFixed(2)+')', fecha:fev, desc:'Posible evento de daño: granizo, helada, enfermedad o estrés hídrico severo. Se recomienda inspección en campo.' })
+    }
+  }
+  var evEl = document.getElementById('ndvi-eventos')
+  if(evEl) evEl.innerHTML = eventos.length
+    ? '<div class="card-hdr"><span class="card-tit">⚠️ Eventos detectados</span></div>' + eventos.map(function(ev){ return '<div style="background:#fff3cd;border:.5px solid #c97a14;border-radius:10px;padding:.9rem 1rem;margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:700;color:#c97a14">'+ev.ico+' '+ev.txt+'</span><span style="font-size:11px;color:var(--texto-suave)">'+ev.fecha+'</span></div><div style="font-size:12px;color:var(--texto-mid)">'+ev.desc+'</div></div>' }).join('')
+    : '<div style="display:flex;align-items:center;gap:10px;padding:.5rem 0"><span style="font-size:20px">✅</span><div><div style="font-size:13px;font-weight:600;color:var(--verde)">Sin eventos detectados</div><div style="font-size:12px;color:var(--texto-suave)">No se registraron caídas bruscas de NDVI en el período analizado.</div></div></div>'
+}
+
+window.ndviPrevDate = function() {
+  if(_ndviIdx <= 0) return
+  _ndviIdx--
+  _actualizarNdvi()
+}
+window.ndviNextDate = function() {
+  if(_ndviIdx >= _ndviDates.length - 1) return
+  _ndviIdx++
+  _actualizarNdvi()
 }
 
 function initSensCampo() {

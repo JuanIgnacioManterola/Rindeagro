@@ -866,8 +866,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <!-- Buscador de ciudad -->
     <div style="display:flex;gap:6px;margin-bottom:10px">
-      <input id="mapa-ciudad-input" class="fi" type="text" placeholder="🔍 Buscar ciudad o localidad..." style="margin-bottom:0;flex:1;font-size:13px" onkeydown="if(event.key==='Enter')buscarCiudadMapa_global()"/>
-      <button onclick="buscarCiudadMapa_global()" style="padding:8px 16px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+      <input id="mapa-ciudad-input" class="fi" type="text" placeholder="🔍 Buscar localidad o ciudad..." style="margin-bottom:0;flex:1;font-size:13px" oninput="_debounceBuscarMapa()" onkeydown="if(event.key==='Enter')buscarCiudadMapa_global()"/>
     </div>
     <div id="mapa-ciudad-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:8px;max-height:130px;overflow-y:auto;font-size:13px;box-shadow:var(--sombra)"></div>
     <div id="mapa-lotes"></div>
@@ -999,8 +998,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <label class="fl">Ubicación del lote (opcional)</label>
       <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono del lote haciendo clic.</div>
       <div style="display:flex;gap:6px;margin-bottom:6px">
-        <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar ciudad (ej: Río Cuarto)..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
-        <button onclick="buscarCiudadMapa()" style="padding:7px 14px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Ir</button>
+        <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar localidad o ciudad..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" oninput="_debounceBuscarCampo()" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
       </div>
       <div id="map-search-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
       <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
@@ -2062,7 +2060,7 @@ function initMapa() {
 
   mapInstance = L.map('mapa-lotes').setView([-33.65, -64.60], 10)
 
-  capas.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'})
+  capas.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20})
   capas.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'OpenTopoMap'})
   capas.streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap'})
   capas.satellite.addTo(mapInstance)
@@ -2258,6 +2256,14 @@ window.irACampoEnMapa = function(id) {
     })
     document.getElementById('mapa-lotes')?.scrollIntoView({behavior:'smooth',block:'start'})
   }
+}
+
+var _timerBuscarMapa = null
+window._debounceBuscarMapa = function() {
+  clearTimeout(_timerBuscarMapa)
+  var q = document.getElementById('mapa-ciudad-input')?.value?.trim()
+  if(!q || q.length < 3) return
+  _timerBuscarMapa = setTimeout(buscarCiudadMapa_global, 400)
 }
 
 window.buscarCiudadMapa_global = async function() {
@@ -2664,6 +2670,16 @@ function _dibujarPolyTemp(){
   })
 }
 
+function _calcHaDesdePoligono(puntos) {
+  var R = 6371000, rad = Math.PI / 180, n = puntos.length, area = 0
+  for (var i = 0; i < n; i++) {
+    var j = (i + 1) % n
+    var dLng = (puntos[j][1] - puntos[i][1]) * rad
+    area += dLng * (2 + Math.sin(puntos[i][0] * rad) + Math.sin(puntos[j][0] * rad))
+  }
+  return (Math.abs(area * R * R / 2) / 10000).toFixed(1)
+}
+
 function _cerrarPoligono(){
   var m=window._mapaCampoModal; if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
@@ -2671,12 +2687,18 @@ function _cerrarPoligono(){
   _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
   _polyModo=false
   document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
+  document.getElementById('btn-poly-start').style.background='var(--verde-pale)'
+  document.getElementById('btn-poly-start').style.color='var(--verde)'
   document.getElementById('poly-hint').style.display='none'
-  var txt=document.getElementById('campo-coords-txt')
   var centroid=_polyPuntos.reduce(function(a,p){return[a[0]+p[0],a[1]+p[1]];},[0,0])
   _campoCoordsLat=(centroid[0]/_polyPuntos.length).toFixed(5)
   _campoCoordsLng=(centroid[1]/_polyPuntos.length).toFixed(5)
-  if(txt)txt.textContent='Polígono cerrado · '+_polyPuntos.length+' puntos · centroide: '+_campoCoordsLat+', '+_campoCoordsLng
+  var ha = _calcHaDesdePoligono(_polyPuntos)
+  var haInput = document.getElementById('c-ha')
+  if(haInput) haInput.value = ha
+  var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
+  if(el)el.style.display='block'
+  if(txt)txt.textContent='✅ Polígono cerrado · '+_polyPuntos.length+' puntos · 📐 '+ha+' ha calculadas'
 }
 
 window.togglePoligono = function(){
@@ -2701,6 +2723,14 @@ window.limpiarPoligono = function(){
   btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
   document.getElementById('poly-hint').style.display='none'
   var el=document.getElementById('campo-coords');if(el)el.style.display='none'
+}
+
+var _timerBuscarCampo = null
+window._debounceBuscarCampo = function() {
+  clearTimeout(_timerBuscarCampo)
+  var q = document.getElementById('map-search-input')?.value?.trim()
+  if(!q || q.length < 3) return
+  _timerBuscarCampo = setTimeout(buscarCiudadMapa, 400)
 }
 
 window.buscarCiudadMapa = async function(){

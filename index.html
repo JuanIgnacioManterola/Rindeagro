@@ -3864,13 +3864,24 @@ function _actualizarNdvi(campo) {
       attribution: 'NASA GIBS'
     }).addTo(window._mapaNdvi)
 
-    // Polígono encima del NDVI — borde doble para que resalte sobre cualquier color
-    if(window._ndviPolyLayer) { window._mapaNdvi.removeLayer(window._ndviPolyLayer); window._ndviPolyLayer2 && window._mapaNdvi.removeLayer(window._ndviPolyLayer2) }
+    // Limpiar capas anteriores de polígono y máscara
+    ['_ndviMaskLayer','_ndviPolyLayer','_ndviPolyLayer2'].forEach(function(k){
+      if(window[k]) { window._mapaNdvi.removeLayer(window[k]); window[k]=null }
+    })
+
     if(pts) {
-      window._ndviPolyLayer  = L.polygon(pts, {color:'#000', fillOpacity:0, weight:5, opacity:0.5}).addTo(window._mapaNdvi)
-      window._ndviPolyLayer2 = L.polygon(pts, {color:'#fff', fillOpacity:0, weight:2.5}).addTo(window._mapaNdvi)
+      // Máscara: cubre todo el mundo con un hueco en el polígono del campo
+      // → el NDVI se ve pintado SOLO dentro del lote
+      var mundoBounds = [[-85,-180],[-85,180],[85,180],[85,-180]]
+      window._ndviMaskLayer = L.polygon([mundoBounds, pts], {
+        color: 'none', fillColor: '#111', fillOpacity: 0.55, interactive: false
+      }).addTo(window._mapaNdvi)
+
+      // Borde del polígono encima de todo — doble trazo para máximo contraste
+      window._ndviPolyLayer  = L.polygon(pts, {color:'#000', fillOpacity:0, weight:5, opacity:0.45, interactive:false}).addTo(window._mapaNdvi)
+      window._ndviPolyLayer2 = L.polygon(pts, {color:'#ffffff', fillOpacity:0, weight:2, interactive:false}).addTo(window._mapaNdvi)
     } else if(c.lat && c.lng) {
-      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:10, color:'#fff', weight:3, fillColor:'#fff', fillOpacity:.2}).addTo(window._mapaNdvi)
+      window._ndviPolyLayer = L.circleMarker([c.lat,c.lng], {radius:10, color:'#fff', weight:3, fillColor:'#fff', fillOpacity:.15, interactive:false}).addTo(window._mapaNdvi)
     }
   }, 300)
 

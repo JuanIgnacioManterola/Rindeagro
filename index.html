@@ -2698,12 +2698,10 @@ function _cerrarPoligono(){
   _campoCoordsLat=(centroid[0]/_polyPuntos.length).toFixed(5)
   _campoCoordsLng=(centroid[1]/_polyPuntos.length).toFixed(5)
   var ha = _calcHaDesdePoligono(_polyPuntos)
-  var haInput = document.getElementById('c-ha')
-  if(haInput) haInput.value = ha
   var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt'),haVal=document.getElementById('campo-ha-valor')
   if(el)el.style.display='block'
   if(haVal)haVal.textContent=ha
-  if(txt)txt.textContent=_polyPuntos.length+' puntos marcados'
+  if(txt)txt.textContent='Superficie total del polígono · las hectáreas trabajables ingresalas arriba'
 }
 
 window.togglePoligono = function(){

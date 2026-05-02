@@ -3773,12 +3773,16 @@ var _ndviIdx = 0
 var _ndviSerieBase = []
 
 function _generarFechasNdvi() {
+  // MODIS Terra 16-day composites: desde 2001-01-01, cada 16 días
+  var origen = new Date('2001-01-01T12:00:00Z')
+  var hoy = new Date()
+  var diasDesdeOrigen = Math.floor((hoy - origen) / 86400000)
+  var compositeActual = Math.floor(diasDesdeOrigen / 16)
   var fechas = []
-  var d = new Date()
-  d.setDate(d.getDate() - 18) // lag de datos NASA
-  for(var i = 0; i < 10; i++) {
-    fechas.unshift(d.toISOString().split('T')[0])
-    d.setDate(d.getDate() - 16)
+  for(var i = 9; i >= 0; i--) {
+    var offset = (compositeActual - i) * 16
+    var d = new Date(origen.getTime() + offset * 86400000)
+    fechas.push(d.toISOString().split('T')[0])
   }
   return fechas
 }
@@ -3855,8 +3859,8 @@ function _actualizarNdvi(campo) {
     // NDVI via WMTS tiles (más compatible que WMS, funciona desde cualquier dominio)
     if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
     window._ndviWmsLayer = L.tileLayer(
-      'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_NDVI_Color_16Day/default/' + fecha + '/250m/{z}/{y}/{x}.png',
-      { maxNativeZoom: 7, maxZoom: 20, opacity: 0.88, attribution: 'NASA GIBS · MODIS' }
+      'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_NDVI_16Day/default/' + fecha + '/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png',
+      { maxNativeZoom: 9, maxZoom: 20, opacity: 0.88, attribution: 'NASA GIBS · MODIS' }
     ).addTo(window._mapaNdvi)
 
     // Limpiar capas anteriores de polígono y máscara

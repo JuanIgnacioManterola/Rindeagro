@@ -2544,7 +2544,7 @@ function renderTarjetasPlanes() {
       '<div style="font-size:11px;color:var(--texto-suave);margin-bottom:14px;padding-top:8px;border-top:.5px solid var(--borde)">Dólar BNA: $' + Math.round(bna).toLocaleString('es-AR') + ' · renovación automática' + (interes>0?' · interés '+interes+'%':'') + '</div>' +
       (esActual
         ? '<div style="text-align:center;padding:9px;border-radius:9px;background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700">✓ Plan actual</div>'
-        : '<button onclick="suscribirse(\'' + id + '\')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>'
+        : `<button onclick="suscribirse('${id}')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Suscribirme →</button>`
       ) + '</div>'
   }).join('')
 

@@ -501,7 +501,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="grid2">
       <div>
         <div class="card">
-          <div class="card-hdr"><span class="card-tit">Mis campos</span><button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button></div>
+          <div class="card-hdr"><span class="card-tit" id="dash-campos-tit">Mis campos</span><button class="btn-vs" id="dash-campos-btn" onclick="openModalCampo()">+ Nuevo campo</button></div>
           <div id="dash-campos"></div>
         </div>
 
@@ -1683,54 +1683,15 @@ window.actualizarPrecios = async function(forzar) {
 
 // ── DASHBOARD ──
 function renderDashboard() {
-  // Actualizar polígonos en el mapa si está iniciado
   if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() }
-  // Métricas
-  var totalHa=0,ing=0,cost=0
-  campos.forEach(c => {
-    var ha=c.hectareas||0; totalHa+=ha
-    var cult=c.cultivo||'Soja'
-    var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var rend=c.rendimiento||rendEst  // usar real si existe
-    var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-    var pr=c.precio_venta||prEst  // usar precio real si existe
-    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-    var costoHa = ha>0?gc/ha:190
-    ing+=rend*pr*ha; cost+=costoHa*ha
-  })
-  var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
-  document.getElementById('dash-mets').innerHTML = [
-    {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
-    {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
-    {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
-    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
-  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
 
-  // Campos
-  var el = document.getElementById('dash-campos')
-  if (!campos.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo para ver tu rentabilidad.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div>`
+  if (perfil === 'agronomo') {
+    _renderDashboardAgronomo()
   } else {
-    el.innerHTML = campos.map((c,i)=>{
-      var ha=c.hectareas||0
-      var cult=c.cultivo||'Soja'
-      var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-      var rend=c.rendimiento||rendEst
-      var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-      var pr=c.precio_venta||prEst
-      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-      var costoHa=ha>0?gc/ha:190
-      var mg=rend*pr-costoHa
-      var mc=mg>=0?'#1a7a52':'#c0392b'
-      return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
-        <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
-        <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
-        <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
-      </div>`
-    }).join('')
+    _renderDashboardProductor()
   }
 
-  // Alertas dashboard
+  // Alertas (compartido)
   var alertas = generarAlertas()
   var el2 = document.getElementById('dash-alertas')
   if (!alertas.length) {
@@ -1746,6 +1707,90 @@ function renderDashboard() {
   var badge = document.getElementById('notif-badge')
   var urgentes = alertas.filter(a=>a.tipo==='urgente').length
   badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
+}
+
+function _renderDashboardProductor() {
+  var totalHa=0,ing=0,cost=0
+  campos.forEach(c => {
+    var ha=c.hectareas||0; totalHa+=ha
+    var cult=c.cultivo||'Soja'
+    var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+    var rend=c.rendimiento||rendEst
+    var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+    var pr=c.precio_venta||prEst
+    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
+    var costoHa = ha>0?gc/ha:190
+    ing+=rend*pr*ha; cost+=costoHa*ha
+  })
+  var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
+  document.getElementById('dash-mets').innerHTML = [
+    {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
+    {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
+    {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
+    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
+  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+
+  var tit = document.getElementById('dash-campos-tit')
+  var btn = document.getElementById('dash-campos-btn')
+  if(tit) tit.textContent = 'Mis campos'
+  if(btn) { btn.textContent = '+ Nuevo campo'; btn.onclick = function(){openModalCampo()} }
+
+  var el = document.getElementById('dash-campos')
+  if (!campos.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo para ver tu rentabilidad.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div>`
+  } else {
+    el.innerHTML = campos.map((c,i)=>{
+      var ha=c.hectareas||0, cult=c.cultivo||'Soja'
+      var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
+      var rend=c.rendimiento||rendEst
+      var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+      var pr=c.precio_venta||prEst
+      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
+      var costoHa=ha>0?gc/ha:190
+      var mg=rend*pr-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
+      return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
+        <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
+        <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
+        <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
+      </div>`
+    }).join('')
+  }
+}
+
+function _renderDashboardAgronomo() {
+  var totalHa = campos.reduce(function(a,c){return a+(c.hectareas||0)},0)
+  var tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth()-3)
+  var recetasUltTrimestre = gastos.filter(function(g){
+    return g.fecha && new Date(g.fecha) >= tresMesesAtras
+  }).length
+  var nClientes = clientes.length
+
+  document.getElementById('dash-mets').innerHTML = [
+    {l:'Clientes',v:nClientes,s:'productores activos',c:'#1a4a2e'},
+    {l:'Hectáreas gestionadas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
+    {l:'Recetas último trimestre',v:recetasUltTrimestre,s:'aplicaciones registradas',c:'#c9a84c'},
+    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#0F6E56'},
+  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+
+  var tit = document.getElementById('dash-campos-tit')
+  var btn = document.getElementById('dash-campos-btn')
+  if(tit) tit.textContent = 'Mis clientes'
+  if(btn) { btn.textContent = '+ Nuevo cliente'; btn.onclick = function(){openModalCliente()} }
+
+  var el = document.getElementById('dash-campos')
+  if (!clientes.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-i">👥</div><div class="empty-t">Sin clientes registrados</div><div class="empty-s">Agregá tu primer cliente para gestionar sus campos.</div><button class="btn-vs" onclick="openModalCliente()" style="padding:10px 24px;font-size:13px">+ Agregar cliente</button></div>`
+  } else {
+    el.innerHTML = clientes.map(function(cli,i){
+      var camposCli = campos.filter(function(c){return c.cliente_id===cli.id})
+      var haTotal = camposCli.reduce(function(a,c){return a+(c.hectareas||0)},0)
+      return `<div class="campo-row" onclick="showModulo('clientes');setTimeout(function(){verCliente('${cli.id}')},50)">
+        <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
+        <div class="ci"><div class="cn">${cli.nombre}</div><div class="cm">${camposCli.length} campo${camposCli.length!==1?'s':''} · ${haTotal.toLocaleString('es-AR')} ha${cli.provincia?' · '+cli.provincia:''}</div></div>
+        <div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:13px">${camposCli.length}</div><div class="cmgp">campos</div></div>
+      </div>`
+    }).join('')
+  }
 }
 
 // ── RENTABILIDAD ──
@@ -2573,7 +2618,7 @@ function poblarSelectoresCampo() {
 }
 
 window.openModal = function(tipo) { document.getElementById('ov-auth').classList.add('open'); switchTab(tipo) }
-window.closeModal = function() { document.getElementById('ov-auth').classList.remove('open') }
+window.closeModal = function() { document.querySelectorAll('.overlay').forEach(function(o){o.classList.remove('open')}) }
 window.switchTab = function(tipo) {
   document.getElementById('tab-reg').classList.toggle('on',tipo==='registro')
   document.getElementById('tab-log').classList.toggle('on',tipo==='login')
@@ -2600,6 +2645,7 @@ window.regPaso3 = function() {
   if(!nombre){showToast('⚠️ Ingresá tu nombre','err');return}
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
+  if(perfil==='agronomo'){registrar();return}
   irPaso(3)
   setTimeout(_initMapReg, 350)
 }

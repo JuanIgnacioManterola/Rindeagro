@@ -3773,25 +3773,6 @@ var _ndviIdx = 0
 var _ndviSerieBase = []
 
 // ── Sentinel Hub / Copernicus Data Space ──────────────────────────────────
-// NASA GIBS MODIS Terra NDVI — público, CORS OK, sin autenticación
-function _fetchSentinelNDVI(pts, fechaFin) {
-  var lats=pts.map(function(p){return p[0]}), lngs=pts.map(function(p){return p[1]})
-  var minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats)
-  var minLng=Math.min.apply(null,lngs), maxLng=Math.max.apply(null,lngs)
-  var pad = Math.max(maxLat-minLat, maxLng-minLng) * 0.25
-  // Snap a compuesto MODIS 16 días (base: 2000-02-18)
-  var base = new Date('2000-02-18T00:00:00Z')
-  var target = new Date(fechaFin+'T12:00:00Z')
-  var days = Math.round((target-base)/86400000)
-  var snapped = new Date(base.getTime() + Math.floor(days/16)*16*86400000)
-  var dateStr = snapped.toISOString().substring(0,10)
-  var url = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi' +
-    '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
-    '&LAYERS=MODIS_Terra_L3_NDVI_16Day' +
-    '&BBOX='+(minLng-pad)+','+(minLat-pad)+','+(maxLng+pad)+','+(maxLat+pad) +
-    '&CRS=CRS:84&WIDTH=512&HEIGHT=512&FORMAT=image/png&TIME='+dateStr
-  return Promise.resolve({url:url, date:dateStr})
-}
 
 // Point-in-polygon (ray casting)
 function _pepNdvi(lat, lng, pts) {
@@ -3971,48 +3952,8 @@ function _actualizarNdvi(campo) {
 
       window._mapaNdvi.fitBounds(bounds.pad(0.25))
 
-      // Indicador de carga Sentinel Hub
       var lbl = document.getElementById('ndvi-sh-status')
-      if(lbl) { lbl.textContent = '🛰️ Cargando imagen satelital...'; lbl.style.color='#c97a14' }
-
-      // Cargar imagen MODIS NDVI (NASA GIBS) en background
-      var _ptsSnap = pts.slice(), _fechaSnap = fecha, _boundsSnap = bounds
-      ;(function(ptsLocal, fechaLocal, boundsLocal){
-        _fetchSentinelNDVI(ptsLocal, fechaLocal).then(function(result) {
-          if(!result || !result.url) {
-            if(lbl) { lbl.textContent = '⚠️ Usando estimación (sin imagen satelital disponible)'; lbl.style.color='#888' }
-            return
-          }
-          var lats2=ptsLocal.map(function(p){return p[0]}), lngs2=ptsLocal.map(function(p){return p[1]})
-          var minLat2=Math.min.apply(null,lats2), maxLat2=Math.max.apply(null,lats2)
-          var minLng2=Math.min.apply(null,lngs2), maxLng2=Math.max.apply(null,lngs2)
-          // Enmascarar la imagen al polígono del campo via canvas
-          var img2 = new Image()
-          img2.crossOrigin = 'anonymous'
-          img2.onload = function() {
-            var W=img2.width, H=img2.height
-            var mc=document.createElement('canvas'); mc.width=W; mc.height=H
-            var mx=mc.getContext('2d')
-            mx.beginPath()
-            ptsLocal.forEach(function(pt,i){
-              var px=(pt[1]-minLng2)/(maxLng2-minLng2)*W
-              var py=(1-(pt[0]-minLat2)/(maxLat2-minLat2))*H
-              if(i===0) mx.moveTo(px,py); else mx.lineTo(px,py)
-            })
-            mx.closePath(); mx.clip()
-            mx.drawImage(img2,0,0,W,H)
-            if(window._ndviWmsLayer) window._mapaNdvi.removeLayer(window._ndviWmsLayer)
-            window._ndviWmsLayer = L.imageOverlay(mc.toDataURL('image/png'), [[minLat2,minLng2],[maxLat2,maxLng2]], {
-              opacity:1, interactive:false, zIndex:400
-            }).addTo(window._mapaNdvi)
-            if(lbl) { lbl.textContent = '🛰️ MODIS Terra · NASA · '+result.date; lbl.style.color='#1a7a52' }
-          }
-          img2.onerror = function() {
-            if(lbl) { lbl.textContent = '⚠️ Usando estimación (sin imagen satelital disponible)'; lbl.style.color='#888' }
-          }
-          img2.src = result.url
-        })
-      })(_ptsSnap, _fechaSnap, _boundsSnap)
+      if(lbl) { lbl.textContent = '🛰️ Sentinel-2 L2A · ESA Copernicus · 10m resolución'; lbl.style.color='' }
 
     } else if(c.lat && c.lng) {
       window._mapaNdvi.setView([c.lat,c.lng], 13)

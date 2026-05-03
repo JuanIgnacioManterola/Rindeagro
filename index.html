@@ -2573,8 +2573,8 @@ window.login = async function() {
     await cargarTodo()
   }catch(e){
     var loginErr = e.message||'Error'
-    if(loginErr==='Invalid login credentials') loginErr='Email o contraseña incorrectos'
-    else if(loginErr.toLowerCase().includes('email not confirmed')) loginErr='Confirmá tu email antes de ingresar. Revisá tu bandeja de entrada.'
+    if(loginErr==='Invalid login credentials'||loginErr.toLowerCase().includes('invalid')) loginErr='Email o contraseña incorrectos. Si acabás de crear tu cuenta, revisá tu bandeja de entrada y confirmá el email.'
+    else if(loginErr.toLowerCase().includes('email not confirmed')||loginErr.toLowerCase().includes('not confirmed')) loginErr='Debés confirmar tu email antes de ingresar. Revisá tu bandeja de entrada.'
     showToast('⚠️ '+loginErr,'err')
     btn.disabled=false;btn.textContent='Ingresar a mi cuenta'
   }

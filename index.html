@@ -2527,7 +2527,7 @@ window.selPerfil = function(el,tipo) {
   el.classList.add('sel')
   setTimeout(()=>irPaso(2),280)
 }
-function irPaso(n) {
+window.irPaso = function(n) {
   paso=n
   document.querySelectorAll('.fstep').forEach((s,i)=>s.classList.toggle('on',i===n-1))
   document.querySelectorAll('.sdot').forEach((d,i)=>d.classList.toggle('on',i===n-1))

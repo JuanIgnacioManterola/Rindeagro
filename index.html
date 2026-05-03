@@ -1016,7 +1016,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
         <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
-        <div class="fg"><label class="fl">Contraseña</label><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres"/></div>
+        <div class="fg"><label class="fl">Contraseña</label><div style="position:relative;display:flex;align-items:center"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres" style="padding-right:2.5rem;width:100%"/><button type="button" onclick="togglePass('r-pass',this)" style="position:absolute;right:10px;z-index:2;background:none;border:none;cursor:pointer;padding:4px;color:var(--texto-suave);font-size:16px;line-height:1;user-select:none" tabindex="-1">👁</button></div></div>
         <button class="fb" onclick="regPaso3()">Continuar →</button>
       </div>
       <div class="fstep" id="rs3">
@@ -1031,7 +1031,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div id="f-log" style="display:none">
       <div class="m-tit2">Bienvenido de vuelta</div><div class="m-sub2">Ingresá a tu cuenta de Rinde.Agro</div>
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="l-email" placeholder="tu@email.com"/></div>
-      <div class="fg"><label class="fl">Contraseña</label><input class="fi" type="password" id="l-pass" placeholder="••••••••"/></div>
+      <div class="fg"><label class="fl">Contraseña</label><div style="position:relative;display:flex;align-items:center"><input class="fi" type="password" id="l-pass" placeholder="••••••••" style="padding-right:2.5rem;width:100%"/><button type="button" onclick="togglePass('l-pass',this)" style="position:absolute;right:10px;z-index:2;background:none;border:none;cursor:pointer;padding:4px;color:var(--texto-suave);font-size:16px;line-height:1;user-select:none" tabindex="-1">👁</button></div></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:1rem"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--texto-suave);cursor:pointer"><input type="checkbox" id="chk-recordar" style="accent-color:var(--verde)"/> Recordarme</label><span style="font-size:12px;color:var(--verde-light);cursor:pointer;text-decoration:underline" onclick="recuperarPass()">¿Olvidaste tu contraseña?</span></div>
       <button class="fb" id="btn-log" onclick="login()">Ingresar a mi cuenta</button>
       <div style="text-align:center;margin-top:1rem;font-size:12px;color:var(--texto-suave)">¿No tenés cuenta? <strong style="color:var(--verde);cursor:pointer" onclick="switchTab('registro')">Creá una gratis →</strong></div>
@@ -2498,6 +2498,13 @@ window.regPaso3 = function() {
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
   irPaso(3)
+}
+window.togglePass = function(id, btn) {
+  var inp = document.getElementById(id)
+  if(!inp) return
+  var show = inp.type === 'password'
+  inp.type = show ? 'text' : 'password'
+  btn.textContent = show ? '🙈' : '👁'
 }
 window.registrar = async function() {
   var nombre=document.getElementById('r-nombre').value.trim()

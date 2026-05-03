@@ -1030,8 +1030,26 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="m-tit2">Tu primer campo</div><div class="m-sub2">Opcional — podés agregarlo después</div>
         <div class="fg"><label class="fl">Nombre del campo</label><input class="fi" type="text" id="r-campo" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
         <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="r-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="r-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Otro</option></select></div></div>
+        <div style="margin-bottom:.9rem">
+          <label class="fl">Ubicación del lote (opcional)</label>
+          <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono haciendo clic.</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <input id="reg-map-search" class="fi" type="text" placeholder="🔍 Buscar ciudad (ej: Río Cuarto)..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" oninput="_debounceBuscarReg()" onkeydown="if(event.key==='Enter')buscarCiudadReg()"/>
+          </div>
+          <div id="reg-map-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
+          <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
+            <button id="btn-poly-reg" type="button" onclick="togglePoligonoReg()" style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Dibujar polígono</button>
+            <button type="button" onclick="limpiarPoligonoReg()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
+            <span id="poly-hint-reg" style="font-size:11px;color:var(--verde);display:none">✏️ Clic = punto · doble clic = cerrar</span>
+          </div>
+          <div id="mapa-reg" style="height:280px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
+          <div id="reg-coords" style="display:none;margin-top:8px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:10px;padding:10px 16px;text-align:center">
+            <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Superficie calculada</div>
+            <div style="font-size:28px;font-weight:800;color:var(--verde);font-family:'DM Mono',monospace;line-height:1"><span id="reg-ha-valor">0</span> <span style="font-size:14px;font-weight:600">ha</span></div>
+          </div>
+        </div>
         <button class="fb" id="btn-reg" onclick="registrar()">🌱 Crear mi cuenta en Rinde.Agro</button>
-        <button style="width:100%;padding:9px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px" onclick="registrar()">Omitir por ahora →</button>
+        <button type="button" style="width:100%;padding:9px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px" onclick="registrar()">Omitir por ahora →</button>
         <div class="trial-pill"><strong>15 días gratis</strong> en el plan Lote · Sin tarjeta de crédito</div>
       </div>
     </div>
@@ -1092,10 +1110,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
     <div class="form-row2" style="margin-bottom:.5rem">
-      <div class="fg"><label class="fl">Rendimiento real (t/ha)</label><input class="fi" type="number" id="c-rend" placeholder="Ej: 3.4" min="0" step="0.1"/></div>
-      <div class="fg"><label class="fl">Precio venta (USD/t)</label><input class="fi" type="number" id="c-precio-venta" placeholder="Ej: 280" min="0"/></div>
     </div>
-    <div style="background:var(--verde-pale);border-radius:10px;padding:.6rem 1rem;margin-bottom:.9rem;font-size:12px;color:var(--verde)">💡 Si ya cosechaste ingresá el rendimiento real. Si todavía no, dejalo vacío.</div>
     <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
@@ -2521,6 +2536,97 @@ window.regPaso3 = function() {
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
   irPaso(3)
+  setTimeout(_initMapReg, 350)
+}
+function _initMapReg() {
+  if(window._mapReg) { window._mapReg.invalidateSize(); return }
+  window._mapReg = L.map('mapa-reg',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
+  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapReg)
+  window._mapReg.on('click',function(e){
+    if(!_polyModoReg) return
+    _polyPuntosReg.push([e.latlng.lat,e.latlng.lng])
+    _dibujarPolyTempReg()
+    _regCoordsLat=e.latlng.lat.toFixed(5); _regCoordsLng=e.latlng.lng.toFixed(5)
+    var txt=document.getElementById('reg-coords')
+    if(txt) txt.style.display='block'
+    var hv=document.getElementById('reg-ha-valor')
+    if(hv) hv.textContent=_polyPuntosReg.length+' pts'
+  })
+  window._mapReg.on('dblclick',function(){
+    if(!_polyModoReg||_polyPuntosReg.length<3) return
+    _cerrarPoligonoReg()
+  })
+}
+function _dibujarPolyTempReg(){
+  var m=window._mapReg; if(!m) return
+  _polyTempLinesReg.forEach(function(l){m.removeLayer(l)}); _polyTempLinesReg=[]
+  if(_polyLayerReg){m.removeLayer(_polyLayerReg);_polyLayerReg=null}
+  if(_polyPuntosReg.length>1){
+    _polyTempLinesReg.push(L.polyline(_polyPuntosReg,{color:'#c9a84c',weight:2,dashArray:'4,4'}).addTo(m))
+  }
+  _polyPuntosReg.forEach(function(p){
+    _polyTempLinesReg.push(L.circleMarker(p,{radius:5,color:'#c9a84c',fillColor:'#fff',fillOpacity:1,weight:2}).addTo(m))
+  })
+}
+function _cerrarPoligonoReg(){
+  var m=window._mapReg; if(!m) return
+  _polyTempLinesReg.forEach(function(l){m.removeLayer(l)}); _polyTempLinesReg=[]
+  _polyLayerReg=L.polygon(_polyPuntosReg,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:.25,weight:2}).addTo(m)
+  _polyModoReg=false
+  var btn=document.getElementById('btn-poly-reg')
+  if(btn){btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'}
+  document.getElementById('poly-hint-reg').style.display='none'
+  var ha=_calcHaDesdePoligono(_polyPuntosReg)
+  var hv=document.getElementById('reg-ha-valor'); if(hv) hv.textContent=ha.toFixed(1)
+  var inp=document.getElementById('r-ha'); if(inp&&!inp.value) inp.value=ha.toFixed(1)
+}
+window.togglePoligonoReg = function(){
+  _polyModoReg=!_polyModoReg
+  var btn=document.getElementById('btn-poly-reg'), hint=document.getElementById('poly-hint-reg')
+  if(_polyModoReg){
+    btn.textContent='⏹ Terminar'; btn.style.background='var(--verde)'; btn.style.color='#fff'
+    hint.style.display='inline'
+  } else {
+    if(_polyPuntosReg.length>=3) _cerrarPoligonoReg()
+    else { btn.textContent='✏️ Dibujar polígono'; btn.style.background='var(--verde-pale)'; btn.style.color='var(--verde)'; hint.style.display='none' }
+  }
+}
+window.limpiarPoligonoReg = function(){
+  var m=window._mapReg; if(!m) return
+  _polyTempLinesReg.forEach(function(l){m.removeLayer(l)}); _polyTempLinesReg=[]
+  if(_polyLayerReg){m.removeLayer(_polyLayerReg);_polyLayerReg=null}
+  _polyPuntosReg=[]; _polyModoReg=false; _regCoordsLat=null; _regCoordsLng=null
+  var btn=document.getElementById('btn-poly-reg')
+  if(btn){btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'}
+  document.getElementById('poly-hint-reg').style.display='none'
+  document.getElementById('reg-coords').style.display='none'
+}
+var _timerBuscarReg
+window._debounceBuscarReg = function(){
+  clearTimeout(_timerBuscarReg)
+  var q=document.getElementById('reg-map-search')?.value?.trim()
+  if(!q||q.length<3) return
+  _timerBuscarReg=setTimeout(buscarCiudadReg,400)
+}
+window.buscarCiudadReg = async function(){
+  var q=document.getElementById('reg-map-search')?.value?.trim(); if(!q) return
+  var res=document.getElementById('reg-map-results')
+  res.style.display='block'; res.innerHTML='<div style="padding:8px 12px;color:var(--texto-suave)">Buscando...</div>'
+  try{
+    var resp=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&accept-language=es')
+    var data=await resp.json()
+    if(!data.length){res.innerHTML='<div style="padding:8px 12px;color:var(--texto-suave)">Sin resultados</div>';return}
+    res.innerHTML=data.map(function(r){
+      var nom=r.display_name.substring(0,60).replace(/"/g,'&quot;')
+      return '<div data-lat="'+r.lat+'" data-lng="'+r.lon+'" data-nom="'+nom+'" onclick="irACiudadReg(parseFloat(this.dataset.lat),parseFloat(this.dataset.lng),this.dataset.nom)" style="padding:8px 12px;cursor:pointer;border-bottom:.5px solid var(--borde)" onmouseover="this.style.background=\'var(--crema)\'" onmouseout="this.style.background=\'\'">'+r.display_name.substring(0,60)+'</div>'
+    }).join('')
+  }catch(e){res.innerHTML='<div style="padding:8px 12px;color:var(--rojo)">Error al buscar</div>'}
+}
+window.irACiudadReg = function(lat,lng,nombre){
+  var m=window._mapReg; if(!m) return
+  m.setView([lat,lng],12)
+  document.getElementById('reg-map-results').style.display='none'
+  document.getElementById('reg-map-search').value=nombre
 }
 window.togglePass = function(id, btn) {
   var inp = document.getElementById(id)
@@ -2552,9 +2658,12 @@ window.registrar = async function() {
     var campoNom=document.getElementById('r-campo').value.trim()
     var campoHa=parseFloat(document.getElementById('r-ha').value)||null
     var campoCult=document.getElementById('r-cult').value||null
+    var campoPoligono=_polyPuntosReg.length>=3?JSON.stringify(_polyPuntosReg):null
+    var campoCentroLat=_regCoordsLat?parseFloat(_regCoordsLat):null
+    var campoCentroLng=_regCoordsLng?parseFloat(_regCoordsLng):null
     if(campoNom&&usuario){
       try{
-        const {data:c}=await sb.from('campos').insert({nombre:campoNom,hectareas:campoHa,cultivo:campoCult,usuario_id:usuario.id,tenencia:'propio'}).select().single()
+        const {data:c}=await sb.from('campos').insert({nombre:campoNom,hectareas:campoHa,cultivo:campoCult,usuario_id:usuario.id,tenencia:'propio',poligono:campoPoligono,lat:campoCentroLat,lng:campoCentroLng}).select().single()
         if(c)campos.push(c)
       }catch(e){console.log('Error campo:',e)}
     }
@@ -2786,6 +2895,13 @@ var _campoCoordsLng = null
 var _polyPuntos = []
 var _polyLayer = null
 var _polyTempLines = []
+// Registro map state
+var _polyModoReg = false
+var _polyPuntosReg = []
+var _polyLayerReg = null
+var _polyTempLinesReg = []
+var _regCoordsLat = null
+var _regCoordsLng = null
 var _polyModo = false
 
 window.openModalCampo = function() {

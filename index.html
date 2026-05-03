@@ -1377,7 +1377,7 @@ async function cargarTodo() {
       if(_c.soja) precios.soja=_c.soja; if(_c.maiz) precios.maiz=_c.maiz
       if(_c.trigo) precios.trigo=_c.trigo; if(_c.girasol) precios.girasol=_c.girasol
       if(_c.sorgo) precios.sorgo=_c.sorgo; if(_c.bna) precios.bna=_c.bna
-      _mostrarPrecios('Ambito · BNA'); _cacheOk = true
+      _mostrarPrecios('BCR Rosario · BNA'); _cacheOk = true
     }
   } catch(e) {}
   if(!_cacheOk) { actualizarPrecios() }
@@ -1503,7 +1503,7 @@ window.actualizarPrecios = async function(forzar) {
         if(c.soja)precios.soja=c.soja;if(c.maiz)precios.maiz=c.maiz
         if(c.trigo)precios.trigo=c.trigo;if(c.girasol)precios.girasol=c.girasol
         if(c.sorgo)precios.sorgo=c.sorgo;if(c.bna)precios.bna=c.bna
-        _mostrarPrecios('Ambito · BNA')
+        _mostrarPrecios('BCR Rosario · BNA')
         if(btn){btn.textContent='↻ Actualizar';btn.disabled=false}
         return
       }
@@ -1525,8 +1525,15 @@ window.actualizarPrecios = async function(forzar) {
     }
   }catch(e){}
 
-  // 2. Cereales desde Ambito: Soja, Maíz, Trigo (USD)
-  // Girasol y Sorgo no están disponibles en APIs públicas — mantiene último valor guardado
+  // 2. Cereales desde Ambito (precio Chicago) → convertir a precio BCR Rosario
+  // BCR pizarra = FOB Argentina × (1 − retención) − costos operativos
+  // Retenciones vigentes: Soja 33%, Maíz/Trigo/Sorgo 12%, Girasol 7%
+  // Factor FOB: soja -9% vs Chicago, maíz +4%, trigo par
+  var _fob  = {soja:0.91, maiz:1.04, trigo:1.00}
+  var _ret  = {soja:0.33, maiz:0.12, trigo:0.12, girasol:0.07, sorgo:0.12}
+  var _cost = 8 // USD/tn costos flete/acopio estimados
+  function _pizarra(chicago, g){ return Math.round(chicago * (_fob[g]||1) * (1-_ret[g]) - _cost) }
+
   try{
     var rAmb=await fetch('https://mercados.ambito.com/mercados/commodities',{signal:AbortSignal.timeout(6000)})
     if(rAmb.ok){
@@ -1535,12 +1542,13 @@ window.actualizarPrecios = async function(forzar) {
         var n=(item.nombre||'').toLowerCase()
         var v=parseFloat((item.ultimo||'').replace(',','.'))
         if(!v||isNaN(v)) return
-        if(n==='soja') precios.soja=v
-        else if(n==='maiz'||n==='maíz') precios.maiz=v
-        else if(n==='trigo') precios.trigo=v
+        if(n==='soja')        precios.soja=_pizarra(v,'soja')
+        else if(n==='maiz'||n==='maíz') precios.maiz=_pizarra(v,'maiz')
+        else if(n==='trigo')  precios.trigo=_pizarra(v,'trigo')
       })
     }
   }catch(e){}
+  // Girasol y Sorgo: sin API pública — mantiene último valor guardado (editable manualmente)
 
   // 3. Guardar en localStorage (cache diaria)
   try{
@@ -1561,7 +1569,7 @@ window.actualizarPrecios = async function(forzar) {
     }
   }catch(e){}
 
-  _mostrarPrecios('Ambito · BNA')
+  _mostrarPrecios('BCR Rosario · BNA')
   if(btn){btn.textContent='↻ Actualizar';btn.disabled=false}
 }
 

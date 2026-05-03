@@ -1030,6 +1030,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="m-tit2">Tu primer campo</div><div class="m-sub2">Opcional — podés agregarlo después</div>
         <div class="fg"><label class="fl">Nombre del campo</label><input class="fi" type="text" id="r-campo" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
         <div class="form-row2" style="margin-bottom:.9rem"><div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="r-ha" placeholder="480" min="1"/></div><div class="fg"><label class="fl">Cultivo</label><select class="fi" id="r-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Otro</option></select></div></div>
+        <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="r-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
         <div style="margin-bottom:.9rem">
           <label class="fl">Ubicación del lote (opcional)</label>
           <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono haciendo clic.</div>
@@ -2666,7 +2667,8 @@ window.registrar = async function() {
     var campoCentroLng=_regCoordsLng?parseFloat(_regCoordsLng):null
     if(campoNom&&usuario){
       try{
-        const {data:c}=await sb.from('campos').insert({nombre:campoNom,hectareas:campoHa,cultivo:campoCult,usuario_id:usuario.id,tenencia:'propio',poligono:campoPoligono,lat:campoCentroLat,lng:campoCentroLng}).select().single()
+        var campoTen=document.getElementById('r-ten')?.value||'propio'
+        const {data:c}=await sb.from('campos').insert({nombre:campoNom,hectareas:campoHa,cultivo:campoCult,usuario_id:usuario.id,tenencia:campoTen,poligono:campoPoligono,lat:campoCentroLat,lng:campoCentroLng}).select().single()
         if(c)campos.push(c)
       }catch(e){console.log('Error campo:',e)}
     }

@@ -1527,10 +1527,10 @@ window.actualizarPrecios = async function(forzar) {
 
   // 2. Cereales desde Ambito (precio Chicago) → convertir a precio BCR Rosario
   // BCR pizarra = FOB Argentina × (1 − retención) − costos operativos
-  // Retenciones vigentes: Soja 33%, Maíz/Trigo/Sorgo 12%, Girasol 7%
+  // Retenciones vigentes desde dic-2025: Soja 24%, Maíz 8.5%, Trigo 7.5%, Girasol 4.5%, Sorgo 8.5%
   // Factor FOB: soja -9% vs Chicago, maíz +4%, trigo par
   var _fob  = {soja:0.91, maiz:1.04, trigo:1.00}
-  var _ret  = {soja:0.33, maiz:0.12, trigo:0.12, girasol:0.07, sorgo:0.12}
+  var _ret  = {soja:0.24, maiz:0.085, trigo:0.075, girasol:0.045, sorgo:0.085}
   var _cost = 8 // USD/tn costos flete/acopio estimados
   function _pizarra(chicago, g){ return Math.round(chicago * (_fob[g]||1) * (1-_ret[g]) - _cost) }
 

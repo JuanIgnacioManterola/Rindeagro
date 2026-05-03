@@ -464,7 +464,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
-      <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
+      <button class="anl" id="nav-btn-campos" onclick="showModulo('campos')"><span>🌾</span><span id="nav-lbl-campos">Campos</span></button>
 
       <button class="anl" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
@@ -633,6 +633,33 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
     </div>
     <div id="campos-lista-cards"></div>
+  </div>
+
+  <!-- ── CLIENTES (agrónomo) ── -->
+  <div class="modulo" id="mod-clientes">
+    <div class="mod-header">
+      <div><div class="mod-titulo">👥 Mis clientes</div><div class="mod-sub">Hacé clic en un cliente para ver sus campos</div></div>
+      <button class="btn-vs" onclick="openModalCliente()">+ Nuevo cliente</button>
+    </div>
+    <div id="clientes-lista-cards"></div>
+  </div>
+
+  <!-- ── DETALLE CLIENTE (agrónomo) ── -->
+  <div class="modulo" id="mod-cliente-detalle">
+    <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:11px;color:rgba(250,247,240,.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Cliente seleccionado</div>
+          <div style="font-size:22px;font-weight:700;color:#fff;font-family:'Playfair Display',serif" id="cli-det-nombre">—</div>
+          <div style="font-size:12px;color:rgba(250,247,240,.65);margin-top:3px" id="cli-det-meta">—</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="openModalCampoCliente()" style="padding:7px 14px;border-radius:8px;border:.5px solid rgba(201,168,76,.5);background:rgba(201,168,76,.15);color:var(--dorado-light);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">+ Nuevo campo</button>
+          <button onclick="volverAClientes()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
+        </div>
+      </div>
+    </div>
+    <div id="cli-campos-lista"></div>
   </div>
 
   <!-- ── DETALLE CAMPO ── -->
@@ -1116,6 +1143,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="form-row2" style="margin-bottom:.5rem">
     </div>
     <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
+    <div class="fg" id="fg-cliente" style="display:none"><label class="fl">Cliente</label><select class="fi" id="c-cliente" style="cursor:pointer"><option value="">Sin cliente asignado</option></select></div>
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
       <label class="fl">Ubicación del lote (opcional)</label>
@@ -1271,6 +1299,26 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 </div>
 
+<div class="overlay" id="ov-cliente">
+  <div class="modal">
+    <button class="m-close" onclick="closeModal()">✕</button>
+    <div class="m-tit">Nuevo cliente</div>
+    <div class="m-sub">Ingresá los datos del productor</div>
+    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Nombre completo <span style="color:#c0392b">*</span></label><input class="fi" type="text" id="cli-nombre" placeholder="Ej: Juan García"/></div>
+    <div class="form-row2" style="margin-bottom:.9rem">
+      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="cli-email" placeholder="juan@email.com"/></div>
+      <div class="fg"><label class="fl">Teléfono / WhatsApp</label><input class="fi" type="tel" id="cli-telefono" placeholder="+54 9 ..."/></div>
+    </div>
+    <div class="fg" style="margin-bottom:1.25rem"><label class="fl">Provincia</label>
+      <select class="fi" id="cli-provincia" style="cursor:pointer">
+        <option value="">Seleccioná</option>
+        <option>Buenos Aires</option><option>Córdoba</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Santiago del Estero</option><option>Tucumán</option><option>Chaco</option><option>Formosa</option><option>Corrientes</option><option>Misiones</option><option>Salta</option><option>Jujuy</option><option>Catamarca</option><option>La Rioja</option><option>San Juan</option><option>Mendoza</option><option>San Luis</option><option>Río Negro</option><option>Neuquén</option><option>Chubut</option><option>Santa Cruz</option><option>Tierra del Fuego</option>
+      </select>
+    </div>
+    <button class="fb" id="btn-guardar-cliente" onclick="guardarCliente()">Guardar cliente</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1301,6 +1349,8 @@ var gastos = []
 var lluvias = []
 var analisisS = []
 var perfil = 'productor'
+var clientes = []
+var clienteActual = null
 var paso = 1
 var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app' // ← se actualiza cuando tengamos el servidor
@@ -1400,6 +1450,23 @@ async function cargarTodo() {
     document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
     document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
+  // Detectar perfil del usuario y adaptar UI
+  var _perfilMeta = usuario.user_metadata?.perfil || 'productor'
+  perfil = _perfilMeta
+  var _navBtn = document.getElementById('nav-btn-campos')
+  var _navLbl = document.getElementById('nav-lbl-campos')
+  if (_navBtn && _navLbl) {
+    if (perfil === 'agronomo') {
+      _navLbl.textContent = 'Clientes'
+      _navBtn.querySelector('span:first-child').textContent = '👥'
+      _navBtn.onclick = function() { showModulo('clientes') }
+    } else {
+      _navLbl.textContent = 'Campos'
+      _navBtn.querySelector('span:first-child').textContent = '🌾'
+      _navBtn.onclick = function() { showModulo('campos') }
+    }
+  }
+  if (perfil === 'agronomo') await cargarClientes()
   try {
     const { data: c } = await sb.from('campos').select('*').eq('usuario_id', usuario.id).order('creado_en',{ascending:false})
     campos = c || []
@@ -1443,10 +1510,12 @@ window.showModulo = function(mod) {
   var btns = document.querySelectorAll('.anl')
   var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
   var idx = mods.indexOf(mod)
+  if (mod === 'clientes' || mod === 'cliente-detalle') idx = 1
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
 
   if (mod === 'campos') renderCamposLista()
+  if (mod === 'clientes') renderClientesLista()
   if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
@@ -2921,6 +2990,19 @@ window.openModalCampo = function() {
   if(sub)sub.textContent='Completá los datos de tu campo'
   if(btn)btn.textContent='Guardar campo'
   if(eid)eid.value=''
+  // Mostrar selector de cliente solo para agrónomos
+  var fgCli = document.getElementById('fg-cliente')
+  var selCli = document.getElementById('c-cliente')
+  if (fgCli && selCli) {
+    if (perfil === 'agronomo' && clientes.length) {
+      fgCli.style.display = 'block'
+      selCli.innerHTML = '<option value="">Sin cliente asignado</option>' +
+        clientes.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
+      if (clienteActual) selCli.value = clienteActual
+    } else {
+      fgCli.style.display = 'none'
+    }
+  }
   document.getElementById('ov-campo').classList.add('open')
   setTimeout(function(){
     if(!window._mapaCampoModal) {
@@ -3069,11 +3151,13 @@ window.guardarCampo = async function() {
       provincia:document.getElementById('c-prov').value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
     }
+    var _clienteId = document.getElementById('c-cliente')?.value || null
     var colsExtra = {
       localidad: document.getElementById('c-localidad')?.value||null,
       lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
       lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
-      poligono: poligonoData
+      poligono: poligonoData,
+      cliente_id: _clienteId || null
     }
     var payload = {...baseData,...colsExtra}
     var data, error
@@ -3109,6 +3193,7 @@ window.guardarCampo = async function() {
       var el=document.getElementById(id);if(el)el.value=''
     })
     if(document.getElementById('c-edit-id'))document.getElementById('c-edit-id').value=''
+    if(clienteActual && !isEdit) verCliente(clienteActual)
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
   finally{btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
 }
@@ -3545,14 +3630,175 @@ window.abrirCampo = function(id) {
 }
 
 window.volverACampos = function() {
+  var _volverACliente = clienteActual
   campoDet = null
   if(window._mapDetInst){window._mapDetInst.remove();window._mapDetInst=null}
   document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
-  document.getElementById('mod-campos').classList.add('active')
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
   document.querySelectorAll('.anl')[1]?.classList.add('active')
-  renderCamposLista()
+  if(_volverACliente) {
+    document.getElementById('mod-cliente-detalle').classList.add('active')
+    verCliente(_volverACliente)
+  } else {
+    document.getElementById('mod-campos').classList.add('active')
+    renderCamposLista()
+  }
   window.scrollTo(0,0)
+}
+
+// ── AGRONOMO: CLIENTES ──
+async function cargarClientes() {
+  try {
+    const { data } = await sb.from('clientes').select('*').eq('agronomo_id', usuario.id).order('nombre',{ascending:true})
+    clientes = data || []
+  } catch(e) { clientes = [] }
+}
+
+window.renderClientesLista = function() {
+  var el = document.getElementById('clientes-lista-cards')
+  if (!el) return
+  if (!clientes.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">👥</div><div class="empty-t">Sin clientes registrados</div><div class="empty-s">Agregá tu primer cliente para gestionar sus campos.</div><button class="btn-vs" onclick="openModalCliente()" style="padding:10px 24px;font-size:13px">+ Agregar cliente</button></div></div>'
+    return
+  }
+  var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
+  clientes.forEach(function(cli, i) {
+    var camposCli = campos.filter(function(c){ return c.cliente_id === cli.id })
+    var totalHa = camposCli.reduce(function(a,c){ return a+(c.hectareas||0) }, 0)
+    var col = COLS[i % COLS.length]
+    html += '<div class="campo-card" onclick="verCliente(\''+cli.id+'\')">'
+    html += '<div style="height:5px;background:'+col+'"></div>'
+    html += '<div style="padding:1.1rem 1.25rem">'
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
+    html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div>'
+    html += '<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+cli.nombre+'</div></div>'
+    html += '<button onclick="event.stopPropagation();eliminarCliente(this.dataset.id,this.dataset.nom)" data-id="'+cli.id+'" data-nom="'+(cli.nombre||'').replace(/"/g,'')+'" style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑</button>'
+    html += '</div>'
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
+    if(cli.email) html += '<div style="color:var(--texto-suave)">Email</div><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cli.email+'</div>'
+    if(cli.telefono) html += '<div style="color:var(--texto-suave)">Teléfono</div><div style="font-weight:500">'+cli.telefono+'</div>'
+    if(cli.provincia) html += '<div style="color:var(--texto-suave)">Provincia</div><div style="font-weight:500">'+cli.provincia+'</div>'
+    html += '</div>'
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:.5px solid var(--borde)">'
+    html += '<div style="font-size:13px;font-weight:700;color:var(--verde)">'+camposCli.length+' campo'+(camposCli.length!==1?'s':'')+'</div>'
+    html += '<div style="font-size:12px;color:var(--texto-suave)">'+totalHa.toLocaleString('es-AR')+' ha totales</div>'
+    html += '</div></div></div>'
+  })
+  html += '</div>'
+  el.innerHTML = html
+}
+
+window.verCliente = function(id) {
+  var cli = clientes.find(function(c){ return c.id === id })
+  if (!cli) return
+  clienteActual = id
+  document.getElementById('cli-det-nombre').textContent = cli.nombre
+  var meta = []
+  if(cli.provincia) meta.push(cli.provincia)
+  if(cli.email) meta.push(cli.email)
+  if(cli.telefono) meta.push(cli.telefono)
+  document.getElementById('cli-det-meta').textContent = meta.join(' · ') || 'Sin datos de contacto'
+  // Render campos del cliente
+  var camposCli = campos.filter(function(c){ return c.cliente_id === id })
+  var el = document.getElementById('cli-campos-lista')
+  if (!camposCli.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá el primer campo para este cliente.</div><button class="btn-vs" onclick="openModalCampoCliente()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div></div>'
+  } else {
+    var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
+    camposCli.forEach(function(c, i) {
+      var ha = c.hectareas||0, cult = c.cultivo||'Soja'
+      var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
+      var rend = c.rendimiento||rendEst
+      var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
+      var pr = c.precio_venta||prEst
+      var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+      var mg = rend*pr - (ha>0?gc/ha:190)
+      var mc = mg>=0?'#1a7a52':'#c0392b'
+      var col = COLS[i%COLS.length]
+      html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')">'
+      html += '<div style="height:5px;background:'+col+'"></div>'
+      html += '<div style="padding:1.1rem 1.25rem">'
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
+      html += '<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div>'
+      html += '</div>'
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
+      html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'
+      html += '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+cult+'</div>'
+      html += '</div>'
+      html += '<div style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+mc+'">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>'
+      html += '</div></div>'
+    })
+    html += '</div>'
+    el.innerHTML = html
+  }
+  document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
+  document.getElementById('mod-cliente-detalle').classList.add('active')
+  document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
+  document.querySelectorAll('.anl')[1]?.classList.add('active')
+  window.scrollTo(0,0)
+}
+
+window.volverAClientes = function() {
+  clienteActual = null
+  document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
+  document.getElementById('mod-clientes').classList.add('active')
+  document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
+  document.querySelectorAll('.anl')[1]?.classList.add('active')
+  renderClientesLista()
+  window.scrollTo(0,0)
+}
+
+window.openModalCliente = function() {
+  document.getElementById('cli-nombre').value = ''
+  document.getElementById('cli-email').value = ''
+  document.getElementById('cli-telefono').value = ''
+  document.getElementById('cli-provincia').value = ''
+  document.getElementById('ov-cliente').classList.add('open')
+}
+
+window.guardarCliente = async function() {
+  var nombre = document.getElementById('cli-nombre').value.trim()
+  if(!nombre){showToast('⚠️ Ingresá el nombre del cliente','err');return}
+  var btn = document.getElementById('btn-guardar-cliente')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  try {
+    var { data, error } = await sb.from('clientes').insert({
+      agronomo_id: usuario.id,
+      nombre: nombre,
+      email: document.getElementById('cli-email').value.trim()||null,
+      telefono: document.getElementById('cli-telefono').value.trim()||null,
+      provincia: document.getElementById('cli-provincia').value||null
+    }).select().single()
+    if(error) throw error
+    clientes.push(data)
+    closeModal()
+    renderClientesLista()
+    showToast('✓ Cliente agregado','ok')
+  } catch(e) {
+    showToast('⚠️ Error al guardar: '+e.message,'err')
+  }
+  btn.disabled = false; btn.textContent = 'Guardar cliente'
+}
+
+window.eliminarCliente = async function(id, nombre) {
+  if(!confirm('¿Eliminar el cliente "'+nombre+'"? Sus campos no se eliminan pero quedarán sin cliente asignado.')) return
+  try {
+    await sb.from('clientes').delete().eq('id', id)
+    clientes = clientes.filter(function(c){ return c.id !== id })
+    renderClientesLista()
+    showToast('Cliente eliminado','ok')
+  } catch(e) { showToast('⚠️ Error al eliminar','err') }
+}
+
+window.openModalCampoCliente = function() {
+  openModalCampo()
+  // Pre-select cliente in the campo modal if there's one active
+  setTimeout(function(){
+    var sel = document.getElementById('c-cliente')
+    if(sel && clienteActual) sel.value = clienteActual
+  }, 50)
 }
 
 window.eliminarCampo = async function(id, nombre) {

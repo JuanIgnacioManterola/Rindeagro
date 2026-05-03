@@ -1290,26 +1290,34 @@ async function init() {
       showScreen('app')
       await cargarTodo()
     } else {
-      // Sin sesion — mostrar landing con credenciales precargadas si tildó Recordarme
-      showScreen('landing')
-      initLanding()
-      setTimeout(function() {
+      // Sin sesion — intentar auto-login si tildó Recordarme
+      var _savedEmail = localStorage.getItem('ra_email')
+      var _savedPass  = localStorage.getItem('ra_pass')
+      if(_savedEmail && _savedPass) {
+        // Intentar login silencioso antes de mostrar la landing
         try {
-          var email = localStorage.getItem('ra_email')
-          var pass = localStorage.getItem('ra_pass')
-          if(email && pass) {
-            openModal('login')
-            setTimeout(function() {
-              var eEl = document.getElementById('l-email')
-              var pEl = document.getElementById('l-pass')
-              var cEl = document.getElementById('chk-recordar')
-              if(eEl) eEl.value = email
-              if(pEl) pEl.value = pass
-              if(cEl) cEl.checked = true
-            }, 100)
+          var _autoRes = await sb.auth.signInWithPassword({email:_savedEmail, password:_savedPass})
+          if(!_autoRes.error && _autoRes.data?.user) {
+            usuario = _autoRes.data.user
+            showScreen('app')
+            await cargarTodo()
+          } else {
+            // Credenciales incorrectas — limpiar y mostrar landing con modal
+            localStorage.removeItem('ra_email'); localStorage.removeItem('ra_pass')
+            showScreen('landing'); initLanding()
+            setTimeout(function(){
+              openModal('login')
+              showToast('⚠️ Tu sesión venció. Ingresá de nuevo.','err')
+            }, 400)
           }
-        } catch(e) {}
-      }, 600)
+        } catch(e) {
+          showScreen('landing'); initLanding()
+          setTimeout(function(){ openModal('login') }, 400)
+        }
+      } else {
+        showScreen('landing')
+        initLanding()
+      }
     }
   } catch(e) {
     console.error(e)

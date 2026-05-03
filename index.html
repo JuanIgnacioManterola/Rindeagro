@@ -1450,22 +1450,14 @@ async function cargarTodo() {
     document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
     document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
-  // Detectar perfil del usuario y adaptar UI
-  var _perfilMeta = usuario.user_metadata?.perfil || 'productor'
+  // Detectar perfil del usuario — leer datos frescos de auth
+  try {
+    var { data: { user: _freshUser } } = await sb.auth.getUser()
+    if (_freshUser) usuario = _freshUser
+  } catch(e) {}
+  var _perfilMeta = usuario.user_metadata?.perfil || usuario.user_metadata?.role || 'productor'
   perfil = _perfilMeta
-  var _navBtn = document.getElementById('nav-btn-campos')
-  var _navLbl = document.getElementById('nav-lbl-campos')
-  if (_navBtn && _navLbl) {
-    if (perfil === 'agronomo') {
-      _navLbl.textContent = 'Clientes'
-      _navBtn.querySelector('span:first-child').textContent = '👥'
-      _navBtn.onclick = function() { showModulo('clientes') }
-    } else {
-      _navLbl.textContent = 'Campos'
-      _navBtn.querySelector('span:first-child').textContent = '🌾'
-      _navBtn.onclick = function() { showModulo('campos') }
-    }
-  }
+  _actualizarNavPerfil()
   if (perfil === 'agronomo') await cargarClientes()
   try {
     const { data: c } = await sb.from('campos').select('*').eq('usuario_id', usuario.id).order('creado_en',{ascending:false})
@@ -3647,6 +3639,21 @@ window.volverACampos = function() {
 }
 
 // ── AGRONOMO: CLIENTES ──
+function _actualizarNavPerfil() {
+  var _navBtn = document.getElementById('nav-btn-campos')
+  var _navLbl = document.getElementById('nav-lbl-campos')
+  if (!_navBtn || !_navLbl) return
+  if (perfil === 'agronomo') {
+    _navLbl.textContent = 'Clientes'
+    _navBtn.querySelector('span:first-child').textContent = '👥'
+    _navBtn.onclick = function() { showModulo('clientes') }
+  } else {
+    _navLbl.textContent = 'Campos'
+    _navBtn.querySelector('span:first-child').textContent = '🌾'
+    _navBtn.onclick = function() { showModulo('campos') }
+  }
+}
+
 async function cargarClientes() {
   try {
     const { data } = await sb.from('clientes').select('*').eq('agronomo_id', usuario.id).order('nombre',{ascending:true})

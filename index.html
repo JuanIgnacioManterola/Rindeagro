@@ -1372,7 +1372,7 @@ async function cargarTodo() {
   var _hoy = new Date().toISOString().substring(0,10)
   var _cacheOk = false
   try {
-    var _c = JSON.parse(localStorage.getItem('ra_precios_v2') || 'null')
+    var _c = JSON.parse(localStorage.getItem('ra_precios_v3') || 'null')
     if(_c && _c.fecha === _hoy) {
       if(_c.soja) precios.soja=_c.soja; if(_c.maiz) precios.maiz=_c.maiz
       if(_c.trigo) precios.trigo=_c.trigo; if(_c.girasol) precios.girasol=_c.girasol
@@ -1498,7 +1498,7 @@ window.actualizarPrecios = async function(forzar) {
   // Usar cache local si es de hoy y no es forzado
   if(!forzar){
     try{
-      var c=JSON.parse(localStorage.getItem('ra_precios_v2')||'null')
+      var c=JSON.parse(localStorage.getItem('ra_precios_v3')||'null')
       if(c&&c.fecha===hoy){
         if(c.soja)precios.soja=c.soja;if(c.maiz)precios.maiz=c.maiz
         if(c.trigo)precios.trigo=c.trigo;if(c.girasol)precios.girasol=c.girasol
@@ -1549,7 +1549,7 @@ window.actualizarPrecios = async function(forzar) {
 
   // 3. Guardar en localStorage (cache diaria)
   try{
-    localStorage.setItem('ra_precios_v2',JSON.stringify({
+    localStorage.setItem('ra_precios_v3',JSON.stringify({
       fecha:hoy,soja:precios.soja,maiz:precios.maiz,trigo:precios.trigo,
       girasol:precios.girasol,sorgo:precios.sorgo,bna:precios.bna
     }))

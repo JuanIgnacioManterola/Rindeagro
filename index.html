@@ -1043,6 +1043,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 </div>
 
+<!-- MODAL NUEVA CONTRASEÑA (recovery) -->
+<div class="overlay" id="ov-nueva-pass">
+  <div class="modal">
+    <div class="m-tit" style="font-size:18px;margin-bottom:.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+    <div class="m-sub2" style="margin-bottom:1.5rem">Ingresá tu nueva contraseña</div>
+    <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+    <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+    <button class="fb" id="btn-nueva-pass" onclick="guardarNuevaPass()">Guardar contraseña</button>
+  </div>
+</div>
+
 <!-- MODAL CAMPO -->
 <div class="overlay" id="ov-campo">
   <div class="modal" style="max-width:540px">
@@ -1281,6 +1292,11 @@ async function init() {
   clearTimeout(window._loadingTimeout)
   try {
     sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('screen-loading').style.display = 'none'
+        document.getElementById('ov-nueva-pass').classList.add('open')
+        return
+      }
       if (event === 'SIGNED_IN' && session && !usuario) usuario = session.user
       else if (event === 'SIGNED_OUT') { usuario = null; campos = []; gastos = []; lluvias = [] }
     })
@@ -2590,11 +2606,33 @@ window.precargarLogin = function() {
     if(email&&pass) document.getElementById('chk-recordar').checked=true
   }catch(e){}
 }
+window.guardarNuevaPass = async function() {
+  var p1 = document.getElementById('nueva-pass').value
+  var p2 = document.getElementById('nueva-pass2').value
+  if(!p1 || p1.length < 8) { showToast('⚠️ La contraseña debe tener al menos 8 caracteres','err'); return }
+  if(p1 !== p2) { showToast('⚠️ Las contraseñas no coinciden','err'); return }
+  var btn = document.getElementById('btn-nueva-pass')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  try {
+    const { error } = await sb.auth.updateUser({ password: p1 })
+    if(error) throw error
+    try { localStorage.removeItem('ra_email'); localStorage.removeItem('ra_pass') } catch(e) {}
+    document.getElementById('ov-nueva-pass').classList.remove('open')
+    showToast('✓ Contraseña actualizada. Podés ingresar ahora.','ok')
+    setTimeout(() => openModal('login'), 800)
+  } catch(e) {
+    showToast('⚠️ ' + (e.message||'Error al guardar'),'err')
+    btn.disabled = false; btn.textContent = 'Guardar contraseña'
+  }
+}
 window.recuperarPass = async function() {
   var email=document.getElementById('l-email').value.trim()
   if(!email){showToast('⚠️ Ingresá tu email primero','err');return}
-  try{await sb.auth.resetPasswordForEmail(email);showToast('✓ Email enviado para restablecer contraseña','ok')}
-  catch(e){showToast('⚠️ Error al enviar email','err')}
+  try{
+    var redirectTo = window.location.origin + window.location.pathname
+    await sb.auth.resetPasswordForEmail(email, {redirectTo})
+    showToast('✓ Email enviado — revisá tu bandeja de entrada','ok')
+  }catch(e){showToast('⚠️ Error al enviar email','err')}
 }
 var miPlanData = { planes: {}, bna: 0, anual: false, cuotas: 1 }
 var INTERESES_CUOTAS = {1:0, 2:0, 3:0, 4:10, 5:14, 6:18, 7:22, 8:26, 9:30, 10:34, 11:38, 12:42}

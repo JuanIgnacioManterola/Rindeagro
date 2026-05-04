@@ -464,18 +464,24 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
-      <button class="anl" id="nav-btn-campos" onclick="showModulo('campos')"><span>🌾</span><span id="nav-lbl-campos">Campos</span></button>
+      <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
 
       <button class="anl" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="openModalCompartir()" style="background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:8px;color:rgba(250,247,240,.85);font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">👥 Compartir</button>
       <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
       <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
       <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </nav>
+  <!-- Banner colaborador -->
+  <div id="banner-colaborador" style="display:none;background:var(--dorado);color:var(--verde);padding:8px 24px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <span>⚡ Trabajando en la cuenta de <strong id="banner-col-nombre"></strong></span>
+    <button onclick="salirModoColaborador()" style="background:rgba(26,74,46,.15);border:1px solid rgba(26,74,46,.3);border-radius:7px;color:var(--verde);font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Volver a mi cuenta</button>
+  </div>
 
   <!-- ── DASHBOARD ── -->
   <div class="modulo active" id="mod-dashboard">
@@ -633,33 +639,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
     </div>
     <div id="campos-lista-cards"></div>
-  </div>
-
-  <!-- ── CLIENTES (agrónomo) ── -->
-  <div class="modulo" id="mod-clientes">
-    <div class="mod-header">
-      <div><div class="mod-titulo">👥 Mis clientes</div><div class="mod-sub">Hacé clic en un cliente para ver sus campos</div></div>
-      <button class="btn-vs" onclick="openModalCliente()">+ Nuevo cliente</button>
-    </div>
-    <div id="clientes-lista-cards"></div>
-  </div>
-
-  <!-- ── DETALLE CLIENTE (agrónomo) ── -->
-  <div class="modulo" id="mod-cliente-detalle">
-    <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:11px;color:rgba(250,247,240,.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Cliente seleccionado</div>
-          <div style="font-size:22px;font-weight:700;color:#fff;font-family:'Playfair Display',serif" id="cli-det-nombre">—</div>
-          <div style="font-size:12px;color:rgba(250,247,240,.65);margin-top:3px" id="cli-det-meta">—</div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button onclick="openModalCampoCliente()" style="padding:7px 14px;border-radius:8px;border:.5px solid rgba(201,168,76,.5);background:rgba(201,168,76,.15);color:var(--dorado-light);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">+ Nuevo campo</button>
-          <button onclick="volverAClientes()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
-        </div>
-      </div>
-    </div>
-    <div id="cli-campos-lista"></div>
   </div>
 
   <!-- ── DETALLE CAMPO ── -->
@@ -1033,25 +1012,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
     <div class="tabs"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
     <div id="f-reg">
-      <div class="sdots" id="sdots"><div class="sdot on"></div><div class="sdot"></div><div class="sdot"></div></div>
-      <div class="fstep on" id="rs1">
-        <div class="m-tit2">¿Cómo vas a usar Rinde.Agro?</div>
-        <div class="m-sub2">Elegí tu perfil</div>
-        <div class="popt" onclick="selPerfil(this,'productor')"><span style="font-size:22px">🌾</span><div><div class="popt-t">Soy productor agropecuario</div><div class="popt-s">Gestionar mis campos y rentabilidad</div></div></div>
-        <div class="popt" onclick="selPerfil(this,'agronomo')"><span style="font-size:22px">👨‍🌾</span><div><div class="popt-t">Soy ingeniero agrónomo</div><div class="popt-s">Gestionar campos de mis clientes</div></div></div>
-        <div class="popt" onclick="selPerfil(this,'empresa')"><span style="font-size:22px">🏢</span><div><div class="popt-t">Soy empresa agropecuaria</div><div class="popt-s">Múltiples campos y usuarios</div></div></div>
-      </div>
-      <div class="fstep" id="rs2">
+      <div class="sdots" id="sdots"><div class="sdot on"></div><div class="sdot"></div></div>
+      <div class="fstep on" id="rs2">
         <div class="m-tit2">Tus datos</div><div class="m-sub2">Creá tu cuenta en segundos</div>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" id="r-nombre" placeholder="Juan García"/></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
         <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
         <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-        <div style="display:flex;gap:10px">
-          <button type="button" onclick="irPaso(1)" style="width:44px;flex-shrink:0;padding:12px 0;border-radius:10px;border:1.5px solid var(--verde);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--verde)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <button class="fb" style="flex:1;margin-top:0" onclick="regPaso3()">Continuar →</button>
-        </div>
+        <button class="fb" style="margin-top:0" onclick="regPaso3()">Continuar →</button>
       </div>
       <div class="fstep" id="rs3">
         <div class="m-tit2">Tu primer campo</div><div class="m-sub2">Opcional — podés agregarlo después</div>
@@ -1077,7 +1046,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           </div>
         </div>
         <div style="display:flex;gap:10px">
-          <button type="button" onclick="irPaso(2)" style="width:44px;flex-shrink:0;padding:12px 0;border-radius:10px;border:1.5px solid var(--verde);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--verde)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button type="button" onclick="irPaso(1)" style="width:44px;flex-shrink:0;padding:12px 0;border-radius:10px;border:1.5px solid var(--verde);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--verde)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
           <button class="fb" id="btn-reg" style="flex:1;margin-top:0" onclick="registrar()">🌱 Crear mi cuenta en Rinde.Agro</button>
         </div>
         <button type="button" style="width:100%;padding:9px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px" onclick="registrar()">Omitir por ahora →</button>
@@ -1143,7 +1112,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="form-row2" style="margin-bottom:.5rem">
     </div>
     <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
-    <div class="fg" id="fg-cliente" style="display:none"><label class="fl">Cliente</label><select class="fi" id="c-cliente" style="cursor:pointer"><option value="">Sin cliente asignado</option></select></div>
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
       <label class="fl">Ubicación del lote (opcional)</label>
@@ -1299,23 +1267,21 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 </div>
 
-<div class="overlay" id="ov-cliente">
-  <div class="modal">
+<div class="overlay" id="ov-compartir">
+  <div class="modal" style="max-width:500px">
     <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-tit">Nuevo cliente</div>
-    <div class="m-sub">Ingresá los datos del productor</div>
-    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Nombre completo <span style="color:#c0392b">*</span></label><input class="fi" type="text" id="cli-nombre" placeholder="Ej: Juan García"/></div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="cli-email" placeholder="juan@email.com"/></div>
-      <div class="fg"><label class="fl">Teléfono / WhatsApp</label><input class="fi" type="tel" id="cli-telefono" placeholder="+54 9 ..."/></div>
+    <div class="m-tit">👥 Compartir acceso</div>
+    <div class="m-sub">Invitá a tu agrónomo u otras personas a operar en tu cuenta</div>
+    <div id="compartir-lista" style="margin-bottom:1.25rem"></div>
+    <div style="border-top:.5px solid var(--borde);padding-top:1.1rem;margin-top:.5rem">
+      <div class="m-sub" style="margin-bottom:.75rem;font-weight:600">Agregar colaborador</div>
+      <div class="fg"><label class="fl">Nombre</label><input class="fi" type="text" id="col-nombre" placeholder="Ej: Ing. Martín Rodríguez"/></div>
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Email <span style="color:#c0392b">*</span></label><input class="fi" type="email" id="col-email" placeholder="martin@email.com"/></div>
+        <div class="fg"><label class="fl">Rol</label><select class="fi" id="col-rol" style="cursor:pointer"><option value="Ing. Agrónomo">Ing. Agrónomo</option><option value="Contador">Contador</option><option value="Empleado">Empleado</option><option value="Otro">Otro</option></select></div>
+      </div>
+      <button class="fb" id="btn-guardar-col" onclick="guardarColaborador()">+ Agregar colaborador</button>
     </div>
-    <div class="fg" style="margin-bottom:1.25rem"><label class="fl">Provincia</label>
-      <select class="fi" id="cli-provincia" style="cursor:pointer">
-        <option value="">Seleccioná</option>
-        <option>Buenos Aires</option><option>Córdoba</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Santiago del Estero</option><option>Tucumán</option><option>Chaco</option><option>Formosa</option><option>Corrientes</option><option>Misiones</option><option>Salta</option><option>Jujuy</option><option>Catamarca</option><option>La Rioja</option><option>San Juan</option><option>Mendoza</option><option>San Luis</option><option>Río Negro</option><option>Neuquén</option><option>Chubut</option><option>Santa Cruz</option><option>Tierra del Fuego</option>
-      </select>
-    </div>
-    <button class="fb" id="btn-guardar-cliente" onclick="guardarCliente()">Guardar cliente</button>
   </div>
 </div>
 
@@ -1348,9 +1314,9 @@ var campos = []
 var gastos = []
 var lluvias = []
 var analisisS = []
-var perfil = 'productor'
-var clientes = []
-var clienteActual = null
+var colaboradores = []
+var modoColaborador = null
+var modoColaboradorNombre = ''
 var paso = 1
 var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app' // ← se actualiza cuando tengamos el servidor
@@ -1358,6 +1324,7 @@ var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
+function _effectiveUserId() { return modoColaborador || usuario.id }
 
 // ── INIT ──
 async function init() {
@@ -1450,30 +1417,24 @@ async function cargarTodo() {
     document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
     document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
-  // Detectar perfil del usuario — leer datos frescos de auth
+  // Cargar colaboradores (accesos que este user tiene en otras cuentas)
+  await cargarColaboradores()
+  var uid = _effectiveUserId()
   try {
-    var { data: { user: _freshUser } } = await sb.auth.getUser()
-    if (_freshUser) usuario = _freshUser
-  } catch(e) {}
-  var _perfilMeta = usuario.user_metadata?.perfil || usuario.user_metadata?.role || 'productor'
-  perfil = _perfilMeta
-  _actualizarNavPerfil()
-  if (perfil === 'agronomo') await cargarClientes()
-  try {
-    const { data: c } = await sb.from('campos').select('*').eq('usuario_id', usuario.id).order('creado_en',{ascending:false})
+    const { data: c } = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false})
     campos = c || []
     if (campos.length > 0) campoRent = campos[0].id
   } catch(e) { campos = [] }
   try {
-    const { data: g } = await sb.from('gastos').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    const { data: g } = await sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
     gastos = g || []
   } catch(e) { gastos = [] }
   try {
-    const { data: l } = await sb.from('lluvias').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    const { data: l } = await sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
     lluvias = l || []
   } catch(e) { lluvias = [] }
   try {
-    const { data: s } = await sb.from('analisis_suelo').select('*').eq('usuario_id', usuario.id).order('fecha',{ascending:false})
+    const { data: s } = await sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
     analisisS = s || []
   } catch(e) { analisisS = [] }
 
@@ -1502,12 +1463,10 @@ window.showModulo = function(mod) {
   var btns = document.querySelectorAll('.anl')
   var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
   var idx = mods.indexOf(mod)
-  if (mod === 'clientes' || mod === 'cliente-detalle') idx = 1
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
 
   if (mod === 'campos') renderCamposLista()
-  if (mod === 'clientes') renderClientesLista()
   if (mod === 'rentabilidad-total') renderRentabilidadTotal()
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
@@ -1684,13 +1643,9 @@ window.actualizarPrecios = async function(forzar) {
 // ── DASHBOARD ──
 function renderDashboard() {
   if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() }
-
-  if (perfil === 'agronomo') {
-    _renderDashboardAgronomo()
-  } else {
-    _renderDashboardProductor()
-  }
-
+  _renderBannerColaborador()
+  _renderDashboardProductor()
+  _renderAccesosColaborador()
   // Alertas (compartido)
   var alertas = generarAlertas()
   var el2 = document.getElementById('dash-alertas')
@@ -1732,7 +1687,7 @@ function _renderDashboardProductor() {
 
   var tit = document.getElementById('dash-campos-tit')
   var btn = document.getElementById('dash-campos-btn')
-  if(tit) tit.textContent = 'Mis campos'
+  if(tit) tit.textContent = modoColaborador ? 'Campos del productor' : 'Mis campos'
   if(btn) { btn.textContent = '+ Nuevo campo'; btn.onclick = function(){openModalCampo()} }
 
   var el = document.getElementById('dash-campos')
@@ -1757,40 +1712,22 @@ function _renderDashboardProductor() {
   }
 }
 
-function _renderDashboardAgronomo() {
-  var totalHa = campos.reduce(function(a,c){return a+(c.hectareas||0)},0)
-  var tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth()-3)
-  var recetasUltTrimestre = gastos.filter(function(g){
-    return g.fecha && new Date(g.fecha) >= tresMesesAtras
-  }).length
-  var nClientes = clientes.length
-
-  document.getElementById('dash-mets').innerHTML = [
-    {l:'Clientes',v:nClientes,s:'productores activos',c:'#1a4a2e'},
-    {l:'Hectáreas gestionadas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
-    {l:'Recetas último trimestre',v:recetasUltTrimestre,s:'aplicaciones registradas',c:'#c9a84c'},
-    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#0F6E56'},
-  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
-
-  var tit = document.getElementById('dash-campos-tit')
-  var btn = document.getElementById('dash-campos-btn')
-  if(tit) tit.textContent = 'Mis clientes'
-  if(btn) { btn.textContent = '+ Nuevo cliente'; btn.onclick = function(){openModalCliente()} }
-
+function _renderAccesosColaborador() {
+  // Si este usuario tiene acceso a cuentas de otros, mostrar tarjeta en dashboard
   var el = document.getElementById('dash-campos')
-  if (!clientes.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">👥</div><div class="empty-t">Sin clientes registrados</div><div class="empty-s">Agregá tu primer cliente para gestionar sus campos.</div><button class="btn-vs" onclick="openModalCliente()" style="padding:10px 24px;font-size:13px">+ Agregar cliente</button></div>`
-  } else {
-    el.innerHTML = clientes.map(function(cli,i){
-      var camposCli = campos.filter(function(c){return c.cliente_id===cli.id})
-      var haTotal = camposCli.reduce(function(a,c){return a+(c.hectareas||0)},0)
-      return `<div class="campo-row" onclick="showModulo('clientes');setTimeout(function(){verCliente('${cli.id}')},50)">
-        <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
-        <div class="ci"><div class="cn">${cli.nombre}</div><div class="cm">${camposCli.length} campo${camposCli.length!==1?'s':''} · ${haTotal.toLocaleString('es-AR')} ha${cli.provincia?' · '+cli.provincia:''}</div></div>
-        <div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:13px">${camposCli.length}</div><div class="cmgp">campos</div></div>
-      </div>`
+  if (!el) return
+  if (!colaboradores.length || modoColaborador) return // no mostrar si no tiene accesos o ya está en modo colaborador
+  // Añadir sección de accesos debajo del contenido existente
+  var yaHayAccesos = document.getElementById('dash-accesos-col')
+  if (yaHayAccesos) yaHayAccesos.remove()
+  var div = document.createElement('div')
+  div.id = 'dash-accesos-col'
+  div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
+  div.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">⚡ Cuentas con acceso compartido</div>'
+    + colaboradores.map(function(c){
+      return '<div class="campo-row" style="cursor:pointer" onclick="switchToProductor(\''+c.productor_id+'\',\''+c.nombre.replace(/'/g,'')+' — '+c.rol+'\')"><div class="cdot" style="background:#c9a84c"></div><div class="ci"><div class="cn">'+c.nombre+'</div><div class="cm">'+c.colaborador_email+' · '+c.rol+'</div></div><div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:11px">Acceder →</div></div></div>'
     }).join('')
-  }
+  el.appendChild(div)
 }
 
 // ── RENTABILIDAD ──
@@ -2645,8 +2582,7 @@ window.regPaso3 = function() {
   if(!nombre){showToast('⚠️ Ingresá tu nombre','err');return}
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
-  if(perfil==='agronomo'){registrar();return}
-  irPaso(3)
+  irPaso(2)
   setTimeout(_initMapReg, 350)
 }
 function _initMapReg() {
@@ -2766,7 +2702,7 @@ window.registrar = async function() {
   var btn=document.getElementById('btn-reg')
   btn.disabled=true;btn.textContent='Creando cuenta...'
   try {
-    const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{nombre,telefono:wa,provincia:prov,perfil}}})
+    const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{nombre,telefono:wa,provincia:prov}}})
     if(error)throw error
     usuario=data.user
     // Guardar credenciales para auto-login en próximas visitas
@@ -3028,19 +2964,6 @@ window.openModalCampo = function() {
   if(sub)sub.textContent='Completá los datos de tu campo'
   if(btn)btn.textContent='Guardar campo'
   if(eid)eid.value=''
-  // Mostrar selector de cliente solo para agrónomos
-  var fgCli = document.getElementById('fg-cliente')
-  var selCli = document.getElementById('c-cliente')
-  if (fgCli && selCli) {
-    if (perfil === 'agronomo' && clientes.length) {
-      fgCli.style.display = 'block'
-      selCli.innerHTML = '<option value="">Sin cliente asignado</option>' +
-        clientes.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
-      if (clienteActual) selCli.value = clienteActual
-    } else {
-      fgCli.style.display = 'none'
-    }
-  }
   document.getElementById('ov-campo').classList.add('open')
   setTimeout(function(){
     if(!window._mapaCampoModal) {
@@ -3189,13 +3112,11 @@ window.guardarCampo = async function() {
       provincia:document.getElementById('c-prov').value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
     }
-    var _clienteId = document.getElementById('c-cliente')?.value || null
     var colsExtra = {
       localidad: document.getElementById('c-localidad')?.value||null,
       lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
       lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
-      poligono: poligonoData,
-      cliente_id: _clienteId || null
+      poligono: poligonoData
     }
     var payload = {...baseData,...colsExtra}
     var data, error
@@ -3212,9 +3133,10 @@ window.guardarCampo = async function() {
       }
     } else {
       // INSERT
-      var r = await sb.from('campos').insert({...payload,usuario_id:usuario.id}).select().single()
-      if(r.error && (r.error.message||'').includes('column')) {
-        r = await sb.from('campos').insert({...baseData,usuario_id:usuario.id}).select().single()
+      var uid = _effectiveUserId()
+      var r = await sb.from('campos').insert({...payload,usuario_id:uid}).select().single()
+      if(r.error && (r.error.message||'').toLowerCase().includes('column')) {
+        r = await sb.from('campos').insert({...baseData,usuario_id:uid}).select().single()
       }
       data=r.data; error=r.error
       if(!error) {
@@ -3231,7 +3153,6 @@ window.guardarCampo = async function() {
       var el=document.getElementById(id);if(el)el.value=''
     })
     if(document.getElementById('c-edit-id'))document.getElementById('c-edit-id').value=''
-    if(clienteActual && !isEdit) verCliente(clienteActual)
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
   finally{btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
 }
@@ -3668,190 +3589,117 @@ window.abrirCampo = function(id) {
 }
 
 window.volverACampos = function() {
-  var _volverACliente = clienteActual
   campoDet = null
   if(window._mapDetInst){window._mapDetInst.remove();window._mapDetInst=null}
   document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
+  document.getElementById('mod-campos').classList.add('active')
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
   document.querySelectorAll('.anl')[1]?.classList.add('active')
-  if(_volverACliente) {
-    document.getElementById('mod-cliente-detalle').classList.add('active')
-    verCliente(_volverACliente)
-  } else {
-    document.getElementById('mod-campos').classList.add('active')
-    renderCamposLista()
-  }
+  renderCamposLista()
   window.scrollTo(0,0)
 }
 
-// ── AGRONOMO: CLIENTES ──
-function _actualizarNavPerfil() {
-  var _navBtn = document.getElementById('nav-btn-campos')
-  var _navLbl = document.getElementById('nav-lbl-campos')
-  if (!_navBtn || !_navLbl) return
-  if (perfil === 'agronomo') {
-    _navLbl.textContent = 'Clientes'
-    _navBtn.querySelector('span:first-child').textContent = '👥'
-    _navBtn.onclick = function() { showModulo('clientes') }
-  } else {
-    _navLbl.textContent = 'Campos'
-    _navBtn.querySelector('span:first-child').textContent = '🌾'
-    _navBtn.onclick = function() { showModulo('campos') }
-  }
-}
-
-async function cargarClientes() {
+// ── COLABORADORES ──
+async function cargarColaboradores() {
   try {
-    const { data } = await sb.from('clientes').select('*').eq('agronomo_id', usuario.id).order('nombre',{ascending:true})
-    clientes = data || []
-  } catch(e) { clientes = [] }
+    // Cargamos accesos que otros dieron a este usuario (colaborador)
+    var { data: accesos } = await sb.from('colaboradores')
+      .select('*, productor:productor_id(id, email)')
+      .eq('colaborador_email', usuario.email)
+    colaboradores = accesos || []
+  } catch(e) { colaboradores = [] }
 }
 
-window.renderClientesLista = function() {
-  var el = document.getElementById('clientes-lista-cards')
-  if (!el) return
-  if (!clientes.length) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">👥</div><div class="empty-t">Sin clientes registrados</div><div class="empty-s">Agregá tu primer cliente para gestionar sus campos.</div><button class="btn-vs" onclick="openModalCliente()" style="padding:10px 24px;font-size:13px">+ Agregar cliente</button></div></div>'
-    return
-  }
-  var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
-  clientes.forEach(function(cli, i) {
-    var camposCli = campos.filter(function(c){ return c.cliente_id === cli.id })
-    var totalHa = camposCli.reduce(function(a,c){ return a+(c.hectareas||0) }, 0)
-    var col = COLS[i % COLS.length]
-    html += '<div class="campo-card" onclick="verCliente(\''+cli.id+'\')">'
-    html += '<div style="height:5px;background:'+col+'"></div>'
-    html += '<div style="padding:1.1rem 1.25rem">'
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
-    html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div>'
-    html += '<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+cli.nombre+'</div></div>'
-    html += '<button onclick="event.stopPropagation();eliminarCliente(this.dataset.id,this.dataset.nom)" data-id="'+cli.id+'" data-nom="'+(cli.nombre||'').replace(/"/g,'')+'" style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑</button>'
-    html += '</div>'
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
-    if(cli.email) html += '<div style="color:var(--texto-suave)">Email</div><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cli.email+'</div>'
-    if(cli.telefono) html += '<div style="color:var(--texto-suave)">Teléfono</div><div style="font-weight:500">'+cli.telefono+'</div>'
-    if(cli.provincia) html += '<div style="color:var(--texto-suave)">Provincia</div><div style="font-weight:500">'+cli.provincia+'</div>'
-    html += '</div>'
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:.5px solid var(--borde)">'
-    html += '<div style="font-size:13px;font-weight:700;color:var(--verde)">'+camposCli.length+' campo'+(camposCli.length!==1?'s':'')+'</div>'
-    html += '<div style="font-size:12px;color:var(--texto-suave)">'+totalHa.toLocaleString('es-AR')+' ha totales</div>'
-    html += '</div></div></div>'
-  })
-  html += '</div>'
-  el.innerHTML = html
-}
-
-window.verCliente = function(id) {
-  var cli = clientes.find(function(c){ return c.id === id })
-  if (!cli) return
-  clienteActual = id
-  document.getElementById('cli-det-nombre').textContent = cli.nombre
-  var meta = []
-  if(cli.provincia) meta.push(cli.provincia)
-  if(cli.email) meta.push(cli.email)
-  if(cli.telefono) meta.push(cli.telefono)
-  document.getElementById('cli-det-meta').textContent = meta.join(' · ') || 'Sin datos de contacto'
-  // Render campos del cliente
-  var camposCli = campos.filter(function(c){ return c.cliente_id === id })
-  var el = document.getElementById('cli-campos-lista')
-  if (!camposCli.length) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá el primer campo para este cliente.</div><button class="btn-vs" onclick="openModalCampoCliente()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div></div>'
+function _renderBannerColaborador() {
+  var banner = document.getElementById('banner-colaborador')
+  var nomEl = document.getElementById('banner-col-nombre')
+  if (!banner) return
+  if (modoColaborador) {
+    banner.style.display = 'flex'
+    if (nomEl) nomEl.textContent = modoColaboradorNombre
   } else {
-    var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
-    camposCli.forEach(function(c, i) {
-      var ha = c.hectareas||0, cult = c.cultivo||'Soja'
-      var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-      var rend = c.rendimiento||rendEst
-      var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-      var pr = c.precio_venta||prEst
-      var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-      var mg = rend*pr - (ha>0?gc/ha:190)
-      var mc = mg>=0?'#1a7a52':'#c0392b'
-      var col = COLS[i%COLS.length]
-      html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')">'
-      html += '<div style="height:5px;background:'+col+'"></div>'
-      html += '<div style="padding:1.1rem 1.25rem">'
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
-      html += '<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div>'
-      html += '</div>'
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
-      html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'
-      html += '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+cult+'</div>'
-      html += '</div>'
-      html += '<div style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+mc+'">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>'
-      html += '</div></div>'
-    })
-    html += '</div>'
-    el.innerHTML = html
+    banner.style.display = 'none'
   }
-  document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
-  document.getElementById('mod-cliente-detalle').classList.add('active')
-  document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
-  document.querySelectorAll('.anl')[1]?.classList.add('active')
-  window.scrollTo(0,0)
 }
 
-window.volverAClientes = function() {
-  clienteActual = null
-  document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
-  document.getElementById('mod-clientes').classList.add('active')
-  document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
-  document.querySelectorAll('.anl')[1]?.classList.add('active')
-  renderClientesLista()
-  window.scrollTo(0,0)
+window.switchToProductor = async function(productorId, nombre) {
+  modoColaborador = productorId
+  modoColaboradorNombre = nombre
+  _renderBannerColaborador()
+  await cargarTodo()
+  showModulo('dashboard')
+  showToast('⚡ Trabajando en la cuenta de '+nombre,'ok')
 }
 
-window.openModalCliente = function() {
-  document.getElementById('cli-nombre').value = ''
-  document.getElementById('cli-email').value = ''
-  document.getElementById('cli-telefono').value = ''
-  document.getElementById('cli-provincia').value = ''
-  document.getElementById('ov-cliente').classList.add('open')
+window.salirModoColaborador = async function() {
+  modoColaborador = null
+  modoColaboradorNombre = ''
+  _renderBannerColaborador()
+  await cargarTodo()
+  showModulo('dashboard')
+  showToast('✓ Volviste a tu cuenta','ok')
 }
 
-window.guardarCliente = async function() {
-  var nombre = document.getElementById('cli-nombre').value.trim()
-  if(!nombre){showToast('⚠️ Ingresá el nombre del cliente','err');return}
-  var btn = document.getElementById('btn-guardar-cliente')
+window.openModalCompartir = function() {
+  document.getElementById('col-nombre').value = ''
+  document.getElementById('col-email').value = ''
+  document.getElementById('col-rol').value = 'Ing. Agrónomo'
+  _renderListaColaboradores()
+  document.getElementById('ov-compartir').classList.add('open')
+}
+
+async function _renderListaColaboradores() {
+  var el = document.getElementById('compartir-lista')
+  if (!el) return
+  try {
+    var { data } = await sb.from('colaboradores').select('*').eq('productor_id', usuario.id).order('created_at',{ascending:false})
+    if (!data || !data.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.5rem 0">Todavía no compartiste tu cuenta con nadie.</div>'
+      return
+    }
+    el.innerHTML = data.map(function(c){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .75rem;background:var(--verde-pale);border-radius:10px;margin-bottom:.5rem">'
+        +'<div><div style="font-size:13px;font-weight:600;color:var(--verde)">'+c.nombre+'</div><div style="font-size:11px;color:var(--texto-suave)">'+c.colaborador_email+' · '+c.rol+'</div></div>'
+        +'<button onclick="eliminarColaborador(\''+c.id+'\',\''+c.nombre.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:18px;padding:4px 8px">🗑</button>'
+        +'</div>'
+    }).join('')
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Error al cargar</div>'
+  }
+}
+
+window.guardarColaborador = async function() {
+  var email = document.getElementById('col-email').value.trim()
+  var nombre = document.getElementById('col-nombre').value.trim() || email
+  var rol = document.getElementById('col-rol').value
+  if(!email){showToast('⚠️ Ingresá el email del colaborador','err');return}
+  var btn = document.getElementById('btn-guardar-col')
   btn.disabled = true; btn.textContent = 'Guardando...'
   try {
-    var { data, error } = await sb.from('clientes').insert({
-      agronomo_id: usuario.id,
-      nombre: nombre,
-      email: document.getElementById('cli-email').value.trim()||null,
-      telefono: document.getElementById('cli-telefono').value.trim()||null,
-      provincia: document.getElementById('cli-provincia').value||null
-    }).select().single()
+    var { error } = await sb.from('colaboradores').insert({
+      productor_id: usuario.id,
+      colaborador_email: email,
+      nombre, rol
+    })
     if(error) throw error
-    clientes.push(data)
-    closeModal()
-    renderClientesLista()
-    showToast('✓ Cliente agregado','ok')
+    document.getElementById('col-nombre').value = ''
+    document.getElementById('col-email').value = ''
+    _renderListaColaboradores()
+    showToast('✓ Acceso compartido con '+nombre,'ok')
   } catch(e) {
-    showToast('⚠️ Error al guardar: '+e.message,'err')
+    var msg = (e.message||'').includes('unique') ? 'Este email ya tiene acceso.' : e.message||'Error al guardar'
+    showToast('⚠️ '+msg,'err')
   }
-  btn.disabled = false; btn.textContent = 'Guardar cliente'
+  btn.disabled = false; btn.textContent = '+ Agregar colaborador'
 }
 
-window.eliminarCliente = async function(id, nombre) {
-  if(!confirm('¿Eliminar el cliente "'+nombre+'"? Sus campos no se eliminan pero quedarán sin cliente asignado.')) return
+window.eliminarColaborador = async function(id, nombre, btn) {
+  if(!confirm('¿Quitarle el acceso a '+nombre+'?')) return
   try {
-    await sb.from('clientes').delete().eq('id', id)
-    clientes = clientes.filter(function(c){ return c.id !== id })
-    renderClientesLista()
-    showToast('Cliente eliminado','ok')
-  } catch(e) { showToast('⚠️ Error al eliminar','err') }
-}
-
-window.openModalCampoCliente = function() {
-  openModalCampo()
-  // Pre-select cliente in the campo modal if there's one active
-  setTimeout(function(){
-    var sel = document.getElementById('c-cliente')
-    if(sel && clienteActual) sel.value = clienteActual
-  }, 50)
+    await sb.from('colaboradores').delete().eq('id', id)
+    _renderListaColaboradores()
+    showToast('Acceso revocado','ok')
+  } catch(e) { showToast('⚠️ Error','err') }
 }
 
 window.eliminarCampo = async function(id, nombre) {

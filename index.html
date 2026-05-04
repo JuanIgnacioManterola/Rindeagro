@@ -466,21 +466,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
       <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
 
-      <button class="anl" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
+      <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
-      <button onclick="openModalCompartir()" style="background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:8px;color:rgba(250,247,240,.85);font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">👥 Compartir</button>
+      <button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:8px;color:rgba(250,247,240,.85);font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none">👥 Mi equipo</button>
       <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
       <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
       <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </nav>
   <!-- Banner colaborador -->
-  <div id="banner-colaborador" style="display:none;background:var(--dorado);color:var(--verde);padding:8px 24px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <span>⚡ Trabajando en la cuenta de <strong id="banner-col-nombre"></strong></span>
-    <button onclick="salirModoColaborador()" style="background:rgba(26,74,46,.15);border:1px solid rgba(26,74,46,.3);border-radius:7px;color:var(--verde);font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Volver a mi cuenta</button>
+  <div id="banner-colaborador" style="display:none;background:#EAF3DE;border-bottom:.5px solid #97C459;padding:6px 24px;font-size:12px;color:#3B6D11;align-items:center;gap:8px;flex-wrap:wrap">
+    <span>Estás colaborando en la cuenta de <strong id="banner-col-nombre"></strong></span>
+    <span style="margin-left:auto;color:#888;font-size:11px" id="banner-col-rol">Rol: Colaborador · El análisis de rentabilidad no está disponible en este modo</span>
+    <button onclick="salirModoColaborador()" style="background:rgba(59,109,17,.12);border:1px solid rgba(59,109,17,.3);border-radius:7px;color:#3B6D11;font-size:11px;font-weight:700;padding:4px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:8px">← Volver a mi cuenta</button>
   </div>
 
   <!-- ── DASHBOARD ── -->
@@ -660,8 +661,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
         <button class="campo-tab active" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
         <button class="campo-tab" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
-        <button class="campo-tab" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
-        <button class="campo-tab" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
+        <button class="campo-tab" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
+        <button class="campo-tab" id="tab-sens-campo" onclick="switchCampoTab('sens',this)">📈 Sensibilidad</button>
         <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" onclick="switchCampoTab('ndvi',this)">🛰️ NDVI</button>
         <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
@@ -1267,20 +1268,72 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 </div>
 
-<div class="overlay" id="ov-compartir">
-  <div class="modal" style="max-width:500px">
+<!-- MODAL MI EQUIPO -->
+<div class="overlay" id="ov-mi-equipo">
+  <div class="modal" style="max-width:520px">
     <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-tit">👥 Compartir acceso</div>
-    <div class="m-sub">Invitá a tu agrónomo u otras personas a operar en tu cuenta</div>
-    <div id="compartir-lista" style="margin-bottom:1.25rem"></div>
-    <div style="border-top:.5px solid var(--borde);padding-top:1.1rem;margin-top:.5rem">
-      <div class="m-sub" style="margin-bottom:.75rem;font-weight:600">Agregar colaborador</div>
-      <div class="fg"><label class="fl">Nombre</label><input class="fi" type="text" id="col-nombre" placeholder="Ej: Ing. Martín Rodríguez"/></div>
-      <div class="form-row2" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">Email <span style="color:#c0392b">*</span></label><input class="fi" type="email" id="col-email" placeholder="martin@email.com"/></div>
-        <div class="fg"><label class="fl">Rol</label><select class="fi" id="col-rol" style="cursor:pointer"><option value="Ing. Agrónomo">Ing. Agrónomo</option><option value="Contador">Contador</option><option value="Empleado">Empleado</option><option value="Otro">Otro</option></select></div>
+    <div class="m-tit">👥 Mi equipo</div>
+    <div class="m-sub">Invitá personas de confianza para que colaboren en tu cuenta</div>
+    <div class="tabs">
+      <button class="tab on" id="eq-tab-miembros" onclick="switchEquipoTab('miembros',this)">Miembros</button>
+      <button class="tab" id="eq-tab-invitar" onclick="switchEquipoTab('invitar',this)">Invitar</button>
+    </div>
+    <!-- TAB MIEMBROS -->
+    <div id="eq-sec-miembros">
+      <div id="eq-miembros-lista" style="margin-bottom:1rem"></div>
+      <button class="fb" onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))">+ Invitar nuevo miembro</button>
+    </div>
+    <!-- TAB INVITAR -->
+    <div id="eq-sec-invitar" style="display:none">
+      <div style="margin-bottom:1rem">
+        <div class="fl" style="margin-bottom:.6rem">Rol del nuevo miembro:</div>
+        <div style="display:flex;flex-direction:column;gap:8px" id="eq-rol-opciones">
+          <label style="border:1.5px solid var(--verde);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;background:var(--verde-pale)">
+            <input type="radio" name="eq-rol" value="colaborador" checked style="margin-top:2px;accent-color:var(--verde)"/>
+            <div><div style="font-size:13px;font-weight:600;color:var(--verde)">Colaborador</div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Puede cargar gastos, lluvias e ingresos. No ve rentabilidad.</div></div>
+          </label>
+          <label style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
+            <input type="radio" name="eq-rol" value="administrador" style="margin-top:2px;accent-color:var(--verde)"/>
+            <div><div style="font-size:13px;font-weight:600;color:var(--verde)">Administrador</div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Además puede invitar a otros colaboradores.</div></div>
+          </label>
+        </div>
       </div>
-      <button class="fb" id="btn-guardar-col" onclick="guardarColaborador()">+ Agregar colaborador</button>
+      <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1rem">Generar link de invitación</button>
+      <div id="eq-link-generado" style="display:none">
+        <div style="border-top:.5px solid var(--borde);padding-top:1rem">
+          <div class="fl" style="margin-bottom:.5rem">Link generado:</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:.75rem">
+            <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:var(--crema)"/>
+            <button onclick="copiarLinkInvitacion()" style="padding:10px 14px;border-radius:9px;border:.5px solid var(--borde);background:var(--crema);color:var(--verde);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap" id="btn-copiar-inv">Copiar</button>
+          </div>
+          <button onclick="compartirInvWA()" style="width:100%;padding:11px;border-radius:10px;border:none;background:#25D366;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Compartir por WhatsApp
+          </button>
+          <p style="font-size:11px;color:var(--texto-suave);margin-top:.75rem;text-align:center">Este link expira en 7 días. Una vez que la persona lo abre y se registra, queda vinculada a tu cuenta.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA INVITACION PENDIENTE -->
+<div class="overlay" id="ov-invitacion">
+  <div class="modal" style="max-width:440px;text-align:center">
+    <div style="font-size:36px;margin-bottom:1rem">🤝</div>
+    <div class="m-tit" id="inv-titulo">Te invitaron a colaborar</div>
+    <div class="m-sub" id="inv-subtitulo">Alguien te invitó a colaborar en su cuenta de RindeAgro.</div>
+    <div style="background:var(--verde-pale);border-radius:12px;padding:1rem;margin-bottom:1.5rem;text-align:left">
+      <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:.5rem">Como colaborador podrás:</div>
+      <div style="font-size:12px;color:var(--texto-mid);display:flex;flex-direction:column;gap:6px">
+        <div>✓ Cargar gastos e ingresos</div>
+        <div>✓ Registrar lluvias</div>
+        <div>✓ Ver los campos del establecimiento</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="fb" style="background:var(--crema);color:var(--texto-mid);border:.5px solid var(--borde)" onclick="openModal('login')">Ya tengo cuenta</button>
+      <button class="fb" onclick="openModal('registro')">Registrarme</button>
     </div>
   </div>
 </div>
@@ -1314,21 +1367,31 @@ var campos = []
 var gastos = []
 var lluvias = []
 var analisisS = []
-var colaboradores = []
-var modoColaborador = null
-var modoColaboradorNombre = ''
 var paso = 1
 var campoRent = null
-var SERVER_URL = 'https://rindeagro-server-production.up.railway.app' // ← se actualiza cuando tengamos el servidor
+var SERVER_URL = 'https://rindeagro-server-production.up.railway.app'
 var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
-function _effectiveUserId() { return modoColaborador || usuario.id }
+
+// Contexto de sesión (dueño o colaborador)
+window.CONTEXTO = null
+
+function puedeVerRentabilidad() {
+  if (!window.CONTEXTO) return true
+  return window.CONTEXTO.rolActivo === 'dueño'
+}
+function puedeInvitar() {
+  if (!window.CONTEXTO) return false
+  return window.CONTEXTO.rolActivo === 'dueño' || window.CONTEXTO.rolActivo === 'administrador'
+}
 
 // ── INIT ──
 async function init() {
   clearTimeout(window._loadingTimeout)
+  // Verificar invitación en URL antes de todo
+  await verificarInvitacion()
   try {
     sb.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -1337,7 +1400,7 @@ async function init() {
         return
       }
       if (event === 'SIGNED_IN' && session && !usuario) usuario = session.user
-      else if (event === 'SIGNED_OUT') { usuario = null; campos = []; gastos = []; lluvias = [] }
+      else if (event === 'SIGNED_OUT') { usuario = null; campos = []; gastos = []; lluvias = []; window.CONTEXTO = null }
     })
     const { data: { session } } = await sb.auth.getSession()
     var loading = document.getElementById('screen-loading')
@@ -1346,6 +1409,7 @@ async function init() {
     if (session && session.user) {
       // Sesion activa — entrar directo a la app
       usuario = session.user
+      await determinarContextoUsuario(usuario.id)
       showScreen('app')
       await cargarTodo()
     } else {
@@ -1358,6 +1422,7 @@ async function init() {
           var _autoRes = await sb.auth.signInWithPassword({email:_savedEmail, password:_savedPass})
           if(!_autoRes.error && _autoRes.data?.user) {
             usuario = _autoRes.data.user
+            await determinarContextoUsuario(usuario.id)
             showScreen('app')
             await cargarTodo()
           } else {
@@ -1417,9 +1482,7 @@ async function cargarTodo() {
     document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
     document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
-  // Cargar colaboradores (accesos que este user tiene en otras cuentas)
-  await cargarColaboradores()
-  var uid = _effectiveUserId()
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
   try {
     const { data: c } = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false})
     campos = c || []
@@ -1467,7 +1530,14 @@ window.showModulo = function(mod) {
   window.scrollTo(0,0)
 
   if (mod === 'campos') renderCamposLista()
-  if (mod === 'rentabilidad-total') renderRentabilidadTotal()
+  if (mod === 'rentabilidad-total') {
+    if (!puedeVerRentabilidad()) {
+      var rm = document.getElementById('mod-rentabilidad-total')
+      if (rm) rm.innerHTML = '<div style="text-align:center;padding:60px 20px"><p style="color:var(--verde);font-size:22px;font-weight:600;margin-bottom:.75rem;font-family:\'Playfair Display\',serif">Acceso restringido</p><p style="color:#888;font-size:15px">El análisis de rentabilidad es visible solo para el administrador de la cuenta.</p></div>'
+    } else {
+      renderRentabilidadTotal()
+    }
+  }
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
   if (mod === 'notificaciones') renderNotificaciones()
@@ -1687,7 +1757,7 @@ function _renderDashboardProductor() {
 
   var tit = document.getElementById('dash-campos-tit')
   var btn = document.getElementById('dash-campos-btn')
-  if(tit) tit.textContent = modoColaborador ? 'Campos del productor' : 'Mis campos'
+  if(tit) tit.textContent = (window.CONTEXTO?.esColaborador) ? 'Campos del productor' : 'Mis campos'
   if(btn) { btn.textContent = '+ Nuevo campo'; btn.onclick = function(){openModalCampo()} }
 
   var el = document.getElementById('dash-campos')
@@ -1712,22 +1782,31 @@ function _renderDashboardProductor() {
   }
 }
 
-function _renderAccesosColaborador() {
+async function _renderAccesosColaborador() {
   // Si este usuario tiene acceso a cuentas de otros, mostrar tarjeta en dashboard
   var el = document.getElementById('dash-campos')
   if (!el) return
-  if (!colaboradores.length || modoColaborador) return // no mostrar si no tiene accesos o ya está en modo colaborador
-  // Añadir sección de accesos debajo del contenido existente
-  var yaHayAccesos = document.getElementById('dash-accesos-col')
-  if (yaHayAccesos) yaHayAccesos.remove()
-  var div = document.createElement('div')
-  div.id = 'dash-accesos-col'
-  div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
-  div.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">⚡ Cuentas con acceso compartido</div>'
-    + colaboradores.map(function(c){
-      return '<div class="campo-row" style="cursor:pointer" onclick="switchToProductor(\''+c.productor_id+'\',\''+c.nombre.replace(/'/g,'')+' — '+c.rol+'\')"><div class="cdot" style="background:#c9a84c"></div><div class="ci"><div class="cn">'+c.nombre+'</div><div class="cm">'+c.colaborador_email+' · '+c.rol+'</div></div><div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:11px">Acceder →</div></div></div>'
-    }).join('')
-  el.appendChild(div)
+  if (window.CONTEXTO?.esColaborador) return // ya está operando en modo colaborador
+  // Buscar en equipo donde este user es miembro
+  try {
+    var { data: accesos } = await sb.from('equipo')
+      .select('*, owner:owner_id(id)')
+      .eq('miembro_id', usuario.id)
+      .eq('activo', true)
+    if (!accesos || !accesos.length) return
+    var yaHayAccesos = document.getElementById('dash-accesos-col')
+    if (yaHayAccesos) yaHayAccesos.remove()
+    var div = document.createElement('div')
+    div.id = 'dash-accesos-col'
+    div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
+    div.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">⚡ Cuentas con acceso compartido</div>'
+      + accesos.map(function(a){
+        var nom = a.nombre_display || 'Productor'
+        var rol = a.rol || 'colaborador'
+        return '<div class="campo-row" style="cursor:pointer" onclick="switchToProductor(\''+a.owner_id+'\',\''+nom.replace(/'/g,'')+'\',\''+rol+'\')"><div class="cdot" style="background:#c9a84c"></div><div class="ci"><div class="cn">'+nom+'</div><div class="cm">'+rol+'</div></div><div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:11px">Acceder →</div></div></div>'
+      }).join('')
+    el.appendChild(div)
+  } catch(e) {}
 }
 
 // ── RENTABILIDAD ──
@@ -2705,6 +2784,9 @@ window.registrar = async function() {
     const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{nombre,telefono:wa,provincia:prov}}})
     if(error)throw error
     usuario=data.user
+    // Aceptar invitación pendiente si hay una
+    await aceptarInvitacionPendiente(usuario.id)
+    await determinarContextoUsuario(usuario.id)
     // Guardar credenciales para auto-login en próximas visitas
     try{localStorage.setItem('ra_email',email);localStorage.setItem('ra_pass',pass)}catch(e){}
     var campoNom=document.getElementById('r-campo').value.trim()
@@ -2742,6 +2824,9 @@ window.login = async function() {
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass})
     if(error)throw error
     usuario=data.user
+    // Aceptar invitación pendiente si hay una
+    await aceptarInvitacionPendiente(usuario.id)
+    await determinarContextoUsuario(usuario.id)
     // Guardar credenciales si tildó Recordarme
     if(recordar){
       try{localStorage.setItem('ra_email',email);localStorage.setItem('ra_pass',pass)}catch(e){}
@@ -2915,7 +3000,7 @@ window.suscribirse = async function(planId) {
 
 window.cerrarSesion = async function() {
   await sb.auth.signOut()
-  usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[]
+  usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[];window.CONTEXTO=null
   showScreen('landing')
   initLanding()
   showToast('Sesión cerrada')
@@ -3133,7 +3218,7 @@ window.guardarCampo = async function() {
       }
     } else {
       // INSERT
-      var uid = _effectiveUserId()
+      var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
       var r = await sb.from('campos').insert({...payload,usuario_id:uid}).select().single()
       if(r.error && (r.error.message||'').toLowerCase().includes('column')) {
         r = await sb.from('campos').insert({...baseData,usuario_id:uid}).select().single()
@@ -3361,7 +3446,7 @@ window.guardarGasto = async function() {
       if(!error) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=data }
     } else {
       _p.campo_id = campoId
-      _p.usuario_id = usuario.id
+      _p.usuario_id = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
       var r = await sb.from('gastos').insert(_p).select().single()
       data=r.data; error=r.error
       if(!error) gastos.unshift(data)
@@ -3439,8 +3524,9 @@ window.guardarLluvia = async function() {
   var btn=document.getElementById('btn-lluvia')
   btn.disabled=true;btn.textContent='Guardando...'
   try{
+    var _ownerUid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
     const {data,error}=await sb.from('lluvias').insert({
-      campo_id:campoId,usuario_id:usuario.id,fecha,mm,
+      campo_id:campoId,usuario_id:_ownerUid,fecha,mm,
       etapa:document.getElementById('ll-etapa').value||null,
       tipo:document.getElementById('ll-tipo').value||null,
       observacion:document.getElementById('ll-obs').value.trim()||null
@@ -3479,9 +3565,10 @@ window.guardarSuelo = async function() {
   var btn=document.getElementById('btn-suelo')
   btn.disabled=true;btn.textContent='Guardando...'
   try{
+    var _ownerUid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
     const g=id=>parseFloat(document.getElementById(id).value)||null
     const {data,error}=await sb.from('analisis_suelo').insert({
-      campo_id:campoId,usuario_id:usuario.id,fecha,
+      campo_id:campoId,usuario_id:_ownerUid2,fecha,
       laboratorio:document.getElementById('s-lab').value.trim()||null,
       n_total:g('s-n'),p_disponible:g('s-p'),k:g('s-k'),s:g('s-s'),
       materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b'),
@@ -3584,6 +3671,11 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.campo-tab')[0]?.classList.add('active')
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   document.getElementById('sec-ingresos')?.classList.add('active')
+  // Ocultar tabs de rentabilidad para colaboradores
+  var tabRent = document.getElementById('tab-rentabilidad-campo')
+  var tabSens = document.getElementById('tab-sens-campo')
+  if (tabRent) tabRent.style.display = puedeVerRentabilidad() ? '' : 'none'
+  if (tabSens) tabSens.style.display = puedeVerRentabilidad() ? '' : 'none'
   renderDetGastos()
   window.scrollTo(0,0)
 }
@@ -3599,68 +3691,190 @@ window.volverACampos = function() {
   window.scrollTo(0,0)
 }
 
-// ── COLABORADORES ──
-async function cargarColaboradores() {
+// ── SISTEMA DE EQUIPO ──
+
+async function determinarContextoUsuario(userId) {
   try {
-    // Cargamos accesos que otros dieron a este usuario (colaborador)
-    var { data: accesos } = await sb.from('colaboradores')
-      .select('*, productor:productor_id(id, email)')
-      .eq('colaborador_email', usuario.email)
-    colaboradores = accesos || []
-  } catch(e) { colaboradores = [] }
+    var { data: equipoData } = await sb.from('equipo')
+      .select('owner_id, rol, nombre_display')
+      .eq('miembro_id', userId)
+      .eq('activo', true)
+      .single()
+    if (equipoData) {
+      window.CONTEXTO = {
+        esColaborador: true,
+        ownerIdActivo: equipoData.owner_id,
+        rolActivo: equipoData.rol,
+        userId: userId,
+        nombreDisplay: equipoData.nombre_display
+      }
+    } else {
+      window.CONTEXTO = {
+        esColaborador: false,
+        ownerIdActivo: userId,
+        rolActivo: 'dueño',
+        userId: userId
+      }
+    }
+  } catch(e) {
+    window.CONTEXTO = { esColaborador: false, ownerIdActivo: userId, rolActivo: 'dueño', userId: userId }
+  }
+}
+
+async function verificarInvitacion() {
+  try {
+    var urlParams = new URLSearchParams(window.location.search)
+    var token = urlParams.get('inv')
+    if (!token) return null
+    var { data: inv } = await sb.from('invitaciones')
+      .select('*')
+      .eq('token', token)
+      .eq('usado', false)
+      .gte('expira_en', new Date().toISOString())
+      .single()
+    if (!inv) {
+      // Token inválido o expirado — mostrar mensaje después de que cargue
+      setTimeout(function(){ showToast('Este link de invitación ya fue usado o expiró.','err') }, 2000)
+      return null
+    }
+    localStorage.setItem('rindeagro_inv_token', token)
+    localStorage.setItem('rindeagro_inv_owner', inv.owner_id)
+    localStorage.setItem('rindeagro_inv_rol', inv.rol)
+    // Buscar nombre del dueño para mostrarlo en la pantalla
+    try {
+      var { data: pDueno } = await sb.from('perfiles').select('nombre').eq('id', inv.owner_id).single()
+      var nomDueno = pDueno?.nombre || 'alguien'
+      document.getElementById('inv-titulo').textContent = nomDueno + ' te invitó a colaborar'
+      document.getElementById('inv-subtitulo').textContent = 'Unirte a la cuenta de ' + nomDueno + ' en RindeAgro para cargar datos del campo.'
+    } catch(e) {}
+    document.getElementById('ov-invitacion').classList.add('open')
+    return inv
+  } catch(e) { return null }
+}
+
+async function aceptarInvitacionPendiente(userId) {
+  try {
+    var token = localStorage.getItem('rindeagro_inv_token')
+    var ownerId = localStorage.getItem('rindeagro_inv_owner')
+    var rol = localStorage.getItem('rindeagro_inv_rol')
+    if (!token || !ownerId) return
+    var { data: inv } = await sb.from('invitaciones')
+      .select('*')
+      .eq('token', token)
+      .eq('usado', false)
+      .single()
+    if (!inv) {
+      localStorage.removeItem('rindeagro_inv_token')
+      localStorage.removeItem('rindeagro_inv_owner')
+      localStorage.removeItem('rindeagro_inv_rol')
+      return
+    }
+    // Buscar nombre del perfil del nuevo miembro
+    var { data: pMiembro } = await sb.from('perfiles').select('nombre').eq('id', userId).single()
+    var nombreMiembro = pMiembro?.nombre || usuario?.email?.split('@')[0] || 'Colaborador'
+    await sb.from('equipo').upsert({
+      owner_id: ownerId,
+      miembro_id: userId,
+      rol: rol || 'colaborador',
+      nombre_display: nombreMiembro,
+      activo: true
+    })
+    await sb.from('invitaciones').update({ usado: true }).eq('token', token)
+    localStorage.removeItem('rindeagro_inv_token')
+    localStorage.removeItem('rindeagro_inv_owner')
+    localStorage.removeItem('rindeagro_inv_rol')
+    showToast('✓ Te uniste al equipo exitosamente.','ok')
+    // Re-determinar contexto (ahora es colaborador)
+    await determinarContextoUsuario(userId)
+  } catch(e) { console.error('Error aceptar invitación:', e) }
 }
 
 function _renderBannerColaborador() {
   var banner = document.getElementById('banner-colaborador')
   var nomEl = document.getElementById('banner-col-nombre')
+  var rolEl = document.getElementById('banner-col-rol')
+  var navRent = document.getElementById('nav-rentabilidad')
+  var btnEquipo = document.getElementById('btn-mi-equipo')
   if (!banner) return
-  if (modoColaborador) {
+  if (window.CONTEXTO?.esColaborador) {
     banner.style.display = 'flex'
-    if (nomEl) nomEl.textContent = modoColaboradorNombre
+    if (nomEl) nomEl.textContent = window.CONTEXTO.nombreDisplay || 'el productor'
+    if (rolEl) rolEl.textContent = 'Rol: ' + (window.CONTEXTO.rolActivo || 'colaborador') + ' · El análisis de rentabilidad no está disponible en este modo'
   } else {
     banner.style.display = 'none'
   }
+  // Ocultar Rentabilidad en nav para colaboradores
+  if (navRent) navRent.style.display = puedeVerRentabilidad() ? '' : 'none'
+  // Mostrar "Mi equipo" solo para dueños
+  if (btnEquipo) btnEquipo.style.display = puedeInvitar() ? '' : 'none'
 }
 
-window.switchToProductor = async function(productorId, nombre) {
-  modoColaborador = productorId
-  modoColaboradorNombre = nombre
+window.switchToProductor = async function(productorId, nombre, rol) {
+  window.CONTEXTO = {
+    esColaborador: true,
+    ownerIdActivo: productorId,
+    rolActivo: rol || 'colaborador',
+    userId: usuario.id,
+    nombreDisplay: nombre
+  }
   _renderBannerColaborador()
   await cargarTodo()
   showModulo('dashboard')
-  showToast('⚡ Trabajando en la cuenta de '+nombre,'ok')
+  showToast('⚡ Trabajando en la cuenta de ' + nombre, 'ok')
 }
 
 window.salirModoColaborador = async function() {
-  modoColaborador = null
-  modoColaboradorNombre = ''
+  await determinarContextoUsuario(usuario.id)
   _renderBannerColaborador()
   await cargarTodo()
   showModulo('dashboard')
   showToast('✓ Volviste a tu cuenta','ok')
 }
 
-window.openModalCompartir = function() {
-  document.getElementById('col-nombre').value = ''
-  document.getElementById('col-email').value = ''
-  document.getElementById('col-rol').value = 'Ing. Agrónomo'
-  _renderListaColaboradores()
-  document.getElementById('ov-compartir').classList.add('open')
+// ── MODAL MI EQUIPO ──
+window.openModalMiEquipo = function() {
+  switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+  document.getElementById('ov-mi-equipo').classList.add('open')
 }
 
-async function _renderListaColaboradores() {
-  var el = document.getElementById('compartir-lista')
+window.switchEquipoTab = function(tab, btn) {
+  var eqModal = document.getElementById('ov-mi-equipo')
+  eqModal.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on') })
+  if(btn) btn.classList.add('on')
+  document.getElementById('eq-sec-miembros').style.display = tab === 'miembros' ? '' : 'none'
+  document.getElementById('eq-sec-invitar').style.display = tab === 'invitar' ? '' : 'none'
+  if (tab === 'miembros') _renderListaMiembros()
+  if (tab === 'invitar') {
+    document.getElementById('eq-link-generado').style.display = 'none'
+    document.getElementById('btn-generar-inv').disabled = false
+    document.getElementById('btn-generar-inv').textContent = 'Generar link de invitación'
+  }
+}
+
+async function _renderListaMiembros() {
+  var el = document.getElementById('eq-miembros-lista')
   if (!el) return
+  el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.5rem 0">Cargando...</div>'
   try {
-    var { data } = await sb.from('colaboradores').select('*').eq('productor_id', usuario.id).order('created_at',{ascending:false})
+    var { data } = await sb.from('equipo')
+      .select('*')
+      .eq('owner_id', usuario.id)
+      .eq('activo', true)
+      .order('creado_en', { ascending: false })
     if (!data || !data.length) {
-      el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.5rem 0">Todavía no compartiste tu cuenta con nadie.</div>'
+      el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Todavía no tenés miembros en tu equipo.</div>'
       return
     }
-    el.innerHTML = data.map(function(c){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .75rem;background:var(--verde-pale);border-radius:10px;margin-bottom:.5rem">'
-        +'<div><div style="font-size:13px;font-weight:600;color:var(--verde)">'+c.nombre+'</div><div style="font-size:11px;color:var(--texto-suave)">'+c.colaborador_email+' · '+c.rol+'</div></div>'
-        +'<button onclick="eliminarColaborador(\''+c.id+'\',\''+c.nombre.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:18px;padding:4px 8px">🗑</button>'
+    el.innerHTML = data.map(function(m){
+      var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+      return '<div style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--verde-pale);border-radius:12px;margin-bottom:.5rem">'
+        +'<div style="width:38px;height:38px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:600;color:var(--verde)">'+m.nombre_display+'</div>'
+          +(m.whatsapp?'<div style="font-size:11px;color:var(--texto-suave)">+54 9 '+m.whatsapp+'</div>':'')
+        +'</div>'
+        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.1);color:var(--verde);font-weight:600;white-space:nowrap;text-transform:capitalize">'+m.rol+'</span>'
+        +'<button onclick="removerMiembro(\''+m.id+'\',\''+m.nombre_display.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0" title="Remover">🗑</button>'
         +'</div>'
     }).join('')
   } catch(e) {
@@ -3668,38 +3882,58 @@ async function _renderListaColaboradores() {
   }
 }
 
-window.guardarColaborador = async function() {
-  var email = document.getElementById('col-email').value.trim()
-  var nombre = document.getElementById('col-nombre').value.trim() || email
-  var rol = document.getElementById('col-rol').value
-  if(!email){showToast('⚠️ Ingresá el email del colaborador','err');return}
-  var btn = document.getElementById('btn-guardar-col')
-  btn.disabled = true; btn.textContent = 'Guardando...'
+window.removerMiembro = async function(equipoId, nombre, btn) {
+  if (!confirm('¿Seguro que querés remover a ' + nombre + ' del equipo?')) return
+  btn.disabled = true
   try {
-    var { error } = await sb.from('colaboradores').insert({
-      productor_id: usuario.id,
-      colaborador_email: email,
-      nombre, rol
-    })
-    if(error) throw error
-    document.getElementById('col-nombre').value = ''
-    document.getElementById('col-email').value = ''
-    _renderListaColaboradores()
-    showToast('✓ Acceso compartido con '+nombre,'ok')
-  } catch(e) {
-    var msg = (e.message||'').includes('unique') ? 'Este email ya tiene acceso.' : e.message||'Error al guardar'
-    showToast('⚠️ '+msg,'err')
-  }
-  btn.disabled = false; btn.textContent = '+ Agregar colaborador'
+    await sb.from('equipo').update({ activo: false }).eq('id', equipoId)
+    _renderListaMiembros()
+    showToast('✓ ' + nombre + ' fue removido del equipo','ok')
+  } catch(e) { showToast('⚠️ Error al remover','err'); btn.disabled = false }
 }
 
-window.eliminarColaborador = async function(id, nombre, btn) {
-  if(!confirm('¿Quitarle el acceso a '+nombre+'?')) return
+window.generarInvitacion = async function() {
+  var rolSel = document.querySelector('input[name="eq-rol"]:checked')?.value || 'colaborador'
+  var btn = document.getElementById('btn-generar-inv')
+  btn.disabled = true; btn.textContent = 'Generando...'
   try {
-    await sb.from('colaboradores').delete().eq('id', id)
-    _renderListaColaboradores()
-    showToast('Acceso revocado','ok')
-  } catch(e) { showToast('⚠️ Error','err') }
+    var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
+      : Math.random().toString(36).substring(2,18)
+    var { error } = await sb.from('invitaciones').insert({
+      token: token,
+      owner_id: usuario.id,
+      rol: rolSel
+    })
+    if (error) throw error
+    var link = 'https://rindeagro.lat/?inv=' + token
+    document.getElementById('eq-inv-link').value = link
+    document.getElementById('eq-link-generado').style.display = ''
+    window._invLinkActual = link
+    btn.textContent = '↻ Generar nuevo link'
+    btn.disabled = false
+  } catch(e) {
+    showToast('⚠️ Error al generar invitación: '+(e.message||'Intentá de nuevo'),'err')
+    btn.disabled = false; btn.textContent = 'Generar link de invitación'
+  }
+}
+
+window.copiarLinkInvitacion = function() {
+  var link = document.getElementById('eq-inv-link').value
+  if (!link) return
+  try {
+    navigator.clipboard.writeText(link)
+    var btn = document.getElementById('btn-copiar-inv')
+    btn.textContent = '✓ Copiado'
+    setTimeout(function(){ btn.textContent = 'Copiar' }, 2000)
+  } catch(e) { showToast('Copiá el link manualmente','info') }
+}
+
+window.compartirInvWA = function() {
+  var link = document.getElementById('eq-inv-link').value || window._invLinkActual
+  if (!link) return
+  var mensaje = encodeURIComponent('Hola! Te invito a colaborar en mi cuenta de RindeAgro para cargar datos del campo.\n\nEntrá por este link para sumarte:\n' + link + '\n\nEl link expira en 7 días.')
+  window.open('https://wa.me/?text=' + mensaje, '_blank')
 }
 
 window.eliminarCampo = async function(id, nombre) {
@@ -3729,6 +3963,18 @@ window.eliminarCampo = async function(id, nombre) {
 }
 
 window.switchCampoTab = function(tab, btn) {
+  // Bloquear tabs de rentabilidad para colaboradores
+  if ((tab === 'rentabilidad' || tab === 'sens') && !puedeVerRentabilidad()) {
+    document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
+    document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
+    var secEl = document.getElementById('sec-'+tab)
+    if (secEl) {
+      secEl.classList.add('active')
+      secEl.innerHTML = '<div style="text-align:center;padding:40px"><p style="color:var(--verde);font-size:18px;font-weight:600;margin-bottom:.5rem">Acceso restringido</p><p style="color:#888">El análisis de rentabilidad es visible solo para el administrador de la cuenta.</p></div>'
+    }
+    if(btn) btn.classList.add('active')
+    return
+  }
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
   var sec = document.getElementById('sec-'+tab)

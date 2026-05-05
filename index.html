@@ -3409,10 +3409,10 @@ window.guardarCampo = async function() {
       nombre,
       hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:(cultivosSeleccionados.length ? cultivosSeleccionados.join(',') : document.getElementById('c-cult').value)||null,
-      rendimiento:parseFloat(document.getElementById('c-rend').value)||null,
-      precio_venta:parseFloat(document.getElementById('c-precio-venta').value)||null,
-      provincia:document.getElementById('c-prov').value||null,
-      tenencia:document.getElementById('c-ten').value||'propio',
+      rendimiento:parseFloat(document.getElementById('c-rend')?.value)||null,
+      precio_venta:parseFloat(document.getElementById('c-precio-venta')?.value)||null,
+      provincia:document.getElementById('c-prov')?.value||null,
+      tenencia:document.getElementById('c-ten')?.value||'propio',
     }
     // Leer hectáreas por cultivo desde los inputs antes de guardar
     cultivosSeleccionados.forEach(function(c) {

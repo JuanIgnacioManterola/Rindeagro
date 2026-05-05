@@ -734,32 +734,34 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
         <div id="det-gastos-lista"></div>
       </div>
-      <div class="grid2">
-        <!-- Desglose interactivo por rubro -->
-        <div class="card" style="margin-bottom:0">
-          <div class="card-hdr"><span class="card-tit" id="det-chart-titulo">Por rubro</span></div>
-          <!-- Chips de selección de rubro -->
-          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="gastos-rubro-chips">
-            <button class="grub-btn active" onclick="setGastoRubroFiltro(null,this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Todos</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('semillas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🌱 Semillas</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('herbicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🧪 Herbicidas</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('fungicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🍄 Fungicidas</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('insecticidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🐛 Insecticidas</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('fertilizantes',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">⚗️ Fertilizantes</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('laboreo',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚜 Laboreo</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('flete',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚛 Flete</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('empleados',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">👷 Empleados</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('arrendamiento',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🏠 Arrend.</button>
-            <button class="grub-btn" onclick="setGastoRubroFiltro('otros',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">📦 Otros</button>
-          </div>
-          <div style="position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
-          <div id="det-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
-          <div id="det-rubro-empty" style="display:none;text-align:center;padding:24px 0;font-size:12px;color:var(--texto-suave)">Sin gastos en este rubro</div>
+      <!-- Desglose interactivo: torta + tabla lado a lado -->
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit" id="det-chart-titulo">Desglose por rubro</span></div>
+        <!-- Chips de selección de rubro -->
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px" id="gastos-rubro-chips">
+          <button class="grub-btn active" onclick="setGastoRubroFiltro(null,this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Todos</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('semillas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🌱 Semillas</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('herbicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🧪 Herbicidas</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('fungicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🍄 Fungicidas</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('insecticidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🐛 Insecticidas</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('fertilizantes',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">⚗️ Fertilizantes</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('laboreo',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚜 Laboreo</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('flete',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚛 Flete</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('empleados',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">👷 Empleados</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('arrendamiento',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🏠 Arrend.</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('otros',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">📦 Otros</button>
         </div>
-        <div class="card" style="margin-bottom:0">
-          <div class="card-hdr"><span class="card-tit">Resumen</span></div>
-          <div id="det-resumen"></div>
+        <!-- Torta + Tabla lado a lado -->
+        <div style="display:flex;gap:20px;align-items:flex-start" id="det-chart-body">
+          <div style="flex:0 0 200px;position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
+          <div id="det-rubro-tabla" style="flex:1;min-width:0;max-height:220px;overflow-y:auto"></div>
         </div>
+        <div id="det-rubro-empty" style="display:none;text-align:center;padding:28px 0;font-size:12px;color:var(--texto-suave)">Sin gastos en este rubro</div>
+      </div>
+      <!-- Resumen -->
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Resumen</span></div>
+        <div id="det-resumen"></div>
       </div>
     </div>
 
@@ -4605,37 +4607,69 @@ function renderDetGastos() {
     (!enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0"><span style="color:var(--texto-suave)">En quintales/ha</span><span style="font-weight:600;color:var(--dorado)">'+(pr>0?(mgHa/pr*10).toFixed(1):0)+' qq</span></div>' : '')+
     (enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Tipo de cambio</span><span style="font-weight:600;color:var(--dorado)">$ '+Math.round(tcambio).toLocaleString('es-AR')+' / USD</span></div>' : '')
 
-  // ── TORTA: desglose ──
+  // ── TORTA + TABLA: desglose ──
   var ctxR = document.getElementById('chart-det-rubro')
+  var tablaEl = document.getElementById('det-rubro-tabla')
   var emptyEl = document.getElementById('det-rubro-empty')
+  var chartBody = document.getElementById('det-chart-body')
   var tituloEl = document.getElementById('det-chart-titulo')
   if(charts['det-rubro']) { charts['det-rubro'].destroy(); charts['det-rubro'] = null }
 
+  function renderTabla(entries, total) {
+    // entries: [{label, color, usd}] sorted desc
+    var prefix = enARS ? '$ ' : 'USD '
+    var rows = entries.map(function(e, i) {
+      var pct = total > 0 ? (e.usd / total * 100).toFixed(1) : '0.0'
+      var monto = enARS
+        ? '$ ' + Math.round(e.usd * tcambio).toLocaleString('es-AR')
+        : 'USD ' + Math.round(e.usd).toLocaleString('es-AR')
+      return '<tr style="border-bottom:.5px solid var(--borde)">' +
+        '<td style="padding:6px 4px;vertical-align:middle"><div style="display:flex;align-items:center;gap:6px">' +
+          '<div style="width:11px;height:11px;border-radius:3px;flex-shrink:0;background:'+e.color+'"></div>' +
+          '<span style="font-size:12px;color:var(--texto-mid)">'+e.label+'</span>' +
+        '</div></td>' +
+        '<td style="padding:6px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
+        '<td style="padding:6px 4px 6px 8px;text-align:right;font-size:12px;font-weight:600;font-family:DM Mono,monospace;white-space:nowrap;color:var(--texto)">'+monto+'</td>' +
+      '</tr>'
+    }).join('')
+    var montoTotal = enARS
+      ? '$ ' + Math.round(total * tcambio).toLocaleString('es-AR')
+      : 'USD ' + Math.round(total).toLocaleString('es-AR')
+    return '<table style="width:100%;border-collapse:collapse">' +
+      '<thead><tr style="border-bottom:1.5px solid var(--borde)">' +
+        '<th style="text-align:left;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 6px;text-transform:uppercase;letter-spacing:.04em">Concepto</th>' +
+        '<th style="text-align:right;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 8px 6px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
+        '<th style="text-align:right;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 6px;text-transform:uppercase;letter-spacing:.04em">Monto</th>' +
+      '</tr></thead>' +
+      '<tbody>'+rows+'</tbody>' +
+      '<tfoot><tr>' +
+        '<td colspan="2" style="padding:7px 4px 4px;font-size:12px;font-weight:700;color:var(--verde)">Total</td>' +
+        '<td style="padding:7px 4px 4px;text-align:right;font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">'+montoTotal+'</td>' +
+      '</tr></tfoot>' +
+    '</table>'
+  }
+
   if (!gastoRubroFiltro) {
     // Vista general: torta por rubro
-    if (tituloEl) tituloEl.textContent = 'Por rubro'
+    if (tituloEl) tituloEl.textContent = 'Desglose por rubro'
     var porRubro = {}
     gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros';porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0)})
     var labels = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
     if (labels.length && ctxR) {
       if (emptyEl) emptyEl.style.display = 'none'
-      ctxR.style.display = ''
+      if (chartBody) chartBody.style.display = 'flex'
       var vals = labels.map(function(l){return enARS ? Math.round(porRubro[l]*tcambio) : porRubro[l]})
-      var prefix = enARS ? '$ ' : 'USD '
-      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:COLORES.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.label+': '+prefix+ctx.parsed.toLocaleString('es-AR')}}}}}})
-      document.getElementById('det-rubro-leyenda').innerHTML = labels.map(function(l,i){
-        var pct = costoUSD > 0 ? (porRubro[l]/costoUSD*100).toFixed(1) : 0
-        return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div><span>'+l+'</span><span style="color:var(--texto-suave);font-size:10px">'+pct+'%</span></div>'
-      }).join('')
+      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:COLORES.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+(enARS?'$ ':'USD ')+Math.round(enARS?ctx.parsed:ctx.parsed).toLocaleString('es-AR')}}}}}})
+      if (tablaEl) tablaEl.innerHTML = renderTabla(labels.map(function(l,i){return {label:l,color:COLORES[i],usd:porRubro[l]}}), costoUSD)
     } else {
       if (emptyEl) emptyEl.style.display = 'block'
-      ctxR.style.display = 'none'
-      document.getElementById('det-rubro-leyenda').innerHTML = ''
+      if (chartBody) chartBody.style.display = 'none'
+      if (tablaEl) tablaEl.innerHTML = ''
     }
   } else {
-    // Vista desglose: torta por producto dentro del rubro seleccionado
+    // Vista desglose: torta por producto dentro del rubro
     var rubroLabel = RUBS[gastoRubroFiltro] || gastoRubroFiltro
-    if (tituloEl) tituloEl.textContent = rubroLabel + ' — por producto'
+    if (tituloEl) tituloEl.textContent = 'Desglose — ' + rubroLabel
     var gRubro = gf.filter(function(g){ return g.rubro === gastoRubroFiltro })
     var totalRubro = gRubro.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var porProd = {}
@@ -4646,19 +4680,14 @@ function renderDetGastos() {
     var labels2 = Object.keys(porProd).sort(function(a,b){return porProd[b]-porProd[a]})
     if (labels2.length && ctxR) {
       if (emptyEl) emptyEl.style.display = 'none'
-      ctxR.style.display = ''
+      if (chartBody) chartBody.style.display = 'flex'
       var vals2 = labels2.map(function(l){return enARS ? Math.round(porProd[l]*tcambio) : porProd[l]})
-      var prefix2 = enARS ? '$ ' : 'USD '
-      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels2,datasets:[{data:vals2,backgroundColor:COLORES.slice(0,labels2.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.label+': '+prefix2+ctx.parsed.toLocaleString('es-AR')}}}}}})
-      document.getElementById('det-rubro-leyenda').innerHTML = labels2.map(function(l,i){
-        var pct = totalRubro > 0 ? (porProd[l]/totalRubro*100).toFixed(1) : 0
-        var monto = enARS ? '$ '+Math.round(porProd[l]*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(porProd[l]).toLocaleString('es-AR')
-        return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap"><div style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:'+COLORES[i]+'"></div><span style="font-weight:600">'+pct+'%</span><span style="color:var(--texto-mid)">'+l+'</span><span style="color:var(--texto-suave);font-size:10px">('+monto+')</span></div>'
-      }).join('')
+      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels2,datasets:[{data:vals2,backgroundColor:COLORES.slice(0,labels2.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+(enARS?'$ ':'USD ')+Math.round(enARS?ctx.parsed:ctx.parsed).toLocaleString('es-AR')}}}}}})
+      if (tablaEl) tablaEl.innerHTML = renderTabla(labels2.map(function(l,i){return {label:l,color:COLORES[i],usd:porProd[l]}}), totalRubro)
     } else {
-      if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = 'Sin gastos en '+rubroLabel }
-      if (ctxR) ctxR.style.display = 'none'
-      document.getElementById('det-rubro-leyenda').innerHTML = ''
+      if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = 'Sin gastos registrados en '+rubroLabel }
+      if (chartBody) chartBody.style.display = 'none'
+      if (tablaEl) tablaEl.innerHTML = ''
     }
   }
 }

@@ -1180,10 +1180,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <div class="fg" style="margin-bottom:.9rem">
       <label class="fl">Rubro *</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px" id="rubro-chips">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px" id="rubro-chips">
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('semillas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🌱</div>Semillas</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('herbicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🧪</div>Herbicidas</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('fungicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🍄</div>Fungicidas</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('insecticidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🐛</div>Insecticidas</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('fertilizantes',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">⚗️</div>Fertilizantes</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('laboreo',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🚜</div>Laboreo</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('flete',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🚛</div>Flete</button>
@@ -1194,7 +1195,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <select class="fi" id="g-rubro" style="display:none" onchange="onRubroChange()">
         <option value="">Seleccioná</option>
         <option value="herbicidas">Herbicidas</option>
-        <option value="fungicidas">Fungicidas / Insecticidas</option>
+        <option value="fungicidas">Fungicidas</option>
+        <option value="insecticidas">Insecticidas</option>
         <option value="fertilizantes">Fertilizantes</option>
         <option value="semillas">Semillas</option>
         <option value="laboreo">Laboreo</option>
@@ -1240,16 +1242,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+    <div style="margin-bottom:.9rem">
       <div class="fg">
         <label class="fl">Hectáreas aplicadas</label>
         <input class="fi" type="number" id="g-ha-aplicadas" placeholder="Automático del campo" min="0" oninput="calcConv()"/>
       </div>
-      <div class="fg">
-        <label class="fl">Precio cereal ref. (USD/t)</label>
-        <input class="fi" type="number" id="g-precio" placeholder="280" oninput="calcConv()"/>
-      </div>
     </div>
+    <input type="hidden" id="g-precio" value=""/>
 
     <!-- Resultado calculado -->
     <div class="conv-box" style="grid-template-columns:1fr 1fr 1fr">
@@ -1439,7 +1438,7 @@ var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app'
 var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
 
 // Contexto de sesión (dueño o colaborador)
@@ -1964,7 +1963,7 @@ function renderRentabilidad() {
     elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
   } else {
     elG.innerHTML = gf.map(g=>{
-      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
       var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
       var subLabel = g.sub_tipo ? ` · ${SUBS[g.sub_tipo]||g.sub_tipo}` : ''
       var cantStr = g.cantidad && g.unidad ? ` · ${g.cantidad} ${g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad}` : ''
@@ -3525,7 +3524,7 @@ window.openModalLluviaRapida = function() {
 
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
-  document.getElementById('g-precio').value = precios.soja
+  document.getElementById('g-precio').value = precios.soja || 280
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
   if(c?.hectareas) document.getElementById('g-ha-aplicadas').value = c.hectareas
@@ -4227,7 +4226,7 @@ function renderCampoRent() {
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // Gastos lista
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
   var gEl = document.getElementById('cr-gastos-lista')
   if(gEl) {
@@ -4347,7 +4346,7 @@ window.calcRendCampo = function() {
 }
 
 window.renderRentabilidadTotal = function() {
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
 
   // Calcular totales globales
@@ -4439,7 +4438,7 @@ window.renderRentabilidadTotal = function() {
 
 window.renderRtTortaDetalle = function() {
   var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var rubroSel = document.getElementById('rt-rubro-sel')?.value||'todos'
   var gAll = gastos
   var gFilt = rubroSel==='todos' ? gAll : gAll.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===rubroSel})
@@ -4504,7 +4503,7 @@ function renderDetGastos() {
   var pr = c.precio_venta||prEst
   var ingHa = rend*pr, mgHa = ingHa-costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
-  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas/Insect.',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
   var el = document.getElementById('det-gastos-lista')
   if(!gf.length) {

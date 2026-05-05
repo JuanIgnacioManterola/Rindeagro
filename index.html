@@ -1575,9 +1575,17 @@ async function cargarTodo() {
   var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
 
   // Todo en PARALELO: perfiles + campos + gastos + lluvias + suelo
+  // Para campos: intenta ordenar por creado_en, si falla (columna no existe) intenta sin orden
+  async function _fetchCampos(uid) {
+    var r = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false})
+    if(r.error && /column|does not exist|PGRST/i.test(r.error.message||'')) {
+      r = await sb.from('campos').select('*').eq('usuario_id', uid)
+    }
+    return r
+  }
   var [resP, resC, resG, resL, resS] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
-    sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false}),
+    _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
@@ -3404,6 +3412,16 @@ window.closeModalCampo = function() {
   var inp=document.getElementById('map-search-input');if(inp)inp.value=''
   var res=document.getElementById('map-search-results');if(res)res.style.display='none'
 }
+// Helper: wraps a Supabase promise with a timeout so nunca cuelga
+function _sbRace(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) {
+      setTimeout(function(){ reject(new Error('timeout_db')) }, ms)
+    })
+  ])
+}
+
 window.guardarCampo = async function() {
   var nombre=document.getElementById('c-nombre').value.trim()
   if(!nombre){showToast('⚠️ Ingresá el nombre del campo','err');return}
@@ -3412,10 +3430,6 @@ window.guardarCampo = async function() {
   var isEdit = !!editId
   var btn=document.getElementById('btn-campo')
   btn.disabled=true; btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
-  var _btnTimer = setTimeout(function(){
-    btn.disabled=false; btn.textContent=isEdit?'Guardar cambios':'Guardar campo'
-    showToast('⚠️ Sin respuesta del servidor. Revisá tu conexión e intentá de nuevo.','err')
-  }, 15000)
 
   try {
     cultivosSeleccionados.forEach(function(c) {
@@ -3423,15 +3437,19 @@ window.guardarCampo = async function() {
       if(inp && inp.value) cultivosHectareasTemp[c] = parseFloat(inp.value)||0
     })
 
-    // Payload completo — columnas opcionales que pueden no existir en la tabla
-    var payload = {
+    // Payload base — columnas que SIEMPRE existen en la tabla
+    var payloadBase = {
       nombre: nombre,
       hectareas: parseFloat(document.getElementById('c-ha').value)||null,
       cultivo: cultivosSeleccionados.length ? cultivosSeleccionados.join(',') : (document.getElementById('c-cult').value||null),
       tenencia: document.getElementById('c-ten')?.value||'propio',
       poligono: _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null,
       lat: _campoCoordsLat ? parseFloat(_campoCoordsLat) : null,
-      lng: _campoCoordsLng ? parseFloat(_campoCoordsLng) : null,
+      lng: _campoCoordsLng ? parseFloat(_campoCoordsLng) : null
+    }
+
+    // Campos extendidos (pueden o no existir según la versión de la tabla)
+    var payloadExtra = {
       localidad: document.getElementById('c-localidad')?.value||null,
       rendimiento: parseFloat(document.getElementById('c-rend')?.value)||null,
       precio_venta: parseFloat(document.getElementById('c-precio-venta')?.value)||null,
@@ -3440,50 +3458,56 @@ window.guardarCampo = async function() {
       hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null
     }
 
-    // Payload mínimo (solo columnas garantizadas) para el fallback
-    var payloadMin = {
-      nombre: payload.nombre,
-      hectareas: payload.hectareas,
-      cultivo: payload.cultivo,
-      tenencia: payload.tenencia,
-      poligono: payload.poligono,
-      lat: payload.lat,
-      lng: payload.lng
-    }
-
     var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-    var rErr = null
+    var savedId = editId
 
     if(isEdit) {
-      // UPDATE: intenta completo, fallback a mínimo si error de columna
-      var r1 = await sb.from('campos').update(payload).eq('id', editId)
-      if(r1.error && /column|schema|does not exist/i.test(r1.error.message||'')) {
-        var r2 = await sb.from('campos').update(payloadMin).eq('id', editId)
-        rErr = r2.error
-      } else { rErr = r1.error }
-
-      if(rErr) throw new Error(rErr.message||'Error al actualizar')
-
-      // Recargar el campo actualizado
-      var rGet = await sb.from('campos').select('*').eq('id', editId).single()
+      // UPDATE: primero con todo, si falla por columna solo con base
+      var r1 = await _sbRace(sb.from('campos').update({...payloadBase,...payloadExtra}).eq('id', editId), 8000)
+      if(r1.error) {
+        if(/column|schema|does not exist|PGRST204/i.test(r1.error.message||'')) {
+          var r2 = await _sbRace(sb.from('campos').update(payloadBase).eq('id', editId), 8000)
+          if(r2.error) throw new Error(r2.error.message||'Error al actualizar')
+        } else { throw new Error(r1.error.message||'Error al actualizar') }
+      }
+      // Recargar campo actualizado
+      var rGet = await _sbRace(sb.from('campos').select('*').eq('id', editId).single(), 6000)
       if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
 
     } else {
-      // INSERT: intenta completo, fallback a mínimo si error de columna
-      var r1 = await sb.from('campos').insert({...payload, usuario_id:uid})
-      if(r1.error && /column|schema|does not exist/i.test(r1.error.message||'')) {
-        var r2 = await sb.from('campos').insert({...payloadMin, usuario_id:uid})
-        rErr = r2.error
-      } else { rErr = r1.error }
+      // INSERT: SIEMPRE primero solo con payload base (rápido y seguro)
+      var r1 = await _sbRace(sb.from('campos').insert({...payloadBase, usuario_id:uid}).select('id').single(), 8000)
+      if(r1.error) throw new Error(r1.error.message||'Error al guardar')
 
-      if(rErr) throw new Error(rErr.message||'Error al guardar')
+      savedId = r1.data && r1.data.id
 
-      // Buscar el campo recién insertado
-      var rGet = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false}).limit(1)
-      if(rGet.data && rGet.data[0]) {
-        campos.unshift(rGet.data[0])
-        if(!campoRent) campoRent = rGet.data[0].id
+      // Agregar campo a la lista local inmediatamente con los datos disponibles
+      var campoLocal = Object.assign({}, payloadBase, payloadExtra, {id: savedId, usuario_id: uid})
+      campos.unshift(campoLocal)
+      if(!campoRent) campoRent = savedId
+
+      // Intentar guardar campos extra en background (sin bloquear el flujo)
+      var hasExtra = Object.values(payloadExtra).some(function(v){return v!=null})
+      if(savedId && hasExtra) {
+        sb.from('campos').update(payloadExtra).eq('id', savedId)
+          .then(function(ru) {
+            if(!ru.error) {
+              // Actualizar copia local con datos extra confirmados
+              var idx = campos.findIndex(function(c){return c.id===savedId})
+              if(idx>=0) Object.assign(campos[idx], payloadExtra)
+            }
+          }).catch(function(){})
       }
+
+      // Re-fetch completo en background para sincronizar con DB
+      sb.from('campos').select('*').eq('id', savedId).single()
+        .then(function(rFull) {
+          if(rFull.data) {
+            var idx = campos.findIndex(function(c){return c.id===savedId})
+            if(idx>=0) campos[idx] = rFull.data
+            else campos.unshift(rFull.data)
+          }
+        }).catch(function(){})
     }
 
     closeModalCampo()
@@ -3493,9 +3517,14 @@ window.guardarCampo = async function() {
     if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
 
   } catch(e) {
-    showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')
+    var msg = e.message||''
+    if(msg==='timeout_db') {
+      showToast('⚠️ El servidor tardó demasiado. Verificá tu conexión e intentá de nuevo.','err')
+    } else {
+      showToast('⚠️ Error al guardar: '+(msg||'Intentá de nuevo'),'err')
+    }
+    console.error('guardarCampo error:', e)
   } finally {
-    clearTimeout(_btnTimer)
     btn.disabled=false
     btn.textContent=isEdit?'Guardar cambios':'Guardar campo'
   }

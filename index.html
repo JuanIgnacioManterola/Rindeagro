@@ -3596,7 +3596,7 @@ function renderZonasBtns() {
   btnsEl.innerHTML = cultivosSeleccionados.map(function(c) {
     var color = CULT_COLORES[c]||'#6b7280'
     var tieneZona = cultivosZonasTemp[c] && cultivosZonasTemp[c].length >= 3
-    return '<button type="button" onclick="iniciarZonaCultivo(''+c+'')" style="padding:6px 14px;border-radius:20px;border:2px solid '+color+';background:'+(tieneZona?color:'transparent')+';color:'+(tieneZona?'#fff':color)+';font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s">'+(tieneZona?'✓ ':'✏️ ') + c + '</button>'
+    return '<button type="button" onclick="iniciarZonaCultivo(\''+c+'\')" style="padding:6px 14px;border-radius:20px;border:2px solid '+color+';background:'+(tieneZona?color:'transparent')+';color:'+(tieneZona?'#fff':color)+';font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s">'+(tieneZona?'✓ ':'✏️ ') + c + '</button>'
   }).join('')
   // Resumen zonas ya dibujadas
   if(resEl) resEl.innerHTML = Object.keys(cultivosZonasTemp).map(function(c) {

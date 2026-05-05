@@ -1557,52 +1557,51 @@ function initLanding() {
 
 // ── CARGAR TODO ──
 async function cargarTodo() {
-  // Mostrar precios con valores default/cache inmediatamente (sin esperar APIs)
+  // Mostrar precios inmediatamente con valores default/cache
   _mostrarPrecios('BCR Rosario · BNA')
 
-  try {
-    const { data: p } = await sb.from('perfiles').select('*').eq('id', usuario.id).single()
-    var nombre = p?.nombre || usuario.email.split('@')[0]
-    document.getElementById('d-av').textContent = nombre.charAt(0).toUpperCase()
-    document.getElementById('d-nm').textContent = nombre
-    var h = new Date().getHours()
-    var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
-    document.getElementById('d-saludo').textContent = sal + ', ' + nombre.split(' ')[0] + ' 👋'
-    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-  } catch(e) {
-    var nombre = usuario?.email?.split('@')[0] || 'Usuario'
-    document.getElementById('d-av').textContent = nombre.charAt(0).toUpperCase()
-    document.getElementById('d-nm').textContent = nombre
-    document.getElementById('d-saludo').textContent = 'Bienvenido 👋'
-    document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
-  }
   var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-  // Cargar todos los datos en PARALELO (4x más rápido que secuencial)
-  var [resC, resG, resL, resS] = await Promise.allSettled([
+
+  // Todo en PARALELO: perfiles + campos + gastos + lluvias + suelo
+  var [resP, resC, resG, resL, resS] = await Promise.allSettled([
+    sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false}),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
   ])
+
+  // Perfil → nombre/saludo
+  try {
+    var p = resP.status==='fulfilled' ? resP.value.data : null
+    var nombre = (p && p.nombre) ? p.nombre : (usuario.email||'').split('@')[0]
+    var h = new Date().getHours()
+    var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
+    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=nombre.charAt(0).toUpperCase()
+    var dNm=document.getElementById('d-nm'); if(dNm) dNm.textContent=nombre
+    var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=sal+', '+nombre.split(' ')[0]+' 👋'
+    var dFec=document.getElementById('d-fecha'); if(dFec) dFec.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+  } catch(e) {}
+
+  // Datos
   campos = (resC.status==='fulfilled' && resC.value.data) ? resC.value.data : []
   if(campos.length > 0) campoRent = campos[0].id
-  gastos = (resG.status==='fulfilled' && resG.value.data) ? resG.value.data : []
+  gastos  = (resG.status==='fulfilled' && resG.value.data) ? resG.value.data : []
   lluvias = (resL.status==='fulfilled' && resL.value.data) ? resL.value.data : []
-  analisisS = (resS.status==='fulfilled' && resS.value.data) ? resS.value.data : []
+  analisisS=(resS.status==='fulfilled' && resS.value.data) ? resS.value.data : []
 
-  // Cargar precios: si hay cache de hoy usarla, sino auto-actualizar
-  var _hoy = new Date().toISOString().substring(0,10)
-  var _cacheOk = false
+  // Precios: cache o API
   try {
-    var _c = JSON.parse(localStorage.getItem('ra_precios_v3') || 'null')
-    if(_c && _c.fecha === _hoy) {
-      if(_c.soja) precios.soja=_c.soja; if(_c.maiz) precios.maiz=_c.maiz
-      if(_c.trigo) precios.trigo=_c.trigo; if(_c.girasol) precios.girasol=_c.girasol
-      if(_c.sorgo) precios.sorgo=_c.sorgo; if(_c.bna) precios.bna=_c.bna
-      _mostrarPrecios('BCR Rosario · BNA'); _cacheOk = true
-    }
-  } catch(e) {}
-  if(!_cacheOk) { actualizarPrecios() }
+    var _hoy = new Date().toISOString().substring(0,10)
+    var _c = JSON.parse(localStorage.getItem('ra_precios_v3')||'null')
+    if(_c && _c.fecha===_hoy) {
+      if(_c.soja)precios.soja=_c.soja; if(_c.maiz)precios.maiz=_c.maiz
+      if(_c.trigo)precios.trigo=_c.trigo; if(_c.girasol)precios.girasol=_c.girasol
+      if(_c.sorgo)precios.sorgo=_c.sorgo; if(_c.bna)precios.bna=_c.bna
+      _mostrarPrecios('BCR Rosario · BNA')
+    } else { actualizarPrecios() }
+  } catch(e) { actualizarPrecios() }
+
   renderDashboard()
   poblarSelectoresCampo()
   if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
@@ -3398,67 +3397,94 @@ window.guardarCampo = async function() {
   var editId = document.getElementById('c-edit-id')?.value||''
   var isEdit = !!editId
   var btn=document.getElementById('btn-campo')
-  btn.disabled=true;btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
-  // Auto-reset si la red no responde en 15s
+  btn.disabled=true; btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
   var _btnTimer = setTimeout(function(){
     btn.disabled=false; btn.textContent=isEdit?'Guardar cambios':'Guardar campo'
-    showToast('⚠️ Tiempo de espera agotado. Revisá tu conexión.','err')
+    showToast('⚠️ Sin respuesta del servidor. Revisá tu conexión e intentá de nuevo.','err')
   }, 15000)
-  try{
-    var poligonoData = _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null
-    // Columnas BÁSICAS que siempre existen en la tabla
-    var baseData = {
-      nombre,
-      hectareas:parseFloat(document.getElementById('c-ha').value)||null,
-      cultivo:(cultivosSeleccionados.length ? cultivosSeleccionados.join(',') : document.getElementById('c-cult').value)||null,
-      tenencia:document.getElementById('c-ten')?.value||'propio',
-      poligono: poligonoData,
-      lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
-      lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
-    }
-    // Columnas opcionales (pueden no existir en la tabla)
+
+  try {
     cultivosSeleccionados.forEach(function(c) {
       var inp = document.getElementById('zona-ha-'+c.replace(/\s/g,'_'))
       if(inp && inp.value) cultivosHectareasTemp[c] = parseFloat(inp.value)||0
     })
-    var colsOpt = {
-      rendimiento:parseFloat(document.getElementById('c-rend')?.value)||null,
-      precio_venta:parseFloat(document.getElementById('c-precio-venta')?.value)||null,
-      provincia:document.getElementById('c-prov')?.value||null,
+
+    // Payload completo — columnas opcionales que pueden no existir en la tabla
+    var payload = {
+      nombre: nombre,
+      hectareas: parseFloat(document.getElementById('c-ha').value)||null,
+      cultivo: cultivosSeleccionados.length ? cultivosSeleccionados.join(',') : (document.getElementById('c-cult').value||null),
+      tenencia: document.getElementById('c-ten')?.value||'propio',
+      poligono: _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null,
+      lat: _campoCoordsLat ? parseFloat(_campoCoordsLat) : null,
+      lng: _campoCoordsLng ? parseFloat(_campoCoordsLng) : null,
       localidad: document.getElementById('c-localidad')?.value||null,
+      rendimiento: parseFloat(document.getElementById('c-rend')?.value)||null,
+      precio_venta: parseFloat(document.getElementById('c-precio-venta')?.value)||null,
+      provincia: document.getElementById('c-prov')?.value||null,
       zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null,
       hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null
     }
-    var data, error
-    // Helper: intenta con payload completo, fallback a baseData si hay error de columna
-    async function _doQuery(fn) {
-      var r = await fn({...baseData,...colsOpt})
-      if(r.error && /column|schema/i.test(r.error.message||'')) {
-        r = await fn(baseData)
-      }
-      return r
+
+    // Payload mínimo (solo columnas garantizadas) para el fallback
+    var payloadMin = {
+      nombre: payload.nombre,
+      hectareas: payload.hectareas,
+      cultivo: payload.cultivo,
+      tenencia: payload.tenencia,
+      poligono: payload.poligono,
+      lat: payload.lat,
+      lng: payload.lng
     }
+
+    var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+    var rErr = null
+
     if(isEdit) {
-      var r = await _doQuery(function(p){ return sb.from('campos').update(p).eq('id',editId).select().single() })
-      data=r.data; error=r.error
-      if(!error) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=data }
+      // UPDATE: intenta completo, fallback a mínimo si error de columna
+      var r1 = await sb.from('campos').update(payload).eq('id', editId)
+      if(r1.error && /column|schema|does not exist/i.test(r1.error.message||'')) {
+        var r2 = await sb.from('campos').update(payloadMin).eq('id', editId)
+        rErr = r2.error
+      } else { rErr = r1.error }
+
+      if(rErr) throw new Error(rErr.message||'Error al actualizar')
+
+      // Recargar el campo actualizado
+      var rGet = await sb.from('campos').select('*').eq('id', editId).single()
+      if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
+
     } else {
-      var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-      var r = await _doQuery(function(p){ return sb.from('campos').insert({...p,usuario_id:uid}).select().single() })
-      data=r.data; error=r.error
-      if(!error){ campos.unshift(data); if(!campoRent)campoRent=data.id }
+      // INSERT: intenta completo, fallback a mínimo si error de columna
+      var r1 = await sb.from('campos').insert({...payload, usuario_id:uid})
+      if(r1.error && /column|schema|does not exist/i.test(r1.error.message||'')) {
+        var r2 = await sb.from('campos').insert({...payloadMin, usuario_id:uid})
+        rErr = r2.error
+      } else { rErr = r1.error }
+
+      if(rErr) throw new Error(rErr.message||'Error al guardar')
+
+      // Buscar el campo recién insertado
+      var rGet = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false}).limit(1)
+      if(rGet.data && rGet.data[0]) {
+        campos.unshift(rGet.data[0])
+        if(!campoRent) campoRent = rGet.data[0].id
+      }
     }
-    if(error)throw error
+
+    closeModalCampo()
+    showToast(isEdit?'✓ Campo actualizado':'✓ Campo "'+nombre+'" guardado','ok')
     poblarSelectoresCampo()
     renderDashboard()
-    closeModalCampo()
-    showToast(isEdit?'✓ Campo actualizado':'✓ Campo "'+nombre+'" agregado','ok')
-    ;['c-nombre','c-ha','c-cult','c-rend','c-precio-venta'].forEach(function(id){
-      var el=document.getElementById(id);if(el)el.value=''
-    })
-    if(document.getElementById('c-edit-id'))document.getElementById('c-edit-id').value=''
-  }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
-  finally{clearTimeout(_btnTimer);btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
+    if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
+
+  } catch(e) {
+    showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')
+  } finally {
+    clearTimeout(_btnTimer)
+    btn.disabled=false
+    btn.textContent=isEdit?'Guardar cambios':'Guardar campo'
+  }
 }
 
 window.editarCampoActual = function() {

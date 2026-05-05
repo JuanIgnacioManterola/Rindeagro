@@ -1471,10 +1471,17 @@ async function init() {
     hideLoading()
     closeModal()
     showScreen('app')
+    // determinarContexto con timeout de 4s para no bloquear si Supabase tarda
     try {
-      await determinarContextoUsuario(user.id)
-      await cargarTodo()
-    } catch(e) { console.error('Error cargando app:', e) }
+      await Promise.race([
+        determinarContextoUsuario(user.id),
+        new Promise(function(_, r){ setTimeout(function(){ r(new Error('timeout')) }, 4000) })
+      ])
+    } catch(e) {
+      // Si falla o timeout: usar modo dueño por defecto
+      window.CONTEXTO = { esColaborador:false, ownerIdActivo:user.id, rolActivo:'dueño', userId:user.id }
+    }
+    try { await cargarTodo() } catch(e) { console.error('cargarTodo error:', e) }
   }
 
   // onAuthStateChange: maneja INITIAL_SESSION (sesión guardada al recargar)
@@ -3185,12 +3192,14 @@ window.suscribirse = async function(planId) {
   } catch(e) { showToast('⚠️ Error de conexión', 'err') }
 }
 
-window.cerrarSesion = async function() {
-  await sb.auth.signOut()
+window.cerrarSesion = function() {
+  // Limpiar estado local PRIMERO sin esperar red
   usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[];window.CONTEXTO=null
   showScreen('landing')
   initLanding()
   showToast('Sesión cerrada')
+  // Llamar signOut sin await — no bloquear UI si hay problemas de red
+  try { sb.auth.signOut() } catch(e) {}
 }
 
 // ── PAÍSES Y PROVINCIAS ──
@@ -3390,55 +3399,54 @@ window.guardarCampo = async function() {
   var isEdit = !!editId
   var btn=document.getElementById('btn-campo')
   btn.disabled=true;btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
+  // Auto-reset si la red no responde en 15s
+  var _btnTimer = setTimeout(function(){
+    btn.disabled=false; btn.textContent=isEdit?'Guardar cambios':'Guardar campo'
+    showToast('⚠️ Tiempo de espera agotado. Revisá tu conexión.','err')
+  }, 15000)
   try{
     var poligonoData = _polyPuntos.length>=3 ? JSON.stringify(_polyPuntos) : null
+    // Columnas BÁSICAS que siempre existen en la tabla
     var baseData = {
       nombre,
       hectareas:parseFloat(document.getElementById('c-ha').value)||null,
       cultivo:(cultivosSeleccionados.length ? cultivosSeleccionados.join(',') : document.getElementById('c-cult').value)||null,
-      rendimiento:parseFloat(document.getElementById('c-rend')?.value)||null,
-      precio_venta:parseFloat(document.getElementById('c-precio-venta')?.value)||null,
-      provincia:document.getElementById('c-prov')?.value||null,
       tenencia:document.getElementById('c-ten')?.value||'propio',
+      poligono: poligonoData,
+      lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
+      lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
     }
-    // Leer hectáreas por cultivo desde los inputs antes de guardar
+    // Columnas opcionales (pueden no existir en la tabla)
     cultivosSeleccionados.forEach(function(c) {
       var inp = document.getElementById('zona-ha-'+c.replace(/\s/g,'_'))
       if(inp && inp.value) cultivosHectareasTemp[c] = parseFloat(inp.value)||0
     })
-    var colsExtra = {
+    var colsOpt = {
+      rendimiento:parseFloat(document.getElementById('c-rend')?.value)||null,
+      precio_venta:parseFloat(document.getElementById('c-precio-venta')?.value)||null,
+      provincia:document.getElementById('c-prov')?.value||null,
       localidad: document.getElementById('c-localidad')?.value||null,
-      lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
-      lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
-      poligono: poligonoData,
       zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null,
       hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null
     }
-    var payload = {...baseData,...colsExtra}
     var data, error
+    // Helper: intenta con payload completo, fallback a baseData si hay error de columna
+    async function _doQuery(fn) {
+      var r = await fn({...baseData,...colsOpt})
+      if(r.error && /column|schema/i.test(r.error.message||'')) {
+        r = await fn(baseData)
+      }
+      return r
+    }
     if(isEdit) {
-      // UPDATE
-      var r = await sb.from('campos').update(payload).eq('id',editId).select().single()
-      if(r.error && (r.error.message||'').includes('column')) {
-        r = await sb.from('campos').update(baseData).eq('id',editId).select().single()
-      }
+      var r = await _doQuery(function(p){ return sb.from('campos').update(p).eq('id',editId).select().single() })
       data=r.data; error=r.error
-      if(!error) {
-        var idx=campos.findIndex(function(c){return c.id===editId})
-        if(idx>=0) campos[idx]=data
-      }
+      if(!error) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=data }
     } else {
-      // INSERT
       var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-      var r = await sb.from('campos').insert({...payload,usuario_id:uid}).select().single()
-      if(r.error && (r.error.message||'').toLowerCase().includes('column')) {
-        r = await sb.from('campos').insert({...baseData,usuario_id:uid}).select().single()
-      }
+      var r = await _doQuery(function(p){ return sb.from('campos').insert({...p,usuario_id:uid}).select().single() })
       data=r.data; error=r.error
-      if(!error) {
-        campos.unshift(data)
-        if(!campoRent)campoRent=data.id
-      }
+      if(!error){ campos.unshift(data); if(!campoRent)campoRent=data.id }
     }
     if(error)throw error
     poblarSelectoresCampo()
@@ -3450,7 +3458,7 @@ window.guardarCampo = async function() {
     })
     if(document.getElementById('c-edit-id'))document.getElementById('c-edit-id').value=''
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
-  finally{btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
+  finally{clearTimeout(_btnTimer);btn.disabled=false;btn.textContent=isEdit?'Guardar cambios':'Guardar campo'}
 }
 
 window.editarCampoActual = function() {

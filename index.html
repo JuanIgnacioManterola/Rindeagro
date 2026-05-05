@@ -1402,7 +1402,14 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SB_URL = 'https://kmfydetiwatnwwzjnhyq.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZnlkZXRpd2F0bnd3empuaHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MjM2NjgsImV4cCI6MjA4OTA5OTY2OH0.WL9aziR3MwVNLV6q0_jDXCGO5dYgaoL6Bsr-PrOCoiQ'
-const sb = createClient(SB_URL, SB_KEY)
+const sb = createClient(SB_URL, SB_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'rindeagro-auth'
+  }
+})
 
 // ── ESTADO GLOBAL ──
 var usuario = null
@@ -1433,58 +1440,57 @@ function puedeInvitar() {
 // ── INIT ──
 async function init() {
   clearTimeout(window._loadingTimeout)
-  // Verificar invitación en URL antes de todo
-  await verificarInvitacion()
-  try {
-    sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        document.getElementById('screen-loading').style.display = 'none'
-        document.getElementById('ov-nueva-pass').classList.add('open')
-        return
-      }
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
-        if (!usuario) {
-          // Login por magic link o OTP (no hubo llamada explícita a signInWithPassword)
-          usuario = session.user
-          await determinarContextoUsuario(usuario.id)
-          try{localStorage.setItem('ra_email', usuario.email)}catch(e){}
-          closeModal()
-          showToast('✓ ¡Bienvenido de vuelta!','ok')
-          showScreen('app')
-          await cargarTodo()
-        }
-      } else if (event === 'SIGNED_OUT') {
-        usuario = null; campos = []; gastos = []; lluvias = []; window.CONTEXTO = null
-        var appScreen = document.getElementById('screen-app')
-        if (appScreen && appScreen.classList.contains('active')) {
-          showScreen('landing'); initLanding()
-          setTimeout(function(){ openModal('login'); showToast('⚠️ Tu sesión expiró. Ingresá de nuevo.','err') }, 300)
-        }
-      }
-    })
-    const { data: { session } } = await sb.auth.getSession()
-    var loading = document.getElementById('screen-loading')
-    loading.classList.add('fade')
-    setTimeout(() => { loading.style.display = 'none' }, 500)
-    if (session && session.user) {
-      // Sesion activa — entrar directo a la app
-      usuario = session.user
-      await determinarContextoUsuario(usuario.id)
-      showScreen('app')
-      await cargarTodo()
-    } else {
-      // Sin sesion activa — mostrar landing
-      // (Supabase maneja la persistencia de sesión automáticamente con refresh tokens)
-      localStorage.removeItem('ra_pass') // limpiar contraseñas guardadas por versiones anteriores
-      showScreen('landing')
-      initLanding()
-    }
-  } catch(e) {
-    console.error(e)
-    document.getElementById('screen-loading').style.display = 'none'
-    showScreen('landing')
-    initLanding()
+  localStorage.removeItem('ra_pass') // limpiar contraseñas viejas
+
+  function hideLoading() {
+    var l = document.getElementById('screen-loading')
+    if (!l) return
+    l.classList.add('fade')
+    setTimeout(function(){ l.style.display = 'none' }, 500)
   }
+
+  async function entrarApp(user) {
+    if (usuario) return  // ya entró, evitar doble carga
+    usuario = user
+    try { localStorage.setItem('ra_email', user.email) } catch(e) {}
+    await determinarContextoUsuario(user.id)
+    hideLoading()
+    closeModal()
+    showScreen('app')
+    await cargarTodo()
+  }
+
+  // Un único listener que maneja TODOS los eventos de auth
+  sb.auth.onAuthStateChange(async function(event, session) {
+    if (event === 'INITIAL_SESSION') {
+      // Dispara al cargar la página con el estado actual de la sesión
+      if (session && session.user) {
+        await entrarApp(session.user)
+      } else {
+        hideLoading()
+        localStorage.removeItem('ra_pass')
+        showScreen('landing')
+        initLanding()
+      }
+    } else if (event === 'SIGNED_IN' && !usuario) {
+      // Login nuevo: magic link, OTP, o password
+      await entrarApp(session.user)
+      showToast('✓ ¡Bienvenido!', 'ok')
+    } else if (event === 'PASSWORD_RECOVERY') {
+      hideLoading()
+      document.getElementById('ov-nueva-pass').classList.add('open')
+    } else if (event === 'SIGNED_OUT') {
+      usuario = null; campos = []; gastos = []; lluvias = []; window.CONTEXTO = null
+      var appEl = document.getElementById('screen-app')
+      if (appEl && appEl.classList.contains('active')) {
+        showScreen('landing'); initLanding()
+        setTimeout(function(){ openModal('login'); showToast('⚠️ Sesión cerrada. Ingresá de nuevo.','err') }, 300)
+      }
+    }
+  })
+
+  // Verificar invitación por URL (después de registrar el listener)
+  try { await verificarInvitacion() } catch(e) { console.log('inv check:', e) }
 }
 
 function showScreen(name) {
@@ -2900,16 +2906,23 @@ window.login = async function() {
   // Limpiar aviso de error anterior
   var prevErr=document.getElementById('login-err-extra'); if(prevErr) prevErr.remove()
   try{
+    // signInWithPassword dispara onAuthStateChange SIGNED_IN que llama entrarApp()
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass})
     if(error)throw error
-    usuario=data.user
-    await aceptarInvitacionPendiente(usuario.id)
-    await determinarContextoUsuario(usuario.id)
-    try{localStorage.setItem('ra_email',email)}catch(e){}
-    closeModal()
-    showToast('✓ ¡Bienvenido de vuelta!','ok')
-    showScreen('app')
-    await cargarTodo()
+    // Forzar entrada por si onAuthStateChange ya disparó antes (race condition)
+    if(data.user && !usuario) {
+      await aceptarInvitacionPendiente(data.user.id)
+      usuario=data.user
+      try{localStorage.setItem('ra_email',email)}catch(e){}
+      await determinarContextoUsuario(data.user.id)
+      closeModal()
+      showToast('✓ ¡Bienvenido de vuelta!','ok')
+      showScreen('app')
+      await cargarTodo()
+    } else if(data.user && usuario) {
+      // onAuthStateChange ya lo manejó
+      showToast('✓ ¡Bienvenido de vuelta!','ok')
+    }
   }catch(e){
     btn.disabled=false;btn.textContent='Ingresar a mi cuenta'
     var loginErr = e.message||'Error'

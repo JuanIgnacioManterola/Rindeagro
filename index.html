@@ -1074,9 +1074,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <!-- Tabla de cultivos con ha + botón zona -->
       <div id="zonas-cultivo-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
       <!-- Hint mientras se dibuja -->
-      <div id="zona-dibujo-hint" style="display:none;background:var(--verde-pale);border:1px solid var(--verde);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--verde);margin-top:4px;display:flex;align-items:center;gap:8px">
-        <span>✏️ <strong id="zona-dibujo-cultivo-txt">Dibujando zona</strong> — hacé clic para marcar puntos · doble clic para cerrar</span>
-        <button type="button" onclick="cancelarZonaCultivo()" style="margin-left:auto;padding:3px 10px;border-radius:6px;border:1px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer;flex-shrink:0">Cancelar</button>
+      <div id="zona-dibujo-hint" style="display:none;background:var(--verde-pale);border:1px solid var(--verde);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--verde);margin-top:4px">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div>✏️ <strong id="zona-dibujo-cultivo-txt">Dibujando zona</strong> — hacé clic en el mapa para marcar puntos</div>
+            <div id="zona-dibujo-pts" style="font-size:11px;margin-top:3px;opacity:.75">0 puntos — necesitás al menos 3</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+            <button id="btn-confirmar-zona" type="button" onclick="finalizarZonaCultivo()" disabled
+              style="padding:5px 13px;border-radius:7px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'DM Sans',sans-serif;opacity:.4">✓ Confirmar</button>
+            <button type="button" onclick="cancelarZonaCultivo()"
+              style="padding:5px 10px;border-radius:7px;border:1.5px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3260,6 +3270,7 @@ window.openModalCampo = function() {
       window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
       L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapaCampoModal)
       window._mapaCampoModal.on('click',function(e){
+        if(_zonaCultivoActivo) return  // zona mode takes priority
         if(!_polyModo) return
         _polyPuntos.push([e.latlng.lat,e.latlng.lng])
         _dibujarPolyTemp()
@@ -3269,6 +3280,7 @@ window.openModalCampo = function() {
         if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
       })
       window._mapaCampoModal.on('dblclick',function(){
+        if(_zonaCultivoActivo) return  // zona mode takes priority
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
       })
@@ -3700,6 +3712,7 @@ var cultivosZonasTemp = {}        // { 'Soja': [[lat,lng],...], 'Maíz': [...] }
 var cultivosHectareasTemp = {}    // { 'Soja': 200, 'Maíz': 280 }
 var _zonaPolyPuntos = []
 var _zonaPolyLayer = null
+var _zonaTempLines = []           // markers + lines mientras se dibuja la zona
 var _zonaCultivoActivo = null
 var CULT_COLORES = {'Soja':'#16a34a','Maíz':'#ca8a04','Trigo':'#92400e','Girasol':'#b45309','Sorgo':'#7c3aed','Cebada':'#0369a1','Maní':'#d97706'}
 var CULT_ICONS = {'Soja':'🌿','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
@@ -3798,67 +3811,99 @@ window.actualizarHaTotalDesdeCultivos = function() {
 }
 
 window.iniciarZonaCultivo = function(cultivo) {
-  if(!window._mapaCampoModal) { showToast('⚠️ Primero dibujá el polígono del campo','err'); return }
-  // Cancel previous if any
-  cancelarZonaCultivo()
+  if(!window._mapaCampoModal) { showToast('⚠️ Primero abrí el mapa del campo','err'); return }
+  cancelarZonaCultivo(true)   // cancel any previous zone drawing silently
   _zonaCultivoActivo = cultivo
   _zonaPolyPuntos = []
+  // Reset confirm button and counter
+  var confirmBtn = document.getElementById('btn-confirmar-zona')
+  var ptsEl = document.getElementById('zona-dibujo-pts')
+  if(confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '.4'; confirmBtn.style.cursor = 'not-allowed' }
+  if(ptsEl) ptsEl.textContent = '0 puntos — necesitás al menos 3'
   var hint = document.getElementById('zona-dibujo-hint')
   var txt = document.getElementById('zona-dibujo-cultivo-txt')
   if(hint) hint.style.display = 'block'
-  if(txt) txt.textContent = 'Dibujando zona de ' + cultivo
-  var color = CULT_COLORES[cultivo]||'#16a34a'
-  // Add map click listener for zone
+  if(txt) txt.textContent = 'Zona de ' + cultivo
   window._mapaCampoModal.on('click', _zonaMapaClick)
-  window._mapaCampoModal.on('dblclick', _zonaMapaDouble)
   window._mapaCampoModal.getContainer().style.cursor = 'crosshair'
-  showToast('✏️ Clic para marcar zona de '+cultivo+' · Doble clic para cerrar','ok')
+  showToast('✏️ Marcá los puntos del lote de '+cultivo+' en el mapa','ok')
+  renderZonasBtns()
+}
+
+// Dibuja lineas + marcadores temporales de la zona mientras se va trazando
+function _dibujarZonaTemp() {
+  var m = window._mapaCampoModal; if(!m) return
+  var color = CULT_COLORES[_zonaCultivoActivo]||'#16a34a'
+  // Limpiar capas temporales anteriores
+  _zonaTempLines.forEach(function(l){ try{ m.removeLayer(l) }catch(e){} })
+  _zonaTempLines = []
+  if(_zonaPolyLayer) { try{ m.removeLayer(_zonaPolyLayer) }catch(e){}; _zonaPolyLayer = null }
+  var pts = _zonaPolyPuntos
+  if(pts.length >= 2) {
+    // Línea entre puntos (abierta)
+    var pl = L.polyline(pts, {color:color, weight:2.5, dashArray:'6,5'}).addTo(m)
+    _zonaTempLines.push(pl)
+    // Línea de cierre (preview tenue)
+    if(pts.length >= 3) {
+      var cl = L.polyline([pts[pts.length-1], pts[0]], {color:color, weight:1.5, dashArray:'3,7', opacity:0.35}).addTo(m)
+      _zonaTempLines.push(cl)
+    }
+  }
+  // Marcador en cada punto
+  pts.forEach(function(p, i) {
+    var mk = L.circleMarker(p, {radius:5, color:color, fillColor: i===0?color:'#fff', fillOpacity:1, weight:2}).addTo(m)
+    _zonaTempLines.push(mk)
+  })
 }
 
 function _zonaMapaClick(e) {
   if(!_zonaCultivoActivo) return
   _zonaPolyPuntos.push([e.latlng.lat, e.latlng.lng])
-  var color = CULT_COLORES[_zonaCultivoActivo]||'#16a34a'
-  if(_zonaPolyLayer) window._mapaCampoModal.removeLayer(_zonaPolyLayer)
-  if(_zonaPolyPuntos.length >= 2) {
-    _zonaPolyLayer = L.polygon(_zonaPolyPuntos, {color:color, fillColor:color, fillOpacity:0.25, weight:2, dashArray:'6,4'}).addTo(window._mapaCampoModal)
+  _dibujarZonaTemp()
+  var n = _zonaPolyPuntos.length
+  var ptsEl = document.getElementById('zona-dibujo-pts')
+  var confirmBtn = document.getElementById('btn-confirmar-zona')
+  if(ptsEl) ptsEl.textContent = n + ' punto' + (n===1?'':'s') + (n < 3 ? ' — necesitás al menos 3' : ' — listo para confirmar ✓')
+  if(confirmBtn) {
+    var ok = n >= 3
+    confirmBtn.disabled = !ok
+    confirmBtn.style.opacity = ok ? '1' : '.4'
+    confirmBtn.style.cursor = ok ? 'pointer' : 'not-allowed'
   }
-}
-
-function _zonaMapaDouble(e) {
-  if(!_zonaCultivoActivo || _zonaPolyPuntos.length < 3) return
-  L.DomEvent.stopPropagation(e)
-  finalizarZonaCultivo()
 }
 
 window.finalizarZonaCultivo = function() {
-  if(!_zonaCultivoActivo || _zonaPolyPuntos.length < 3) { showToast('⚠️ Necesitás al menos 3 puntos','err'); return }
+  if(!_zonaCultivoActivo || _zonaPolyPuntos.length < 3) { showToast('⚠️ Necesitás al menos 3 puntos en el mapa','err'); return }
   var cultivo = _zonaCultivoActivo
-  cultivosZonasTemp[cultivo] = _zonaPolyPuntos.slice()
+  var pts = _zonaPolyPuntos.slice()
+  cultivosZonasTemp[cultivo] = pts
   var color = CULT_COLORES[cultivo]||'#16a34a'
-  // Calcular hectáreas de la zona y guardar
-  var haZona = _calcHaDesdePoligono(_zonaPolyPuntos)
-  if(haZona > 0) {
-    cultivosHectareasTemp[cultivo] = haZona
-  }
-  // Solidify the polygon
-  if(_zonaPolyLayer) window._mapaCampoModal.removeLayer(_zonaPolyLayer)
-  if(_zonaLayers[cultivo]) window._mapaCampoModal.removeLayer(_zonaLayers[cultivo])
-  _zonaLayers[cultivo] = L.polygon(_zonaPolyPuntos, {color:color, fillColor:color, fillOpacity:0.3, weight:2.5})
-    .bindTooltip(cultivo+(haZona?' · '+haZona+' ha':''), {permanent:true, direction:'center', opacity:.9})
+  var haZona = _calcHaDesdePoligono(pts)
+  if(haZona > 0) cultivosHectareasTemp[cultivo] = haZona
+  // Limpiar temporales y dibujar polígono definitivo
+  _zonaTempLines.forEach(function(l){ try{ window._mapaCampoModal.removeLayer(l) }catch(e){} })
+  _zonaTempLines = []
+  if(_zonaPolyLayer) { try{ window._mapaCampoModal.removeLayer(_zonaPolyLayer) }catch(e){}; _zonaPolyLayer = null }
+  if(_zonaLayers[cultivo]) { try{ window._mapaCampoModal.removeLayer(_zonaLayers[cultivo]) }catch(e){} }
+  _zonaLayers[cultivo] = L.polygon(pts, {color:color, fillColor:color, fillOpacity:0.3, weight:2.5})
+    .bindTooltip(cultivo + (haZona ? ' · ' + haZona + ' ha' : ''), {permanent:true, direction:'center', opacity:.9})
     .addTo(window._mapaCampoModal)
   cancelarZonaCultivo(true)
   renderZonasBtns()
-  showToast('✓ Zona de '+cultivo+' — '+haZona+' ha','ok')
+  showToast('✓ Zona de ' + cultivo + ' confirmada — ' + haZona + ' ha','ok')
 }
 
 window.cancelarZonaCultivo = function(silent) {
   _zonaCultivoActivo = null
   _zonaPolyPuntos = []
-  if(_zonaPolyLayer) { window._mapaCampoModal && window._mapaCampoModal.removeLayer(_zonaPolyLayer); _zonaPolyLayer = null }
+  // Limpiar capas temporales
+  if(window._mapaCampoModal) {
+    _zonaTempLines.forEach(function(l){ try{ window._mapaCampoModal.removeLayer(l) }catch(e){} })
+  }
+  _zonaTempLines = []
+  if(_zonaPolyLayer) { if(window._mapaCampoModal) try{ window._mapaCampoModal.removeLayer(_zonaPolyLayer) }catch(e){}; _zonaPolyLayer = null }
   if(window._mapaCampoModal) {
     window._mapaCampoModal.off('click', _zonaMapaClick)
-    window._mapaCampoModal.off('dblclick', _zonaMapaDouble)
     window._mapaCampoModal.getContainer().style.cursor = ''
   }
   var hint = document.getElementById('zona-dibujo-hint')

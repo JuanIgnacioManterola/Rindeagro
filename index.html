@@ -1270,47 +1270,73 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <!-- MODAL MI EQUIPO -->
 <div class="overlay" id="ov-mi-equipo">
-  <div class="modal" style="max-width:520px">
-    <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-tit">👥 Mi equipo</div>
-    <div class="m-sub">Invitá personas de confianza para que colaboren en tu cuenta</div>
-    <div class="tabs">
-      <button class="tab on" id="eq-tab-miembros" onclick="switchEquipoTab('miembros',this)">Miembros</button>
-      <button class="tab" id="eq-tab-invitar" onclick="switchEquipoTab('invitar',this)">Invitar</button>
-    </div>
-    <!-- TAB MIEMBROS -->
-    <div id="eq-sec-miembros">
-      <div id="eq-miembros-lista" style="margin-bottom:1rem"></div>
-      <button class="fb" onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))">+ Invitar nuevo miembro</button>
-    </div>
-    <!-- TAB INVITAR -->
-    <div id="eq-sec-invitar" style="display:none">
-      <div style="margin-bottom:1rem">
-        <div class="fl" style="margin-bottom:.6rem">Rol del nuevo miembro:</div>
-        <div style="display:flex;flex-direction:column;gap:8px" id="eq-rol-opciones">
-          <label style="border:1.5px solid var(--verde);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;background:var(--verde-pale)">
-            <input type="radio" name="eq-rol" value="colaborador" checked style="margin-top:2px;accent-color:var(--verde)"/>
-            <div><div style="font-size:13px;font-weight:600;color:var(--verde)">Colaborador</div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Puede cargar gastos, lluvias e ingresos. No ve rentabilidad.</div></div>
-          </label>
-          <label style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
-            <input type="radio" name="eq-rol" value="administrador" style="margin-top:2px;accent-color:var(--verde)"/>
-            <div><div style="font-size:13px;font-weight:600;color:var(--verde)">Administrador</div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Además puede invitar a otros colaboradores.</div></div>
-          </label>
-        </div>
+  <div class="modal" style="max-width:620px;padding:0;overflow:hidden">
+    <button class="m-close" onclick="closeModal()" style="top:1rem;right:1rem;z-index:2;background:rgba(255,255,255,.2);color:#fff">✕</button>
+    <!-- Header con gradiente -->
+    <div style="background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);padding:2rem 2rem 1.5rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:rgba(201,168,76,.12)"></div>
+      <div style="position:absolute;bottom:-20px;left:40px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
+      <div style="position:relative;z-index:1">
+        <div style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:.9rem;border:1px solid rgba(255,255,255,.2)">👥</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:.3rem">Mi equipo</div>
+        <div style="font-size:13px;color:rgba(250,247,240,.65)">Invitá personas de confianza para que colaboren en tu cuenta</div>
       </div>
-      <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1rem">Generar link de invitación</button>
-      <div id="eq-link-generado" style="display:none">
-        <div style="border-top:.5px solid var(--borde);padding-top:1rem">
-          <div class="fl" style="margin-bottom:.5rem">Link generado:</div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:.75rem">
-            <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:var(--crema)"/>
-            <button onclick="copiarLinkInvitacion()" style="padding:10px 14px;border-radius:9px;border:.5px solid var(--borde);background:var(--crema);color:var(--verde);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap" id="btn-copiar-inv">Copiar</button>
+      <!-- Tabs dentro del header -->
+      <div style="display:flex;gap:4px;margin-top:1.25rem;position:relative;z-index:1">
+        <button id="eq-tab-miembros" onclick="switchEquipoTab('miembros',this)" style="padding:8px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.2);color:#fff;transition:all .2s">👤 Miembros</button>
+        <button id="eq-tab-invitar" onclick="switchEquipoTab('invitar',this)" style="padding:8px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:rgba(250,247,240,.6);transition:all .2s">🔗 Invitar</button>
+      </div>
+    </div>
+
+    <!-- Contenido -->
+    <div style="padding:1.75rem 2rem">
+      <!-- TAB MIEMBROS -->
+      <div id="eq-sec-miembros">
+        <div id="eq-miembros-lista" style="margin-bottom:1.25rem;min-height:60px"></div>
+        <button onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))" style="width:100%;padding:12px;border-radius:10px;border:2px dashed var(--borde);background:transparent;color:var(--verde);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.borderColor='var(--verde)';this.style.background='var(--verde-pale)'" onmouseout="this.style.borderColor='var(--borde)';this.style.background='transparent'">
+          <span style="font-size:18px">+</span> Invitar nuevo miembro
+        </button>
+      </div>
+
+      <!-- TAB INVITAR -->
+      <div id="eq-sec-invitar" style="display:none">
+        <div style="margin-bottom:1.25rem">
+          <div style="font-size:12px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem">Rol del nuevo miembro</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <label id="eq-label-col" style="border:2px solid var(--verde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:var(--verde-pale);transition:all .2s" onclick="resaltarRolLabel('col')">
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="radio" name="eq-rol" value="colaborador" checked style="accent-color:var(--verde)"/>
+                <div style="font-size:14px;font-weight:700;color:var(--verde)">Colaborador</div>
+              </div>
+              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Carga gastos, lluvias e ingresos. No ve rentabilidad.</div>
+            </label>
+            <label id="eq-label-adm" style="border:2px solid var(--borde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:all .2s" onclick="resaltarRolLabel('adm')">
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="radio" name="eq-rol" value="administrador" style="accent-color:var(--verde)"/>
+                <div style="font-size:14px;font-weight:700;color:var(--verde)">Administrador</div>
+              </div>
+              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Puede además invitar a otros colaboradores.</div>
+            </label>
           </div>
-          <button onclick="compartirInvWA()" style="width:100%;padding:11px;border-radius:10px;border:none;background:#25D366;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Compartir por WhatsApp
-          </button>
-          <p style="font-size:11px;color:var(--texto-suave);margin-top:.75rem;text-align:center">Este link expira en 7 días. Una vez que la persona lo abre y se registra, queda vinculada a tu cuenta.</p>
+        </div>
+
+        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.25rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+          <span>🔗</span> Generar link de invitación
+        </button>
+
+        <div id="eq-link-generado" style="display:none">
+          <div style="background:var(--verde-pale);border:1.5px solid rgba(26,74,46,.15);border-radius:14px;padding:1.25rem">
+            <div style="font-size:11px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">✓ Link listo para compartir</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:.85rem">
+              <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:#fff;border-color:rgba(26,74,46,.2)"/>
+              <button onclick="copiarLinkInvitacion()" id="btn-copiar-inv" style="padding:10px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s">Copiar</button>
+            </div>
+            <button onclick="compartirInvWA()" style="width:100%;padding:13px;border-radius:11px;border:none;background:#25D366;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 16px rgba(37,211,102,.3)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Compartir por WhatsApp
+            </button>
+            <p style="font-size:11px;color:var(--texto-suave);margin-top:.75rem;text-align:center;line-height:1.5">⏱ Este link expira en 7 días. Podés generar uno nuevo cuando quieras.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -3838,17 +3864,30 @@ window.openModalMiEquipo = function() {
 }
 
 window.switchEquipoTab = function(tab, btn) {
-  var eqModal = document.getElementById('ov-mi-equipo')
-  eqModal.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on') })
-  if(btn) btn.classList.add('on')
+  // Estilos activo/inactivo para los tabs del header verde
+  var tabM = document.getElementById('eq-tab-miembros')
+  var tabI = document.getElementById('eq-tab-invitar')
+  if (tabM) { tabM.style.background = tab==='miembros' ? 'rgba(255,255,255,.22)' : 'transparent'; tabM.style.color = tab==='miembros' ? '#fff' : 'rgba(250,247,240,.6)' }
+  if (tabI) { tabI.style.background = tab==='invitar'  ? 'rgba(255,255,255,.22)' : 'transparent'; tabI.style.color = tab==='invitar'  ? '#fff' : 'rgba(250,247,240,.6)' }
   document.getElementById('eq-sec-miembros').style.display = tab === 'miembros' ? '' : 'none'
-  document.getElementById('eq-sec-invitar').style.display = tab === 'invitar' ? '' : 'none'
+  document.getElementById('eq-sec-invitar').style.display  = tab === 'invitar'  ? '' : 'none'
   if (tab === 'miembros') _renderListaMiembros()
   if (tab === 'invitar') {
     document.getElementById('eq-link-generado').style.display = 'none'
-    document.getElementById('btn-generar-inv').disabled = false
-    document.getElementById('btn-generar-inv').textContent = 'Generar link de invitación'
+    var btnGen = document.getElementById('btn-generar-inv')
+    btnGen.disabled = false
+    btnGen.innerHTML = '<span>🔗</span> Generar link de invitación'
   }
+}
+
+window.resaltarRolLabel = function(cual) {
+  var lC = document.getElementById('eq-label-col')
+  var lA = document.getElementById('eq-label-adm')
+  if (!lC || !lA) return
+  lC.style.borderColor = cual==='col' ? 'var(--verde)' : 'var(--borde)'
+  lC.style.background   = cual==='col' ? 'var(--verde-pale)' : 'transparent'
+  lA.style.borderColor = cual==='adm' ? 'var(--verde)' : 'var(--borde)'
+  lA.style.background   = cual==='adm' ? 'var(--verde-pale)' : 'transparent'
 }
 
 async function _renderListaMiembros() {
@@ -3895,7 +3934,7 @@ window.removerMiembro = async function(equipoId, nombre, btn) {
 window.generarInvitacion = async function() {
   var rolSel = document.querySelector('input[name="eq-rol"]:checked')?.value || 'colaborador'
   var btn = document.getElementById('btn-generar-inv')
-  btn.disabled = true; btn.textContent = 'Generando...'
+  btn.disabled = true; btn.innerHTML = 'Generando...'
   try {
     var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)

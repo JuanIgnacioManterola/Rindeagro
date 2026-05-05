@@ -753,15 +753,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
         <!-- Torta + Tabla lado a lado -->
         <div style="display:flex;gap:20px;align-items:flex-start" id="det-chart-body">
-          <div style="flex:0 0 200px;position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
-          <div id="det-rubro-tabla" style="flex:1;min-width:0;max-height:220px;overflow-y:auto"></div>
+          <div id="chart-det-rubro-wrap" style="flex:0 0 200px;position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
+          <div id="det-rubro-tabla" style="flex:1;min-width:0"></div>
         </div>
         <div id="det-rubro-empty" style="display:none;text-align:center;padding:28px 0;font-size:12px;color:var(--texto-suave)">Sin gastos en este rubro</div>
-      </div>
-      <!-- Resumen -->
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Resumen</span></div>
-        <div id="det-resumen"></div>
       </div>
     </div>
 
@@ -4599,13 +4594,7 @@ function renderDetGastos() {
   var mIng   = enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR')   : 'USD '+Math.round(ingHa)
   var mMg    = enARS ? '$ '+Math.round(mgHa*tcambio).toLocaleString('es-AR')     : (mgHa>=0?'+':'')+Math.round(mgHa)+' USD'
   var mMgT   = enARS ? '$ '+Math.round(mgHa*ha*tcambio).toLocaleString('es-AR')  : 'USD '+Math.round(mgHa*ha).toLocaleString('es-AR')
-  document.getElementById('det-resumen').innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto/ha</span><span style="font-weight:600;color:#1a5fa8">'+mIng+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Costo total/ha</span><span style="font-weight:600;color:var(--rojo)">'+mCosto+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:700"><span>Margen neto/ha</span><span style="color:'+mc+';font-family:DM Mono,monospace">'+mMg+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Margen total</span><span style="font-weight:600;color:'+mc+'">'+mMgT+'</span></div>'+
-    (!enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0"><span style="color:var(--texto-suave)">En quintales/ha</span><span style="font-weight:600;color:var(--dorado)">'+(pr>0?(mgHa/pr*10).toFixed(1):0)+' qq</span></div>' : '')+
-    (enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Tipo de cambio</span><span style="font-weight:600;color:var(--dorado)">$ '+Math.round(tcambio).toLocaleString('es-AR')+' / USD</span></div>' : '')
+  // (Resumen removido de la tab gastos — disponible en Rentabilidad)
 
   // ── TORTA + TABLA COMPLETA ──
   var ctxR   = document.getElementById('chart-det-rubro')
@@ -4635,6 +4624,14 @@ function renderDetGastos() {
         plugins: { legend:{display:false}, tooltip:{ callbacks:{ label:function(ctx){ return ' '+ctx.label+': '+(enARS?fARS(ctx.raw/tcambio):fUSD(ctx.raw)) }}}}
       }
     })
+  }
+  // Ajusta el alto del canvas para que coincida con el alto real de la tabla
+  function syncChartHeight() {
+    var wrap = document.getElementById('chart-det-rubro-wrap')
+    if (!wrap || !tablaEl) return
+    var h = Math.max(200, tablaEl.offsetHeight)
+    wrap.style.height = h + 'px'
+    if (charts['det-rubro']) charts['det-rubro'].resize()
   }
 
   // ── VISTA GENERAL: todos los rubros ──
@@ -4678,6 +4675,7 @@ function renderDetGastos() {
           '<td colspan="2" style="padding:8px 4px;font-size:12px;font-weight:700;color:var(--verde)">Total campo</td>' +
           '<td style="padding:8px 4px;text-align:right;font-size:12px;font-family:DM Mono,monospace">'+totalPrim+'</td>' +
         '</tr></tfoot></table>'
+      setTimeout(syncChartHeight, 0)
     } else {
       if (emptyEl) emptyEl.style.display = 'block'
       if (chartBody) chartBody.style.display = 'none'
@@ -4746,6 +4744,7 @@ function renderDetGastos() {
           '<td colspan="2" style="padding:8px 4px;font-size:12px;font-weight:700;color:var(--verde)">Total '+rubroLabel+'</td>' +
           '<td style="padding:8px 4px;text-align:right;font-size:12px;font-family:DM Mono,monospace">'+tPrim+'</td>' +
         '</tr></tfoot></table>'
+      setTimeout(syncChartHeight, 0)
     } else {
       if (emptyEl) { emptyEl.style.display='block'; emptyEl.textContent='Sin gastos registrados en '+rubroLabel }
       if (chartBody) chartBody.style.display = 'none'

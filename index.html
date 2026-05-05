@@ -354,6 +354,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   .grid2,.grid3,.grid4,.grid5{grid-template-columns:1fr}
   .planes-grid{grid-template-columns:1fr}
 }
+@media print {
+  body * { visibility: hidden }
+  #modulo-rentabilidad, #modulo-rentabilidad * { visibility: visible }
+  #modulo-rentabilidad { position: fixed; top: 0; left: 0; width: 100%; padding: 24px }
+  .overlay, #screen-loading, .app-nav, #banner-colaborador { display: none !important }
+  #rent-pdf-banner { display: none !important }
+  canvas { max-width: 100% }
+}
 </style>
 </head>
 <body>
@@ -470,7 +478,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button onclick="openModalGasto()" style="background:rgba(26,74,46,.08);border:.5px solid rgba(26,74,46,.18);border-radius:8px;color:var(--verde);font-size:11px;font-weight:600;padding:6px 13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(26,74,46,.15)'" onmouseout="this.style.background='rgba(26,74,46,.08)'">➕ Nuevo gasto</button>
+      <button onclick="openModalLluviaRapida()" style="background:rgba(26,74,46,.08);border:.5px solid rgba(26,74,46,.18);border-radius:8px;color:var(--verde);font-size:11px;font-weight:600;padding:6px 13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(26,74,46,.15)'" onmouseout="this.style.background='rgba(26,74,46,.08)'">🌧️ Nueva lluvia</button>
       <button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
       <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
       <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
@@ -711,6 +721,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="campo-seccion" id="sec-gastos">
       <div class="card">
         <div class="card-hdr"><span class="card-tit">Gastos del campo</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+        <!-- Filtro de período -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem" id="gastos-filtro-periodo">
+          <button class="gasto-periodo-btn active" onclick="setGastoPeriodo('campaña',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campaña actual</button>
+          <button class="gasto-periodo-btn" onclick="setGastoPeriodo('3m',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Últimos 3 meses</button>
+          <button class="gasto-periodo-btn" onclick="setGastoPeriodo('año',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Último año</button>
+          <button class="gasto-periodo-btn" onclick="setGastoPeriodo('todo',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Todo</button>
+        </div>
         <div id="det-gastos-lista"></div>
       </div>
       <div class="grid2">
@@ -728,6 +745,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: RENTABILIDAD -->
     <div class="campo-seccion" id="sec-rentabilidad">
+      <!-- Banner exportar PDF -->
+      <div id="rent-pdf-banner" style="background:#EAF3DE;border:.5px solid #97C459;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#3B6D11" id="rent-pdf-titulo">Rentabilidad del campo</div>
+          <div style="font-size:11px;color:#3B6D11;opacity:.8" id="rent-pdf-resumen">—</div>
+        </div>
+        <button onclick="exportarPDF()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+      </div>
       <!-- Metricas -->
       <div class="grid5" id="cr-mets" style="margin-bottom:14px"></div>
       <!-- Gastos + Resumen -->
@@ -1082,9 +1107,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <button class="m-close" onclick="closeModalCampo()">✕</button>
     <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub">Completá los datos de tu campo</div>
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
-      <div class="fg"><label class="fl">Cultivo</label><select class="fi" id="c-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Maní</option><option>Otro</option></select></div>
+    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Cultivo</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="cult-chips">
+        <button type="button" class="cult-chip" onclick="selCultivo('Soja',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌿 Soja</button>
+        <button type="button" class="cult-chip" onclick="selCultivo('Maíz',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌽 Maíz</button>
+        <button type="button" class="cult-chip" onclick="selCultivo('Trigo',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌾 Trigo</button>
+        <button type="button" class="cult-chip" onclick="selCultivo('Girasol',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌻 Girasol</button>
+        <button type="button" class="cult-chip" onclick="selCultivo('Sorgo',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌿 Sorgo</button>
+        <button type="button" class="cult-chip" onclick="selCultivo('Cebada',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);transition:all .15s">🌾 Cebada</button>
+      </div>
+      <input class="fi" type="text" id="c-cult" placeholder="Otro cultivo..." style="margin-top:8px;font-size:12px" oninput="deseleccionarCultChips()"/>
     </div>
     <!-- País -->
     <div class="fg">
@@ -1146,24 +1180,33 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="m-sub">El sistema convierte automáticamente a USD y quintales por hectárea</div>
     <input type="hidden" id="g-edit-id" value=""/>
 
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg">
-        <label class="fl">Rubro *</label>
-        <select class="fi" id="g-rubro" style="cursor:pointer" onchange="onRubroChange()">
-          <option value="">Seleccioná el rubro</option>
-          <option value="herbicidas">Herbicidas</option>
-          <option value="fungicidas">Fungicidas / Insecticidas</option>
-          <option value="fertilizantes">Fertilizantes</option>
-          <option value="semillas">Semillas</option>
-          <option value="laboreo">Laboreo</option>
-          <option value="flete">Flete</option>
-          <option value="empleados">Gastos de empleados</option>
-          <option value="arrendamiento">Arrendamiento</option>
-          <option value="otros">Otros</option>
-        </select>
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Rubro *</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px" id="rubro-chips">
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('semillas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🌱</div>Semillas</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('herbicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🧪</div>Herbicidas</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('fungicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🍄</div>Fungicidas</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('fertilizantes',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">⚗️</div>Fertilizantes</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('laboreo',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🚜</div>Laboreo</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('flete',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🚛</div>Flete</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('empleados',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">👷</div>Empleados</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('arrendamiento',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🏠</div>Arrend.</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('otros',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">📦</div>Otros</button>
       </div>
-      <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="g-fecha"/></div>
+      <select class="fi" id="g-rubro" style="display:none" onchange="onRubroChange()">
+        <option value="">Seleccioná</option>
+        <option value="herbicidas">Herbicidas</option>
+        <option value="fungicidas">Fungicidas / Insecticidas</option>
+        <option value="fertilizantes">Fertilizantes</option>
+        <option value="semillas">Semillas</option>
+        <option value="laboreo">Laboreo</option>
+        <option value="flete">Flete</option>
+        <option value="empleados">Gastos de empleados</option>
+        <option value="arrendamiento">Arrendamiento</option>
+        <option value="otros">Otros</option>
+      </select>
     </div>
+    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Fecha *</label><input class="fi" type="date" id="g-fecha"/></div>
 
     <!-- Sub-tipos de laboreo -->
     <div id="laboreo-subtipos" style="display:none;margin-bottom:.9rem">
@@ -1796,13 +1839,25 @@ function _renderDashboardProductor() {
       var rend=c.rendimiento||rendEst
       var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
       var pr=c.precio_venta||prEst
-      var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-      var costoHa=ha>0?gc/ha:190
+      var gc=gastos.filter(g=>g.campo_id===c.id)
+      var costoHa=ha>0?gc.reduce((a,g)=>a+(g.total_de_usd||0),0)/ha:190
       var mg=rend*pr-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
+      var tieneGastos=gc.length>0, tieneRend=!!c.rendimiento
+      var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+      var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+      var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
+      var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
       return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
         <div class="cdot" style="background:${COLORES[i%COLORES.length]}"></div>
-        <div class="ci"><div class="cn">${c.nombre}</div><div class="cm">${ha.toLocaleString('es-AR')} ha · ${cult} · ${c.tenencia||'propio'}</div></div>
-        <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${(mg/(rend*pr)*100).toFixed(0)}% margen</div></div>
+        <div class="ci">
+          <div class="cn">${c.nombre}</div>
+          <div class="cm" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">
+            <span style="background:${cultivoBg};color:${cultivoColor};font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600">${cult}</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:${estadoColor};display:inline-block"></span><span style="font-size:10px;color:${estadoColor}">${estadoTxt}</span></span>
+            ${c.rendimiento?`<span style="font-size:10px;color:var(--texto-suave)">Rinde: ${c.rendimiento} t/ha</span>`:''}
+          </div>
+        </div>
+        <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${ha.toLocaleString('es-AR')} ha</div></div>
       </div>`
     }).join('')
   }
@@ -3075,6 +3130,14 @@ window.openModalCampo = function() {
   if(sub)sub.textContent='Completá los datos de tu campo'
   if(btn)btn.textContent='Guardar campo'
   if(eid)eid.value=''
+  // Reset cultivo chips
+  document.querySelectorAll('.cult-chip').forEach(function(b) {
+    b.style.background = 'transparent'
+    b.style.borderColor = 'var(--borde)'
+    b.style.color = 'var(--texto-mid)'
+  })
+  var cultInput = document.getElementById('c-cult')
+  if(cultInput) cultInput.value = ''
   document.getElementById('ov-campo').classList.add('open')
   setTimeout(function(){
     if(!window._mapaCampoModal) {
@@ -3279,6 +3342,15 @@ window.editarCampoActual = function() {
   document.getElementById('c-nombre').value = c.nombre||''
   document.getElementById('c-ha').value = c.hectareas||''
   document.getElementById('c-cult').value = c.cultivo||''
+  // Sync cultivo chip highlight
+  var _cult = c.cultivo||''
+  document.querySelectorAll('.cult-chip').forEach(function(b) {
+    var onclick = b.getAttribute('onclick')||''
+    var isActive = onclick.includes("'"+_cult+"'") || onclick.includes('"'+_cult+'"')
+    b.style.background = isActive ? 'var(--verde)' : 'transparent'
+    b.style.borderColor = isActive ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = isActive ? '#fff' : 'var(--texto-mid)'
+  })
   document.getElementById('c-rend').value = c.rendimiento||''
   document.getElementById('c-precio-venta').value = c.precio_venta||''
   document.getElementById('c-ten').value = c.tenencia||'propio'
@@ -3385,12 +3457,86 @@ window.selSubTipo = function(btn, tipo) {
   btn.classList.add('active')
   gastoSubTipo = tipo
 }
+
+// ── RUBRO CHIPS ──
+window.selRubroChip = function(rubro, btn) {
+  document.querySelectorAll('.rubro-chip-btn').forEach(function(b) {
+    b.style.background = 'var(--crema)'
+    b.style.borderColor = 'var(--borde)'
+    b.style.color = 'var(--texto-mid)'
+  })
+  btn.style.background = 'var(--verde)'
+  btn.style.borderColor = 'var(--verde)'
+  btn.style.color = '#fff'
+  document.getElementById('g-rubro').value = rubro
+  onRubroChange()
+}
+
+// ── CULTIVO CHIPS ──
+window.selCultivo = function(cult, btn) {
+  document.querySelectorAll('.cult-chip').forEach(function(b) {
+    b.style.background = 'transparent'
+    b.style.borderColor = 'var(--borde)'
+    b.style.color = 'var(--texto-mid)'
+  })
+  btn.style.background = 'var(--verde)'
+  btn.style.borderColor = 'var(--verde)'
+  btn.style.color = '#fff'
+  document.getElementById('c-cult').value = cult
+}
+window.deseleccionarCultChips = function() {
+  document.querySelectorAll('.cult-chip').forEach(function(b) {
+    b.style.background = 'transparent'
+    b.style.borderColor = 'var(--borde)'
+    b.style.color = 'var(--texto-mid)'
+  })
+}
+
+// ── PERIODO GASTOS ──
+var gastoPeriodoActivo = 'campaña'
+window.setGastoPeriodo = function(periodo, btn) {
+  gastoPeriodoActivo = periodo
+  document.querySelectorAll('.gasto-periodo-btn').forEach(function(b) {
+    b.style.background = 'transparent'
+    b.style.color = 'var(--texto-mid)'
+    b.style.borderColor = 'var(--borde)'
+  })
+  btn.style.background = 'var(--verde)'
+  btn.style.color = '#fff'
+  btn.style.borderColor = 'var(--verde)'
+  renderDetGastos()
+}
+
+// ── PDF EXPORT ──
+window.exportarPDF = function() {
+  window.print()
+}
+
+// ── LLUVIA RÁPIDA (desde nav) ──
+window.openModalLluviaRapida = function() {
+  document.getElementById('ov-lluvia').classList.add('open')
+  document.getElementById('ll-fecha').value = new Date().toISOString().split('T')[0]
+  // Pre-seleccionar campo activo si existe
+  if (campoDet) {
+    setTimeout(function() {
+      var sel = document.getElementById('ll-campo')
+      if (sel) sel.value = campoDet
+    }, 50)
+  }
+}
+
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
   document.getElementById('g-precio').value = precios.soja
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
   if(c?.hectareas) document.getElementById('g-ha-aplicadas').value = c.hectareas
+  // Reset rubro chips to unselected state
+  document.querySelectorAll('.rubro-chip-btn').forEach(function(b) {
+    b.style.background = 'var(--crema)'
+    b.style.borderColor = 'var(--borde)'
+    b.style.color = 'var(--texto-mid)'
+  })
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
@@ -3490,6 +3636,7 @@ window.guardarGasto = async function() {
     document.getElementById('laboreo-subtipos').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
+    document.querySelectorAll('.rubro-chip-btn').forEach(function(b){b.style.background='var(--crema)';b.style.borderColor='var(--borde)';b.style.color='var(--texto-mid)'})
     var tit=document.getElementById('gasto-modal-tit'); if(tit) tit.textContent='Agregar gasto'
   }catch(e){
     console.error('Error guardando gasto:', e)
@@ -3520,6 +3667,14 @@ window.editarGasto = function(id) {
       if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(g.subtipo)) b.classList.add('active')
     })
   }
+  // Sync rubro chip highlight
+  document.querySelectorAll('.rubro-chip-btn').forEach(function(b) {
+    var onclick = b.getAttribute('onclick')||''
+    var isActive = onclick.includes("'"+g.rubro+"'") || onclick.includes('"'+g.rubro+'"')
+    b.style.background = isActive ? 'var(--verde)' : 'var(--crema)'
+    b.style.borderColor = isActive ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = isActive ? '#fff' : 'var(--texto-mid)'
+  })
   onRubroChange()
   calcConv()
 }
@@ -3668,11 +3823,20 @@ window.renderCamposLista = function() {
     html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
     html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑 Eliminar</button>'
     html += '</div>'
+    var tieneGastos=gastos.filter(function(g){return g.campo_id===c.id}).length>0
+    var tieneRend=!!c.rendimiento
+    var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+    var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+    var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
+    var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
+    html += '<span style="background:'+cultivoBg+';color:'+cultivoColor+';font-size:10px;padding:3px 9px;border-radius:6px;font-weight:600">'+cult+'</span>'
+    html += '<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:'+estadoColor+';display:inline-block"></span><span style="font-size:11px;color:'+estadoColor+'">'+estadoTxt+'</span></span>'
+    if(c.rendimiento) html += '<span style="font-size:11px;color:var(--texto-suave);margin-left:auto">Rinde: <strong style="color:#1a7a52">'+c.rendimiento+' t/ha</strong></span>'
+    html += '</div>'
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
     html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'
-    html += '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+cult+'</div>'
     html += '<div style="color:var(--texto-suave)">Tenencia</div><div style="font-weight:500">'+(c.tenencia||'Propio')+'</div>'
-    html += '<div style="color:var(--texto-suave)">Rendimiento</div><div style="font-weight:500;color:'+(c.rendimiento?'#1a7a52':'var(--texto-mid)')+'\">'+(c.rendimiento?c.rendimiento+' t/ha ✓':'Est. '+rend+' t/ha')+'</div>'
     html += '</div>'
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:.5px solid var(--borde)">'
     html += '<div style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+mc+'">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>'
@@ -4317,6 +4481,21 @@ function renderDetGastos() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
   var gf = gastos.filter(function(g){return g.campo_id===campoDet})
+  // Apply period filter
+  var ahora = new Date()
+  if (gastoPeriodoActivo === '3m') {
+    var hace3m = new Date(ahora); hace3m.setMonth(hace3m.getMonth()-3)
+    gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= hace3m })
+  } else if (gastoPeriodoActivo === 'año') {
+    var hace12m = new Date(ahora); hace12m.setFullYear(hace12m.getFullYear()-1)
+    gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= hace12m })
+  } else if (gastoPeriodoActivo === 'campaña') {
+    // Campaña actual: desde julio del año pasado (Argentina, campaña julio-junio)
+    var hoy = new Date()
+    var iniCampania = new Date(hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1, 6, 1)
+    gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= iniCampania })
+  }
+  // 'todo' → no filter
   var ha = c.hectareas||1
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = costoUSD/ha

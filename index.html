@@ -1067,14 +1067,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- Zonas por cultivo (aparece cuando hay 2+ cultivos) -->
     <div id="zonas-cultivo-section" style="display:none;margin-bottom:1rem;border:.5px solid var(--borde);border-radius:12px;padding:1rem">
-      <div style="font-size:13px;font-weight:600;color:var(--verde);margin-bottom:6px">🗺️ Zonas por cultivo</div>
-      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:10px">Marcá qué parte del campo se siembra con cada cultivo. Hacé clic en el botón del cultivo y dibujá la zona en el mapa.</div>
-      <div id="zonas-cultivo-btns" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px"></div>
-      <div id="zona-dibujo-hint" style="display:none;background:var(--verde-pale);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--verde);margin-bottom:6px">
-        ✏️ <span id="zona-dibujo-cultivo-txt">Dibujando zona</span> — hacé clic para agregar puntos · doble clic para cerrar la zona
-        <button onclick="cancelarZonaCultivo()" style="margin-left:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer">Cancelar</button>
+      <div style="font-size:13px;font-weight:600;color:var(--verde);margin-bottom:4px">🗺️ Distribución por cultivo</div>
+      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:12px">Ingresá las hectáreas de cada cultivo y/o dibujá la zona en el mapa.</div>
+      <!-- Tabla de cultivos con ha + botón zona -->
+      <div id="zonas-cultivo-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+      <!-- Hint mientras se dibuja -->
+      <div id="zona-dibujo-hint" style="display:none;background:var(--verde-pale);border:1px solid var(--verde);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--verde);margin-top:4px;display:flex;align-items:center;gap:8px">
+        <span>✏️ <strong id="zona-dibujo-cultivo-txt">Dibujando zona</strong> — hacé clic para marcar puntos · doble clic para cerrar</span>
+        <button type="button" onclick="cancelarZonaCultivo()" style="margin-left:auto;padding:3px 10px;border-radius:6px;border:1px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer;flex-shrink:0">Cancelar</button>
       </div>
-      <div id="zonas-resumen" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
     </div>
 
     <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
@@ -3332,6 +3333,7 @@ window.closeModalCampo = function() {
   // Reset multi-crop state
   cultivosSeleccionados = []
   cultivosZonasTemp = {}
+  cultivosHectareasTemp = {}
   cancelarZonaCultivo(true)
   Object.keys(_zonaLayers).forEach(function(k){ if(window._mapaCampoModal) try{window._mapaCampoModal.removeLayer(_zonaLayers[k])}catch(e){} })
   _zonaLayers = {}
@@ -3359,12 +3361,18 @@ window.guardarCampo = async function() {
       provincia:document.getElementById('c-prov').value||null,
       tenencia:document.getElementById('c-ten').value||'propio',
     }
+    // Leer hectáreas por cultivo desde los inputs antes de guardar
+    cultivosSeleccionados.forEach(function(c) {
+      var inp = document.getElementById('zona-ha-'+c.replace(/\s/g,'_'))
+      if(inp && inp.value) cultivosHectareasTemp[c] = parseFloat(inp.value)||0
+    })
     var colsExtra = {
       localidad: document.getElementById('c-localidad')?.value||null,
       lat: _campoCoordsLat?parseFloat(_campoCoordsLat):null,
       lng: _campoCoordsLng?parseFloat(_campoCoordsLng):null,
       poligono: poligonoData,
-      zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null
+      zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null,
+      hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null
     }
     var payload = {...baseData,...colsExtra}
     var data, error
@@ -3428,9 +3436,11 @@ window.editarCampoActual = function() {
     b.style.borderColor = isActive ? color : 'var(--borde)'
     b.style.color = isActive ? '#fff' : 'var(--texto-mid)'
   })
-  // Restore saved zones if any
+  // Restore saved zones and ha per crop
   cultivosZonasTemp = {}
+  cultivosHectareasTemp = {}
   if(c.zonas_cultivo) { try { cultivosZonasTemp = JSON.parse(c.zonas_cultivo) } catch(e){} }
+  if(c.hectareas_cultivo) { try { cultivosHectareasTemp = JSON.parse(c.hectareas_cultivo) } catch(e){} }
   renderZonasBtns()
   document.getElementById('c-rend').value = c.rendimiento||''
   document.getElementById('c-precio-venta').value = c.precio_venta||''
@@ -3610,11 +3620,13 @@ window.confirmarNuevaCategoria = function() {
 // MULTI-CULTIVO
 // ══════════════════════
 var cultivosSeleccionados = []
-var cultivosZonasTemp = {}   // { 'Soja': [[lat,lng],...], 'Maíz': [...] }
+var cultivosZonasTemp = {}        // { 'Soja': [[lat,lng],...], 'Maíz': [...] }
+var cultivosHectareasTemp = {}    // { 'Soja': 200, 'Maíz': 280 }
 var _zonaPolyPuntos = []
 var _zonaPolyLayer = null
 var _zonaCultivoActivo = null
 var CULT_COLORES = {'Soja':'#16a34a','Maíz':'#ca8a04','Trigo':'#92400e','Girasol':'#b45309','Sorgo':'#7c3aed','Cebada':'#0369a1','Maní':'#d97706'}
+var CULT_ICONS = {'Soja':'🌿','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
 var _zonaLayers = {}  // { cultivo: LeafletLayer }
 
 window.toggleCultivo = function(cult, btn) {
@@ -3659,22 +3671,54 @@ window.deseleccionarCultChips = function() {
 
 function renderZonasBtns() {
   var sec = document.getElementById('zonas-cultivo-section')
-  var btnsEl = document.getElementById('zonas-cultivo-btns')
-  var resEl = document.getElementById('zonas-resumen')
-  if(!sec||!btnsEl) return
-  // Show section only when 2+ crops selected
+  var rowsEl = document.getElementById('zonas-cultivo-rows')
+  if(!sec||!rowsEl) return
   sec.style.display = cultivosSeleccionados.length >= 2 ? 'block' : 'none'
-  btnsEl.innerHTML = cultivosSeleccionados.map(function(c) {
+  if(cultivosSeleccionados.length < 2) return
+
+  // Leer valores actuales de los inputs antes de re-renderizar
+  cultivosSeleccionados.forEach(function(c) {
+    var inp = document.getElementById('zona-ha-'+c.replace(/\s/g,'_'))
+    if(inp && inp.value) cultivosHectareasTemp[c] = parseFloat(inp.value)||0
+  })
+
+  rowsEl.innerHTML = cultivosSeleccionados.map(function(c) {
     var color = CULT_COLORES[c]||'#6b7280'
+    var icon  = CULT_ICONS[c]||'🌱'
     var tieneZona = cultivosZonasTemp[c] && cultivosZonasTemp[c].length >= 3
-    return '<button type="button" onclick="iniciarZonaCultivo(\''+c+'\')" style="padding:6px 14px;border-radius:20px;border:2px solid '+color+';background:'+(tieneZona?color:'transparent')+';color:'+(tieneZona?'#fff':color)+';font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s">'+(tieneZona?'✓ ':'✏️ ') + c + '</button>'
+    var haVal = cultivosHectareasTemp[c]||''
+    var haZona = tieneZona ? _calcHaDesdePoligono(cultivosZonasTemp[c]) : null
+    var key = c.replace(/\s/g,'_')
+    var esActivo = _zonaCultivoActivo === c
+
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:'+(esActivo?color+'15':'var(--crema)')+';border-radius:10px;border:1.5px solid '+(esActivo?color:'var(--borde)')+';">'
+      // Chip cultivo
+      +'<div style="display:flex;align-items:center;gap:5px;min-width:90px"><div style="width:10px;height:10px;border-radius:50%;background:'+color+';flex-shrink:0"></div><span style="font-size:13px;font-weight:600;color:var(--texto)">'+icon+' '+c+'</span></div>'
+      // Input hectáreas
+      +'<div style="flex:1">'
+        +'<div style="font-size:10px;color:var(--texto-suave);margin-bottom:3px">Hectáreas</div>'
+        +'<div style="display:flex;align-items:center;gap:4px">'
+          +'<input type="number" id="zona-ha-'+key+'" value="'+(haVal||'')+'" placeholder="0" min="0" step="0.1"'
+            +' style="width:80px;padding:6px 9px;border-radius:7px;border:1.5px solid '+(haZona?color:'var(--borde)')+';background:var(--blanco);font-size:14px;font-weight:600;font-family:DM Mono,monospace;color:var(--texto)"'
+            +' oninput="cultivosHectareasTemp[\''+c+'\'] = parseFloat(this.value)||0; actualizarHaTotalDesdeCultivos()"/>'
+          +(haZona?'<span style="font-size:11px;color:'+color+';font-weight:600">≈ '+haZona+' ha zona</span>':'<span style="font-size:11px;color:var(--texto-suave)">ha</span>')
+        +'</div>'
+      +'</div>'
+      // Botón zona
+      +'<button type="button" onclick="iniciarZonaCultivo(\''+c+'\')" '
+        +'style="padding:7px 11px;border-radius:8px;border:1.5px solid '+color+';background:'+(tieneZona?color:(esActivo?color+'22':'transparent'))+';color:'+(tieneZona||esActivo?'#fff':color)+';font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap;flex-shrink:0">'
+        +(tieneZona?'✓ Zona ok':esActivo?'⏹ Dibujando...':'✏️ Dibujar zona')
+      +'</button>'
+    +'</div>'
   }).join('')
-  // Resumen zonas ya dibujadas
-  if(resEl) resEl.innerHTML = Object.keys(cultivosZonasTemp).map(function(c) {
-    var color = CULT_COLORES[c]||'#6b7280'
-    var pts = cultivosZonasTemp[c].length
-    return '<div style="font-size:11px;color:'+color+';background:'+color+'18;padding:3px 10px;border-radius:12px;border:1px solid '+color+'66">'+c+': zona marcada ('+pts+' pts)</div>'
-  }).join('')
+}
+
+window.actualizarHaTotalDesdeCultivos = function() {
+  // Si el campo de ha total está vacío, sugerir la suma de cultivos
+  var haInp = document.getElementById('c-ha')
+  if(!haInp) return
+  var total = Object.values(cultivosHectareasTemp).reduce(function(a,v){return a+(v||0)},0)
+  if(total > 0 && !haInp.value) haInp.value = total
 }
 
 window.iniciarZonaCultivo = function(cultivo) {
@@ -3716,15 +3760,20 @@ window.finalizarZonaCultivo = function() {
   var cultivo = _zonaCultivoActivo
   cultivosZonasTemp[cultivo] = _zonaPolyPuntos.slice()
   var color = CULT_COLORES[cultivo]||'#16a34a'
+  // Calcular hectáreas de la zona y guardar
+  var haZona = _calcHaDesdePoligono(_zonaPolyPuntos)
+  if(haZona > 0) {
+    cultivosHectareasTemp[cultivo] = haZona
+  }
   // Solidify the polygon
   if(_zonaPolyLayer) window._mapaCampoModal.removeLayer(_zonaPolyLayer)
   if(_zonaLayers[cultivo]) window._mapaCampoModal.removeLayer(_zonaLayers[cultivo])
   _zonaLayers[cultivo] = L.polygon(_zonaPolyPuntos, {color:color, fillColor:color, fillOpacity:0.3, weight:2.5})
-    .bindTooltip(cultivo, {permanent:true, direction:'center', className:'', opacity:.9})
+    .bindTooltip(cultivo+(haZona?' · '+haZona+' ha':''), {permanent:true, direction:'center', opacity:.9})
     .addTo(window._mapaCampoModal)
   cancelarZonaCultivo(true)
   renderZonasBtns()
-  showToast('✓ Zona de '+cultivo+' guardada','ok')
+  showToast('✓ Zona de '+cultivo+' — '+haZona+' ha','ok')
 }
 
 window.cancelarZonaCultivo = function(silent) {
@@ -3738,6 +3787,7 @@ window.cancelarZonaCultivo = function(silent) {
   }
   var hint = document.getElementById('zona-dibujo-hint')
   if(hint) hint.style.display = 'none'
+  if(!silent) renderZonasBtns()
 }
 
 // ══════════════════════════════

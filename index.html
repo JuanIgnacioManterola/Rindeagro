@@ -2950,9 +2950,10 @@ window.loginMagicLink = async function() {
   var btn = document.getElementById('btn-magic')
   btn.disabled=true; btn.textContent='Enviando...'
   try{
+    var appUrl = 'https://juanignaciomanterola.github.io/Rindeagro/'
     const {error} = await sb.auth.signInWithOtp({
       email,
-      options:{ shouldCreateUser: false }
+      options:{ shouldCreateUser: false, emailRedirectTo: appUrl }
     })
     if(error) throw error
     btn.textContent='✓ Enlace enviado'
@@ -3011,7 +3012,7 @@ window.recuperarPass = async function() {
   var email=document.getElementById('l-email').value.trim()
   if(!email){showToast('⚠️ Ingresá tu email primero','err');return}
   try{
-    var redirectTo = window.location.origin + window.location.pathname
+    var redirectTo = 'https://juanignaciomanterola.github.io/Rindeagro/'
     await sb.auth.resetPasswordForEmail(email, {redirectTo})
     showToast('✓ Email enviado — revisá tu bandeja de entrada','ok')
   }catch(e){showToast('⚠️ Error al enviar email','err')}

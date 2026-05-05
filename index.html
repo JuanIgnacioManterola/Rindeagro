@@ -1440,18 +1440,19 @@ function puedeInvitar() {
 
 // ── INIT ──
 async function init() {
-  clearTimeout(window._loadingTimeout)
-  localStorage.removeItem('ra_pass') // limpiar contraseñas viejas
+  localStorage.removeItem('ra_pass')
 
   function hideLoading() {
+    clearTimeout(window._loadingTimeout)
     var l = document.getElementById('screen-loading')
     if (!l) return
     l.classList.add('fade')
     setTimeout(function(){ l.style.display = 'none' }, 500)
   }
 
-  async function entrarApp(user) {
-    if (usuario) return  // ya entró, evitar doble carga
+  // entrarApp: punto único de entrada a la app, con guard anti-doble-carga
+  window._entrarApp = async function(user) {
+    if (usuario) return
     usuario = user
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
     await determinarContextoUsuario(user.id)
@@ -1461,21 +1462,11 @@ async function init() {
     await cargarTodo()
   }
 
-  // Un único listener que maneja TODOS los eventos de auth
+  // onAuthStateChange maneja logins POSTERIORES (magic link, OTP, SIGNED_OUT)
   sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'INITIAL_SESSION') {
-      // Dispara al cargar la página con el estado actual de la sesión
-      if (session && session.user) {
-        await entrarApp(session.user)
-      } else {
-        hideLoading()
-        localStorage.removeItem('ra_pass')
-        showScreen('landing')
-        initLanding()
-      }
-    } else if (event === 'SIGNED_IN' && !usuario) {
-      // Login nuevo: magic link, OTP, o password
-      await entrarApp(session.user)
+    if (event === 'SIGNED_IN' && session && session.user && !usuario) {
+      // Magic link / OTP login — el password login lo maneja login() directamente
+      await window._entrarApp(session.user)
       showToast('✓ ¡Bienvenido!', 'ok')
     } else if (event === 'PASSWORD_RECOVERY') {
       hideLoading()
@@ -1490,8 +1481,24 @@ async function init() {
     }
   })
 
-  // Verificar invitación por URL (después de registrar el listener)
-  try { await verificarInvitacion() } catch(e) { console.log('inv check:', e) }
+  // getSession() es el método confiable para recuperar la sesión al cargar
+  try {
+    await verificarInvitacion()
+    var result = await sb.auth.getSession()
+    var session = result.data && result.data.session
+    if (session && session.user) {
+      await window._entrarApp(session.user)
+    } else {
+      hideLoading()
+      showScreen('landing')
+      initLanding()
+    }
+  } catch(e) {
+    console.error('init error:', e)
+    hideLoading()
+    showScreen('landing')
+    initLanding()
+  }
 }
 
 function showScreen(name) {

@@ -1586,6 +1586,16 @@ async function cargarTodo() {
 
   // Datos
   campos = (resC.status==='fulfilled' && resC.value.data) ? resC.value.data : []
+  // Fusionar campos pendientes en localStorage (todavía no sincronizados con la DB)
+  try {
+    var _lsPend = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
+    if(_lsPend.length) {
+      var _dbIds = new Set(campos.map(function(c){return c.id}))
+      _lsPend.forEach(function(p){
+        if(p.data && !_dbIds.has(p.id)) campos.unshift(p.data)
+      })
+    }
+  } catch(e) {}
   if(campos.length > 0) campoRent = campos[0].id
   gastos  = (resG.status==='fulfilled' && resG.value.data) ? resG.value.data : []
   lluvias = (resL.status==='fulfilled' && resL.value.data) ? resL.value.data : []
@@ -3572,54 +3582,68 @@ window.guardarCampo = async function() {
       if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
 
     } else {
-      // Generar UUID en el cliente — evita hacer SELECT dentro del INSERT
-      // (INSERT + .select() en Supabase puede colgar si falta RLS de SELECT)
+      // ── OPTIMISTIC INSERT ─────────────────────────────────────────────────
+      // Generamos UUID en el cliente para no depender de la DB
       var newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
             var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16)
           })
 
-      // INSERT sin .select() — si la DB está dormida puede tardar unos segundos
-      // Usamos feedback progresivo en lugar de cortar con timeout
-      var _pt1 = setTimeout(function(){ if(btn.disabled) btn.textContent='Conectando con la base de datos...' }, 5000)
-      var _pt2 = setTimeout(function(){ if(btn.disabled) btn.textContent='Casi listo, aguantá un poco más...' }, 16000)
-      var r1 = await _sbRace(
-        sb.from('campos').insert({...payloadBase, id: newId, usuario_id: uid}),
-        35000
-      )
-      clearTimeout(_pt1); clearTimeout(_pt2)
-      if(r1.error) throw new Error(r1.error.message||'Error al guardar')
-
-      savedId = newId
-
-      // Agregar campo a la lista local inmediatamente
-      var campoLocal = Object.assign({}, payloadBase, payloadExtra, {id: savedId, usuario_id: uid})
+      // 1. Agregar a la lista local ANTES de tocar la DB (el usuario ve el campo YA)
+      var campoLocal = Object.assign({}, payloadBase, payloadExtra, {id: newId, usuario_id: uid})
       campos.unshift(campoLocal)
-      if(!campoRent) campoRent = savedId
+      if(!campoRent) campoRent = newId
 
-      // Intentar guardar campos extra en background (sin bloquear el flujo)
-      var hasExtra = Object.values(payloadExtra).some(function(v){return v!=null})
-      if(savedId && hasExtra) {
-        sb.from('campos').update(payloadExtra).eq('id', savedId)
-          .then(function(ru) {
-            if(!ru.error) {
-              // Actualizar copia local con datos extra confirmados
-              var idx = campos.findIndex(function(c){return c.id===savedId})
-              if(idx>=0) Object.assign(campos[idx], payloadExtra)
+      // 2. Respaldar en localStorage: sobrevive un refresh aunque la DB tarde
+      try {
+        var _lsPend = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
+        _lsPend.unshift({id: newId, data: campoLocal, ts: Date.now()})
+        localStorage.setItem('rinde_campos_pending', JSON.stringify(_lsPend.slice(0,20)))
+      } catch(e) {}
+
+      // 3. Cerrar modal + feedback INMEDIATO
+      closeModalCampo()
+      showToast('✓ Campo "'+nombre+'" guardado','ok')
+      poblarSelectoresCampo()
+      renderDashboard()
+      if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
+
+      // 4. Sincronizar con DB en background (no bloquea la UI)
+      ;(async function _bgSync() {
+        try {
+          // Intento 1: INSERT con payload completo
+          var r = await sb.from('campos').insert({...payloadBase, id: newId, usuario_id: uid})
+          if(r.error) {
+            // Intento 2: payload mínimo (por si lat/lng/poligono no existen en la tabla)
+            var minP = {nombre: payloadBase.nombre, hectareas: payloadBase.hectareas, cultivo: payloadBase.cultivo, tenencia: payloadBase.tenencia, id: newId, usuario_id: uid}
+            var r2 = await sb.from('campos').insert(minP)
+            if(!r2.error) {
+              // Intentar UPDATE con el resto de campos (sin bloquear)
+              sb.from('campos').update({...payloadBase, ...payloadExtra}).eq('id', newId).catch(function(){})
+            } else {
+              console.error('guardarCampo bg insert error:', r2.error.message)
+              return
             }
-          }).catch(function(){})
-      }
-
-      // Re-fetch completo en background para sincronizar con DB
-      sb.from('campos').select('*').eq('id', savedId).single()
-        .then(function(rFull) {
-          if(rFull.data) {
-            var idx = campos.findIndex(function(c){return c.id===savedId})
-            if(idx>=0) campos[idx] = rFull.data
-            else campos.unshift(rFull.data)
+          } else {
+            // Guardar campos extra en UPDATE
+            var hasExtra = Object.values(payloadExtra).some(function(v){return v!=null})
+            if(hasExtra) sb.from('campos').update(payloadExtra).eq('id', newId).catch(function(){})
           }
-        }).catch(function(){})
+          // Sincronizado OK: eliminar de pending localStorage
+          try {
+            var _lp2 = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
+            localStorage.setItem('rinde_campos_pending', JSON.stringify(_lp2.filter(function(x){return x.id!==newId})))
+          } catch(e) {}
+          // Re-fetch para reflejar datos reales de la DB
+          var rFull = await sb.from('campos').select('*').eq('id', newId).single()
+          if(rFull.data) {
+            var idx2 = campos.findIndex(function(c){return c.id===newId})
+            if(idx2>=0) campos[idx2] = rFull.data; else campos.unshift(rFull.data)
+          }
+        } catch(e) { console.error('guardarCampo bg sync error:', e) }
+      })()
+      return  // La UI ya está actualizada, el finally resetea el btn
     }
 
     closeModalCampo()

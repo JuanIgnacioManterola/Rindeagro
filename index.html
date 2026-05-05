@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{
   --verde:#1a4a2e;--verde-mid:#2d6e47;--verde-light:#3d8f5f;--verde-pale:#e8f5ee;
@@ -927,45 +928,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
     <div class="tabs"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
     <div id="f-reg">
-      <div class="sdots" id="sdots"><div class="sdot on"></div><div class="sdot"></div></div>
-      <div class="fstep on" id="rs2">
-        <div class="m-tit2">Tus datos</div><div class="m-sub2">Creá tu cuenta en segundos</div>
+      <!-- Formulario de registro: solo 1 paso, sin "primer campo" -->
+      <div id="rs2">
+        <div class="m-tit2">Creá tu cuenta</div><div class="m-sub2">En segundos, sin tarjeta de crédito</div>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" id="r-nombre" placeholder="Juan García"/></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
         <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
         <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-        <button class="fb" style="margin-top:0" onclick="regPaso3()">Continuar →</button>
-      </div>
-      <div class="fstep" id="rs3">
-        <div class="m-tit2">Tu primer campo</div><div class="m-sub2">Opcional — podés agregarlo después</div>
-        <div class="fg"><label class="fl">Nombre del campo</label><input class="fi" type="text" id="r-campo" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
-        <div class="form-row2" style="margin-bottom:.4rem"><div class="fg" style="margin-bottom:0"><label class="fl">Hectáreas</label><input class="fi" type="number" id="r-ha" placeholder="480" min="1"/></div><div class="fg" style="margin-bottom:0"><label class="fl">Cultivo</label><select class="fi" id="r-cult" style="cursor:pointer"><option value="">Seleccioná</option><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Otro</option></select></div></div>
-        <div class="fg" style="margin-bottom:.4rem"><label class="fl">Tenencia</label><select class="fi" id="r-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
-        <div style="margin-bottom:.9rem">
-          <label class="fl">Ubicación del lote (opcional)</label>
-          <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono haciendo clic.</div>
-          <div style="display:flex;gap:6px;margin-bottom:6px">
-            <input id="reg-map-search" class="fi" type="text" placeholder="🔍 Buscar ciudad (ej: Río Cuarto)..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" oninput="_debounceBuscarReg()" onkeydown="if(event.key==='Enter')buscarCiudadReg()"/>
-          </div>
-          <div id="reg-map-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
-          <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
-            <button id="btn-poly-reg" type="button" onclick="togglePoligonoReg()" style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Dibujar polígono</button>
-            <button type="button" onclick="limpiarPoligonoReg()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
-            <span id="poly-hint-reg" style="font-size:11px;color:var(--verde);display:none">Marcá los vértices del lote · luego presioná ⏹ Terminar</span>
-          </div>
-          <div id="mapa-reg" style="height:280px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
-          <div id="reg-coords" style="display:none;margin-top:8px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:10px;padding:10px 16px;text-align:center">
-            <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Superficie</div>
-            <div style="font-size:28px;font-weight:800;color:var(--verde);font-family:'DM Mono',monospace;line-height:1"><span id="reg-ha-valor">0</span> <span id="reg-ha-label" style="font-size:14px;font-weight:600">ha</span></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <button type="button" onclick="irPaso(1)" style="width:44px;flex-shrink:0;padding:12px 0;border-radius:10px;border:1.5px solid var(--verde);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--verde)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <button class="fb" id="btn-reg" style="flex:1;margin-top:0" onclick="registrar()">🌱 Crear mi cuenta en Rinde.Agro</button>
-        </div>
-        <button type="button" style="width:100%;padding:9px;border:none;background:transparent;font-size:12px;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px" onclick="registrar()">Omitir por ahora →</button>
+        <button class="fb" id="btn-reg" style="margin-top:0" onclick="regPaso3()">🌱 Crear mi cuenta en Rinde.Agro</button>
         <div class="trial-pill"><strong>15 días gratis</strong> en el plan Lote · Sin tarjeta de crédito</div>
+      </div>
+      <!-- Inputs ocultos para que registrar() no crashee con getElementById -->
+      <div style="display:none">
+        <input id="r-campo" type="text" value=""/>
+        <input id="r-ha" type="number" value=""/>
+        <select id="r-cult"><option value="">—</option></select>
+        <select id="r-ten"><option value="propio">Propio</option></select>
       </div>
     </div>
     <div id="f-log" style="display:none">
@@ -1036,11 +1015,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="form-row2" style="margin-bottom:.9rem">
       <div class="fg">
         <label class="fl">Provincia / Estado</label>
-        <select class="fi" id="c-prov" style="cursor:pointer"><option value="">Seleccioná el país primero</option></select>
+        <select class="fi" id="c-prov" style="cursor:pointer" onchange="_autoMapaDesdeUbicacion()"><option value="">Seleccioná el país primero</option></select>
       </div>
       <div class="fg">
         <label class="fl">Localidad</label>
-        <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..."/>
+        <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..." oninput="_autoMapaDesdeUbicacion()"/>
       </div>
     </div>
     <div class="form-row2" style="margin-bottom:.5rem">
@@ -1057,6 +1036,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
         <button id="btn-poly-start" onclick="togglePoligono()" style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Dibujar polígono</button>
         <button onclick="limpiarPoligono()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
+        <label style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:4px" title="Subir archivo KMZ o KML">📂 Subir KMZ/KML<input type="file" id="kmz-file-input" accept=".kmz,.kml" style="display:none" onchange="handleKMZUpload(this)"/></label>
+        <span id="kmz-status" style="font-size:11px;color:var(--texto-suave);display:none"></span>
         <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
       </div>
       <div id="mapa-campo-modal" style="height:380px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
@@ -2782,8 +2763,7 @@ window.regPaso3 = function() {
   if(!nombre){showToast('⚠️ Ingresá tu nombre','err');return}
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
-  irPaso(2)
-  setTimeout(_initMapReg, 350)
+  registrar()
 }
 function _initMapReg() {
   if(window._mapReg) { window._mapReg.invalidateSize(); return }
@@ -3397,6 +3377,102 @@ window.irACiudad = function(lat,lng,nombre){
   var inp=document.getElementById('map-search-input');if(inp)inp.value=nombre
 }
 
+var _timerAutoMapa = null
+window._autoMapaDesdeUbicacion = function() {
+  clearTimeout(_timerAutoMapa)
+  _timerAutoMapa = setTimeout(async function() {
+    var prov = document.getElementById('c-prov')?.value?.trim() || ''
+    var loc = document.getElementById('c-localidad')?.value?.trim() || ''
+    var q = [loc, prov].filter(Boolean).join(', ')
+    if(!q || q.length < 3) return
+    var m = window._mapaCampoModal; if(!m) return
+    try {
+      var resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=1&accept-language=es&countrycodes=ar')
+      var data = await resp.json()
+      if(!data.length) {
+        // Retry without country restriction
+        resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=1&accept-language=es')
+        data = await resp.json()
+      }
+      if(data.length) {
+        var lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon)
+        m.setView([lat, lng], loc ? 11 : 8)
+        var inp = document.getElementById('map-search-input')
+        if(inp && !inp.value) inp.value = data[0].display_name.substring(0,60)
+      }
+    } catch(e) {}
+  }, 600)
+}
+
+// ── KMZ / KML upload ─────────────────────────────────────────────────────────
+window.handleKMZUpload = async function(inputEl) {
+  var file = inputEl.files[0]
+  if(!file) return
+  var statusEl = document.getElementById('kmz-status')
+  function setStatus(msg, color) { if(statusEl){ statusEl.textContent = msg; statusEl.style.color = color||'var(--texto-suave)'; statusEl.style.display = msg ? 'inline' : 'none' } }
+  setStatus('Procesando archivo…')
+  inputEl.value = ''
+  try {
+    var ext = file.name.split('.').pop().toLowerCase()
+    var kmlText
+    if(ext === 'kmz') {
+      if(typeof JSZip === 'undefined') { setStatus('⚠️ JSZip no cargó, recargá la página','#dc2626'); return }
+      var zip = await JSZip.loadAsync(file)
+      var kmlFile = null
+      zip.forEach(function(path, entry){ if(!kmlFile && path.match(/\.kml$/i)) kmlFile = entry })
+      if(!kmlFile) { setStatus('⚠️ No se encontró un archivo KML dentro del KMZ','#dc2626'); return }
+      kmlText = await kmlFile.async('string')
+    } else {
+      kmlText = await file.text()
+    }
+    var pts = _parseKMLPolygon(kmlText)
+    if(!pts || pts.length < 3) { setStatus('⚠️ No se encontró un polígono válido en el archivo','#dc2626'); return }
+    // Apply to campo map
+    limpiarPoligono()
+    _polyPuntos = pts
+    var m = window._mapaCampoModal
+    if(!m) { setStatus('⚠️ Abrí el mapa primero','#dc2626'); return }
+    _polyLayer = L.polygon(_polyPuntos, {color:'var(--verde)',weight:2.5,fillOpacity:.15}).addTo(m)
+    m.fitBounds(_polyLayer.getBounds(), {padding:[20,20]})
+    var ha = _calcHaDesdePoligono(_polyPuntos)
+    var coordsEl = document.getElementById('campo-coords')
+    if(coordsEl) coordsEl.style.display = 'block'
+    var haEl = document.getElementById('campo-ha-valor')
+    if(haEl) haEl.textContent = ha
+    var haInp = document.getElementById('c-ha')
+    if(haInp && ha > 0) haInp.value = ha
+    setStatus('✅ Polígono cargado · ' + ha + ' ha', '#16a34a')
+  } catch(err) {
+    setStatus('⚠️ Error al leer el archivo: ' + (err.message||err), '#dc2626')
+  }
+}
+
+function _parseKMLPolygon(kmlText) {
+  var parser = new DOMParser()
+  var doc = parser.parseFromString(kmlText, 'text/xml')
+  // Try <coordinates> inside <Polygon>
+  var coordNodes = doc.getElementsByTagName('coordinates')
+  for(var i=0; i<coordNodes.length; i++) {
+    var raw = coordNodes[i].textContent.trim()
+    var pts = []
+    raw.split(/\s+/).forEach(function(token) {
+      var parts = token.split(',')
+      if(parts.length >= 2) {
+        var lng = parseFloat(parts[0]), lat = parseFloat(parts[1])
+        if(!isNaN(lat) && !isNaN(lng)) pts.push([lat, lng])
+      }
+    })
+    if(pts.length >= 3) {
+      // Remove closing duplicate point if present
+      var first = pts[0], last = pts[pts.length-1]
+      if(Math.abs(first[0]-last[0]) < 0.000001 && Math.abs(first[1]-last[1]) < 0.000001) pts.pop()
+      if(pts.length >= 3) return pts
+    }
+  }
+  return null
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 window.closeModalCampo = function() {
   document.getElementById('ov-campo').classList.remove('open')
   limpiarPoligono()
@@ -3903,7 +3979,14 @@ function _zonaMapaClick(e) {
   var n = _zonaPolyPuntos.length
   var ptsEl = document.getElementById('zona-dibujo-pts')
   var confirmBtn = document.getElementById('btn-confirmar-zona')
-  if(ptsEl) ptsEl.textContent = n + ' punto' + (n===1?'':'s') + (n < 3 ? ' — necesitás al menos 3' : ' — listo para confirmar ✓')
+  if(ptsEl) {
+    if(n < 3) {
+      ptsEl.textContent = n + ' punto' + (n===1?'':'s') + ' — necesitás al menos 3'
+    } else {
+      var haVivo = _calcHaDesdePoligono(_zonaPolyPuntos)
+      ptsEl.textContent = n + ' puntos · ' + (haVivo > 0 ? haVivo + ' ha' : '') + ' — listo para confirmar ✓'
+    }
+  }
   if(confirmBtn) {
     var ok = n >= 3
     confirmBtn.disabled = !ok

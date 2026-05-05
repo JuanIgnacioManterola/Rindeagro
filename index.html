@@ -1570,23 +1570,18 @@ async function cargarTodo() {
     document.getElementById('d-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
   }
   var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-  try {
-    const { data: c } = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false})
-    campos = c || []
-    if (campos.length > 0) campoRent = campos[0].id
-  } catch(e) { campos = [] }
-  try {
-    const { data: g } = await sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
-    gastos = g || []
-  } catch(e) { gastos = [] }
-  try {
-    const { data: l } = await sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
-    lluvias = l || []
-  } catch(e) { lluvias = [] }
-  try {
-    const { data: s } = await sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
-    analisisS = s || []
-  } catch(e) { analisisS = [] }
+  // Cargar todos los datos en PARALELO (4x más rápido que secuencial)
+  var [resC, resG, resL, resS] = await Promise.allSettled([
+    sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false}),
+    sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
+    sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
+    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
+  ])
+  campos = (resC.status==='fulfilled' && resC.value.data) ? resC.value.data : []
+  if(campos.length > 0) campoRent = campos[0].id
+  gastos = (resG.status==='fulfilled' && resG.value.data) ? resG.value.data : []
+  lluvias = (resL.status==='fulfilled' && resL.value.data) ? resL.value.data : []
+  analisisS = (resS.status==='fulfilled' && resS.value.data) ? resS.value.data : []
 
   // Cargar precios: si hay cache de hoy usarla, sino auto-actualizar
   var _hoy = new Date().toISOString().substring(0,10)
@@ -1737,60 +1732,52 @@ window.actualizarPrecios = async function(forzar) {
     }catch(e){}
   }
 
-  ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
-    var d=document.getElementById('ps-'+g+'-d')
-    if(d){d.style.color='rgba(250,247,240,.5)';d.textContent='consultando...'}
-  })
-
-  // 1. Dólar BNA divisa comprador
-  try{
-    var rBna=await fetch('https://dolarapi.com/v1/dolares/oficial',{signal:AbortSignal.timeout(6000)})
-    if(rBna.ok){
-      var jBna=await rBna.json()
-      var compra=parseFloat(jBna.compra||0)
-      if(compra>0) precios.bna=compra
-    }
-  }catch(e){}
-
-  // 2. Cereales desde Ambito (precio Chicago) → convertir a precio BCR Rosario
-  // BCR pizarra = Precio Chicago × (1 − retención)
-  // Retenciones vigentes desde dic-2025: Soja 24%, Maíz 8.5%, Trigo 7.5%, Girasol 4.5%, Sorgo 8.5%
+  // Retenciones vigentes: Soja 24%, Maíz 8.5%, Trigo 7.5%, Girasol 4.5%, Sorgo 8.5%
   var _ret = {soja:0.24, maiz:0.085, trigo:0.075, girasol:0.045, sorgo:0.085}
   function _pizarra(chicago, g){ return Math.round(chicago * (1 - (_ret[g]||0.085))) }
 
+  // Fetch BNA y Ambito EN PARALELO con timeout corto (3s c/u)
+  function _fetchTimeout(url, ms) {
+    var ctrl = new AbortController()
+    var id = setTimeout(function(){ ctrl.abort() }, ms)
+    return fetch(url, {signal: ctrl.signal}).finally(function(){ clearTimeout(id) })
+  }
+
+  var results = await Promise.allSettled([
+    _fetchTimeout('https://dolarapi.com/v1/dolares/oficial', 3000),
+    _fetchTimeout('https://mercados.ambito.com/mercados/commodities', 3000)
+  ])
+
+  // Resultado BNA
   try{
-    var rAmb=await fetch('https://mercados.ambito.com/mercados/commodities',{signal:AbortSignal.timeout(6000)})
-    if(rAmb.ok){
-      var items=await rAmb.json()
+    if(results[0].status==='fulfilled' && results[0].value.ok){
+      var jBna = await results[0].value.json()
+      var compra = parseFloat(jBna.compra||0)
+      if(compra>0) precios.bna = compra
+    }
+  }catch(e){}
+
+  // Resultado Ambito cereales
+  try{
+    if(results[1].status==='fulfilled' && results[1].value.ok){
+      var items = await results[1].value.json()
       items.forEach(function(item){
         var n=(item.nombre||'').toLowerCase()
         var v=parseFloat((item.ultimo||'').replace(',','.'))
         if(!v||isNaN(v)) return
-        if(n==='soja')        precios.soja=_pizarra(v,'soja')
+        if(n==='soja')              precios.soja=_pizarra(v,'soja')
         else if(n==='maiz'||n==='maíz') precios.maiz=_pizarra(v,'maiz')
-        else if(n==='trigo')  precios.trigo=_pizarra(v,'trigo')
+        else if(n==='trigo')        precios.trigo=_pizarra(v,'trigo')
       })
     }
   }catch(e){}
-  // Girasol y Sorgo: sin API pública — mantiene último valor guardado (editable manualmente)
 
-  // 3. Guardar en localStorage (cache diaria)
+  // Guardar en localStorage (cache diaria)
   try{
     localStorage.setItem('ra_precios_v3',JSON.stringify({
       fecha:hoy,soja:precios.soja,maiz:precios.maiz,trigo:precios.trigo,
       girasol:precios.girasol,sorgo:precios.sorgo,bna:precios.bna
     }))
-  }catch(e){}
-
-  // 4. Guardar en Supabase para persistencia
-  try{
-    if(usuario){
-      await sb.from('precios_pizarra').upsert({
-        usuario_id:usuario.id,fecha:hoy,
-        soja:precios.soja,maiz:precios.maiz,trigo:precios.trigo,
-        girasol:precios.girasol,sorgo:precios.sorgo,bna:precios.bna
-      },{onConflict:'usuario_id,fecha'})
-    }
   }catch(e){}
 
   _mostrarPrecios('BCR Rosario · BNA')

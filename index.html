@@ -706,15 +706,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: GASTOS -->
     <div class="campo-seccion" id="sec-gastos">
-      <div class="card">
-        <div class="card-hdr">
+      <!-- Selector de cultivo (aparece cuando el campo tiene 2+ cultivos) -->
+      <div id="gastos-cultivo-pantalla" style="display:none"></div>
+      <div class="card" id="gastos-card-lista">
+        <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
           <button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>
         </div>
         <div id="det-gastos-lista"></div>
       </div>
       <!-- Desglose interactivo: torta + tabla lado a lado -->
-      <div class="card">
+      <div class="card" id="gastos-card-desglose">
         <div class="card-hdr"><span class="card-tit" id="det-chart-titulo">Desglose por rubro</span></div>
         <!-- Chips de selección de rubro -->
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px" id="gastos-rubro-chips">
@@ -4070,6 +4072,7 @@ window.setGastoPeriodo = function(periodo, btn) {
 
 // ── RUBRO FILTRO CHART ──
 var gastoRubroFiltro = null  // null = todos los rubros (torta por rubro), string = desglose dentro de ese rubro
+var gastosCultivoActivo = null  // null = mostrar selector de cultivo, string = cultivo seleccionado
 window.setGastoRubroFiltro = function(rubro, btn) {
   gastoRubroFiltro = rubro
   document.querySelectorAll('.grub-btn').forEach(function(b) {
@@ -4235,15 +4238,28 @@ window.guardarGasto = async function() {
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
     if(rubro === 'riego') { _p.kva_consumo = kvaRiego; _p.costo_kva = costoKvaRiego }
+    // Guardar cultivo si estamos en vista multi-cultivo
+    if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
     var data, error
+    // Payload sin cultivo para fallback si la columna no existe
+    var _pSinCultivo = Object.assign({}, _p)
+    delete _pSinCultivo.cultivo
     if(isEdit) {
       var r = await sb.from('gastos').update(_p).eq('id',editId).select().single()
+      if(r.error && /column|does not exist/i.test(r.error.message||'')) {
+        r = await sb.from('gastos').update(_pSinCultivo).eq('id',editId).select().single()
+      }
       data=r.data; error=r.error
       if(!error) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=data }
     } else {
       _p.campo_id = campoId
       _p.usuario_id = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
       var r = await sb.from('gastos').insert(_p).select().single()
+      if(r.error && /column|does not exist/i.test(r.error.message||'')) {
+        _pSinCultivo.campo_id = _p.campo_id
+        _pSinCultivo.usuario_id = _p.usuario_id
+        r = await sb.from('gastos').insert(_pSinCultivo).select().single()
+      }
       data=r.data; error=r.error
       if(!error) gastos.unshift(data)
     }
@@ -4816,7 +4832,7 @@ window.switchCampoTab = function(tab, btn) {
   if(sec) sec.classList.add('active')
   if(btn) btn.classList.add('active')
   if(tab==='ingresos') renderIngresosTab()
-  if(tab==='gastos') renderDetGastos()
+  if(tab==='gastos') { gastosCultivoActivo = null; renderDetGastos() }
   if(tab==='rentabilidad') renderCampoRent()
   if(tab==='lluvias') renderDetLluvias()
   if(tab==='suelo') renderDetSuelo()
@@ -4893,8 +4909,7 @@ window.calcIngresosLive = function() {
   }).join('')
   var totalCard = rows.length>1 ? '<div style="background:var(--verde);border-radius:12px;padding:1rem 1.1rem;margin-top:4px">'
     +'<div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px">Total ingreso bruto</div>'
-    +'<div style="font-size:26px;font-weight:700;font-family:DM Mono,monospace;color:#fff;margin-bottom:2px">'+totalFmt+'</div>'
-    +'<div style="font-size:12px;color:rgba(250,247,240,.6)">'+totalTn.toLocaleString('es-AR',{maximumFractionDigits:1})+' toneladas totales</div>'
+    +'<div style="font-size:26px;font-weight:700;font-family:DM Mono,monospace;color:#fff">'+totalFmt+'</div>'
     +'</div>' : ''
   res.innerHTML = '<div style="display:grid;gap:10px">'+(rows.length>1?cardsHtml+totalCard:cardsHtml)+'</div>'
 }
@@ -5206,10 +5221,85 @@ window.guardarRendCampo = function() {
   })
 }
 
+window.seleccionarCultivoGastos = function(cult) {
+  gastosCultivoActivo = cult
+  renderDetGastos()
+}
+window.volverCultivoGastos = function() {
+  gastosCultivoActivo = null
+  renderDetGastos()
+}
+
 function renderDetGastos() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
+
+  var CULT_ICONS = {'Soja':'🌱','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
+  var cultivosDeCampo = (c.cultivo||'').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var esMultiCultivo = cultivosDeCampo.length > 1
+
+  var pickerEl    = document.getElementById('gastos-cultivo-pantalla')
+  var cardLista   = document.getElementById('gastos-card-lista')
+  var cardDesg    = document.getElementById('gastos-card-desglose')
+  var hdrEl       = document.getElementById('gastos-card-hdr')
+
+  if(esMultiCultivo && !gastosCultivoActivo) {
+    // ── PANTALLA: selector de cultivo ──
+    if(pickerEl) {
+      var campR0 = getCampanaRange(campanaActivaId)
+      pickerEl.style.display = 'block'
+      pickerEl.innerHTML = '<div class="card">'
+        +'<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">Gastos por cultivo</div>'
+        +'<div style="font-size:12px;color:var(--texto-suave);margin-bottom:16px">Seleccioná el cultivo para ver o agregar sus gastos</div>'
+        +'<div style="display:grid;gap:10px">'
+        +cultivosDeCampo.map(function(cult) {
+          var color = CULT_COLORES[cult]||'#16a34a'
+          var icon = CULT_ICONS[cult]||'🌱'
+          var nExcl = gastos.filter(function(g){ return g.campo_id===campoDet && g.cultivo===cult && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).length
+          var totalExcl = gastos.filter(function(g){ return g.campo_id===campoDet && g.cultivo===cult && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+          var montoStr = totalExcl > 0 ? ' · USD '+Math.round(totalExcl).toLocaleString('es-AR') : ''
+          return '<div onclick="seleccionarCultivoGastos(\''+cult+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--crema);border-radius:13px;border-left:4px solid '+color+';cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 14px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">'
+            +'<div style="display:flex;align-items:center;gap:12px">'
+            +'<span style="font-size:26px">'+icon+'</span>'
+            +'<div><div style="font-size:16px;font-weight:700;color:var(--texto)">'+cult+'</div>'
+            +'<div style="font-size:12px;color:var(--texto-suave)">'+nExcl+' gasto'+(nExcl!==1?'s':'')+montoStr+'</div></div>'
+            +'</div>'
+            +'<span style="font-size:20px;color:var(--texto-suave)">›</span>'
+            +'</div>'
+        }).join('')
+        +'</div></div>'
+    }
+    if(cardLista) cardLista.style.display = 'none'
+    if(cardDesg)  cardDesg.style.display  = 'none'
+    return
+  }
+
+  // Si hay cultivo seleccionado (multi) o es campo de un solo cultivo: mostrar cards
+  if(pickerEl) pickerEl.style.display = 'none'
+  if(cardLista) cardLista.style.display = 'block'
+  if(cardDesg)  cardDesg.style.display  = 'block'
+
+  // Header: si multi-cultivo, mostrar botón volver + nombre cultivo
+  if(hdrEl) {
+    if(esMultiCultivo && gastosCultivoActivo) {
+      var color2 = CULT_COLORES[gastosCultivoActivo]||'#16a34a'
+      var icon2 = CULT_ICONS[gastosCultivoActivo]||'🌱'
+      hdrEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1">'
+        +'<button onclick="volverCultivoGastos()" style="background:none;border:1.5px solid var(--borde);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--texto-mid);font-family:\'DM Sans\',sans-serif">← Volver</button>'
+        +'<span style="font-size:15px;font-weight:700;color:var(--texto)">'+icon2+' '+gastosCultivoActivo+'</span>'
+        +'</div>'
+        +'<button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>'
+    } else {
+      hdrEl.innerHTML = '<span class="card-tit">Gastos del campo</span>'
+        +'<button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>'
+    }
+  }
+
   var gf = gastos.filter(function(g){return g.campo_id===campoDet})
+  // Filtrar por cultivo si multi-cultivo con cultivo seleccionado
+  if(esMultiCultivo && gastosCultivoActivo) {
+    gf = gf.filter(function(g){ return g.cultivo===gastosCultivoActivo || !g.cultivo })
+  }
   // Filtrar por campaña global
   var campR = getCampanaRange(campanaActivaId)
   gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= campR.start && new Date(g.fecha) <= campR.end })

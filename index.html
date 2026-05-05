@@ -591,19 +591,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- MÉTRICAS -->
     <div class="grid5" id="rent-mets" style="margin-bottom:14px"></div>
 
-    <!-- GASTOS + RESUMEN -->
-    <div class="grid2">
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Gastos del campo</span></div>
-        <div id="rent-gastos"></div>
-      </div>
-      <div>
-        <div class="card" style="margin-bottom:14px">
-          <div class="card-hdr"><span class="card-tit">Resumen financiero</span></div>
-          <div id="rent-resumen"></div>
-        </div>
-      </div>
-    </div>
+    <!-- (gastos detallados se ven en la pestaña Gastos, no se repiten acá) -->
 
     <!-- DOS TORTAS -->
     <div class="grid2" style="margin-bottom:14px">
@@ -2038,95 +2026,118 @@ function renderRentabilidad() {
   var mgPct = ingHa>0?(mgHa/ingHa*100).toFixed(1):0
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
 
-  // ── CARD RESUMEN ECONÓMICO ────────────────────────────────────────────────
+  // ── CARD RENTABILIDAD (Ingreso − Gastos = Margen) ────────────────────────
   var mcEl = document.getElementById('rent-margen-card')
   if(mcEl) {
-    var cultMC = (campo?.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
-    var savedIngMC = {}
-    try { savedIngMC = JSON.parse(campo?.ingresos_cultivos||'{}') } catch(e) {}
-    var savedHaMC = {}
-    try { savedHaMC = JSON.parse(campo?.hectareas_cultivo||'{}') } catch(e) {}
-    var fmtUSD = function(v){ return 'USD '+Math.round(v).toLocaleString('es-AR') }
+    var fU = function(v){ return 'USD '+Math.round(v).toLocaleString('es-AR') }
+    var cultMC = campo ? (campo.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean) : ['Soja']
+    var campoIdMC = campo ? campo.id : null
+    var html = '<div style="background:var(--blanco);border-radius:14px;border:.5px solid var(--borde);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">'
 
-    var cardHtml = '<div style="background:var(--blanco);border-radius:14px;border:.5px solid var(--borde);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">'
-      +'<div style="padding:12px 16px;border-bottom:.5px solid var(--borde)">'
-      +'<span style="font-size:14px;font-weight:700;color:var(--texto)">📊 Resumen económico</span>'
-      +'</div>'
-
-    if(cultMC.length > 1 && campoRent !== 'todos') {
-      // ── MULTI-CULTIVO: tabla por cultivo ──
-      var rows = cultMC.map(function(cult) {
-        var d = savedIngMC[cult]||{}
-        var haCult = parseFloat(savedHaMC[cult]) || (ha / cultMC.length)
-        var rendC = parseFloat(d.rendimiento||0), precioC = parseFloat(d.precio_venta||0)
-        var ingC = rendC * precioC * haCult
-        var gasC = gastos.filter(function(g){ return g.campo_id===campoRent && g.cultivo===cult }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        var mgC = ingC - gasC
-        var col = CULT_COLORES[cult]||'#16a34a'
-        var ico = CULT_ICONS[cult]||'🌱'
-        return {cult:cult, ico:ico, col:col, ha:Math.round(haCult), ing:ingC, gas:gasC, mg:mgC}
+    if(campoRent === 'todos') {
+      // ── TODOS: resumen global + fila por campo ──
+      var allRows = campos.map(function(c) {
+        var cHa = c.hectareas||0
+        var cCults = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+        var cSaved = {}; try{ cSaved=JSON.parse(c.ingresos_cultivos||'{}') }catch(e){}
+        var cIng = cCults.reduce(function(a,cu){
+          var d=cSaved[cu]||{rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||0,hectareas:cHa}
+          var haCu=parseFloat((JSON.parse(c.hectareas_cultivo||'{}'))[cu]||(cHa/cCults.length))
+          return a + parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
+        },0)
+        var cGas = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        var cMg = cIng - cGas
+        return {nom:c.nombre, ha:cHa, ing:cIng, gas:cGas, mg:cMg}
       })
-      var tIng = rows.reduce(function(a,r){return a+r.ing},0)
-      var tGas = rows.reduce(function(a,r){return a+r.gas},0)
-      var tMg  = tIng - tGas
-      var tMgCol = tMg >= 0 ? '#1a7a52' : '#c0392b'
-      cardHtml += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
-        +'<thead><tr style="background:var(--crema)">'
-        +'<th style="padding:9px 14px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Cultivo</th>'
-        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Ingreso bruto</th>'
-        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Gastos</th>'
-        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Margen neto</th>'
-        +'</tr></thead><tbody>'
-        + rows.map(function(r) {
-            var mc2 = r.mg >= 0 ? '#1a7a52' : '#c0392b'
-            return '<tr style="border-bottom:.5px solid var(--borde);border-left:3px solid '+r.col+'">'
-              +'<td style="padding:12px 14px"><div style="display:flex;align-items:center;gap:8px">'
-              +'<span style="font-size:18px">'+r.ico+'</span>'
-              +'<div><div style="font-weight:600;color:var(--texto)">'+r.cult+'</div>'
-              +'<div style="font-size:10px;color:var(--texto-suave)">'+r.ha+' ha</div></div></div></td>'
-              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;color:#1a5fa8">'+fmtUSD(r.ing)+'</td>'
-              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;color:#c0392b">'+fmtUSD(r.gas)+'</td>'
-              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+mc2+'">'+(r.mg>=0?'+':'')+fmtUSD(r.mg)+'</td>'
+      var totIng = allRows.reduce(function(a,r){return a+r.ing},0)
+      var totGas = allRows.reduce(function(a,r){return a+r.gas},0)
+      var totMg  = totIng - totGas
+      var totCol = totMg>=0?'#1a7a52':'#c0392b'
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:.5px solid var(--borde)">'
+        +'<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">💰 Ingreso bruto</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(totIng)+'</div></div>'
+        +'<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📋 Gastos</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(totGas)+'</div></div>'
+        +'<div style="padding:16px;background:'+(totMg>=0?'rgba(26,122,82,.05)':'rgba(192,57,43,.05)')+'"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📈 Margen neto</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:'+totCol+'">'+(totMg>=0?'+':'')+fU(totMg)+'</div></div>'
+        +'</div>'
+      if(allRows.length > 1) {
+        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--crema)">'
+          +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campo</th>'
+          +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Ingreso</th>'
+          +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Gastos</th>'
+          +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Margen neto</th>'
+          +'</tr></thead><tbody>'
+          +allRows.map(function(r){
+            var mc3=r.mg>=0?'#1a7a52':'#c0392b'
+            return '<tr style="border-bottom:.5px solid var(--borde)">'
+              +'<td style="padding:10px 12px;font-weight:600;color:var(--texto)">'+r.nom+'<br><span style="font-size:10px;font-weight:400;color:var(--texto-suave)">'+r.ha+' ha</span></td>'
+              +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(r.ing)+'</td>'
+              +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;color:#c0392b">'+fU(r.gas)+'</td>'
+              +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+mc3+'">'+(r.mg>=0?'+':'')+fU(r.mg)+'</td>'
               +'</tr>'
           }).join('')
-        +'<tr style="background:var(--crema)">'
-        +'<td style="padding:11px 14px;font-weight:700;color:var(--texto)">Total</td>'
-        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#1a5fa8">'+fmtUSD(tIng)+'</td>'
-        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#c0392b">'+fmtUSD(tGas)+'</td>'
-        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+tMgCol+'">'+(tMg>=0?'+':'')+fmtUSD(tMg)+'</td>'
-        +'</tr>'
-        +'</tbody></table></div>'
+          +'</tbody></table></div>'
+      }
+
+    } else if(cultMC.length > 1) {
+      // ── MULTI-CULTIVO: una sección por cultivo ──
+      var savedIngMC = {}; try{ savedIngMC=JSON.parse(campo.ingresos_cultivos||'{}') }catch(e){}
+      var savedHaMC  = {}; try{ savedHaMC=JSON.parse(campo.hectareas_cultivo||'{}')  }catch(e){}
+      var mcRows = cultMC.map(function(cult) {
+        var d = savedIngMC[cult]||{}
+        var haCu = parseFloat(savedHaMC[cult]) || (ha/cultMC.length)
+        var ingCu = parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
+        var gasCu = gastos.filter(function(g){return g.campo_id===campoIdMC && (g.cultivo===cult||!g.cultivo)}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        // Si no hay gastos por cultivo, dividir el total entre cultivos
+        if(gasCu === 0 && gastos.filter(function(g){return g.campo_id===campoIdMC && g.cultivo}).length === 0) {
+          gasCu = costoUSD / cultMC.length
+        }
+        var mgCu = ingCu - gasCu
+        var col = CULT_COLORES[cult]||'#16a34a'
+        var ico = CULT_ICONS[cult]||'🌱'
+        return {cult:cult,ico:ico,col:col,ha:Math.round(haCu),ing:ingCu,gas:gasCu,mg:mgCu}
+      })
+      var tI=mcRows.reduce(function(a,r){return a+r.ing},0)
+      var tG=mcRows.reduce(function(a,r){return a+r.gas},0)
+      var tM=tI-tG; var tMc=tM>=0?'#1a7a52':'#c0392b'
+      html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:var(--crema)">'
+        +'<th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Cultivo</th>'
+        +'<th style="padding:10px 14px;text-align:right;font-size:11px;color:#1a5fa8;font-weight:600">Ingreso bruto</th>'
+        +'<th style="padding:10px 14px;text-align:right;font-size:11px;color:#c0392b;font-weight:600">Gastos</th>'
+        +'<th style="padding:10px 14px;text-align:right;font-size:11px;color:var(--verde);font-weight:600">Margen neto</th>'
+        +'</tr></thead><tbody>'
+        +mcRows.map(function(r){
+          var mc4=r.mg>=0?'#1a7a52':'#c0392b'
+          return '<tr style="border-bottom:.5px solid var(--borde);border-left:4px solid '+r.col+'">'
+            +'<td style="padding:13px 14px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px">'+r.ico+'</span><div><div style="font-weight:700;font-size:14px;color:var(--texto)">'+r.cult+'</div><div style="font-size:10px;color:var(--texto-suave)">'+r.ha+' ha</div></div></div></td>'
+            +'<td style="padding:13px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;font-size:14px;color:#1a5fa8">'+fU(r.ing)+'</td>'
+            +'<td style="padding:13px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;font-size:14px;color:#c0392b">'+fU(r.gas)+'</td>'
+            +'<td style="padding:13px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;font-size:15px;color:'+mc4+'">'+(r.mg>=0?'+':'')+fU(r.mg)+'</td>'
+            +'</tr>'
+        }).join('')
+        +'<tr style="background:var(--crema);font-weight:700">'
+        +'<td style="padding:11px 14px;color:var(--texto);font-weight:700">Total</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#1a5fa8">'+fU(tI)+'</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#c0392b">'+fU(tG)+'</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:800;font-size:15px;color:'+tMc+'">'+(tM>=0?'+':'')+fU(tM)+'</td>'
+        +'</tr></tbody></table></div>'
+
     } else {
-      // ── CULTIVO ÚNICO (o "todos"): 3 cajas ──
-      var ingTot = ingHa * ha
-      var gasTot = costoUSD
-      var mgnTot = ingTot - gasTot
-      var mgnCol = mgnTot >= 0 ? '#1a7a52' : '#c0392b'
-      var mgnPct = ingTot > 0 ? (mgnTot / ingTot * 100).toFixed(1) : '0'
-      cardHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr)">'
-        +'<div style="padding:18px 16px;border-right:.5px solid var(--borde)">'
-        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💰 Ingreso bruto</div>'
-        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fmtUSD(ingTot)+'</div>'
-        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+fmtUSD(ingHa)+'/ha</div>'
-        +'</div>'
-        +'<div style="padding:18px 16px;border-right:.5px solid var(--borde)">'
-        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Gastos</div>'
-        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fmtUSD(gasTot)+'</div>'
-        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+fmtUSD(costoHa)+'/ha</div>'
-        +'</div>'
-        +'<div style="padding:18px 16px;background:'+(mgnTot>=0?'rgba(26,122,82,.04)':'rgba(192,57,43,.04)')+'">'
-        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📈 Margen neto</div>'
-        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:'+mgnCol+'">'+(mgnTot>=0?'+':'')+fmtUSD(mgnTot)+'</div>'
-        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+mgnPct+'% del ingreso</div>'
-        +'</div>'
+      // ── UN SOLO CULTIVO ──
+      var ingS = ingHa*ha, gasS = costoUSD, mgS = ingS-gasS
+      var mgSCol = mgS>=0?'#1a7a52':'#c0392b'
+      var mgSPct = ingS>0?(mgS/ingS*100).toFixed(1):'0'
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr)">'
+        +'<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💰 Ingreso bruto</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(ingS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(ingHa)+'/ha</div></div>'
+        +'<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Gastos</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(gasS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(costoHa)+'/ha</div></div>'
+        +'<div style="padding:20px 16px;background:'+(mgS>=0?'rgba(26,122,82,.05)':'rgba(192,57,43,.05)')+'"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📈 Margen neto</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:'+mgSCol+'">'+(mgS>=0?'+':'')+fU(mgS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+mgSPct+'% del ingreso</div></div>'
         +'</div>'
     }
-    cardHtml += '</div>'
-    mcEl.innerHTML = cardHtml
+    html += '</div>'
+    mcEl.innerHTML = html
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  // Métricas rentabilidad
+  // Métricas secundarias (por ha, quintales equiv.)
   document.getElementById('rent-mets').innerHTML = [
     {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t/ha × USD '+pr+'/t'+(campo?.rendimiento?' ✓ real':' est.'),c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD).toLocaleString('es-AR')+' total',c:'#c0392b'},
@@ -2134,42 +2145,6 @@ function renderRentabilidad() {
     {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
     {l:'En quintales/ha',v:(mgHa>=0?'+':'')+( pr>0?(mgHa/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
   ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
-
-  // Gastos lista
-  var elG = document.getElementById('rent-gastos')
-  if (!gf.length) {
-    elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
-  } else {
-    elG.innerHTML = gf.map(g=>{
-      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
-      var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
-      var subLabel = g.sub_tipo ? ` · ${SUBS[g.sub_tipo]||g.sub_tipo}` : ''
-      var cantStr = g.cantidad && g.unidad ? ` · ${g.cantidad} ${g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad}` : ''
-      return `<div class="gasto-row">
-        <span class="gtag r-${g.rubro||'otros'}">${(RUBS[g.rubro]||g.rubro||'Otros')+subLabel}</span>
-        <div style="flex:1;min-width:0">
-          <div style="color:var(--texto-mid)">${g.descripcion||'Sin descripción'}${cantStr}</div>
-          <div style="font-size:10px;color:var(--texto-suave)">${fFecha(g.fecha)}${g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:600;font-family:DM Mono,monospace">$${Math.round(g.total_de_usd||0).toLocaleString('es-AR')}</div>
-          <div style="font-size:10px;color:var(--texto-suave)">USD ${Math.round(g.total_de_usd||0).toLocaleString('es-AR')}</div>
-          ${g.qq_ha?`<div style="font-size:10px;color:var(--verde)">${parseFloat(g.qq_ha).toFixed(2)} qq/ha</div>`:''}
-        </div>
-        <button onclick="editarGasto('${g.id}')" style="background:none;border:.5px solid #1a5fa8;border-radius:5px;cursor:pointer;color:#1a5fa8;font-size:11px;padding:3px 7px" title="Editar">✏️</button> <button onclick="eliminarGasto('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:14px;padding:2px 4px" title="Eliminar">🗑</button>
-      </div>`
-    }).join('')
-  }
-
-  // Resumen financiero
-  var porRubro = {}
-  gf.forEach(g=>{ var r=g.rubro||'otros'; porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0) })
-  document.getElementById('rent-resumen').innerHTML =
-    `<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto</span><span style="font-weight:600;font-family:DM Mono,monospace;color:#1a5fa8">USD ${Math.round(ingHa*ha).toLocaleString('es-AR')}</span></div>` +
-    Object.entries(porRubro).sort((a,b)=>b[1]-a[1]).map(([r,v])=>
-      `<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-suave)">${RUBROS[r]||r}</span><span style="font-family:DM Mono,monospace">- USD ${Math.round(v).toLocaleString('es-AR')}</span></div>`
-    ).join('') +
-    `<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:600"><span>Margen neto</span><span style="color:${mc};font-family:DM Mono,monospace">${mgHa*ha>=0?'+':''}USD ${Math.round(mgHa*ha).toLocaleString('es-AR')}</span></div>`
 
   // Tortas de costos
   renderTortas(gf)
@@ -4619,43 +4594,53 @@ window.guardarGasto = async function() {
       precio_cereal: prCereal,
       descripcion: descVal
     }
-    if(gastoSubTipo) _p.subtipo = gastoSubTipo
+    if(gastoSubTipo) { _p.sub_tipo = gastoSubTipo; _p.subtipo = gastoSubTipo } // ambos nombres por compatibilidad
     if(cantidad) _p.cantidad = cantidad
     if(unidad) _p.unidad = unidad
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
     if(rubro === 'riego') { _p.kva_consumo = kvaRiego; _p.costo_kva = costoKvaRiego }
-    // Guardar cultivo si estamos en vista multi-cultivo
     if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
-    var data, error
-    // Payload sin cultivo para fallback si la columna no existe
-    var _pSinCultivo = Object.assign({}, _p)
-    delete _pSinCultivo.cultivo
-    if(isEdit) {
-      var r = await sb.from('gastos').update(_p).eq('id',editId).select().single()
-      if(r.error && /column|does not exist/i.test(r.error.message||'')) {
-        r = await sb.from('gastos').update(_pSinCultivo).eq('id',editId).select().single()
-      }
-      data=r.data; error=r.error
-      if(!error) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=data }
-    } else {
-      _p.campo_id = campoId
-      _p.usuario_id = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-      var r = await sb.from('gastos').insert(_p).select().single()
-      if(r.error && /column|does not exist/i.test(r.error.message||'')) {
-        _pSinCultivo.campo_id = _p.campo_id
-        _pSinCultivo.usuario_id = _p.usuario_id
-        r = await sb.from('gastos').insert(_pSinCultivo).select().single()
-      }
-      data=r.data; error=r.error
-      if(!error) gastos.unshift(data)
-    }
 
-    if(error) throw error
-    _guardarCache()
-    if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
-    closeModalGasto()
-    showToast(isEdit ? '✓ Gasto actualizado' : '✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
+    var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+
+    if(isEdit) {
+      // EDIT: espera respuesta para actualizar localmente
+      var rE = await sb.from('gastos').update(_p).eq('id',editId).select().single()
+      if(rE.error && /column|does not exist/i.test(rE.error.message||'')) {
+        var _pMin = {rubro:_p.rubro,fecha:_p.fecha,total_de_usd:_p.total_de_usd,usd_ha:_p.usd_ha,qq_ha:_p.qq_ha,descripcion:_p.descripcion}
+        rE = await sb.from('gastos').update(_pMin).eq('id',editId).select().single()
+      }
+      if(rE.error) throw rE.error
+      if(rE.data) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=rE.data }
+      _guardarCache()
+      if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
+      closeModalGasto()
+      showToast('✓ Gasto actualizado','ok')
+    } else {
+      // ── OPTIMISTIC INSERT (igual que guardarCampo) ──────────────────────
+      var gId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      var gastoLocal = Object.assign({}, _p, {id: gId, campo_id: campoId, usuario_id: uid2})
+      gastos.unshift(gastoLocal)
+      _guardarCache()
+      if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
+      closeModalGasto()
+      showToast('✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
+      // Sync con DB en background
+      ;(async function() {
+        try {
+          _p.campo_id = campoId; _p.usuario_id = uid2; _p.id = gId
+          var rG = await sb.from('gastos').insert(_p)
+          if(rG.error) {
+            // Retry sin columnas opcionales que puedan no existir
+            var _pMin2 = {id:gId,campo_id:campoId,usuario_id:uid2,rubro:_p.rubro,fecha:_p.fecha,total_de_usd:_p.total_de_usd,usd_ha:_p.usd_ha,qq_ha:_p.qq_ha,descripcion:_p.descripcion,ha_aplicadas:_p.ha_aplicadas}
+            await sb.from('gastos').insert(_pMin2)
+          }
+        } catch(e) { console.error('bg gasto insert:', e) }
+      })()
+    }
     ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'

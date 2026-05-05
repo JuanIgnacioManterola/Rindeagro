@@ -718,7 +718,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- TAB: GASTOS -->
     <div class="campo-seccion" id="sec-gastos">
       <div class="card">
-        <div class="card-hdr"><span class="card-tit">Gastos del campo</span><button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button></div>
+        <div class="card-hdr">
+          <span class="card-tit">Gastos del campo</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button id="btn-toggle-moneda" onclick="toggleGastoMoneda()" style="padding:4px 11px;border-radius:20px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">$ ARS</button>
+            <button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>
+          </div>
+        </div>
         <!-- Filtro de período -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem" id="gastos-filtro-periodo">
           <button class="gasto-periodo-btn active" onclick="setGastoPeriodo('campaña',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campaña actual</button>
@@ -729,10 +735,26 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div id="det-gastos-lista"></div>
       </div>
       <div class="grid2">
+        <!-- Desglose interactivo por rubro -->
         <div class="card" style="margin-bottom:0">
-          <div class="card-hdr"><span class="card-tit">Por rubro</span></div>
-          <div style="position:relative;height:220px"><canvas id="chart-det-rubro"></canvas></div>
+          <div class="card-hdr"><span class="card-tit" id="det-chart-titulo">Por rubro</span></div>
+          <!-- Chips de selección de rubro -->
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="gastos-rubro-chips">
+            <button class="grub-btn active" onclick="setGastoRubroFiltro(null,this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Todos</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('semillas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🌱 Semillas</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('herbicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🧪 Herbicidas</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('fungicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🍄 Fungicidas</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('insecticidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🐛 Insecticidas</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('fertilizantes',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">⚗️ Fertilizantes</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('laboreo',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚜 Laboreo</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('flete',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚛 Flete</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('empleados',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">👷 Empleados</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('arrendamiento',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🏠 Arrend.</button>
+            <button class="grub-btn" onclick="setGastoRubroFiltro('otros',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">📦 Otros</button>
+          </div>
+          <div style="position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
           <div id="det-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+          <div id="det-rubro-empty" style="display:none;text-align:center;padding:24px 0;font-size:12px;color:var(--texto-suave)">Sin gastos en este rubro</div>
         </div>
         <div class="card" style="margin-bottom:0">
           <div class="card-hdr"><span class="card-tit">Resumen</span></div>
@@ -3504,6 +3526,51 @@ window.setGastoPeriodo = function(periodo, btn) {
   renderDetGastos()
 }
 
+// ── RUBRO FILTRO CHART ──
+var gastoRubroFiltro = null  // null = todos los rubros (torta por rubro), string = desglose dentro de ese rubro
+window.setGastoRubroFiltro = function(rubro, btn) {
+  gastoRubroFiltro = rubro
+  document.querySelectorAll('.grub-btn').forEach(function(b) {
+    b.style.background = 'transparent'
+    b.style.color = 'var(--texto-mid)'
+    b.style.borderColor = 'var(--borde)'
+  })
+  btn.style.background = 'var(--verde)'
+  btn.style.color = '#fff'
+  btn.style.borderColor = 'var(--verde)'
+  renderDetGastos()
+}
+// Auto-switch al rubro del gasto recién guardado
+function autoFocusRubroChart(rubro) {
+  if (!rubro) return
+  gastoRubroFiltro = rubro
+  var chips = document.querySelectorAll('.grub-btn')
+  chips.forEach(function(b) {
+    b.style.background = 'transparent'; b.style.color = 'var(--texto-mid)'; b.style.borderColor = 'var(--borde)'
+  })
+  chips.forEach(function(b) {
+    var oc = b.getAttribute('onclick') || ''
+    if (oc.includes("'"+rubro+"'") || oc.includes('"'+rubro+'"')) {
+      b.style.background = 'var(--verde)'; b.style.color = '#fff'; b.style.borderColor = 'var(--verde)'
+    }
+  })
+}
+
+// ── MONEDA TOGGLE ──
+var gastoMoneda = 'USD'  // 'USD' | 'ARS'
+window.toggleGastoMoneda = function() {
+  gastoMoneda = gastoMoneda === 'USD' ? 'ARS' : 'USD'
+  var btn = document.getElementById('btn-toggle-moneda')
+  if (btn) {
+    if (gastoMoneda === 'ARS') {
+      btn.style.background = 'var(--dorado)'; btn.style.borderColor = 'var(--dorado)'; btn.style.color = '#fff'; btn.textContent = '$ ARS ✓'
+    } else {
+      btn.style.background = 'transparent'; btn.style.borderColor = 'var(--borde)'; btn.style.color = 'var(--texto-mid)'; btn.textContent = '$ ARS'
+    }
+  }
+  renderDetGastos()
+}
+
 // ── PDF EXPORT ──
 window.exportarPDF = function() {
   window.print()
@@ -3625,7 +3692,7 @@ window.guardarGasto = async function() {
 
 
     if(error) throw error
-    if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
+    if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
     closeModalGasto()
     showToast(isEdit ? '✓ Gasto actualizado' : '✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
     ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
@@ -4487,12 +4554,17 @@ function renderDetGastos() {
     var hace12m = new Date(ahora); hace12m.setFullYear(hace12m.getFullYear()-1)
     gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= hace12m })
   } else if (gastoPeriodoActivo === 'campaña') {
-    // Campaña actual: desde julio del año pasado (Argentina, campaña julio-junio)
     var hoy = new Date()
     var iniCampania = new Date(hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1, 6, 1)
     gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= iniCampania })
   }
   // 'todo' → no filter
+  var tcambio = precios.bna || 1300
+  var enARS = gastoMoneda === 'ARS'
+  function fmtMonto(usd) {
+    if (enARS) return '$ ' + Math.round(usd * tcambio).toLocaleString('es-AR')
+    return 'USD ' + Math.round(usd).toLocaleString('es-AR')
+  }
   var ha = c.hectareas||1
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = costoUSD/ha
@@ -4505,6 +4577,8 @@ function renderDetGastos() {
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
+
+  // ── LISTA DE GASTOS ──
   var el = document.getElementById('det-gastos-lista')
   if(!gf.length) {
     el.innerHTML = '<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá gastos para calcular el margen exacto.</div></div>'
@@ -4512,24 +4586,80 @@ function renderDetGastos() {
     el.innerHTML = gf.map(function(g){
       var sub = g.subtipo ? ' · '+(SUBS[g.subtipo]||g.subtipo) : ''
       var cant = g.cantidad&&g.unidad ? ' · '+g.cantidad+' '+(g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad) : ''
-      return '<div class="gasto-row"><span class="gtag r-'+(g.rubro||'otros')+'">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span><div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">'+(g.descripcion||'Sin descripción')+cant+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div></div><div style="text-align:right"><div style="font-weight:600;font-family:DM Mono,monospace">USD '+Math.round(g.total_de_usd||0).toLocaleString('es-AR')+'</div>'+(g.qq_ha?'<div style="font-size:10px;color:var(--verde)">'+parseFloat(g.qq_ha).toFixed(2)+' qq/ha</div>':'')+'</div><button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:5px;cursor:pointer;color:#1a5fa8;font-size:11px;padding:3px 7px">✏️</button> <button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">🗑</button></div>'
+      var montoStr = fmtMonto(g.total_de_usd||0)
+      var qqStr = (!enARS && g.qq_ha) ? '<div style="font-size:10px;color:var(--verde)">'+parseFloat(g.qq_ha).toFixed(2)+' qq/ha</div>' : ''
+      return '<div class="gasto-row"><span class="gtag r-'+(g.rubro||'otros')+'">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span><div style="flex:1;min-width:0"><div style="color:var(--texto-mid)">'+(g.descripcion||'Sin descripción')+cant+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+(enARS?' · $1 USD = $'+Math.round(tcambio).toLocaleString('es-AR'):'')+'</div></div><div style="text-align:right"><div style="font-weight:600;font-family:DM Mono,monospace">'+montoStr+'</div>'+qqStr+'</div><button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:5px;cursor:pointer;color:#1a5fa8;font-size:11px;padding:3px 7px">✏️</button> <button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">🗑</button></div>'
     }).join('')
   }
-  var porRubro = {}
-  gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros';porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0)})
+
+  // ── RESUMEN ──
+  var mCosto = enARS ? '$ '+Math.round(costoHa*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(costoHa)
+  var mIng   = enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR')   : 'USD '+Math.round(ingHa)
+  var mMg    = enARS ? '$ '+Math.round(mgHa*tcambio).toLocaleString('es-AR')     : (mgHa>=0?'+':'')+Math.round(mgHa)+' USD'
+  var mMgT   = enARS ? '$ '+Math.round(mgHa*ha*tcambio).toLocaleString('es-AR')  : 'USD '+Math.round(mgHa*ha).toLocaleString('es-AR')
   document.getElementById('det-resumen').innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto/ha</span><span style="font-weight:600;color:#1a5fa8">USD '+Math.round(ingHa)+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Costo total/ha</span><span style="font-weight:600;color:var(--rojo)">USD '+Math.round(costoHa)+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:700"><span>Margen neto/ha</span><span style="color:'+mc+';font-family:DM Mono,monospace">'+(mgHa>=0?'+':'')+Math.round(mgHa)+' USD</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Margen total</span><span style="font-weight:600;color:'+mc+'">USD '+Math.round(mgHa*ha).toLocaleString('es-AR')+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0"><span style="color:var(--texto-suave)">En quintales/ha</span><span style="font-weight:600;color:var(--dorado)">'+(pr>0?(mgHa/pr*10).toFixed(1):0)+' qq</span></div>'
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Ingreso bruto/ha</span><span style="font-weight:600;color:#1a5fa8">'+mIng+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:.5px solid var(--borde)"><span style="color:var(--texto-mid)">Costo total/ha</span><span style="font-weight:600;color:var(--rojo)">'+mCosto+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;font-weight:700"><span>Margen neto/ha</span><span style="color:'+mc+';font-family:DM Mono,monospace">'+mMg+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Margen total</span><span style="font-weight:600;color:'+mc+'">'+mMgT+'</span></div>'+
+    (!enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0"><span style="color:var(--texto-suave)">En quintales/ha</span><span style="font-weight:600;color:var(--dorado)">'+(pr>0?(mgHa/pr*10).toFixed(1):0)+' qq</span></div>' : '')+
+    (enARS ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)"><span style="color:var(--texto-suave)">Tipo de cambio</span><span style="font-weight:600;color:var(--dorado)">$ '+Math.round(tcambio).toLocaleString('es-AR')+' / USD</span></div>' : '')
+
+  // ── TORTA: desglose ──
   var ctxR = document.getElementById('chart-det-rubro')
-  if(ctxR && Object.keys(porRubro).length) {
-    if(charts['det-rubro']) charts['det-rubro'].destroy()
+  var emptyEl = document.getElementById('det-rubro-empty')
+  var tituloEl = document.getElementById('det-chart-titulo')
+  if(charts['det-rubro']) { charts['det-rubro'].destroy(); charts['det-rubro'] = null }
+
+  if (!gastoRubroFiltro) {
+    // Vista general: torta por rubro
+    if (tituloEl) tituloEl.textContent = 'Por rubro'
+    var porRubro = {}
+    gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros';porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0)})
     var labels = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
-    var vals = labels.map(function(l){return porRubro[l]})
-    charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:COLORES.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}})
-    document.getElementById('det-rubro-leyenda').innerHTML = labels.map(function(l,i){return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div>'+l+'</div>'}).join('')
+    if (labels.length && ctxR) {
+      if (emptyEl) emptyEl.style.display = 'none'
+      ctxR.style.display = ''
+      var vals = labels.map(function(l){return enARS ? Math.round(porRubro[l]*tcambio) : porRubro[l]})
+      var prefix = enARS ? '$ ' : 'USD '
+      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:COLORES.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.label+': '+prefix+ctx.parsed.toLocaleString('es-AR')}}}}}})
+      document.getElementById('det-rubro-leyenda').innerHTML = labels.map(function(l,i){
+        var pct = costoUSD > 0 ? (porRubro[l]/costoUSD*100).toFixed(1) : 0
+        return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div><span>'+l+'</span><span style="color:var(--texto-suave);font-size:10px">'+pct+'%</span></div>'
+      }).join('')
+    } else {
+      if (emptyEl) emptyEl.style.display = 'block'
+      ctxR.style.display = 'none'
+      document.getElementById('det-rubro-leyenda').innerHTML = ''
+    }
+  } else {
+    // Vista desglose: torta por producto dentro del rubro seleccionado
+    var rubroLabel = RUBS[gastoRubroFiltro] || gastoRubroFiltro
+    if (tituloEl) tituloEl.textContent = rubroLabel + ' — por producto'
+    var gRubro = gf.filter(function(g){ return g.rubro === gastoRubroFiltro })
+    var totalRubro = gRubro.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    var porProd = {}
+    gRubro.forEach(function(g){
+      var k = (g.descripcion||'Sin descripción').trim() || 'Sin descripción'
+      porProd[k] = (porProd[k]||0) + (g.total_de_usd||0)
+    })
+    var labels2 = Object.keys(porProd).sort(function(a,b){return porProd[b]-porProd[a]})
+    if (labels2.length && ctxR) {
+      if (emptyEl) emptyEl.style.display = 'none'
+      ctxR.style.display = ''
+      var vals2 = labels2.map(function(l){return enARS ? Math.round(porProd[l]*tcambio) : porProd[l]})
+      var prefix2 = enARS ? '$ ' : 'USD '
+      charts['det-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:labels2,datasets:[{data:vals2,backgroundColor:COLORES.slice(0,labels2.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.label+': '+prefix2+ctx.parsed.toLocaleString('es-AR')}}}}}})
+      document.getElementById('det-rubro-leyenda').innerHTML = labels2.map(function(l,i){
+        var pct = totalRubro > 0 ? (porProd[l]/totalRubro*100).toFixed(1) : 0
+        var monto = enARS ? '$ '+Math.round(porProd[l]*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(porProd[l]).toLocaleString('es-AR')
+        return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap"><div style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:'+COLORES[i]+'"></div><span style="font-weight:600">'+pct+'%</span><span style="color:var(--texto-mid)">'+l+'</span><span style="color:var(--texto-suave);font-size:10px">('+monto+')</span></div>'
+      }).join('')
+    } else {
+      if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = 'Sin gastos en '+rubroLabel }
+      if (ctxR) ctxR.style.display = 'none'
+      document.getElementById('det-rubro-leyenda').innerHTML = ''
+    }
   }
 }
 

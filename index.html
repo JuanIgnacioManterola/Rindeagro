@@ -696,39 +696,12 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- TAB: INGRESOS -->
     <div class="campo-seccion active" id="sec-ingresos">
       <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
-        <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px">📊 Datos reales de la campaña</div>
-        <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:20px">
-          <div>
-            <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:6px">Rendimiento real (t/ha)</div>
-            <input type="number" id="cr-rend-input" placeholder="Ej: 3.4" step="0.1" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendCampo()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
-          </div>
-          <div>
-            <div style="font-size:11px;color:rgba(250,247,240,.65);margin-bottom:6px">Precio de venta (USD/t)</div>
-            <input type="number" id="cr-precio-input" placeholder="Ej: 280" min="0" style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:160px;font-family:'DM Mono',monospace;outline:none" oninput="calcRendCampo()" onfocus="this.style.borderColor='var(--dorado)'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"/>
-          </div>
-          <button onclick="guardarRendCampo()" style="padding:10px 22px;border-radius:9px;border:none;background:var(--dorado);color:var(--verde);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Guardar →</button>
-        </div>
-        <div id="cr-resultado" style="padding-top:16px;border-top:.5px solid rgba(255,255,255,.12);display:none">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
-              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Toneladas totales</div>
-              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="cr-tn">—</div>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
-              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Ingreso bruto</div>
-              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#fff" id="cr-ing">—</div>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
-              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Ingreso en pesos</div>
-              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="cr-pesos">—</div>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1rem;text-align:center">
-              <div style="font-size:10px;color:rgba(250,247,240,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Equiv. quintales</div>
-              <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--dorado-light)" id="cr-qq">—</div>
-            </div>
-          </div>
-        </div>
+        <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">📊 Ingresos por cultivo</div>
+        <div style="font-size:13px;color:rgba(250,247,240,.5);margin-bottom:18px">Ingresá rendimiento y precio de venta por cultivo</div>
+        <div id="cr-cultivos-inputs"><!-- populated by renderIngresosTab --></div>
+        <button onclick="guardarRendCampo()" style="margin-top:12px;padding:12px 26px;border-radius:9px;border:none;background:var(--dorado);color:var(--verde);font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%">Guardar datos →</button>
       </div>
+      <div id="cr-resultado" style="display:none;margin-top:14px"><!-- summary cards --></div>
     </div>
 
     <!-- TAB: GASTOS -->
@@ -3792,7 +3765,7 @@ function renderTodosLosTabsCampo() {
   if (!tabActivo) return
   var id = tabActivo.id
   if (id === 'sec-gastos')       renderDetGastos()
-  if (id === 'sec-ingresos')     renderIngresosTab()
+  if (id === 'sec-ingresos')     { var cinputs=document.getElementById('cr-cultivos-inputs'); if(cinputs&&cinputs.innerHTML.trim()) calcIngresosLive(); else renderIngresosTab() }
   if (id === 'sec-rentabilidad') renderCampoRent()
   if (id === 'sec-suelo')        renderDetSuelo()
   if (id === 'sec-lluvias')      renderDetLluvias()
@@ -4628,12 +4601,79 @@ window.switchCampoTab = function(tab, btn) {
 
 window.renderIngresosTab = function() {
   var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
-  var ri = document.getElementById('cr-rend-input')
-  var pi = document.getElementById('cr-precio-input')
-  if(ri) ri.value = c.rendimiento||''
-  if(pi) pi.value = c.precio_venta||''
-  if(c.rendimiento||c.precio_venta) calcRendCampo()
-  else { var res=document.getElementById('cr-resultado'); if(res) res.style.display='none' }
+  var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var savedData = {}
+  try { savedData = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+  // backward compat: if single crop and old rendimiento/precio_venta exist
+  if(cultivos.length===1 && !savedData[cultivos[0]] && (c.rendimiento||c.precio_venta)){
+    savedData[cultivos[0]] = {rendimiento: c.rendimiento||'', precio_venta: c.precio_venta||'', hectareas: c.hectareas||''}
+  }
+  var INP_STYLE = 'padding:10px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:130px;font-family:DM Mono,monospace;outline:none;box-sizing:border-box'
+  var CULT_ICONS = {'Soja':'🌱','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
+  var haTotal = c.hectareas||0
+  var haPerCrop = cultivos.length>0 ? Math.round(haTotal/cultivos.length) : haTotal
+  var html = cultivos.map(function(cult) {
+    var d = savedData[cult]||{}
+    var icon = CULT_ICONS[cult]||'🌱'
+    var color = CULT_COLORES[cult]||'#16a34a'
+    var haVal = d.hectareas||haPerCrop
+    return '<div data-cult="'+cult+'" style="margin-bottom:12px;padding:14px;background:rgba(255,255,255,.08);border-radius:11px;border-left:3px solid '+color+'">'
+      +'<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">'+icon+' '+cult+'</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'
+      +'<div><div style="font-size:11px;color:rgba(250,247,240,.6);margin-bottom:5px">Rendimiento (t/ha)</div>'
+      +'<input type="number" id="cr-rend-'+cult.replace(/\s/g,'_')+'" placeholder="Ej: 3.4" step="0.1" min="0" value="'+(d.rendimiento||'')+'" style="'+INP_STYLE+'" oninput="calcIngresosLive()" onfocus="this.style.borderColor=\'var(--dorado)\'" onblur="this.style.borderColor=\'rgba(255,255,255,.2)\'"/></div>'
+      +'<div><div style="font-size:11px;color:rgba(250,247,240,.6);margin-bottom:5px">Precio venta (USD/t)</div>'
+      +'<input type="number" id="cr-precio-'+cult.replace(/\s/g,'_')+'" placeholder="Ej: 280" min="0" value="'+(d.precio_venta||'')+'" style="'+INP_STYLE+'" oninput="calcIngresosLive()" onfocus="this.style.borderColor=\'var(--dorado)\'" onblur="this.style.borderColor=\'rgba(255,255,255,.2)\'"/></div>'
+      +'<div><div style="font-size:11px;color:rgba(250,247,240,.6);margin-bottom:5px">Hectáreas</div>'
+      +'<input type="number" id="cr-ha-'+cult.replace(/\s/g,'_')+'" placeholder="'+haPerCrop+'" min="0" value="'+(d.hectareas!=null?d.hectareas:haPerCrop)+'" style="'+INP_STYLE+';width:100px" oninput="calcIngresosLive()" onfocus="this.style.borderColor=\'var(--dorado)\'" onblur="this.style.borderColor=\'rgba(255,255,255,.2)\'"/></div>'
+      +'</div></div>'
+  }).join('')
+  var el = document.getElementById('cr-cultivos-inputs')
+  if(el) el.innerHTML = html
+  calcIngresosLive()
+}
+
+window.calcIngresosLive = function() {
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var enARS = monedaGlobal==='ARS'
+  var tcambio = precios.bna||1300
+  var CULT_ICONS = {'Soja':'🌱','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
+  var rows = cultivos.map(function(cult) {
+    var key = cult.replace(/\s/g,'_')
+    var rend = parseFloat(document.getElementById('cr-rend-'+key)?.value)||0
+    var precio = parseFloat(document.getElementById('cr-precio-'+key)?.value)||0
+    var ha = parseFloat(document.getElementById('cr-ha-'+key)?.value)||0
+    var tn = rend*ha
+    var ingUSD = tn*precio
+    var ingFmt = enARS ? '$ '+Math.round(ingUSD*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(ingUSD).toLocaleString('es-AR')
+    return {cult:cult, rend:rend, precio:precio, ha:ha, tn:tn, ingUSD:ingUSD, ingFmt:ingFmt}
+  })
+  var alguno = rows.some(function(r){return r.rend&&r.precio&&r.ha})
+  var res = document.getElementById('cr-resultado')
+  if(!res) return
+  if(!alguno){res.style.display='none';return}
+  res.style.display='block'
+  var totalUSD = rows.reduce(function(a,r){return a+r.ingUSD},0)
+  var totalTn = rows.reduce(function(a,r){return a+r.tn},0)
+  var totalFmt = enARS ? '$ '+Math.round(totalUSD*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(totalUSD).toLocaleString('es-AR')
+  var cardsHtml = rows.filter(function(r){return r.rend||r.precio}).map(function(r) {
+    var color = CULT_COLORES[r.cult]||'#16a34a'
+    var icon = CULT_ICONS[r.cult]||'🌱'
+    return '<div style="background:var(--crema);border-radius:12px;padding:1rem 1.1rem;border-left:3px solid '+color+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:14px;font-weight:700;color:var(--texto)">'+icon+' '+r.cult+'</div>'
+      +'<div style="font-size:11px;color:var(--texto-suave)">'+r.ha+' ha</div></div>'
+      +'<div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:'+color+';margin-bottom:4px">'+r.ingFmt+'</div>'
+      +'<div style="font-size:12px;color:var(--texto-suave)">'+r.tn.toLocaleString('es-AR',{maximumFractionDigits:1})+' t · '+r.rend+' t/ha · USD '+r.precio+'/t</div>'
+      +'</div>'
+  }).join('')
+  var totalCard = rows.length>1 ? '<div style="background:var(--verde);border-radius:12px;padding:1rem 1.1rem;margin-top:4px">'
+    +'<div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px">Total ingreso bruto</div>'
+    +'<div style="font-size:26px;font-weight:700;font-family:DM Mono,monospace;color:#fff;margin-bottom:2px">'+totalFmt+'</div>'
+    +'<div style="font-size:12px;color:rgba(250,247,240,.6)">'+totalTn.toLocaleString('es-AR',{maximumFractionDigits:1})+' toneladas totales</div>'
+    +'</div>' : ''
+  res.innerHTML = '<div style="display:grid;gap:10px">'+(rows.length>1?cardsHtml+totalCard:cardsHtml)+'</div>'
 }
 
 function renderCampoRent() {
@@ -4779,19 +4819,8 @@ window.renderCrTortaDetalle = function() {
 }
 
 window.calcRendCampo = function() {
-  var rend = parseFloat(document.getElementById('cr-rend-input')?.value)||0
-  var precio = parseFloat(document.getElementById('cr-precio-input')?.value)||0
-  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
-  var ha = c.hectareas||0
-  var res = document.getElementById('cr-resultado')
-  if(!rend||!precio||!ha){if(res)res.style.display='none';return}
-  if(res) res.style.display='block'
-  var tn=rend*ha, ingUSD=tn*precio, ingPesos=ingUSD*precios.bna, qqEquiv=ingUSD/precio*10
-  var tnEl=document.getElementById('cr-tn'),ingEl=document.getElementById('cr-ing'),pesosEl=document.getElementById('cr-pesos'),qqEl=document.getElementById('cr-qq')
-  if(tnEl) tnEl.textContent=tn.toLocaleString('es-AR',{maximumFractionDigits:1})+' t'
-  if(ingEl) ingEl.textContent='USD '+Math.round(ingUSD).toLocaleString('es-AR')
-  if(pesosEl) pesosEl.textContent='$ '+Math.round(ingPesos/1000000).toFixed(1)+'M'
-  if(qqEl) qqEl.textContent=Math.round(qqEquiv).toLocaleString('es-AR')+' qq'
+  // Delegate to new per-crop live calc
+  calcIngresosLive()
 }
 
 window.renderRentabilidadTotal = function() {
@@ -4910,16 +4939,47 @@ window.verCampoDesdeRent = function(id) {
 }
 
 window.guardarRendCampo = function() {
-  var rend = parseFloat(document.getElementById('cr-rend-input')?.value)||null
-  var precio = parseFloat(document.getElementById('cr-precio-input')?.value)||null
-  if(!rend&&!precio){showToast('⚠️ Ingresá el rendimiento y/o precio','err');return}
   if(!campoDet){showToast('⚠️ Seleccioná un campo','err');return}
-  var idx = campos.findIndex(function(c){return c.id===campoDet})
-  if(idx>=0){if(rend)campos[idx].rendimiento=rend;if(precio)campos[idx].precio_venta=precio}
-  sb.from('campos').update(Object.assign({},rend?{rendimiento:rend}:{},precio?{precio_venta:precio}:{})).eq('id',campoDet).then(function(r){
-    if(r.error){showToast('⚠️ Error: '+r.error.message,'err');return}
-    calcRendCampo(); renderCampoRent(); renderDashboard()
-    showToast('✓ Rendimiento y precio guardados','ok')
+  var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
+  var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var ingrData = {}
+  var hayDato = false
+  cultivos.forEach(function(cult) {
+    var key = cult.replace(/\s/g,'_')
+    var rend = parseFloat(document.getElementById('cr-rend-'+key)?.value)||null
+    var precio = parseFloat(document.getElementById('cr-precio-'+key)?.value)||null
+    var ha = parseFloat(document.getElementById('cr-ha-'+key)?.value)||null
+    if(rend||precio) hayDato = true
+    ingrData[cult] = {rendimiento:rend, precio_venta:precio, hectareas:ha}
+  })
+  if(!hayDato){showToast('⚠️ Ingresá al menos un rendimiento y precio','err');return}
+  var ingrJson = JSON.stringify(ingrData)
+  var idx = campos.findIndex(function(f){return f.id===campoDet})
+  if(idx>=0) {
+    campos[idx].ingresos_cultivos = ingrJson
+    // backward compat: save first crop's values to rendimiento/precio_venta
+    var primer = cultivos[0]
+    if(ingrData[primer]) {
+      if(ingrData[primer].rendimiento) campos[idx].rendimiento = ingrData[primer].rendimiento
+      if(ingrData[primer].precio_venta) campos[idx].precio_venta = ingrData[primer].precio_venta
+    }
+  }
+  var updateObj = {rendimiento: ingrData[cultivos[0]]?.rendimiento||null, precio_venta: ingrData[cultivos[0]]?.precio_venta||null}
+  // Try to save ingresos_cultivos; if column missing, ignore
+  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson})).eq('id',campoDet).then(function(r){
+    if(r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
+      // Column doesn't exist, save without it
+      sb.from('campos').update(updateObj).eq('id',campoDet).then(function(r2){
+        if(r2.error){showToast('⚠️ Error: '+r2.error.message,'err');return}
+        calcIngresosLive(); renderCampoRent(); renderDashboard()
+        showToast('✓ Ingresos guardados','ok')
+      })
+    } else if(r.error) {
+      showToast('⚠️ Error: '+r.error.message,'err')
+    } else {
+      calcIngresosLive(); renderCampoRent(); renderDashboard()
+      showToast('✓ Ingresos guardados','ok')
+    }
   })
 }
 

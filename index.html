@@ -1458,13 +1458,27 @@ async function init() {
     if (usuario) return
     usuario = user
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
+    // Mostrar nombre del email inmediatamente (antes de queries)
+    var emailNom = (user.email||'').split('@')[0]
+    var h = new Date().getHours()
+    var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
+    try {
+      var dNm = document.getElementById('d-nm'); if(dNm) dNm.textContent = emailNom
+      var dAv = document.getElementById('d-av'); if(dAv) dAv.textContent = emailNom.charAt(0).toUpperCase()
+      var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = sal + ', ' + emailNom + ' 👋'
+      var dFec = document.getElementById('d-fecha'); if(dFec) dFec.textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+    } catch(e) {}
     // Ocultar loading inmediatamente sin esperar queries a DB
     hideLoading()
     closeModal()
     showScreen('app')
-    // Cargar datos en segundo plano
-    await determinarContextoUsuario(user.id)
-    await cargarTodo()
+    // Cargar datos en segundo plano (con try/catch para no silenciar errores)
+    try {
+      await determinarContextoUsuario(user.id)
+      await cargarTodo()
+    } catch(e) {
+      console.error('Error cargando app:', e)
+    }
   }
 
   // onAuthStateChange maneja logins POSTERIORES (magic link, OTP, SIGNED_OUT)
@@ -1521,6 +1535,9 @@ function initLanding() {
 
 // ── CARGAR TODO ──
 async function cargarTodo() {
+  // Mostrar precios con valores default/cache inmediatamente (sin esperar APIs)
+  _mostrarPrecios('BCR Rosario · BNA')
+
   try {
     const { data: p } = await sb.from('perfiles').select('*').eq('id', usuario.id).single()
     var nombre = p?.nombre || usuario.email.split('@')[0]
@@ -1767,26 +1784,32 @@ window.actualizarPrecios = async function(forzar) {
 
 // ── DASHBOARD ──
 function renderDashboard() {
-  if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() }
-  _renderBannerColaborador()
-  _renderDashboardProductor()
-  _renderAccesosColaborador()
+  try { if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() } } catch(e) {}
+  try { _renderBannerColaborador() } catch(e) {}
+  try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
+  try { _renderAccesosColaborador() } catch(e) {}
   // Alertas (compartido)
-  var alertas = generarAlertas()
-  var el2 = document.getElementById('dash-alertas')
-  if (!alertas.length) {
-    el2.innerHTML = `<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin alertas pendientes ✓</div>`
-  } else {
-    el2.innerHTML = alertas.slice(0,4).map(a=>`
-      <div class="notif-item">
-        <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
-        <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">${a.campo}</div></div>
-        <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+'d'}</span>
-      </div>`).join('')
-  }
-  var badge = document.getElementById('notif-badge')
-  var urgentes = alertas.filter(a=>a.tipo==='urgente').length
-  badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
+  try {
+    var alertas = generarAlertas()
+    var el2 = document.getElementById('dash-alertas')
+    if (el2) {
+      if (!alertas.length) {
+        el2.innerHTML = `<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin alertas pendientes ✓</div>`
+      } else {
+        el2.innerHTML = alertas.slice(0,4).map(a=>`
+          <div class="notif-item">
+            <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
+            <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">${a.campo}</div></div>
+            <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+'d'}</span>
+          </div>`).join('')
+      }
+    }
+  } catch(e) { console.error('alertas render:', e) }
+  try {
+    var badge = document.getElementById('notif-badge')
+    var urgentes = alertas.filter(a=>a.tipo==='urgente').length
+    if(badge) badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
+  } catch(e) {}
 }
 
 function _renderDashboardProductor() {
@@ -1803,7 +1826,9 @@ function _renderDashboardProductor() {
     ing+=rend*pr*ha; cost+=costoHa*ha
   })
   var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
-  document.getElementById('dash-mets').innerHTML = [
+  var dashMets = document.getElementById('dash-mets')
+  if(!dashMets) return
+  dashMets.innerHTML = [
     {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
     {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
     {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
@@ -1816,6 +1841,7 @@ function _renderDashboardProductor() {
   if(btn) { btn.textContent = '+ Nuevo campo'; btn.onclick = function(){openModalCampo()} }
 
   var el = document.getElementById('dash-campos')
+  if (!el) return
   if (!campos.length) {
     el.innerHTML = `<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo para ver tu rentabilidad.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div>`
   } else {

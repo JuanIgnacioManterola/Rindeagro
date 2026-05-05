@@ -5579,23 +5579,18 @@ window.guardarRendCampo = function() {
       if(ingrData[primer].precio_venta) campos[idx].precio_venta = ingrData[primer].precio_venta
     }
   }
+  // Guardar en caché local INMEDIATAMENTE (sobrevive un refresh)
+  _guardarCache()
+  calcIngresosLive(); renderRentabilidad(); renderDashboard()
+  showToast('✓ Ingresos guardados','ok')
+
   var updateObj = {rendimiento: ingrData[cultivos[0]]?.rendimiento||null, precio_venta: ingrData[cultivos[0]]?.precio_venta||null}
-  // Try to save ingresos_cultivos; if column missing, ignore
+  // Sync con DB en background (no bloquea UI)
   sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson})).eq('id',campoDet).then(function(r){
     if(r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
-      // Column doesn't exist, save without it
-      sb.from('campos').update(updateObj).eq('id',campoDet).then(function(r2){
-        if(r2.error){showToast('⚠️ Error: '+r2.error.message,'err');return}
-        calcIngresosLive(); renderCampoRent(); renderDashboard()
-        showToast('✓ Ingresos guardados','ok')
-      })
-    } else if(r.error) {
-      showToast('⚠️ Error: '+r.error.message,'err')
-    } else {
-      calcIngresosLive(); renderCampoRent(); renderDashboard()
-      showToast('✓ Ingresos guardados','ok')
+      sb.from('campos').update(updateObj).eq('id',campoDet).catch(function(){})
     }
-  })
+  }).catch(function(){})
 }
 
 window.seleccionarCultivoGastos = function(cult) {

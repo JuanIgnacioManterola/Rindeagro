@@ -3228,6 +3228,7 @@ var _campoCoordsLng = null
 var _polyPuntos = []
 var _polyLayer = null
 var _polyTempLines = []
+var _polyDragLine = null  // polyline updated live while dragging a vertex
 // Registro map state
 var _polyModoReg = false
 var _polyPuntosReg = []
@@ -3280,14 +3281,34 @@ window.openModalCampo = function() {
 
 function _dibujarPolyTemp(){
   var m=window._mapaCampoModal; if(!m)return
-  _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
-  if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  _polyTempLines.forEach(function(l){ try{m.removeLayer(l)}catch(e){} }); _polyTempLines=[]
+  if(_polyLayer){ try{m.removeLayer(_polyLayer)}catch(e){}; _polyLayer=null }
+  if(_polyDragLine){ try{m.removeLayer(_polyDragLine)}catch(e){}; _polyDragLine=null }
   if(_polyPuntos.length>1){
-    var pl=L.polyline(_polyPuntos,{color:'#c9a84c',weight:2,dashArray:'4,4'}).addTo(m)
-    _polyTempLines.push(pl)
+    _polyDragLine = L.polyline(_polyPuntos,{color:'#c9a84c',weight:2.5,dashArray:'4,4'}).addTo(m)
   }
   _polyPuntos.forEach(function(p,i){
-    var mk=L.circleMarker(p,{radius:5,color:'#c9a84c',fillColor:'#fff',fillOpacity:1,weight:2}).addTo(m)
+    var isFirst = i===0
+    var icon = L.divIcon({
+      className:'',
+      html:'<div style="width:12px;height:12px;border-radius:50%;background:'+(isFirst?'#c9a84c':'#fff')+';border:2.5px solid #c9a84c;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab;box-sizing:border-box"></div>',
+      iconSize:[12,12], iconAnchor:[6,6]
+    })
+    var mk = L.marker(p, {icon:icon, draggable:true, zIndexOffset:200}).addTo(m)
+    ;(function(idx){
+      mk.on('drag', function(ev){
+        _polyPuntos[idx] = [ev.latlng.lat, ev.latlng.lng]
+        if(_polyDragLine) _polyDragLine.setLatLngs(_polyPuntos.slice())
+        if(_polyPuntos.length >= 3) {
+          var ha = _calcHaDesdePoligono(_polyPuntos)
+          var haEl = document.getElementById('campo-ha-valor')
+          if(haEl) haEl.textContent = ha
+        }
+      })
+      mk.on('dragend', function(ev){
+        _polyPuntos[idx] = [ev.target.getLatLng().lat, ev.target.getLatLng().lng]
+      })
+    })(i)
     _polyTempLines.push(mk)
   })
 }
@@ -3559,11 +3580,15 @@ window.guardarCampo = async function() {
             var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16)
           })
 
-      // INSERT sin .select() — el más simple y rápido posible
+      // INSERT sin .select() — si la DB está dormida puede tardar unos segundos
+      // Usamos feedback progresivo en lugar de cortar con timeout
+      var _pt1 = setTimeout(function(){ if(btn.disabled) btn.textContent='Conectando con la base de datos...' }, 5000)
+      var _pt2 = setTimeout(function(){ if(btn.disabled) btn.textContent='Casi listo, aguantá un poco más...' }, 16000)
       var r1 = await _sbRace(
         sb.from('campos').insert({...payloadBase, id: newId, usuario_id: uid}),
-        12000
+        35000
       )
+      clearTimeout(_pt1); clearTimeout(_pt2)
       if(r1.error) throw new Error(r1.error.message||'Error al guardar')
 
       savedId = newId
@@ -3829,6 +3854,8 @@ var cultivosHectareasTemp = {}    // { 'Soja': 200, 'Maíz': 280 }
 var _zonaPolyPuntos = []
 var _zonaPolyLayer = null
 var _zonaTempLines = []           // markers + lines mientras se dibuja la zona
+var _zonaDragLine = null          // main polyline updated live while dragging a vertex
+var _zonaCloseLine = null         // closing dashed line updated live while dragging
 var _zonaCultivoActivo = null
 var CULT_COLORES = {'Soja':'#16a34a','Maíz':'#ca8a04','Trigo':'#92400e','Girasol':'#b45309','Sorgo':'#7c3aed','Cebada':'#0369a1','Maní':'#d97706'}
 var CULT_ICONS = {'Soja':'🌿','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
@@ -3954,20 +3981,42 @@ function _dibujarZonaTemp() {
   _zonaTempLines.forEach(function(l){ try{ m.removeLayer(l) }catch(e){} })
   _zonaTempLines = []
   if(_zonaPolyLayer) { try{ m.removeLayer(_zonaPolyLayer) }catch(e){}; _zonaPolyLayer = null }
+  if(_zonaDragLine){ try{m.removeLayer(_zonaDragLine)}catch(e){}; _zonaDragLine = null }
+  if(_zonaCloseLine){ try{m.removeLayer(_zonaCloseLine)}catch(e){}; _zonaCloseLine = null }
   var pts = _zonaPolyPuntos
   if(pts.length >= 2) {
-    // Línea entre puntos (abierta)
-    var pl = L.polyline(pts, {color:color, weight:2.5, dashArray:'6,5'}).addTo(m)
-    _zonaTempLines.push(pl)
-    // Línea de cierre (preview tenue)
+    _zonaDragLine = L.polyline(pts, {color:color, weight:2.5, dashArray:'6,5'}).addTo(m)
     if(pts.length >= 3) {
-      var cl = L.polyline([pts[pts.length-1], pts[0]], {color:color, weight:1.5, dashArray:'3,7', opacity:0.35}).addTo(m)
-      _zonaTempLines.push(cl)
+      _zonaCloseLine = L.polyline([pts[pts.length-1], pts[0]], {color:color, weight:1.5, dashArray:'3,7', opacity:0.35}).addTo(m)
     }
   }
-  // Marcador en cada punto
+  // Marcadores arrastrables en cada punto
   pts.forEach(function(p, i) {
-    var mk = L.circleMarker(p, {radius:5, color:color, fillColor: i===0?color:'#fff', fillOpacity:1, weight:2}).addTo(m)
+    var isFirst = i === 0
+    var icon = L.divIcon({
+      className:'',
+      html:'<div style="width:12px;height:12px;border-radius:50%;background:'+(isFirst?color:'#fff')+';border:2.5px solid '+color+';box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab;box-sizing:border-box"></div>',
+      iconSize:[12,12], iconAnchor:[6,6]
+    })
+    var mk = L.marker(p, {icon:icon, draggable:true, zIndexOffset:200}).addTo(m)
+    ;(function(idx){
+      mk.on('drag', function(ev){
+        _zonaPolyPuntos[idx] = [ev.latlng.lat, ev.latlng.lng]
+        var curPts = _zonaPolyPuntos
+        if(_zonaDragLine) _zonaDragLine.setLatLngs(curPts.slice())
+        if(_zonaCloseLine && curPts.length >= 3) _zonaCloseLine.setLatLngs([curPts[curPts.length-1], curPts[0]])
+        // Actualizar ha en vivo
+        var n = curPts.length
+        var ptsEl = document.getElementById('zona-dibujo-pts')
+        if(ptsEl && n >= 3) {
+          var haVivo = _calcHaDesdePoligono(curPts)
+          ptsEl.textContent = n + ' puntos · ' + (haVivo > 0 ? haVivo + ' ha' : '') + ' — listo para confirmar ✓'
+        }
+      })
+      mk.on('dragend', function(ev){
+        _zonaPolyPuntos[idx] = [ev.target.getLatLng().lat, ev.target.getLatLng().lng]
+      })
+    })(i)
     _zonaTempLines.push(mk)
   })
 }

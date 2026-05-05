@@ -1385,21 +1385,21 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="toast" id="toast"></div>
 
 <script>
-// Safety timeout — si el módulo no carga en 3s, muestra la landing igual
+// Safety timeout — si el módulo no carga en 8s, muestra la landing igual
+// 8s es necesario para redes lentas que tardan en cargar el CDN de supabase-js
 window._loadingTimeout = setTimeout(function() {
   try {
     var l = document.getElementById('screen-loading')
     if (!l) return
-    var computed = window.getComputedStyle(l).display
-    if (computed === 'none') return  // ya se ocultó correctamente
+    if (l.style.display === 'none') return  // ya se ocultó correctamente
     l.classList.add('fade')
     setTimeout(function(){ l.style.display = 'none' }, 400)
     document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active') })
     var land = document.getElementById('screen-landing')
     if (land) land.classList.add('active')
     window.scrollTo(0, 0)
-  } catch(ex) { console.error('safety timeout error:', ex) }
-}, 3000)
+  } catch(ex) {}
+}, 8000)
 </script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
@@ -1446,7 +1446,7 @@ async function init() {
   localStorage.removeItem('ra_pass')
 
   function hideLoading() {
-    clearTimeout(window._loadingTimeout)
+    clearTimeout(window._loadingTimeout)  // cancela el safety timeout
     var l = document.getElementById('screen-loading')
     if (!l) return
     l.classList.add('fade')
@@ -1458,7 +1458,7 @@ async function init() {
     if (usuario) return
     usuario = user
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
-    // Mostrar nombre del email inmediatamente (antes de queries)
+    // Mostrar nombre del email inmediatamente (antes de queries a DB)
     var emailNom = (user.email||'').split('@')[0]
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
@@ -1468,23 +1468,29 @@ async function init() {
       var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = sal + ', ' + emailNom + ' 👋'
       var dFec = document.getElementById('d-fecha'); if(dFec) dFec.textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
     } catch(e) {}
-    // Ocultar loading inmediatamente sin esperar queries a DB
     hideLoading()
     closeModal()
     showScreen('app')
-    // Cargar datos en segundo plano (con try/catch para no silenciar errores)
     try {
       await determinarContextoUsuario(user.id)
       await cargarTodo()
-    } catch(e) {
-      console.error('Error cargando app:', e)
-    }
+    } catch(e) { console.error('Error cargando app:', e) }
   }
 
-  // onAuthStateChange maneja logins POSTERIORES (magic link, OTP, SIGNED_OUT)
+  // onAuthStateChange: maneja INITIAL_SESSION (sesión guardada al recargar)
+  // + SIGNED_IN (login nuevo) + SIGNED_OUT
   sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'SIGNED_IN' && session && session.user && !usuario) {
-      // Magic link / OTP login — el password login lo maneja login() directamente
+    if (event === 'INITIAL_SESSION') {
+      // Dispara siempre al cargar la página con el estado actual de sesión
+      if (session && session.user) {
+        await window._entrarApp(session.user)
+      } else {
+        hideLoading()
+        showScreen('landing')
+        initLanding()
+      }
+    } else if (event === 'SIGNED_IN' && session && session.user && !usuario) {
+      // Login nuevo: magic link, OTP, password
       await window._entrarApp(session.user)
       showToast('✓ ¡Bienvenido!', 'ok')
     } else if (event === 'PASSWORD_RECOVERY') {
@@ -1500,24 +1506,33 @@ async function init() {
     }
   })
 
-  // getSession() es el método confiable para recuperar la sesión al cargar
-  try {
-    await verificarInvitacion()
-    var result = await sb.auth.getSession()
-    var session = result.data && result.data.session
-    if (session && session.user) {
-      await window._entrarApp(session.user)
-    } else {
+  // verificarInvitacion() como único paso async explícito
+  // INITIAL_SESSION ya maneja la sesión — no necesitamos getSession() extra
+  try { await verificarInvitacion() } catch(e) {}
+
+  // Fallback por si INITIAL_SESSION no disparó (raro pero posible):
+  // si en 500ms no se resolvió el estado de auth, intentar getSession manualmente
+  setTimeout(async function() {
+    if (usuario !== null) return  // ya entró — todo bien
+    // Verificar si el loading sigue visible (no se resolvió todavía)
+    var l = document.getElementById('screen-loading')
+    if (!l || l.style.display === 'none') return  // ya se resolvió
+    try {
+      var result = await sb.auth.getSession()
+      var s = result.data && result.data.session
+      if (s && s.user) {
+        await window._entrarApp(s.user)
+      } else {
+        hideLoading()
+        showScreen('landing')
+        initLanding()
+      }
+    } catch(e) {
       hideLoading()
       showScreen('landing')
       initLanding()
     }
-  } catch(e) {
-    console.error('init error:', e)
-    hideLoading()
-    showScreen('landing')
-    initLanding()
-  }
+  }, 500)
 }
 
 function showScreen(name) {

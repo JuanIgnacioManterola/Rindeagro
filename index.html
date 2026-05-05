@@ -1504,6 +1504,8 @@ async function init() {
       hideLoading()
       document.getElementById('ov-nueva-pass').classList.add('open')
     } else if (event === 'SIGNED_OUT') {
+      // Limpiar cache del usuario que salió
+      try { var _ck = _cacheKey(); if(_ck) localStorage.removeItem(_ck) } catch(e) {}
       usuario = null; campos = []; gastos = []; lluvias = []; window.CONTEXTO = null
       var appEl = document.getElementById('screen-app')
       if (appEl && appEl.classList.contains('active')) {
@@ -1556,18 +1558,61 @@ function initLanding() {
 }
 
 // ── CARGAR TODO ──
-async function cargarTodo() {
-  // Mostrar precios inmediatamente con valores default/cache
-  _mostrarPrecios('BCR Rosario · BNA')
+// ── CACHE LOCAL (stale-while-revalidate) ─────────────────────────────────────
+// Guarda un snapshot de todos los datos del usuario en localStorage.
+// Se muestra INSTANTÁNEAMENTE al recargar y luego se actualiza con datos frescos de DB.
+function _cacheKey() {
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : (usuario && usuario.id)
+  return uid ? ('rinde_cache_v2_' + uid) : null
+}
+function _guardarCache() {
+  var k = _cacheKey(); if(!k) return
+  try {
+    localStorage.setItem(k, JSON.stringify({
+      campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS, ts: Date.now()
+    }))
+  } catch(e) {}
+}
+function _mergePendingCampos() {
+  try {
+    var pend = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
+    if(!pend.length) return
+    var ids = new Set(campos.map(function(c){return c.id}))
+    pend.forEach(function(p){ if(p.data && !ids.has(p.id)) campos.unshift(p.data) })
+  } catch(e) {}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
+async function cargarTodo() {
+  _mostrarPrecios('BCR Rosario · BNA')
   var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
 
-  // Todo en PARALELO: perfiles + campos + gastos + lluvias + suelo
-  // Para campos: intenta ordenar por creado_en, si falla (columna no existe) intenta sin orden
-  async function _fetchCampos(uid) {
-    var r = await sb.from('campos').select('*').eq('usuario_id', uid).order('creado_en',{ascending:false})
+  // ── 1. MOSTRAR CACHÉ GUARDADA INSTANTÁNEAMENTE ───────────────────────────
+  // El usuario ve sus datos en < 100ms mientras la DB responde en background
+  var k = _cacheKey()
+  var tuvoCacheValida = false
+  if(k) {
+    try {
+      var _snap = JSON.parse(localStorage.getItem(k)||'null')
+      if(_snap && Array.isArray(_snap.campos)) {
+        campos = _snap.campos
+        gastos = _snap.gastos || []
+        lluvias = _snap.lluvias || []
+        analisisS = _snap.analisisS || []
+        _mergePendingCampos()
+        if(campos.length > 0) campoRent = campos[0].id
+        renderDashboard()
+        poblarSelectoresCampo()
+        tuvoCacheValida = true
+      }
+    } catch(e) {}
+  }
+
+  // ── 2. FETCH DESDE DB EN PARALELO (sin timeout — esperamos lo que haga falta) ──
+  async function _fetchCampos(u) {
+    var r = await sb.from('campos').select('*').eq('usuario_id', u).order('creado_en',{ascending:false})
     if(r.error && /column|does not exist|PGRST/i.test(r.error.message||'')) {
-      r = await sb.from('campos').select('*').eq('usuario_id', uid)
+      r = await sb.from('campos').select('*').eq('usuario_id', u)
     }
     return r
   }
@@ -1591,22 +1636,25 @@ async function cargarTodo() {
     var dFec=document.getElementById('d-fecha'); if(dFec) dFec.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
   } catch(e) {}
 
-  // Datos
-  campos = (resC.status==='fulfilled' && resC.value.data) ? resC.value.data : []
-  // Fusionar campos pendientes en localStorage (todavía no sincronizados con la DB)
-  try {
-    var _lsPend = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
-    if(_lsPend.length) {
-      var _dbIds = new Set(campos.map(function(c){return c.id}))
-      _lsPend.forEach(function(p){
-        if(p.data && !_dbIds.has(p.id)) campos.unshift(p.data)
-      })
-    }
-  } catch(e) {}
-  if(campos.length > 0) campoRent = campos[0].id
-  gastos  = (resG.status==='fulfilled' && resG.value.data) ? resG.value.data : []
-  lluvias = (resL.status==='fulfilled' && resL.value.data) ? resL.value.data : []
-  analisisS=(resS.status==='fulfilled' && resS.value.data) ? resS.value.data : []
+  // ── 3. APLICAR DATOS FRESCOS (NUNCA reemplazar con vacío si la DB falló) ──
+  var freshCampos  = (resC.status==='fulfilled' && resC.value && Array.isArray(resC.value.data)) ? resC.value.data : null
+  var freshGastos  = (resG.status==='fulfilled' && resG.value && Array.isArray(resG.value.data)) ? resG.value.data : null
+  var freshLluvias = (resL.status==='fulfilled' && resL.value && Array.isArray(resL.value.data)) ? resL.value.data : null
+  var freshAnalisis= (resS.status==='fulfilled' && resS.value && Array.isArray(resS.value.data)) ? resS.value.data : null
+
+  // Solo sobrescribir si la DB respondió con datos reales (puede estar vació pero not null)
+  if(freshCampos  !== null) campos    = freshCampos
+  if(freshGastos  !== null) gastos    = freshGastos
+  if(freshLluvias !== null) lluvias   = freshLluvias
+  if(freshAnalisis!== null) analisisS = freshAnalisis
+
+  // Siempre fusionar pending aunque la DB haya respondido
+  _mergePendingCampos()
+  if(campos.length > 0 && !campoRent) campoRent = campos[0].id
+  else if(campos.length > 0 && !campos.find(function(c){return c.id===campoRent})) campoRent = campos[0].id
+
+  // ── 4. GUARDAR CACHÉ ACTUALIZADA ─────────────────────────────────────────
+  _guardarCache()
 
   // Precios: cache o API
   try {
@@ -1620,6 +1668,7 @@ async function cargarTodo() {
     } else { actualizarPrecios() }
   } catch(e) { actualizarPrecios() }
 
+  // Re-render con datos frescos (si ya se mostró cache, esto actualiza silenciosamente)
   renderDashboard()
   poblarSelectoresCampo()
   if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
@@ -3675,6 +3724,7 @@ window.guardarCampo = async function() {
       // Recargar campo actualizado
       var rGet = await _sbRace(sb.from('campos').select('*').eq('id', editId).single(), 6000)
       if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
+      _guardarCache()
 
     } else {
       // ── OPTIMISTIC INSERT ─────────────────────────────────────────────────
@@ -3689,6 +3739,7 @@ window.guardarCampo = async function() {
       var campoLocal = Object.assign({}, payloadBase, payloadExtra, {id: newId, usuario_id: uid})
       campos.unshift(campoLocal)
       if(!campoRent) campoRent = newId
+      _guardarCache()
 
       // 2. Respaldar en localStorage: sobrevive un refresh aunque la DB tarde
       try {
@@ -4600,10 +4651,8 @@ window.guardarGasto = async function() {
       if(!error) gastos.unshift(data)
     }
 
-
-
-
     if(error) throw error
+    _guardarCache()
     if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
     closeModalGasto()
     showToast(isEdit ? '✓ Gasto actualizado' : '✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
@@ -4698,6 +4747,7 @@ window.guardarLluvia = async function() {
     }).select().single()
     if(error)throw error
     lluvias.unshift(data)
+    _guardarCache()
     if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
     closeModalLluvia()
     showToast('✓ '+mm+' mm registrados en '+(campos.find(c=>c.id===campoId)?.nombre||'el campo'),'ok')
@@ -4741,6 +4791,7 @@ window.guardarSuelo = async function() {
     }).select().single()
     if(error)throw error
     analisisS.unshift(data)
+    _guardarCache()
     if(campoDet) renderDetSuelo(); else renderSuelo()
     closeModalSuelo()
     showToast('✓ Análisis de suelo guardado','ok')

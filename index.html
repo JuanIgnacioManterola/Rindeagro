@@ -1385,18 +1385,21 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="toast" id="toast"></div>
 
 <script>
-// Safety timeout — si el módulo no carga en 6s, muestra la landing igual
-window._loadingTimeout = setTimeout(() => {
-  var l = document.getElementById('screen-loading')
-  if (l && l.style.display !== 'none') {
+// Safety timeout — si el módulo no carga en 3s, muestra la landing igual
+window._loadingTimeout = setTimeout(function() {
+  try {
+    var l = document.getElementById('screen-loading')
+    if (!l) return
+    var computed = window.getComputedStyle(l).display
+    if (computed === 'none') return  // ya se ocultó correctamente
     l.classList.add('fade')
-    setTimeout(() => { l.style.display = 'none' }, 500)
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    setTimeout(function(){ l.style.display = 'none' }, 400)
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active') })
     var land = document.getElementById('screen-landing')
     if (land) land.classList.add('active')
-    window.scrollTo(0,0)
-  }
-}, 6000)
+    window.scrollTo(0, 0)
+  } catch(ex) { console.error('safety timeout error:', ex) }
+}, 3000)
 </script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
@@ -1455,10 +1458,12 @@ async function init() {
     if (usuario) return
     usuario = user
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
-    await determinarContextoUsuario(user.id)
+    // Ocultar loading inmediatamente sin esperar queries a DB
     hideLoading()
     closeModal()
     showScreen('app')
+    // Cargar datos en segundo plano
+    await determinarContextoUsuario(user.id)
     await cargarTodo()
   }
 

@@ -585,6 +585,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- RESUMEN ECONÓMICO (card de ingresos/gastos/margen) -->
+    <div id="rent-margen-card" style="margin-bottom:14px"></div>
+
     <!-- MÉTRICAS -->
     <div class="grid5" id="rent-mets" style="margin-bottom:14px"></div>
 
@@ -709,6 +712,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="campo-seccion" id="sec-gastos">
       <!-- Selector de cultivo (aparece cuando el campo tiene 2+ cultivos) -->
       <div id="gastos-cultivo-pantalla" style="display:none"></div>
+      <!-- Botón volver cultivo (solo visible cuando hay cultivo seleccionado en multi-cultivo) -->
+      <div id="gastos-volver-bar" style="display:none;margin-bottom:10px">
+        <button onclick="volverCultivoGastos()" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:2px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 8px rgba(26,74,46,.12)">← Cambiar cultivo</button>
+      </div>
       <div class="card" id="gastos-card-lista">
         <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
@@ -1981,6 +1988,94 @@ function renderRentabilidad() {
   var mgHa = ingHa-costoHa
   var mgPct = ingHa>0?(mgHa/ingHa*100).toFixed(1):0
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
+
+  // ── CARD RESUMEN ECONÓMICO ────────────────────────────────────────────────
+  var mcEl = document.getElementById('rent-margen-card')
+  if(mcEl) {
+    var cultMC = (campo?.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+    var savedIngMC = {}
+    try { savedIngMC = JSON.parse(campo?.ingresos_cultivos||'{}') } catch(e) {}
+    var savedHaMC = {}
+    try { savedHaMC = JSON.parse(campo?.hectareas_cultivo||'{}') } catch(e) {}
+    var fmtUSD = function(v){ return 'USD '+Math.round(v).toLocaleString('es-AR') }
+
+    var cardHtml = '<div style="background:var(--blanco);border-radius:14px;border:.5px solid var(--borde);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">'
+      +'<div style="padding:12px 16px;border-bottom:.5px solid var(--borde)">'
+      +'<span style="font-size:14px;font-weight:700;color:var(--texto)">📊 Resumen económico</span>'
+      +'</div>'
+
+    if(cultMC.length > 1 && campoRent !== 'todos') {
+      // ── MULTI-CULTIVO: tabla por cultivo ──
+      var rows = cultMC.map(function(cult) {
+        var d = savedIngMC[cult]||{}
+        var haCult = parseFloat(savedHaMC[cult]) || (ha / cultMC.length)
+        var rendC = parseFloat(d.rendimiento||0), precioC = parseFloat(d.precio_venta||0)
+        var ingC = rendC * precioC * haCult
+        var gasC = gastos.filter(function(g){ return g.campo_id===campoRent && g.cultivo===cult }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        var mgC = ingC - gasC
+        var col = CULT_COLORES[cult]||'#16a34a'
+        var ico = CULT_ICONS[cult]||'🌱'
+        return {cult:cult, ico:ico, col:col, ha:Math.round(haCult), ing:ingC, gas:gasC, mg:mgC}
+      })
+      var tIng = rows.reduce(function(a,r){return a+r.ing},0)
+      var tGas = rows.reduce(function(a,r){return a+r.gas},0)
+      var tMg  = tIng - tGas
+      var tMgCol = tMg >= 0 ? '#1a7a52' : '#c0392b'
+      cardHtml += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:var(--crema)">'
+        +'<th style="padding:9px 14px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Cultivo</th>'
+        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Ingreso bruto</th>'
+        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Gastos</th>'
+        +'<th style="padding:9px 14px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Margen neto</th>'
+        +'</tr></thead><tbody>'
+        + rows.map(function(r) {
+            var mc2 = r.mg >= 0 ? '#1a7a52' : '#c0392b'
+            return '<tr style="border-bottom:.5px solid var(--borde);border-left:3px solid '+r.col+'">'
+              +'<td style="padding:12px 14px"><div style="display:flex;align-items:center;gap:8px">'
+              +'<span style="font-size:18px">'+r.ico+'</span>'
+              +'<div><div style="font-weight:600;color:var(--texto)">'+r.cult+'</div>'
+              +'<div style="font-size:10px;color:var(--texto-suave)">'+r.ha+' ha</div></div></div></td>'
+              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;color:#1a5fa8">'+fmtUSD(r.ing)+'</td>'
+              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:600;color:#c0392b">'+fmtUSD(r.gas)+'</td>'
+              +'<td style="padding:12px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+mc2+'">'+(r.mg>=0?'+':'')+fmtUSD(r.mg)+'</td>'
+              +'</tr>'
+          }).join('')
+        +'<tr style="background:var(--crema)">'
+        +'<td style="padding:11px 14px;font-weight:700;color:var(--texto)">Total</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#1a5fa8">'+fmtUSD(tIng)+'</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:#c0392b">'+fmtUSD(tGas)+'</td>'
+        +'<td style="padding:11px 14px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+tMgCol+'">'+(tMg>=0?'+':'')+fmtUSD(tMg)+'</td>'
+        +'</tr>'
+        +'</tbody></table></div>'
+    } else {
+      // ── CULTIVO ÚNICO (o "todos"): 3 cajas ──
+      var ingTot = ingHa * ha
+      var gasTot = costoUSD
+      var mgnTot = ingTot - gasTot
+      var mgnCol = mgnTot >= 0 ? '#1a7a52' : '#c0392b'
+      var mgnPct = ingTot > 0 ? (mgnTot / ingTot * 100).toFixed(1) : '0'
+      cardHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr)">'
+        +'<div style="padding:18px 16px;border-right:.5px solid var(--borde)">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💰 Ingreso bruto</div>'
+        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fmtUSD(ingTot)+'</div>'
+        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+fmtUSD(ingHa)+'/ha</div>'
+        +'</div>'
+        +'<div style="padding:18px 16px;border-right:.5px solid var(--borde)">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Gastos</div>'
+        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fmtUSD(gasTot)+'</div>'
+        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+fmtUSD(costoHa)+'/ha</div>'
+        +'</div>'
+        +'<div style="padding:18px 16px;background:'+(mgnTot>=0?'rgba(26,122,82,.04)':'rgba(192,57,43,.04)')+'">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📈 Margen neto</div>'
+        +'<div style="font-size:20px;font-weight:700;font-family:DM Mono,monospace;color:'+mgnCol+'">'+(mgnTot>=0?'+':'')+fmtUSD(mgnTot)+'</div>'
+        +'<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">'+mgnPct+'% del ingreso</div>'
+        +'</div>'
+        +'</div>'
+    }
+    cardHtml += '</div>'
+    mcEl.innerHTML = cardHtml
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Métricas rentabilidad
   document.getElementById('rent-mets').innerHTML = [
@@ -5092,11 +5187,16 @@ window.renderIngresosTab = function() {
   var CULT_ICONS = {'Soja':'🌱','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
   var haTotal = c.hectareas||0
   var haPerCrop = cultivos.length>0 ? Math.round(haTotal/cultivos.length) : haTotal
+  // Usar hectáreas por cultivo desde polígono si están disponibles
+  var haCultivoMap = {}
+  try { haCultivoMap = JSON.parse(c.hectareas_cultivo||'{}') } catch(e) {}
   var html = cultivos.map(function(cult) {
     var d = savedData[cult]||{}
     var icon = CULT_ICONS[cult]||'🌱'
     var color = CULT_COLORES[cult]||'#16a34a'
-    var haVal = d.hectareas||haPerCrop
+    // Prioridad: 1) dato guardado en ingresos, 2) polígono, 3) reparto proporcional
+    var haFromPoly = haCultivoMap[cult] || haPerCrop
+    var haVal = d.hectareas!=null ? d.hectareas : haFromPoly
     return '<div data-cult="'+cult+'" style="margin-bottom:12px;padding:14px;background:rgba(255,255,255,.08);border-radius:11px;border-left:3px solid '+color+'">'
       +'<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">'+icon+' '+cult+'</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'
@@ -5512,6 +5612,7 @@ function renderDetGastos() {
     }
     if(cardLista) cardLista.style.display = 'none'
     if(cardDesg)  cardDesg.style.display  = 'none'
+    var vb = document.getElementById('gastos-volver-bar'); if(vb) vb.style.display = 'none'
     return
   }
 
@@ -5520,13 +5621,17 @@ function renderDetGastos() {
   if(cardLista) cardLista.style.display = 'block'
   if(cardDesg)  cardDesg.style.display  = 'block'
 
-  // Header: si multi-cultivo, mostrar botón volver + nombre cultivo
+  // Botón volver externo (más visible, arriba de la card)
+  var volverBar = document.getElementById('gastos-volver-bar')
+  if(volverBar) volverBar.style.display = (esMultiCultivo && gastosCultivoActivo) ? 'block' : 'none'
+
+  // Header de la card
   if(hdrEl) {
     if(esMultiCultivo && gastosCultivoActivo) {
       var color2 = CULT_COLORES[gastosCultivoActivo]||'#16a34a'
       var icon2 = CULT_ICONS[gastosCultivoActivo]||'🌱'
-      hdrEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1">'
-        +'<button onclick="volverCultivoGastos()" style="background:none;border:1.5px solid var(--borde);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--texto-mid);font-family:\'DM Sans\',sans-serif">← Volver</button>'
+      hdrEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex:1">'
+        +'<div style="width:10px;height:10px;border-radius:50%;background:'+color2+'"></div>'
         +'<span style="font-size:15px;font-weight:700;color:var(--texto)">'+icon2+' '+gastosCultivoActivo+'</span>'
         +'</div>'
         +'<button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>'

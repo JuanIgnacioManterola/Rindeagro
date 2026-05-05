@@ -210,7 +210,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 /* GASTOS */
 .gasto-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:.5px solid var(--borde);font-size:16px}
 .gasto-row:last-child{border-bottom:none}
-.gtag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;min-width:70px;text-align:center;white-space:nowrap;flex-shrink:0}
+.gtag{font-size:13px;padding:3px 9px;border-radius:6px;font-weight:600;min-width:75px;text-align:center;white-space:nowrap;flex-shrink:0}
 .r-herbicidas{background:#e8f5ee;color:#1a7a52}
 .r-fungicidas{background:var(--azul-pale);color:var(--azul)}
 .r-fertilizantes{background:var(--amber-pale);color:var(--amber)}
@@ -674,7 +674,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <span style="font-size:10px;color:rgba(250,247,240,.5);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-right:2px">Campaña:</span>
           <button id="btn-camp-actual" onclick="setCampanaGlobal('actual',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--dorado);background:var(--dorado);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campaña actual</button>
           <button id="btn-camp-ant" onclick="toggleCampanasAnteriores()" style="padding:5px 13px;border-radius:20px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(250,247,240,.7);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campañas anteriores ▾</button>
-          <div id="panel-campanas-ant" style="display:none;position:absolute;z-index:50;margin-top:36px;background:#fff;border:.5px solid var(--borde);border-radius:10px;box-shadow:var(--sombra-md);padding:6px;min-width:160px" id="panel-campanas-ant"></div>
+          <div id="panel-campanas-ant" style="display:none;position:absolute;z-index:50;margin-top:36px;background:#fff;border:.5px solid var(--borde);border-radius:10px;box-shadow:var(--sombra-md);padding:6px;min-width:160px"></div>
+          <button onclick="abrirModalCampana()" style="padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.55);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" title="Cerrar campaña y empezar nueva">⚑ Cerrar campaña</button>
         </div>
         <!-- Toggle moneda -->
         <div style="display:flex;gap:3px;background:rgba(0,0,0,.2);border-radius:20px;padding:3px">
@@ -1360,6 +1361,43 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
     </div>
     <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
+  </div>
+</div>
+
+<!-- MODAL CERRAR CAMPAÑA -->
+<div class="overlay" id="ov-campana">
+  <div class="modal" style="max-width:480px">
+    <button class="m-close" onclick="closeModalCampana()">✕</button>
+    <div class="m-tit">Cerrar campaña agrícola</div>
+    <div class="m-sub" id="camp-modal-sub">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
+
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Nombre de la campaña *</label>
+      <input class="fi" type="text" id="camp-nombre" placeholder="Ej: 25/26, Campaña Soja 2025..." maxlength="40"/>
+      <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Podés usar cualquier nombre, por ejemplo el año agrícola: 25/26</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg">
+        <label class="fl">Inicio de campaña</label>
+        <input class="fi" type="date" id="camp-inicio"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Fin de campaña</label>
+        <input class="fi" type="date" id="camp-fin"/>
+      </div>
+    </div>
+
+    <div class="fg" style="margin-bottom:1.25rem">
+      <label class="fl">Notas (opcional)</label>
+      <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
+    </div>
+
+    <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--verde)">
+      ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
+    </div>
+
+    <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
   </div>
 </div>
 
@@ -3604,14 +3642,26 @@ var monedaGlobal    = 'USD'       // 'USD' | 'ARS'
 
 // Devuelve {start, end, label} de una campaña
 function getCampanaRange(id) {
+  // Primero verificar si es una campaña guardada en localStorage
+  var saved = cargarCampanasGuardadas()
+  var custom = saved.find(function(c){ return c.id === id })
+  if (custom) {
+    return {
+      start: new Date(custom.startDate + 'T00:00:00'),
+      end:   new Date(custom.endDate   + 'T23:59:59'),
+      label: custom.nombre
+    }
+  }
   var hoy = new Date()
   var y = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear() - 1
   if (id === 'actual') {
     return { start: new Date(y, 6, 1), end: new Date(y+1, 5, 30, 23, 59, 59), label: y+'/'+ String(y+1).slice(2) }
   }
+  // Fallback: interpretar como YY/YY+1 o año entero
   var partes = id.split('/')
   var yy = parseInt(partes[0])
-  return { start: new Date(yy, 6, 1), end: new Date(yy+1, 5, 30, 23, 59, 59), label: id }
+  if (!isNaN(yy)) return { start: new Date(yy, 6, 1), end: new Date(yy+1, 5, 30, 23, 59, 59), label: id }
+  return { start: new Date(y, 6, 1), end: new Date(y+1, 5, 30, 23, 59, 59), label: id }
 }
 
 // Filtra cualquier array por campaña usando campo .fecha
@@ -3624,20 +3674,34 @@ function filtrarCampana(arr) {
   })
 }
 
-// Detecta todas las campañas presentes en los gastos/lluvias del campo activo
+// Detecta todas las campañas: auto-detectadas por fecha + las guardadas manualmente
 function detectarCampanas() {
   var set = {}
+  // Auto-detectar desde datos
   var fuentes = [gastos, lluvias].reduce(function(a,b){return a.concat(b)},[])
   fuentes.forEach(function(item) {
     if (!item.fecha) return
     var d = new Date(item.fecha)
     var yy = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1
     var lbl = yy + '/' + String(yy+1).slice(2)
-    set[lbl] = yy
+    set[lbl] = { id: lbl, nombre: 'Campaña ' + lbl, type: 'auto' }
   })
   var hoy = new Date()
-  var actualLabel = (hoy.getMonth()>=6?hoy.getFullYear():hoy.getFullYear()-1) + '/' + String((hoy.getMonth()>=6?hoy.getFullYear():hoy.getFullYear()-1)+1).slice(2)
-  return Object.keys(set).filter(function(l){return l !== actualLabel}).sort().reverse()
+  var yActual = hoy.getMonth()>=6 ? hoy.getFullYear() : hoy.getFullYear()-1
+  var actualLabel = yActual + '/' + String(yActual+1).slice(2)
+  // Agregar campañas guardadas manualmente (con sus IDs custom)
+  var saved = cargarCampanasGuardadas()
+  saved.forEach(function(c) {
+    // No incluir si el id coincide con la campaña actual
+    if (c.id !== actualLabel) set[c.id] = { id: c.id, nombre: c.nombre, type: 'custom' }
+  })
+  // Filtrar la actual y ordenar por fecha de inicio desc
+  return Object.values(set)
+    .filter(function(c){ return c.id !== actualLabel })
+    .sort(function(a,b){
+      var ra = getCampanaRange(a.id), rb = getCampanaRange(b.id)
+      return rb.start - ra.start
+    })
 }
 
 window.setCampanaGlobal = function(id, btn) {
@@ -3646,7 +3710,14 @@ window.setCampanaGlobal = function(id, btn) {
   var bAct = document.getElementById('btn-camp-actual')
   var bAnt = document.getElementById('btn-camp-ant')
   if (bAct) { bAct.style.background = id==='actual'?'var(--dorado)':'transparent'; bAct.style.color = id==='actual'?'#fff':'rgba(250,247,240,.7)'; bAct.style.borderColor = id==='actual'?'var(--dorado)':'rgba(255,255,255,.25)' }
-  if (bAnt) { bAnt.style.background = id!=='actual'?'var(--dorado)':'transparent'; bAnt.style.color = id!=='actual'?'#fff':'rgba(250,247,240,.7)'; bAnt.style.borderColor = id!=='actual'?'var(--dorado)':'rgba(255,255,255,.25)' }
+  // Actualizar texto del botón "Campañas anteriores" con el nombre seleccionado
+  if (bAnt) {
+    var campNombre = id !== 'actual' ? getCampanaRange(id).label : null
+    bAnt.textContent = campNombre ? ('📋 '+campNombre+' ▾') : 'Campañas anteriores ▾'
+    bAnt.style.background = id!=='actual'?'var(--dorado)':'transparent'
+    bAnt.style.color = id!=='actual'?'#fff':'rgba(250,247,240,.7)'
+    bAnt.style.borderColor = id!=='actual'?'var(--dorado)':'rgba(255,255,255,.25)'
+  }
   // Ocultar panel
   var panel = document.getElementById('panel-campanas-ant')
   if (panel) panel.style.display = 'none'
@@ -3660,11 +3731,12 @@ window.toggleCampanasAnteriores = function() {
   if (panel.style.display !== 'none') { panel.style.display = 'none'; return }
   var campanas = detectarCampanas()
   if (!campanas.length) {
-    panel.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--texto-suave)">Sin campañas anteriores registradas</div>'
+    panel.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--texto-suave)">Sin campañas anteriores.<br><span style="font-size:11px">Usá ⚑ Cerrar campaña para guardar una.</span></div>'
   } else {
     panel.innerHTML = campanas.map(function(c) {
-      var activo = campanaActivaId === c
-      return '<button onclick="setCampanaGlobal(\''+c+'\',this)" style="display:block;width:100%;text-align:left;padding:8px 14px;border:none;background:'+(activo?'var(--verde-pale)':'transparent')+';color:'+(activo?'var(--verde)':'var(--texto-mid)')+';font-size:13px;font-weight:'+(activo?'700':'400')+';cursor:pointer;border-radius:7px;font-family:DM Sans,sans-serif;transition:background .15s" onmouseover="this.style.background=\'var(--verde-pale)\'" onmouseout="this.style.background=\''+(activo?'var(--verde-pale)':'transparent')+'\'">'+(activo?'✓ ':'')+c+' Campaña</button>'
+      var activo = campanaActivaId === c.id
+      var icono = c.type === 'custom' ? '📋 ' : '📅 '
+      return '<button onclick="setCampanaGlobal(\''+c.id+'\',this)" style="display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:'+(activo?'var(--verde-pale)':'transparent')+';color:'+(activo?'var(--verde)':'var(--texto-mid)')+';font-size:13px;font-weight:'+(activo?'700':'400')+';cursor:pointer;border-radius:7px;font-family:DM Sans,sans-serif;transition:background .15s" onmouseover="this.style.background=\'var(--verde-pale)\'" onmouseout="this.style.background=\''+(activo?'var(--verde-pale)':'transparent')+'\'">'+icono+(activo?'✓ ':'')+c.nombre+'</button>'
     }).join('')
   }
   panel.style.display = 'block'
@@ -3690,6 +3762,67 @@ function renderTodosLosTabsCampo() {
   if (id === 'sec-rentabilidad') renderCampoRent()
   if (id === 'sec-suelo')        renderDetSuelo()
   if (id === 'sec-lluvias')      renderDetLluvias()
+}
+
+// ══════════════════════════════
+// GESTIÓN DE CAMPAÑAS GUARDADAS
+// ══════════════════════════════
+var CAMPANAS_KEY = 'rindeagro_campanas_v1'
+
+function cargarCampanasGuardadas() {
+  try { return JSON.parse(localStorage.getItem(CAMPANAS_KEY)||'[]') } catch(e) { return [] }
+}
+function guardarCampanasEnStorage(arr) {
+  localStorage.setItem(CAMPANAS_KEY, JSON.stringify(arr))
+}
+function getCampanaCustomNombre(id) {
+  var saved = cargarCampanasGuardadas()
+  var found = saved.find(function(c){ return c.id === id })
+  return found ? found.nombre : null
+}
+
+// Abre el modal de cerrar campaña
+window.abrirModalCampana = function() {
+  var r = getCampanaRange('actual')
+  var hoy = new Date().toISOString().slice(0,10)
+  // Pre-llenar nombre con el label actual
+  document.getElementById('camp-nombre').value = r.label
+  document.getElementById('camp-inicio').value = r.start.toISOString().slice(0,10)
+  document.getElementById('camp-fin').value = hoy
+  document.getElementById('ov-campana').classList.add('open')
+}
+window.closeModalCampana = function() {
+  document.getElementById('ov-campana').classList.remove('open')
+}
+
+// Guarda el cierre de campaña
+window.guardarCierrecamp = function() {
+  var nombre = (document.getElementById('camp-nombre')?.value||'').trim()
+  var inicio = document.getElementById('camp-inicio')?.value
+  var fin    = document.getElementById('camp-fin')?.value
+  var notas  = (document.getElementById('camp-notas')?.value||'').trim()
+
+  if(!nombre){ showToast('⚠️ Ingresá un nombre para la campaña','err'); return }
+  if(!inicio||!fin){ showToast('⚠️ Completá las fechas','err'); return }
+  if(new Date(fin) < new Date(inicio)){ showToast('⚠️ El fin debe ser posterior al inicio','err'); return }
+
+  // Generar id único a partir del nombre (sin espacios especiales)
+  var id = nombre.trim().replace(/\s+/g,'-').toLowerCase().slice(0,30)
+  var saved = cargarCampanasGuardadas()
+
+  // Evitar duplicados: si ya existe, actualizar
+  var existIdx = saved.findIndex(function(c){ return c.id === id })
+  var entry = { id:id, nombre:nombre, startDate:inicio, endDate:fin, notas:notas, creadaEn:new Date().toISOString() }
+  if(existIdx >= 0) saved[existIdx] = entry
+  else saved.push(entry)
+
+  saved.sort(function(a,b){ return new Date(b.startDate)-new Date(a.startDate) })
+  guardarCampanasEnStorage(saved)
+
+  closeModalCampana()
+  showToast('✓ Campaña "'+nombre+'" guardada en Campañas anteriores','ok')
+  // Limpiar notas
+  document.getElementById('camp-notas').value = ''
 }
 
 // ── PERIODO GASTOS (mantener por compatibilidad) ──
@@ -4799,12 +4932,11 @@ function renderDetGastos() {
       return '<div class="gasto-row">' +
         '<span class="gtag r-'+(g.rubro||'otros')+'" style="font-size:12px;padding:3px 9px">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span>' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:14px;font-weight:500;color:var(--texto)">'+(g.rubro==='riego'?('💧 '+(g.kva_consumo?g.kva_consumo+' kVA':'Riego')+(g.costo_kva?' · USD '+g.costo_kva+'/kVA':'')):((g.descripcion||'Sin descripción')+(cant?' · <span style="color:var(--texto-suave);font-size:12px">'+cant+'</span>':'')))+'</div>' +
-          '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div>' +
+          '<div style="font-size:16px;font-weight:500;color:var(--texto)">'+(g.rubro==='riego'?('💧 '+(g.kva_consumo?g.kva_consumo+' kVA':'Riego')+(g.costo_kva?' · USD '+g.costo_kva+'/kVA':'')):((g.descripcion||'Sin descripción')+(cant?' · <span style="color:var(--texto-suave);font-size:14px">'+cant+'</span>':'')))+'</div>' +
+          '<div style="font-size:13px;color:var(--texto-suave);margin-top:2px">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div>' +
         '</div>' +
         '<div style="text-align:right;min-width:110px">' +
-          '<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:var(--texto)">'+montoStr+'</div>' +
-          (!enARS && g.qq_ha ? '<div style="font-size:11px;color:var(--verde)">'+parseFloat(g.qq_ha).toFixed(2)+' qq/ha</div>' : '') +
+          '<div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:var(--texto)">'+montoStr+'</div>' +
         '</div>' +
         '<button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:6px;cursor:pointer;color:#1a5fa8;font-size:12px;padding:4px 9px;margin-left:6px">✏️</button>' +
         '<button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:15px;padding:3px 5px">🗑</button>' +
@@ -4870,25 +5002,24 @@ function renderDetGastos() {
         return '<tr style="border-bottom:.5px solid var(--borde)">' +
           '<td style="padding:7px 4px;vertical-align:top"><div style="display:flex;align-items:center;gap:7px">' +
             '<div style="width:11px;height:11px;border-radius:3px;flex-shrink:0;margin-top:2px;background:'+COLORES[i]+'"></div>' +
-            '<div><div style="font-size:12px;font-weight:600;color:var(--texto)">'+l+'</div>' +
-            '<div style="font-size:10px;color:var(--texto-suave)">'+cnt+' gasto'+(cnt!==1?'s':'')+'</div></div>' +
+            '<div><div style="font-size:14px;font-weight:600;color:var(--texto)">'+l+'</div>' +
+            '<div style="font-size:12px;color:var(--texto-suave)">'+cnt+' gasto'+(cnt!==1?'s':'')+'</div></div>' +
           '</div></td>' +
-          '<td style="padding:7px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
+          '<td style="padding:7px 4px;text-align:center;font-size:14px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
           '<td style="padding:7px 4px;text-align:right;white-space:nowrap;line-height:1.5">'+fDual(usd)+'</td>' +
         '</tr>'
       }).join('')
-      var totalARS = fARS(costoUSD), totalUSD = fUSD(costoUSD)
-      var totalPrim = enARS ? '<b>'+totalARS+'</b> <span style="font-size:10px;color:var(--texto-suave)">'+totalUSD+'</span>' : '<b>'+totalUSD+'</b> <span style="font-size:10px;color:var(--texto-suave)">'+totalARS+'</span>'
+      var totalStr = enARS ? fARS(costoUSD) : fUSD(costoUSD)
       if (tablaEl) tablaEl.innerHTML =
         '<table style="width:100%;border-collapse:collapse">' +
         '<thead><tr style="border-bottom:1.5px solid var(--borde)">' +
-          '<th style="text-align:left;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Rubro</th>' +
-          '<th style="text-align:center;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
-          '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
+          '<th style="text-align:left;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Rubro</th>' +
+          '<th style="text-align:center;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
+          '<th style="text-align:right;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
         '</tr></thead><tbody>'+rows+'</tbody>' +
-        '<tfoot><tr style="border-top:1.5px solid var(--borde)">' +
-          '<td colspan="2" style="padding:8px 4px;font-size:12px;font-weight:700;color:var(--verde)">Total campo</td>' +
-          '<td style="padding:8px 4px;text-align:right;font-size:12px;font-family:DM Mono,monospace">'+totalPrim+'</td>' +
+        '<tfoot><tr style="border-top:2px solid var(--borde)">' +
+          '<td colspan="2" style="padding:10px 4px;font-size:15px;font-weight:700;color:var(--verde)">Total campo</td>' +
+          '<td style="padding:10px 4px;text-align:right;font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">'+totalStr+'</td>' +
         '</tr></tfoot></table>'
       setTimeout(syncChartHeight, 0)
     } else {
@@ -4938,26 +5069,25 @@ function renderDetGastos() {
         return '<tr style="border-bottom:.5px solid var(--borde)">' +
           '<td style="padding:7px 4px;vertical-align:top"><div style="display:flex;align-items:flex-start;gap:7px">' +
             '<div style="width:11px;height:11px;border-radius:3px;flex-shrink:0;margin-top:2px;background:'+COLORES[i]+'"></div>' +
-            '<div><div style="font-size:12px;font-weight:600;color:var(--texto)">'+l+'</div>' +
-            '<div style="font-size:10px;color:var(--texto-suave)">'+p.count+' aplicac. · '+cantStr+'</div>' +
+            '<div><div style="font-size:14px;font-weight:600;color:var(--texto)">'+l+'</div>' +
+            '<div style="font-size:12px;color:var(--texto-suave)">'+p.count+' aplicac. · '+cantStr+'</div>' +
             pUnit+'</div>' +
           '</div></td>' +
-          '<td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
+          '<td style="padding:7px 6px;text-align:center;font-size:14px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
           '<td style="padding:7px 4px;text-align:right;white-space:nowrap;line-height:1.6">'+fDual(p.usd)+'</td>' +
         '</tr>'
       }).join('')
-      var tARS = fARS(totalRubro), tUSD = fUSD(totalRubro)
-      var tPrim = enARS ? '<b>'+tARS+'</b> <span style="font-size:10px;color:var(--texto-suave)">'+tUSD+'</span>' : '<b>'+tUSD+'</b> <span style="font-size:10px;color:var(--texto-suave)">'+tARS+'</span>'
+      var tStr = enARS ? fARS(totalRubro) : fUSD(totalRubro)
       if (tablaEl) tablaEl.innerHTML =
         '<table style="width:100%;border-collapse:collapse">' +
         '<thead><tr style="border-bottom:1.5px solid var(--borde)">' +
-          '<th style="text-align:left;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Producto</th>' +
-          '<th style="text-align:center;font-size:10px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
-          '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
+          '<th style="text-align:left;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Producto</th>' +
+          '<th style="text-align:center;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
+          '<th style="text-align:right;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
         '</tr></thead><tbody>'+rows2+'</tbody>' +
-        '<tfoot><tr style="border-top:1.5px solid var(--borde)">' +
-          '<td colspan="2" style="padding:8px 4px;font-size:12px;font-weight:700;color:var(--verde)">Total '+rubroLabel+'</td>' +
-          '<td style="padding:8px 4px;text-align:right;font-size:12px;font-family:DM Mono,monospace">'+tPrim+'</td>' +
+        '<tfoot><tr style="border-top:2px solid var(--borde)">' +
+          '<td colspan="2" style="padding:10px 4px;font-size:15px;font-weight:700;color:var(--verde)">Total '+rubroLabel+'</td>' +
+          '<td style="padding:10px 4px;text-align:right;font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">'+tStr+'</td>' +
         '</tr></tfoot></table>'
       setTimeout(syncChartHeight, 0)
     } else {

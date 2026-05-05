@@ -3475,13 +3475,24 @@ window.guardarCampo = async function() {
       if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
 
     } else {
-      // INSERT: SIEMPRE primero solo con payload base (rápido y seguro)
-      var r1 = await _sbRace(sb.from('campos').insert({...payloadBase, usuario_id:uid}).select('id').single(), 8000)
+      // Generar UUID en el cliente — evita hacer SELECT dentro del INSERT
+      // (INSERT + .select() en Supabase puede colgar si falta RLS de SELECT)
+      var newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+            var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16)
+          })
+
+      // INSERT sin .select() — el más simple y rápido posible
+      var r1 = await _sbRace(
+        sb.from('campos').insert({...payloadBase, id: newId, usuario_id: uid}),
+        12000
+      )
       if(r1.error) throw new Error(r1.error.message||'Error al guardar')
 
-      savedId = r1.data && r1.data.id
+      savedId = newId
 
-      // Agregar campo a la lista local inmediatamente con los datos disponibles
+      // Agregar campo a la lista local inmediatamente
       var campoLocal = Object.assign({}, payloadBase, payloadExtra, {id: savedId, usuario_id: uid})
       campos.unshift(campoLocal)
       if(!campoRent) campoRent = savedId

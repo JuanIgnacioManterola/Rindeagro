@@ -182,9 +182,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .met{background:var(--blanco);border:.5px solid var(--borde);border-radius:16px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;box-shadow:var(--sombra);transition:box-shadow .2s,transform .2s}
 .met:hover{box-shadow:var(--sombra-md);transform:translateY(-2px)}
 .met-acc{position:absolute;top:0;left:0;right:0;height:4px;border-radius:16px 16px 0 0}
-.met-l{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px;margin-top:3px}
+.met-l{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px;margin-top:3px}
 .met-v{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
-.met-s{font-size:11px;color:var(--texto-suave);margin-top:6px;font-weight:500}
+.met-s{font-size:13px;color:var(--texto-suave);margin-top:6px;font-weight:500}
 
 /* PRECIO STRIP */
 .precio-strip{background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);border:none;border-radius:16px;padding:1rem 1.5rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:0 6px 24px rgba(26,74,46,.2)}
@@ -201,14 +201,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .campo-row:hover{background:var(--crema);padding:9px 8px;margin:0 -8px;border-radius:6px}
 .cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .ci{flex:1;min-width:0}
-.cn{font-size:13px;font-weight:500}
-.cm{font-size:11px;color:var(--texto-suave);margin-top:1px}
+.cn{font-size:16px;font-weight:500}
+.cm{font-size:13px;color:var(--texto-suave);margin-top:1px}
 .cmg{text-align:right}
 .cmgv{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
 .cmgp{font-size:10px;color:var(--texto-suave);margin-top:1px}
 
 /* GASTOS */
-.gasto-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
+.gasto-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:.5px solid var(--borde);font-size:16px}
 .gasto-row:last-child{border-bottom:none}
 .gtag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;min-width:70px;text-align:center;white-space:nowrap;flex-shrink:0}
 .r-herbicidas{background:#e8f5ee;color:#1a7a52}
@@ -220,6 +220,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .r-arrendamiento{background:#fef3c7;color:#d97706}
 .r-empleados{background:#fce7f3;color:#9d174d}
 .r-otros{background:#f4f4f5;color:#71717a}
+.r-insecticidas{background:#fef9c3;color:#a16207}
+.r-riego{background:#e0f2fe;color:#0369a1}
 
 /* LLUVIA */
 .lluvia-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
@@ -288,8 +290,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .tab{flex:1;padding:9px;border-radius:8px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-suave);transition:all .2s}
 .tab.on{background:var(--blanco);color:var(--verde);font-weight:600;box-shadow:0 1px 6px rgba(26,74,46,.1)}
 .fg{margin-bottom:.9rem}
-.fl{font-size:12px;font-weight:500;color:var(--texto-mid);display:block;margin-bottom:5px}
-.fi{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--borde);background:var(--blanco);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--texto);outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box}
+.fl{font-size:14px;font-weight:500;color:var(--texto-mid);display:block;margin-bottom:5px}
+.fi{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--borde);background:var(--blanco);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--texto);outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box}
 .fi::-ms-reveal,.fi::-ms-clear{display:none}
 .pass-wrap{position:relative}
 .pass-wrap .fi{padding-right:2.8rem}
@@ -754,6 +756,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <button class="grub-btn" onclick="setGastoRubroFiltro('flete',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚛 Flete</button>
           <button class="grub-btn" onclick="setGastoRubroFiltro('empleados',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">👷 Empleados</button>
           <button class="grub-btn" onclick="setGastoRubroFiltro('arrendamiento',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🏠 Arrend.</button>
+          <button class="grub-btn" onclick="setGastoRubroFiltro('riego',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">💧 Riego</button>
           <button class="grub-btn" onclick="setGastoRubroFiltro('otros',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">📦 Otros</button>
         </div>
         <!-- Torta + Tabla lado a lado -->
@@ -1214,7 +1217,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('flete',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🚛</div>Flete</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('empleados',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">👷</div>Empleados</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('arrendamiento',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🏠</div>Arrend.</button>
+        <button type="button" class="rubro-chip-btn" onclick="selRubroChip('riego',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">💧</div>Riego</button>
         <button type="button" class="rubro-chip-btn" onclick="selRubroChip('otros',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">📦</div>Otros</button>
+        <button type="button" onclick="toggleNuevaCategoria()" id="btn-nueva-cat" style="border:1.5px dashed var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-suave);background:transparent;font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:500"><div style="font-size:18px;margin-bottom:3px">➕</div>Nueva</button>
+      </div>
+      <!-- Nueva categoría inline -->
+      <div id="div-nueva-cat" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="fi" type="text" id="nueva-cat-input" placeholder="Nombre de la categoría..." style="flex:1;font-size:13px;padding:8px 12px" oninput="this.value=this.value.slice(0,30)" maxlength="30"/>
+          <button type="button" onclick="confirmarNuevaCategoria()" style="padding:8px 16px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Crear</button>
+          <button type="button" onclick="toggleNuevaCategoria()" style="padding:8px 10px;border-radius:9px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
+        </div>
       </div>
       <select class="fi" id="g-rubro" style="display:none" onchange="onRubroChange()">
         <option value="">Seleccioná</option>
@@ -1227,6 +1240,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <option value="flete">Flete</option>
         <option value="empleados">Gastos de empleados</option>
         <option value="arrendamiento">Arrendamiento</option>
+        <option value="riego">Riego</option>
         <option value="otros">Otros</option>
       </select>
     </div>
@@ -1244,6 +1258,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Campos específicos de riego -->
+    <div id="riego-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:var(--azul-pale);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:var(--azul)">💧 Ingresá el consumo de energía y el costo por kVA. El total se calcula automáticamente.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg">
+          <label class="fl">Consumo (kVA)</label>
+          <input class="fi" type="number" id="g-riego-kva" placeholder="Ej: 450" min="0" step="0.1" oninput="calcConv()"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Costo por kVA (USD)</label>
+          <input class="fi" type="number" id="g-riego-costo-kva" placeholder="Ej: 0.08" min="0" step="0.001" oninput="calcConv()"/>
+        </div>
+      </div>
+    </div>
+
+    <div id="gasto-main-fields">
     <div class="fg"><label class="fl">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
@@ -1271,6 +1301,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <label class="fl">Hectáreas aplicadas</label>
         <input class="fi" type="number" id="g-ha-aplicadas" placeholder="Automático del campo" min="0" oninput="calcConv()"/>
       </div>
+    </div>
     </div>
     <input type="hidden" id="g-precio" value=""/>
 
@@ -1987,7 +2018,7 @@ function renderRentabilidad() {
     elG.innerHTML = `<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">Agregá los gastos de la campaña.</div></div>`
   } else {
     elG.innerHTML = gf.map(g=>{
-      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+      var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
       var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
       var subLabel = g.sub_tipo ? ` · ${SUBS[g.sub_tipo]||g.sub_tipo}` : ''
       var cantStr = g.cantidad && g.unidad ? ` · ${g.cantidad} ${g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad}` : ''
@@ -3445,12 +3476,19 @@ var gastoSubTipo = null
 window.onRubroChange = function() {
   var rubro = document.getElementById('g-rubro').value
   var subDiv = document.getElementById('laboreo-subtipos')
+  var riegoDiv = document.getElementById('riego-campos')
+  var camposGrid = document.querySelector('#ov-gasto .fg:has(#g-unidad)')?.parentElement
+  var mainFields = document.getElementById('gasto-campos-principales')
   if(subDiv) subDiv.style.display = rubro==='laboreo' ? 'block' : 'none'
+  if(riegoDiv) riegoDiv.style.display = rubro==='riego' ? 'block' : 'none'
   if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
+  // Ocultar campos normales cuando es riego
+  var normalFields = document.getElementById('gasto-main-fields')
+  if(normalFields) normalFields.style.display = rubro==='riego' ? 'none' : 'block'
   var unidad = document.getElementById('g-unidad')
   var cantLabel = document.getElementById('g-cant-label')
   var precLabel = document.getElementById('g-precio-unit-label')
-  if(rubro==='herbicidas'||rubro==='fungicidas') {
+  if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
     if(unidad) unidad.value='litros'
     if(cantLabel) cantLabel.textContent='Cantidad (L/ha)'
     if(precLabel) precLabel.textContent='Precio (USD/L)'
@@ -3462,6 +3500,9 @@ window.onRubroChange = function() {
     if(unidad) unidad.value='usd_ha'
     if(cantLabel) cantLabel.textContent='—'
     if(precLabel) precLabel.textContent='Precio (USD/ha)'
+  } else if(rubro==='riego') {
+    // Riego usa sus propios campos, limpiar los normales
+    if(unidad) unidad.value='usd_ha'
   }
 }
 window.onUnidadChange = function() {
@@ -3491,6 +3532,48 @@ window.selRubroChip = function(rubro, btn) {
   btn.style.color = '#fff'
   document.getElementById('g-rubro').value = rubro
   onRubroChange()
+}
+
+// ── NUEVA CATEGORÍA ──
+window.toggleNuevaCategoria = function() {
+  var div = document.getElementById('div-nueva-cat')
+  if(!div) return
+  var visible = div.style.display !== 'none'
+  div.style.display = visible ? 'none' : 'flex'
+  if(!visible) {
+    var inp = document.getElementById('nueva-cat-input')
+    if(inp) { inp.value = ''; inp.focus() }
+  }
+}
+window.confirmarNuevaCategoria = function() {
+  var inp = document.getElementById('nueva-cat-input')
+  var nombre = inp ? inp.value.trim() : ''
+  if(!nombre) { showToast('⚠️ Ingresá un nombre para la categoría','err'); return }
+  var slug = nombre.toLowerCase().replace(/[^a-z0-9áéíóúüñ]/g,'_').slice(0,30)
+  // Agregar chip dinámico al grid
+  var chips = document.getElementById('rubro-chips')
+  if(chips) {
+    var btnNueva = document.getElementById('btn-nueva-cat')
+    var newBtn = document.createElement('button')
+    newBtn.type = 'button'
+    newBtn.className = 'rubro-chip-btn'
+    newBtn.setAttribute('onclick','selRubroChip("'+slug+'",this)')
+    newBtn.style.cssText = 'border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:DM Sans,sans-serif;transition:all .15s;font-weight:500'
+    newBtn.innerHTML = '<div style="font-size:18px;margin-bottom:3px">🏷️</div>'+nombre.slice(0,10)
+    if(btnNueva) chips.insertBefore(newBtn, btnNueva)
+    else chips.appendChild(newBtn)
+    // Agregar al select
+    var sel = document.getElementById('g-rubro')
+    if(sel && !sel.querySelector('option[value="'+slug+'"]')) {
+      var opt = document.createElement('option')
+      opt.value = slug; opt.textContent = nombre
+      sel.appendChild(opt)
+    }
+    // Seleccionar automáticamente
+    selRubroChip(slug, newBtn)
+  }
+  document.getElementById('div-nueva-cat').style.display = 'none'
+  showToast('✓ Categoría "'+nombre+'" creada','ok')
 }
 
 // ── CULTIVO CHIPS ──
@@ -3700,17 +3783,24 @@ window.openModalGasto = function() {
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
-  var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
-  var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
+  var rubro = document.getElementById('g-rubro')?.value||''
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
   var prCereal = parseFloat(document.getElementById('g-precio')?.value)||precios.soja
-  var unidad = document.getElementById('g-unidad')?.value||'litros'
   var usdTotal = 0
-  if(unidad === 'usd_ha') {
-    // precio directo USD/ha
-    usdTotal = precioUnit * ha
-  } else if(cantidad && precioUnit) {
-    usdTotal = cantidad * precioUnit * ha
+
+  if(rubro === 'riego') {
+    var kva = parseFloat(document.getElementById('g-riego-kva')?.value)||0
+    var costoKva = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
+    usdTotal = kva * costoKva
+  } else {
+    var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
+    var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
+    var unidad = document.getElementById('g-unidad')?.value||'litros'
+    if(unidad === 'usd_ha') {
+      usdTotal = precioUnit * ha
+    } else if(cantidad && precioUnit) {
+      usdTotal = cantidad * precioUnit * ha
+    }
   }
   if(usdTotal > 0) {
     document.getElementById('cv-usd').textContent = 'USD ' + usdTotal.toLocaleString('es-AR', {maximumFractionDigits:2})
@@ -3726,11 +3816,19 @@ window.guardarGasto = async function() {
   var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||null
   var unidad = document.getElementById('g-unidad')?.value||'litros'
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||0
+  // Riego
+  var kvaRiego = parseFloat(document.getElementById('g-riego-kva')?.value)||0
+  var costoKvaRiego = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
 
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
   if(rubro==='laboreo'&&!gastoSubTipo){showToast('⚠️ Seleccioná el tipo de labor','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
-  if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
+  if(rubro==='riego') {
+    if(!kvaRiego||kvaRiego<=0){showToast('⚠️ Ingresá el consumo en kVA','err');return}
+    if(!costoKvaRiego||costoKvaRiego<=0){showToast('⚠️ Ingresá el costo por kVA','err');return}
+  } else {
+    if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
+  }
   if(!usuario){showToast('⚠️ Sesión expirada — volvé a ingresar','err');return}
 
   var campoId = campoDet || (campoRent==='todos' ? campos[0]?.id : campoRent)
@@ -3738,9 +3836,11 @@ window.guardarGasto = async function() {
   var campo = campos.find(c=>c.id===campoId)
   var haFinal = ha || campo?.hectareas || 1
 
-  // Calcular USD total según unidad
+  // Calcular USD total según unidad / rubro
   var usdTotal = 0
-  if(unidad === 'usd_ha') {
+  if(rubro === 'riego') {
+    usdTotal = kvaRiego * costoKvaRiego
+  } else if(unidad === 'usd_ha') {
     usdTotal = precioUnit * haFinal
   } else if(cantidad) {
     usdTotal = cantidad * precioUnit * haFinal
@@ -3771,6 +3871,7 @@ window.guardarGasto = async function() {
     if(unidad) _p.unidad = unidad
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
+    if(rubro === 'riego') { _p.kva_consumo = kvaRiego; _p.costo_kva = costoKvaRiego }
     var data, error
     if(isEdit) {
       var r = await sb.from('gastos').update(_p).eq('id',editId).select().single()
@@ -3791,9 +3892,12 @@ window.guardarGasto = async function() {
     if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
     closeModalGasto()
     showToast(isEdit ? '✓ Gasto actualizado' : '✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
-    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
+    document.getElementById('riego-campos').style.display='none'
+    document.getElementById('gasto-main-fields').style.display='block'
+    document.getElementById('div-nueva-cat').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
     document.querySelectorAll('.rubro-chip-btn').forEach(function(b){b.style.background='var(--crema)';b.style.borderColor='var(--borde)';b.style.color='var(--texto-mid)'})
@@ -3835,6 +3939,11 @@ window.editarGasto = function(id) {
     b.style.borderColor = isActive ? 'var(--verde)' : 'var(--borde)'
     b.style.color = isActive ? '#fff' : 'var(--texto-mid)'
   })
+  // Riego fields
+  if(g.rubro === 'riego') {
+    if(g.kva_consumo) document.getElementById('g-riego-kva').value = g.kva_consumo
+    if(g.costo_kva) document.getElementById('g-riego-costo-kva').value = g.costo_kva
+  }
   onRubroChange()
   calcConv()
 }
@@ -4395,7 +4504,7 @@ function renderCampoRent() {
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // Gastos lista
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS={siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
   var gEl = document.getElementById('cr-gastos-lista')
   if(gEl) {
@@ -4521,7 +4630,7 @@ window.calcRendCampo = function() {
 }
 
 window.renderRentabilidadTotal = function() {
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
 
   // Calcular totales globales
@@ -4613,7 +4722,7 @@ window.renderRentabilidadTotal = function() {
 
 window.renderRtTortaDetalle = function() {
   var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var rubroSel = document.getElementById('rt-rubro-sel')?.value||'todos'
   var gAll = gastos
   var gFilt = rubroSel==='todos' ? gAll : gAll.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===rubroSel})
@@ -4672,7 +4781,7 @@ function renderDetGastos() {
   var pr = c.precio_venta||prEst
   var ingHa = rend*pr, mgHa = ingHa-costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
-  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
 
   // ── LISTA DE GASTOS ──
@@ -4690,7 +4799,7 @@ function renderDetGastos() {
       return '<div class="gasto-row">' +
         '<span class="gtag r-'+(g.rubro||'otros')+'" style="font-size:12px;padding:3px 9px">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span>' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:14px;font-weight:500;color:var(--texto)">'+(g.descripcion||'Sin descripción')+(cant?' · <span style="color:var(--texto-suave);font-size:12px">'+cant+'</span>':'')+'</div>' +
+          '<div style="font-size:14px;font-weight:500;color:var(--texto)">'+(g.rubro==='riego'?('💧 '+(g.kva_consumo?g.kva_consumo+' kVA':'Riego')+(g.costo_kva?' · USD '+g.costo_kva+'/kVA':'')):((g.descripcion||'Sin descripción')+(cant?' · <span style="color:var(--texto-suave);font-size:12px">'+cant+'</span>':'')))+'</div>' +
           '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+fFecha(g.fecha)+(g.ha_aplicadas?' · '+g.ha_aplicadas+' ha':'')+'</div>' +
         '</div>' +
         '<div style="text-align:right;min-width:110px">' +

@@ -4563,14 +4563,14 @@ window.exportarPDF = function() {
 
   var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
   var savedIngr={}; try{savedIngr=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-  var haTotal = cultivosList.reduce(function(a,cu){var d2=savedIngr[cu]||{}; return a+parseFloat(d2.hectareas||ha)},0)||ha
+  var haTotal = cultivosList.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList)},0)||ha
 
   var ingRowsData = cultivosList.map(function(cult){
     var d=savedIngr[cult]||{}
     if(cultivosList.length===1&&!d.rendimiento&&!d.ventas&&(c.rendimiento||c.precio_venta)){
       d={rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||0,hectareas:c.hectareas||ha}
     }
-    var h2=parseFloat(d.hectareas||ha), ingTotal=0, ingHa2=0, ventas2=[]
+    var h2=_haParaCultivo(c,cult,cultivosList), ingTotal=0, ingHa2=0, ventas2=[]
     if(Array.isArray(d.ventas)&&d.ventas.length){
       ventas2=d.ventas
       ingTotal=ventas2.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
@@ -4588,7 +4588,7 @@ window.exportarPDF = function() {
 
   // Gastos por cultivo para PDF
   var gastosByCultivo = cultivosList.map(function(cult){
-    var d2=savedIngr[cult]||{}; var haCult=parseFloat(d2.hectareas||ha)
+    var haCult=_haParaCultivo(c,cult,cultivosList)
     var frac = haTotal>0&&haCult>0 ? haCult/haTotal : 1/cultivosList.length
     var directos = gf.filter(function(g){return g.cultivo_afectado===cult})
     var sinCultivo = gf.filter(function(g){return !g.cultivo_afectado})
@@ -5541,6 +5541,21 @@ window.switchCampoTab = function(tab, btn) {
 window._ingVentas = {}          // {cult: [{tn,precio,concepto,fecha}]}
 window._ingVentasCampoId = null // sentinel para saber cuándo reiniciar
 
+// ── Fuente de verdad para hectáreas por cultivo ──
+// Prioridad: 1) hectareas_cultivo (del polígono dibujado)
+//            2) ingresos_cultivos[cult].hectareas (guardado en tab Ingresos)
+//            3) campo.hectareas / nCultivos
+function _haParaCultivo(c, cult, cultivosList) {
+  var haCultivoMap = {}
+  try { haCultivoMap = JSON.parse(c.hectareas_cultivo||'{}') } catch(e) {}
+  if(haCultivoMap[cult]) return parseFloat(haCultivoMap[cult])
+  var savedIngr = {}
+  try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+  if(savedIngr[cult] && savedIngr[cult].hectareas) return parseFloat(savedIngr[cult].hectareas)
+  var n = (cultivosList||[]).length || 1
+  return (c.hectareas||0) / n
+}
+
 function _ingSafeId(s){ return s.replace(/[^a-zA-Z0-9]/g,'_') }
 
 function _ingInitCult(cult, savedData, c) {
@@ -5548,7 +5563,8 @@ function _ingInitCult(cult, savedData, c) {
   if(Array.isArray(d.ventas) && d.ventas.length) {
     window._ingVentas[cult] = d.ventas.map(function(v){return Object.assign({concepto:'Spot',fecha:''},v)})
   } else if(d.rendimiento || d.precio_venta) {
-    var ha2 = parseFloat(d.hectareas||c.hectareas||0)
+    var _hcm3={}; try{_hcm3=JSON.parse(c.hectareas_cultivo||'{}')}catch(e){}
+  var ha2 = parseFloat(_hcm3[cult]||d.hectareas||c.hectareas||0)
     var rnd = parseFloat(d.rendimiento||0)
     var tn = ha2>0&&rnd>0 ? Math.round(rnd*ha2*10)/10 : ''
     window._ingVentas[cult] = [{tn: tn, precio: d.precio_venta||'', concepto:'Spot', fecha:''}]
@@ -5599,7 +5615,7 @@ window.renderIngresosTab = function() {
     var sid = _ingSafeId(cult)
     var icon = CULT_ICONS[cult]||'🌱'
     var color = CULT_COLORES[cult]||'#16a34a'
-    var haFP = haCultivoMap[cult]||haPerCrop
+    var haFP = _haParaCultivo(c, cult, cultivos)
     var haVal = (window._ingVentas[cult]||[]).length && window._ingVentas[cult][0]._ha != null
       ? window._ingVentas[cult][0]._ha : haFP
     var ventas = window._ingVentas[cult] || [{tn:'',precio:'',concepto:'Spot',fecha:''}]
@@ -5987,7 +6003,7 @@ function renderCampoRent() {
     if(cultivosList.length===1&&!d.rendimiento&&!d.ventas&&(c.rendimiento||c.precio_venta)){
       d={rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||pr,hectareas:c.hectareas||ha}
     }
-    var h2=parseFloat(d.hectareas||ha)
+    var h2=_haParaCultivo(c,cult,cultivosList)
     var ingTotal=0, ingHa=0, ventas=[]
     if(Array.isArray(d.ventas)&&d.ventas.length) {
       ventas=d.ventas
@@ -6117,8 +6133,8 @@ window.renderCrTortaRubro = function() {
   if(cultivosSel!=='todos') {
     var cultivosList2 = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
     var savedIngr2={}; try{savedIngr2=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-    var haTotal2 = cultivosList2.reduce(function(a,cu){var d2=savedIngr2[cu]||{}; return a+parseFloat(d2.hectareas||c.hectareas||1)},0)||c.hectareas||1
-    var dCult2=savedIngr2[cultivosSel]||{}; var haCult2=parseFloat(dCult2.hectareas||c.hectareas||1)
+    var haTotal2 = cultivosList2.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList2)},0)||c.hectareas||1
+    var haCult2=_haParaCultivo(c,cultivosSel,cultivosList2)
     var frac2 = haTotal2>0 ? haCult2/haTotal2 : 1
     gfFilt2 = gf2.filter(function(g){return !g.cultivo_afectado||g.cultivo_afectado===cultivosSel})
     // We use frac for proportional ones
@@ -6175,7 +6191,7 @@ window.renderCrTortaDetalle = function() {
   var campR = getCampanaRange(campanaActivaId)
   var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
   var savedIngr={}; try{savedIngr=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-  var haTotal = cultivosList.reduce(function(a,cu){var d2=savedIngr[cu]||{}; return a+parseFloat(d2.hectareas||c.hectareas||1)},0)||c.hectareas||1
+  var haTotal = cultivosList.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList)},0)||c.hectareas||1
 
   var gfAll = gastos.filter(function(g){
     if(g.campo_id!==campoDet) return false
@@ -6190,8 +6206,7 @@ window.renderCrTortaDetalle = function() {
   var gf = gfAll
   var fracCult = 1
   if(cultivoSel !== 'todos') {
-    var dCult = savedIngr[cultivoSel]||{}
-    var haCult = parseFloat(dCult.hectareas||c.hectareas||1)
+    var haCult = _haParaCultivo(c,cultivoSel,cultivosList)
     fracCult = haTotal>0 ? haCult/haTotal : 1
     gf = gfAll.filter(function(g){ return !g.cultivo_afectado || g.cultivo_afectado===cultivoSel })
   }
@@ -6380,12 +6395,20 @@ window.guardarRendCampo = function() {
       if(ingrData[primer].precio_venta) campos[idx].precio_venta = ingrData[primer].precio_venta
     }
   }
+  // Sync hectareas_cultivo so polygon-derived ha stays as source of truth
+  var haCultivoNew = {}
+  cultivos.forEach(function(cult2){ var sid2=_ingSafeId(cult2); var haEl2=document.getElementById('cr-ha-'+sid2); if(haEl2&&parseFloat(haEl2.value||0)>0) haCultivoNew[cult2]=parseFloat(haEl2.value) })
+  if(Object.keys(haCultivoNew).length) {
+    var idx2=campos.findIndex(function(x){return x.id===campoDet})
+    if(idx2>=0) campos[idx2].hectareas_cultivo=JSON.stringify(haCultivoNew)
+  }
   _guardarCache()
   calcIngresosLive(); renderRentabilidad(); renderDashboard()
   showToast('\u2713 Ingresos guardados','ok')
   var primer0 = cultivos[0]
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}
-  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson})).eq('id',campoDet).then(function(r){
+  var extraObj = Object.keys(haCultivoNew).length ? {hectareas_cultivo: JSON.stringify(haCultivoNew)} : {}
+  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson}, extraObj)).eq('id',campoDet).then(function(r){
     if(r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
       sb.from('campos').update(updateObj).eq('id',campoDet).catch(function(){})
     }

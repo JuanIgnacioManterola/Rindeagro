@@ -271,6 +271,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .cell-pos{background:#e8f5ee;color:#1a7a52;border-radius:4px;padding:2px 5px;font-weight:600}
 .cell-neg{background:var(--rojo-pale);color:var(--rojo);border-radius:4px;padding:2px 5px;font-weight:600}
 .cell-base{background:rgba(201,168,76,.15);color:var(--amber);border-radius:4px;padding:2px 5px;font-weight:700}
+.cell-be{background:rgba(201,168,76,.25);color:var(--amber);border-radius:4px;padding:2px 5px;font-weight:700;border:1px solid rgba(201,168,76,.5)}
+.be-fila td{border-top:2px solid var(--dorado)!important}
+#kmz-dropzone:hover{border-color:var(--verde)!important;background:var(--verde-pale)}
 
 /* EMPTY */
 .empty{text-align:center;padding:2.5rem 1rem;color:var(--texto-suave)}
@@ -704,6 +707,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div id="gastos-volver-bar" style="display:none;margin-bottom:10px">
         <button onclick="volverCultivoGastos()" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:2px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 8px rgba(26,74,46,.12)">← Cambiar cultivo</button>
       </div>
+      <!-- Comparativa entre campañas (se muestra si hay 2+ campañas) -->
+      <div id="det-gastos-comparativa" style="display:none"></div>
       <div class="card" id="gastos-card-lista">
         <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
@@ -778,6 +783,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div style="position:relative;height:220px"><canvas id="chart-cr-detalle"></canvas></div>
           <div id="cr-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
         </div>
+      </div>
+      <!-- Sensibilidad + Break-even -->
+      <div class="card">
+        <div class="card-hdr"><span class="card-tit">Análisis de sensibilidad · USD/ha</span><span style="font-size:11px;color:var(--texto-suave)">Precio vs Rendimiento</span></div>
+        <div id="be-banner" style="display:flex;align-items:center;justify-content:space-between;background:var(--dorado-pale);border:.5px solid rgba(201,168,76,.4);border-radius:10px;padding:.75rem 1rem;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);margin-bottom:3px">Break-even calculado</div>
+            <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;color:var(--verde)" id="be-precio-display">USD —/t</div>
+            <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Precio mínimo de venta para cubrir costos cargados</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:var(--texto-suave);margin-bottom:2px">Precio actual BCR</div>
+            <div style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace;color:var(--verde)" id="be-precio-actual">USD —/t</div>
+            <div style="font-size:11px;margin-top:2px" id="be-colchon"></div>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo-r"></table></div>
       </div>
     </div>
 
@@ -1023,18 +1045,45 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
       <label class="fl">Ubicación del lote (opcional)</label>
-      <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Buscá una ciudad para centrar el mapa, luego dibujá el polígono del lote haciendo clic.</div>
-      <div style="display:flex;gap:6px;margin-bottom:6px">
+      <!-- Selector de método -->
+      <div style="display:flex;gap:8px;margin-bottom:10px" id="metodo-selector-lote">
+        <button id="btn-metodo-dibujar" onclick="seleccionarMetodoCampo('dibujar')"
+          style="flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center">
+          ✏️ Dibujar en mapa
+          <div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Click punto por punto</div>
+        </button>
+        <button id="btn-metodo-kmz" onclick="seleccionarMetodoCampo('kmz')"
+          style="flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center">
+          📂 Subir KMZ / KML
+          <div style="font-size:10px;font-weight:400;margin-top:2px">Desde Google Earth</div>
+        </button>
+      </div>
+      <!-- Zona de carga KMZ (oculta por default) -->
+      <div id="zona-kmz-modal" style="display:none;margin-bottom:10px">
+        <div id="kmz-dropzone"
+          onclick="document.getElementById('kmz-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--verde)'"
+          ondragleave="this.style.borderColor='var(--borde)'"
+          ondrop="event.preventDefault();this.style.borderColor='var(--borde)';handleKMZUpload({files:event.dataTransfer.files})"
+          style="border:1.5px dashed var(--borde);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px">
+          <div style="font-size:28px;margin-bottom:8px">📁</div>
+          <div style="font-size:13px;font-weight:500;color:var(--texto-mid);margin-bottom:4px">Subir archivo KMZ o KML</div>
+          <div style="font-size:11px;color:var(--texto-suave)">Hacé clic acá o arrastrá el archivo</div>
+          <div style="font-size:10px;color:var(--texto-suave);margin-top:6px;padding:4px 10px;background:var(--crema);border-radius:6px;display:inline-block">Formatos: .kmz · .kml</div>
+        </div>
+        <span id="kmz-status" style="font-size:12px;color:var(--texto-suave);display:none"></span>
+      </div>
+      <!-- Controles del mapa (modo dibujo) -->
+      <div id="zona-dibujo-controles" style="display:flex;gap:6px;margin-bottom:6px">
         <input id="map-search-input" class="fi" type="text" placeholder="🔍 Buscar localidad o ciudad..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px" oninput="_debounceBuscarCampo()" onkeydown="if(event.key==='Enter')buscarCiudadMapa()"/>
       </div>
       <div id="map-search-results" style="display:none;background:var(--blanco);border:.5px solid var(--borde);border-radius:8px;margin-bottom:6px;max-height:120px;overflow-y:auto;font-size:12px"></div>
-      <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
+      <div id="zona-poly-buttons" style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center">
         <button id="btn-poly-start" onclick="togglePoligono()" style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:'DM Sans',sans-serif">✏️ Dibujar polígono</button>
         <button onclick="limpiarPoligono()" style="padding:5px 11px;font-size:11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Limpiar</button>
-        <label style="padding:5px 11px;font-size:11px;font-weight:600;border-radius:7px;border:.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:4px" title="Subir archivo KMZ o KML">📂 Subir KMZ/KML<input type="file" id="kmz-file-input" accept=".kmz,.kml" style="display:none" onchange="handleKMZUpload(this)"/></label>
-        <span id="kmz-status" style="font-size:11px;color:var(--texto-suave);display:none"></span>
         <span id="poly-hint" style="font-size:11px;color:var(--verde);display:none">✏️ Hacé clic para agregar puntos · doble clic para cerrar</span>
       </div>
+      <input type="file" id="kmz-file-input" accept=".kmz,.kml" style="display:none" onchange="handleKMZUpload(this)"/>
       <div id="mapa-campo-modal" style="height:380px;border-radius:10px;overflow:hidden;border:.5px solid var(--borde)"></div>
       <div id="campo-coords" style="display:none;margin-top:12px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:14px 20px;text-align:center">
         <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Superficie calculada</div>
@@ -3554,6 +3603,28 @@ window._autoMapaDesdeUbicacion = function() {
   }, 600)
 }
 
+// ── Selector de método de carga del polígono ─────────────────────────────────
+window.seleccionarMetodoCampo = function(metodo) {
+  var btnDib = document.getElementById('btn-metodo-dibujar')
+  var btnKmz = document.getElementById('btn-metodo-kmz')
+  var zonaKmz = document.getElementById('zona-kmz-modal')
+  var zonaCtrls = document.getElementById('zona-dibujo-controles')
+  var zonaPolyBtns = document.getElementById('zona-poly-buttons')
+  if(metodo === 'kmz') {
+    if(btnKmz){ btnKmz.style.borderColor='var(--verde)'; btnKmz.style.background='var(--verde-pale)'; btnKmz.style.color='var(--verde)' }
+    if(btnDib){ btnDib.style.borderColor='var(--borde)'; btnDib.style.background='transparent'; btnDib.style.color='var(--texto-suave)' }
+    if(zonaKmz) zonaKmz.style.display='block'
+    if(zonaCtrls) zonaCtrls.style.display='none'
+    if(zonaPolyBtns) zonaPolyBtns.style.display='none'
+  } else {
+    if(btnDib){ btnDib.style.borderColor='var(--verde)'; btnDib.style.background='var(--verde-pale)'; btnDib.style.color='var(--verde)' }
+    if(btnKmz){ btnKmz.style.borderColor='var(--borde)'; btnKmz.style.background='transparent'; btnKmz.style.color='var(--texto-suave)' }
+    if(zonaKmz) zonaKmz.style.display='none'
+    if(zonaCtrls) zonaCtrls.style.display='flex'
+    if(zonaPolyBtns) zonaPolyBtns.style.display='flex'
+  }
+}
+
 // ── KMZ / KML upload ─────────────────────────────────────────────────────────
 window.handleKMZUpload = async function(inputEl) {
   var file = inputEl.files[0]
@@ -5376,27 +5447,50 @@ function renderCampoRent() {
   }
   renderCrTortaDetalle()
 
-  // Sensibilidad
-  var sc = document.getElementById('sens-costo-campo')
-  var sr = document.getElementById('sens-rend-campo')
-  var sp = document.getElementById('sens-precio-campo')
-  if(sc&&!sc.value) sc.value = Math.round(costoHa)||190
-  if(sr&&!sr.value) sr.value = rend
-  if(sp&&!sp.value) sp.value = Math.round(pr)
-  // Render sens table (reuse existing but with different table id)
+  // ── Break-even ──
+  var bePrice = rend > 0 ? Math.round(costoHa / rend) : null  // precio mínimo al rend actual
+  var beYield = pr > 0 ? costoHa / pr : null                  // rend mínimo al precio actual
+  var bePriceEl = document.getElementById('be-precio-display')
+  var bePriceActEl = document.getElementById('be-precio-actual')
+  var beColchonEl = document.getElementById('be-colchon')
+  if(bePriceEl) bePriceEl.textContent = bePrice ? 'USD '+bePrice+'/t' : 'USD —/t'
+  if(bePriceActEl) bePriceActEl.textContent = pr ? 'USD '+Math.round(pr)+'/t' : 'USD —/t'
+  if(beColchonEl && bePrice) {
+    var colchon = Math.round(pr) - bePrice
+    beColchonEl.innerHTML = colchon >= 0
+      ? '<span style="color:#1a7a52;font-weight:600">+USD '+colchon+'/t de margen</span>'
+      : '<span style="color:var(--rojo);font-weight:600">USD '+colchon+'/t bajo costo</span>'
+  }
+
+  // ── Tabla de sensibilidad ──
   var rendVar=[-20,-10,0,10,20],prVar=[-20,-10,0,10,20]
   var rendList=rendVar.map(function(v){return Math.round(rend*(1+v/100)*10)/10})
   var prList=prVar.map(function(v){return Math.round(pr*(1+v/100))})
+  // Encontrar la fila más cercana al break-even yield
+  var closestBeIdx = 0, closestBeDist = Infinity
+  if(beYield !== null) {
+    rendList.forEach(function(r,ri){ var d=Math.abs(r-beYield); if(d<closestBeDist){closestBeDist=d;closestBeIdx=ri} })
+  }
   var thead='<thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend \ Precio</th>'
   prVar.forEach(function(v,i){thead+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+prList[i]+'<div style="font-size:9px;opacity:.6">'+(v===0?'Base':(v>0?'+':'')+v+'%')+'</div></th>'})
+  thead+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--amber);background:rgba(201,168,76,.08);border-bottom:.5px solid var(--borde)">Precio BE<div style="font-size:9px;opacity:.7">mín. venta</div></th>'
   thead+='</tr></thead>'
   var tbody='<tbody>'
   rendList.forEach(function(r,ri){
-    tbody+='<tr><td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha</td>'
+    var isBeRow = beYield!==null && ri===closestBeIdx && closestBeDist < 1.5
+    var bePriceRow = r > 0 ? Math.round(costoHa/r) : null
+    tbody+='<tr'+(isBeRow?' class="be-fila"':'')+'>'
+    tbody+='<td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha'+(isBeRow?' <span style="font-size:9px;background:var(--dorado);color:var(--verde);padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:middle">BE</span>':'')+'</td>'
     prList.forEach(function(p,pi){
-      var mg=r*p-costoHa,isBase=(rendVar[ri]===0&&prVar[pi]===0),cls=isBase?'cell-base':mg>=0?'cell-pos':'cell-neg'
-      tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+(mg>=0?'+':'')+Math.round(mg)+'</span></td>'
+      var mg=r*p-costoHa,isBase=(rendVar[ri]===0&&prVar[pi]===0)
+      var cls,val
+      if(isBase){ cls='cell-base'; val=(mg>=0?'+':'')+Math.round(mg) }
+      else if(Math.abs(mg)<15){ cls='cell-be'; val='≈ 0' }
+      else if(mg>=0){ cls='cell-pos'; val='+'+Math.round(mg) }
+      else{ cls='cell-neg'; val=Math.round(mg).toString() }
+      tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+val+'</span></td>'
     })
+    tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde);background:rgba(201,168,76,.05)">'+(bePriceRow?'<span class="cell-be">USD '+bePriceRow+'</span>':'—')+'</td>'
     tbody+='</tr>'
   })
   tbody+='</tbody>'
@@ -5602,6 +5696,75 @@ window.volverCultivoGastos = function() {
   renderDetGastos()
 }
 
+// ── Comparativa campañas ──
+function _campanaDeGasto(fechaStr) {
+  var fecha = new Date(fechaStr)
+  var mes = fecha.getMonth() // 0=enero
+  var anio = fecha.getFullYear()
+  return mes >= 6 ? (anio+'/'+(anio+1)) : ((anio-1)+'/'+anio)
+}
+
+function _agruparGastosPorCampanaYRubro(gList) {
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
+  var agrupado = {}
+  gList.forEach(function(g) {
+    var fecha = g.fecha || g.created_at; if(!fecha) return
+    var camp = _campanaDeGasto(fecha)
+    var rubro = RUBS[g.rubro] || g.rubro || 'Otros'
+    if(!agrupado[camp]) agrupado[camp] = {}
+    if(!agrupado[camp][rubro]) agrupado[camp][rubro] = 0
+    agrupado[camp][rubro] += parseFloat(g.total_de_usd || 0)
+  })
+  return agrupado
+}
+
+function _renderComparativaCampanas(gActual, gAnterior, campActual, campAnterior) {
+  var RUBROS = ['Herbicidas','Fungicidas','Insecticidas','Fertilizantes','Semillas','Laboreo','Flete','Empleados','Arrendamiento','Riego','Otros']
+  var totalActual = Object.values(gActual).reduce(function(a,b){return a+b},0)
+  var totalAnterior = Object.values(gAnterior||{}).reduce(function(a,b){return a+b},0)
+  var difTotal = totalActual - totalAnterior
+  var html = '<div style="background:var(--crema);border-radius:10px;padding:12px 14px;margin-bottom:12px">'
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
+  html += '<div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave)">Comparativa entre campañas</div>'
+  html += '<div style="display:flex;gap:12px;font-size:11px">'
+  html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--verde);border-radius:2px;display:inline-block;opacity:.35"></span>'+(campAnterior||'Anterior')+'</span>'
+  html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--verde);border-radius:2px;display:inline-block"></span>'+campActual+'</span>'
+  html += '</div></div>'
+  RUBROS.forEach(function(rubro) {
+    var valActual = gActual[rubro] || 0
+    var valAnterior = (gAnterior||{})[rubro] || 0
+    if(valActual===0 && valAnterior===0) return
+    var maxVal = Math.max(valActual, valAnterior, 1)
+    var pctA = Math.round(valActual/maxVal*100)
+    var pctP = Math.round(valAnterior/maxVal*100)
+    var dif = valActual - valAnterior
+    var difStr = dif>0 ? '+$'+Math.round(dif) : '$'+Math.round(dif)
+    var difColor = dif>0 ? 'var(--rojo)' : '#1a7a52'
+    html += '<div style="margin-bottom:8px">'
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
+    html += '<span style="font-size:11px;color:var(--texto-suave);width:90px;flex-shrink:0">'+rubro+'</span>'
+    html += '<div style="flex:1;height:14px;background:#eee;border-radius:3px;overflow:hidden;position:relative">'
+    if(valAnterior>0) html += '<div style="position:absolute;height:7px;top:0;left:0;width:'+pctP+'%;background:var(--verde);opacity:.35;border-radius:3px"></div>'
+    if(valActual>0) html += '<div style="position:absolute;height:7px;bottom:0;left:0;width:'+pctA+'%;background:var(--verde);border-radius:3px"></div>'
+    html += '</div>'
+    html += '<span style="font-size:10px;font-family:\'DM Mono\',monospace;font-weight:600;color:'+difColor+';width:50px;text-align:right;flex-shrink:0">'+(valAnterior>0?difStr:'')+'</span>'
+    html += '</div></div>'
+  })
+  if(totalAnterior > 0) {
+    var difTotStr = difTotal>0 ? '+USD '+Math.round(difTotal)+'/ha vs '+campAnterior : 'USD '+Math.round(difTotal)+'/ha vs '+campAnterior
+    var difTotBg  = difTotal>0 ? 'var(--rojo-pale)' : 'var(--verde-pale)'
+    var difTotClr = difTotal>0 ? 'var(--rojo)' : '#1a7a52'
+    html += '<div style="border-top:.5px solid var(--borde);padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'
+    html += '<span style="font-size:11px;color:var(--texto-suave)">Costo total campaña actual</span>'
+    html += '<div style="display:flex;align-items:center;gap:8px">'
+    html += '<span style="font-size:13px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--verde)">USD '+Math.round(totalActual).toLocaleString('es-AR')+'/ha</span>'
+    html += '<span style="font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;background:'+difTotBg+';color:'+difTotClr+'">'+difTotStr+'</span>'
+    html += '</div></div>'
+  }
+  html += '</div>'
+  return html
+}
+
 function renderDetGastos() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
@@ -5698,6 +5861,22 @@ function renderDetGastos() {
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
+
+  // ── COMPARATIVA CAMPAÑAS ──
+  var compEl = document.getElementById('det-gastos-comparativa')
+  if(compEl) {
+    // Todos los gastos del campo sin filtro de campaña
+    var todosGastosCampo = gastos.filter(function(g){return g.campo_id===campoDet && g.fecha})
+    var agrupado = _agruparGastosPorCampanaYRubro(todosGastosCampo)
+    var campanas = Object.keys(agrupado).sort().reverse() // más reciente primero
+    if(campanas.length >= 2) {
+      var cAct = campanas[0], cAnt = campanas[1]
+      compEl.innerHTML = _renderComparativaCampanas(agrupado[cAct], agrupado[cAnt], cAct, cAnt)
+      compEl.style.display = 'block'
+    } else {
+      compEl.style.display = 'none'
+    }
+  }
 
   // ── LISTA DE GASTOS ──
   var el = document.getElementById('det-gastos-lista')

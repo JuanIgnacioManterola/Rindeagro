@@ -4596,10 +4596,8 @@ window.exportarPDF = function() {
   var rubrosArr2=Object.entries(porRubroMap).sort(function(a,b){return b[1].total-a[1].total})
 
   var campLabel = ''
-  if(campanaActivaId) {
-    var cp = campanias.find(function(x){return x.id===campanaActivaId})
-    if(cp) campLabel = cp.nombre||campLabel
-  }
+  // campanaActivaId is a string like "2024/2025"
+  if(campanaActivaId && campanaActivaId !== 'todas') campLabel = String(campanaActivaId)
 
   var fmtUSD = function(v){ return 'USD '+Math.round(v).toLocaleString('es-AR') }
   var fmtNum = function(v,dec){ return v.toLocaleString('es-AR',{maximumFractionDigits:dec||0}) }
@@ -5540,7 +5538,6 @@ window.calcIngresosLive = function() {
     +'</div>' : ''
   res.innerHTML = '<div style="display:grid;gap:10px">'+(rows.length>1?cardsHtml+totalCard:cardsHtml)+'</div>'
 }
-}
 
 // ── Acordeón Rentabilidad ──
 var _crAcSt = {ingOpen:false, gasOpen:false, rubroActivo:null, cultivoActivo:null}
@@ -5552,23 +5549,37 @@ window.toggleCrRubro = function(rk,e) { if(e) e.stopPropagation(); _crAcSt.rubro
 function _refreshCrAcordeon() {
   var el = document.getElementById('cr-acordeon'); if(!el) return
   var D = window._crAcordeonData; if(!D) return
-  var {c,gf,ingRowsData,totalIngUSD,costoUSD,costoHa,porRubroMap,rubrosArr,ha,ingHaReal,mgHaReal,pr} = D
+  var c=D.c,gf=D.gf,ingRowsData=D.ingRowsData,totalIngUSD=D.totalIngUSD,costoUSD=D.costoUSD,costoHa=D.costoHa,porRubroMap=D.porRubroMap,rubrosArr=D.rubrosArr,ha=D.ha,ingHaReal=D.ingHaReal,mgHaReal=D.mgHaReal,pr=D.pr
   var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var mgColor = mgHaReal>=0?'#1a7a52':'#c0392b'
   var ROW = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;border-radius:9px;background:var(--crema);margin-bottom:6px;border:.5px solid var(--borde)'
   var html = ''
+  var ICONS = {'Soja':'🌱','Ma\xedz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Man\xed':'🥜'}
 
   // ── Fila Ingresos ──
   var ingTotalFmt = 'USD '+Math.round(totalIngUSD).toLocaleString('es-AR')
-  html += '<div onclick="toggleCrIng(event)" style="'+ROW+(totalIngUSD>0?';border-left:3px solid #1a5fa8':'')+'">'    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💰</span><div>'    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Ingresos brutos</div>'    +'<div style="font-size:11px;color:var(--texto-suave)">'+ingRowsData.length+' cultivo'+(ingRowsData.length>1?'s':'')+'</div>'    +'</div></div>'    +'<div style="display:flex;align-items:center;gap:8px">'    +'<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+ingTotalFmt+'</div>'    +'<div style="font-size:14px;color:var(--texto-suave)">'+(_crAcSt.ingOpen?'\u25b2':'\u25bc')+'</div>'    +'</div></div>'
+  html += '<div onclick="toggleCrIng(event)" style="'+ROW+(totalIngUSD>0?';border-left:3px solid #1a5fa8':'')+'">'
+    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💰</span><div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Ingresos brutos</div>'
+    +'<div style="font-size:11px;color:var(--texto-suave)">'+ingRowsData.length+' cultivo'+(ingRowsData.length>1?'s':'')+'</div>'
+    +'</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+ingTotalFmt+'</div>'
+    +'<div style="font-size:14px;color:var(--texto-suave)">'+(_crAcSt.ingOpen?'▲':'▼')+'</div>'
+    +'</div></div>'
 
   if(_crAcSt.ingOpen) {
     html += '<div style="margin:-2px 0 8px 0;padding:8px;background:rgba(26,95,168,.06);border-radius:8px;border:.5px solid rgba(26,95,168,.15)">'
     ingRowsData.forEach(function(r) {
       var color = (typeof CULT_COLORES!=='undefined'&&CULT_COLORES[r.cult])||'#16a34a'
-      var icon = {'Soja':'\ud83c\udf31','Ma\xedz':'\ud83c\udf3d','Trigo':'\ud83c\udf3e','Girasol':'\ud83c\udf3b','Sorgo':'\ud83c\udf3f','Cebada':'\ud83c\udf3e','Man\xed':'\ud83e\udd5c'}[r.cult]||'\ud83c\udf31'
+      var icon = ICONS[r.cult]||'🌱'
       var ingFmt = 'USD '+Math.round(r.ingTotal).toLocaleString('es-AR')
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;border-left:3px solid '+color+'">'        +'<div style="display:flex;align-items:center;gap:6px"><span>'+icon+'</span>'        +'<div><div style="font-size:12px;font-weight:700;color:var(--texto)">'+r.cult+'</div>'        +'<div style="font-size:10px;color:var(--texto-suave)">'+r.ha.toLocaleString('es-AR')+' ha</div>'        +'</div></div>'        +'<div style="text-align:right"><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:'+color+'">'+ingFmt+'</div>'
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;border-left:3px solid '+color+'">'
+        +'<div style="display:flex;align-items:center;gap:6px"><span>'+icon+'</span>'
+        +'<div><div style="font-size:12px;font-weight:700;color:var(--texto)">'+r.cult+'</div>'
+        +'<div style="font-size:10px;color:var(--texto-suave)">'+r.ha.toLocaleString('es-AR')+' ha</div>'
+        +'</div></div>'
+        +'<div style="text-align:right"><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:'+color+'">'+ingFmt+'</div>'
       if(r.ventas && r.ventas.length) {
         var prom = r.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)},0)
         var promPr = prom>0 ? Math.round(r.ingTotal/prom) : 0
@@ -5589,48 +5600,53 @@ function _refreshCrAcordeon() {
     html += '</div>'
   }
 
-  // ── Fila Gastos (por cultivo → rubro → detalle) ──
+  // ── Fila Gastos ──
   var cultivosList = ingRowsData.map(function(r){return r.cult})
-  // Agrupar gastos por cultivo (si el gasto tiene campo cultivo_afectado, sino distribuir)
-  var gasPorCultivo = {}
-  cultivosList.forEach(function(cult){ gasPorCultivo[cult] = [] })
-  gf.forEach(function(g){
-    var cultG = g.cultivo_afectado
-    if(cultG && gasPorCultivo[cultG]) {
-      gasPorCultivo[cultG].push(g)
-    } else {
-      // Distribuir proporcionalmente entre todos los cultivos
-      cultivosList.forEach(function(cult){ gasPorCultivo[cult].push(g) })
-    }
-  })
+  var haTotal = cultivosList.reduce(function(a,cu){
+    var d2=ingRowsData.find(function(x){return x.cult===cu}); return a+(d2?d2.ha:0)
+  },0)||ha
   var gasCultivoTotals = {}
-  var haTotal = cultivosList.reduce(function(a,r){var d2=ingRowsData.find(function(x){return x.cult===r}); return a+(d2?d2.ha:0)},0)||ha
-  cultivosList.forEach(function(cult){
-    var d2 = ingRowsData.find(function(x){return x.cult===cult})
+  cultivosList.forEach(function(cult2) {
+    var d2 = ingRowsData.find(function(x){return x.cult===cult2})
     var haCult = d2?d2.ha:0
     var frac = haTotal>0&&haCult>0 ? haCult/haTotal : (cultivosList.length>0?1/cultivosList.length:1)
-    // Si hay gastos directos del cultivo, usarlos; sino prorratear
-    var directos = gf.filter(function(g){return g.cultivo_afectado===cult})
+    var directos = gf.filter(function(g){return g.cultivo_afectado===cult2})
     var sinCultivo = gf.filter(function(g){return !g.cultivo_afectado})
     var totalD = directos.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var totalS = sinCultivo.reduce(function(a,g){return a+(g.total_de_usd||0)},0)*frac
-    gasCultivoTotals[cult] = {total: totalD+totalS, ha:haCult, directos:directos, prorateados:sinCultivo, frac:frac}
+    gasCultivoTotals[cult2] = {total:totalD+totalS, ha:haCult, directos:directos, prorateados:sinCultivo, frac:frac}
   })
 
-  html += '<div onclick="toggleCrGas(event)" style="'+ROW+(costoUSD>0?';border-left:3px solid #c0392b':'')+'">'    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">\ud83d\udcc9</span><div>'    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Gastos totales</div>'    +'<div style="font-size:11px;color:var(--texto-suave)">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+'</div>'    +'</div></div>'    +'<div style="display:flex;align-items:center;gap:8px">'    +'<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(costoUSD).toLocaleString('es-AR')+'</div>'    +'<div style="font-size:14px;color:var(--texto-suave)">'+(_crAcSt.gasOpen?'\u25b2':'\u25bc')+'</div>'    +'</div></div>'
+  html += '<div onclick="toggleCrGas(event)" style="'+ROW+(costoUSD>0?';border-left:3px solid #c0392b':'')+'">'
+    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📉</span><div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Gastos totales</div>'
+    +'<div style="font-size:11px;color:var(--texto-suave)">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+'</div>'
+    +'</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(costoUSD).toLocaleString('es-AR')+'</div>'
+    +'<div style="font-size:14px;color:var(--texto-suave)">'+(_crAcSt.gasOpen?'▲':'▼')+'</div>'
+    +'</div></div>'
 
   if(_crAcSt.gasOpen) {
     html += '<div style="margin:-2px 0 8px 0;padding:8px;background:rgba(192,57,43,.06);border-radius:8px;border:.5px solid rgba(192,57,43,.15)">'
     if(cultivosList.length > 1) {
-      // Nivel cultivo
-      cultivosList.forEach(function(cult) {
-        var color = (typeof CULT_COLORES!=='undefined'&&CULT_COLORES[cult])||'#16a34a'
-        var icon = {'Soja':'\ud83c\udf31','Ma\xedz':'\ud83c\udf3d','Trigo':'\ud83c\udf3e','Girasol':'\ud83c\udf3b','Sorgo':'\ud83c\udf3f','Cebada':'\ud83c\udf3e','Man\xed':'\ud83e\udd5c'}[cult]||'\ud83c\udf31'
-        var ct = gasCultivoTotals[cult]
-        var isOpen = _crAcSt.cultivoActivo===cult
-        html += '<div onclick="toggleCrCultivo(''+cult.replace(/'/g,"\\'")+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;border-left:3px solid '+color+';cursor:pointer">'          +'<div style="display:flex;align-items:center;gap:6px"><span>'+icon+'</span><div>'          +'<div style="font-size:12px;font-weight:700;color:var(--texto)">'+cult+'</div>'          +'<div style="font-size:10px;color:var(--texto-suave)">'+ct.ha.toLocaleString('es-AR')+' ha</div>'          +'</div></div>'          +'<div style="display:flex;align-items:center;gap:6px">'          +'<div style="text-align:right"><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(ct.total).toLocaleString('es-AR')+'</div>'          +'<div style="font-size:10px;color:var(--texto-suave)">USD '+Math.round(ct.ha>0?ct.total/ct.ha:0)+'/ha</div></div>'          +'<div style="font-size:12px;color:var(--texto-suave)">'+( isOpen?'\u25b2':'\u25bc')+'</div>'          +'</div></div>'
+      cultivosList.forEach(function(cult2) {
+        var color2 = (typeof CULT_COLORES!=='undefined'&&CULT_COLORES[cult2])||'#16a34a'
+        var icon2 = ICONS[cult2]||'🌱'
+        var ct = gasCultivoTotals[cult2]
+        var isOpen = _crAcSt.cultivoActivo===cult2
+        var cultSafe = cult2.replace(/'/g,'')
+        html += '<div onclick="toggleCrCultivo(\''+cultSafe+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;border-left:3px solid '+color2+';cursor:pointer">'
+          +'<div style="display:flex;align-items:center;gap:6px"><span>'+icon2+'</span><div>'
+          +'<div style="font-size:12px;font-weight:700;color:var(--texto)">'+cult2+'</div>'
+          +'<div style="font-size:10px;color:var(--texto-suave)">'+ct.ha.toLocaleString('es-AR')+' ha</div>'
+          +'</div></div>'
+          +'<div style="display:flex;align-items:center;gap:6px">'
+          +'<div style="text-align:right"><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(ct.total).toLocaleString('es-AR')+'</div>'
+          +'<div style="font-size:10px;color:var(--texto-suave)">USD '+Math.round(ct.ha>0?ct.total/ct.ha:0)+'/ha</div></div>'
+          +'<div style="font-size:12px;color:var(--texto-suave)">'+(isOpen?'▲':'▼')+'</div>'
+          +'</div></div>'
         if(isOpen) {
-          // Rubros de este cultivo
           var porRubroCult = {}
           var allG = ct.directos.concat(ct.prorateados)
           allG.forEach(function(g){
@@ -5644,10 +5660,14 @@ function _refreshCrAcordeon() {
           var rubCultArr = Object.entries(porRubroCult).sort(function(a,b){return b[1].total-a[1].total})
           html += '<div style="margin-top:4px;padding:6px;background:rgba(0,0,0,.04);border-radius:6px">'
           rubCultArr.forEach(function(entry) {
-            var rLabel=entry[0], rData=entry[1]
-            var rKey = cult+'::'+entry[0]
+            var rLabel=entry[0]
+            var rData=entry[1]
+            var rKey = (cult2+'__'+rLabel).replace(/'/g,'')
             var isROpen = _crAcSt.rubroActivo===rKey
-            html += '<div onclick="toggleCrRubro(''+rKey.replace(/'/g,"\\'")+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin-bottom:3px;background:var(--crema);border-radius:6px;cursor:pointer">'              +'<div style="font-size:11px;font-weight:600;color:var(--texto)">'+rLabel+'</div>'              +'<div style="display:flex;align-items:center;gap:6px"><div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(rData.total).toLocaleString('es-AR')+'</div>'              +'<div style="font-size:11px;color:var(--texto-suave)">'+(isROpen?'\u25b2':'\u25bc')+'</div></div></div>'
+            html += '<div onclick="toggleCrRubro(\''+rKey+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin-bottom:3px;background:var(--crema);border-radius:6px;cursor:pointer">'
+              +'<div style="font-size:11px;font-weight:600;color:var(--texto)">'+rLabel+'</div>'
+              +'<div style="display:flex;align-items:center;gap:6px"><div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(rData.total).toLocaleString('es-AR')+'</div>'
+              +'<div style="font-size:11px;color:var(--texto-suave)">'+(isROpen?'▲':'▼')+'</div></div></div>'
             if(isROpen) {
               html += '<div style="padding:4px 6px;margin-bottom:4px;background:rgba(0,0,0,.04);border-radius:5px">'
               rData.gastos.forEach(function(item){
@@ -5655,7 +5675,9 @@ function _refreshCrAcordeon() {
                 var desc=(g2.descripcion||g2.rubro||'Gasto').trim()
                 var tot2=Math.round((g2.total_de_usd||0)*fr2)
                 var fechaStr=g2.fecha?g2.fecha.slice(0,7):''
-                html += '<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:.5px solid var(--borde)">'                  +'<div style="font-size:11px;color:var(--texto-mid)">'+desc+(fechaStr?' <span style="color:var(--texto-suave)">'+fechaStr+'</span>':'')+(fr2<1?' <span style="font-size:9px;color:var(--texto-suave)">('+Math.round(fr2*100)+'%)</span>':'')+'</div>'                  +'<div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+tot2.toLocaleString('es-AR')+'</div></div>'
+                html += '<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:.5px solid var(--borde)">'
+                  +'<div style="font-size:11px;color:var(--texto-mid)">'+desc+(fechaStr?' <span style="color:var(--texto-suave)">'+fechaStr+'</span>':'')+(fr2<1?' <span style="font-size:9px;color:var(--texto-suave)">('+Math.round(fr2*100)+'%)</span>':'')+'</div>'
+                  +'<div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+tot2.toLocaleString('es-AR')+'</div></div>'
               })
               html += '</div>'
             }
@@ -5664,18 +5686,22 @@ function _refreshCrAcordeon() {
         }
       })
     } else {
-      // Un solo cultivo: mostrar rubros directamente
       rubrosArr.forEach(function(entry) {
         var rk=entry[0], rd=entry[1]
         var isROpen = _crAcSt.rubroActivo===rk
-        html += '<div onclick="toggleCrRubro(''+rk+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;cursor:pointer">'          +'<div style="font-size:12px;font-weight:600;color:var(--texto)">'+rd.label+'</div>'          +'<div style="display:flex;align-items:center;gap:6px"><div style="font-size:13px;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(rd.total).toLocaleString('es-AR')+'</div>'          +'<div style="font-size:12px;color:var(--texto-suave)">'+(isROpen?'\u25b2':'\u25bc')+'</div></div></div>'
+        html += '<div onclick="toggleCrRubro(\''+rk+'\',event)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:4px;background:var(--crema);border-radius:7px;cursor:pointer">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--texto)">'+rd.label+'</div>'
+          +'<div style="display:flex;align-items:center;gap:6px"><div style="font-size:13px;font-family:DM Mono,monospace;color:#c0392b">USD '+Math.round(rd.total).toLocaleString('es-AR')+'</div>'
+          +'<div style="font-size:12px;color:var(--texto-suave)">'+(isROpen?'▲':'▼')+'</div></div></div>'
         if(isROpen) {
           html += '<div style="padding:4px 6px;margin-bottom:4px;background:rgba(0,0,0,.04);border-radius:6px">'
           rd.gastos.forEach(function(g2){
             var desc=(g2.descripcion||g2.rubro||'Gasto').trim()
             var tot2=Math.round(g2.total_de_usd||0)
             var fechaStr=g2.fecha?g2.fecha.slice(0,7):''
-            html += '<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:.5px solid var(--borde)">'              +'<div style="font-size:11px;color:var(--texto-mid)">'+desc+(fechaStr?' <span style="color:var(--texto-suave)">'+fechaStr+'</span>':'')+'</div>'              +'<div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+tot2.toLocaleString('es-AR')+'</div></div>'
+            html += '<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:.5px solid var(--borde)">'
+              +'<div style="font-size:11px;color:var(--texto-mid)">'+desc+(fechaStr?' <span style="color:var(--texto-suave)">'+fechaStr+'</span>':'')+'</div>'
+              +'<div style="font-size:11px;font-family:DM Mono,monospace;color:#c0392b">USD '+tot2.toLocaleString('es-AR')+'</div></div>'
           })
           html += '</div>'
         }
@@ -5687,7 +5713,13 @@ function _refreshCrAcordeon() {
   // ── Margen neto ──
   var mgTotal = Math.round(mgHaReal*ha)
   var mgFmt = (mgHaReal>=0?'+':'')+Math.round(mgHaReal)+' USD/ha'
-  html += '<div style="'+ROW+';border-left:3px solid '+mgColor+';background:'+(mgHaReal>=0?'rgba(26,122,82,.08)':'rgba(192,57,43,.08)')+'">'    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">'+(mgHaReal>=0?'\ud83d\udcc8':'\ud83d\udcc9')+'</span><div>'    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Margen neto</div>'    +'<div style="font-size:11px;color:var(--texto-suave)">'+(mgHaReal>=0?'Ganancia':'P\xe9rdida')+' total: '+(mgTotal>=0?'+':'')+mgTotal.toLocaleString('es-AR')+' USD</div>'    +'</div></div>'    +'<div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+mgColor+'">'+mgFmt+'</div>'    +'</div>'
+  html += '<div style="'+ROW+';border-left:3px solid '+mgColor+';background:'+(mgHaReal>=0?'rgba(26,122,82,.08)':'rgba(192,57,43,.08)')+'">'
+    +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">'+(mgHaReal>=0?'📈':'📉')+'</span><div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--texto)">Margen neto</div>'
+    +'<div style="font-size:11px;color:var(--texto-suave)">'+(mgHaReal>=0?'Ganancia':'P\xe9rdida')+' total: '+(mgTotal>=0?'+':'')+mgTotal.toLocaleString('es-AR')+' USD</div>'
+    +'</div></div>'
+    +'<div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+mgColor+'">'+mgFmt+'</div>'
+    +'</div>'
 
   el.innerHTML = html
 }

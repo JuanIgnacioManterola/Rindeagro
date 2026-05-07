@@ -6524,16 +6524,31 @@ window.renderRentabilidadTotal = function() {
   var datosCampos = campos.map(function(c){
     var ha = c.hectareas||1
     var cult = c.cultivo||'Soja'
-    var rend = c.rendimiento||(cult==='Maíz'?8:cult==='Trigo'?3:3.2)
-    var pr = c.precio_venta||(cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja)
     var gf = gastos.filter(function(g){return g.campo_id===c.id})
     var costo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var costoHa = ha>0?costo/ha:0
-    var ingHa = rend*pr
+    // Calcular ingresos SOLO desde datos reales guardados (sin defaults)
+    var cultivosList = cult.split(',').map(function(s){return s.trim()}).filter(Boolean)
+    var savedIngr = {}
+    try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+    var ingTotal = 0
+    cultivosList.forEach(function(cu){
+      var d = savedIngr[cu]||{}
+      if(d.ventas && d.ventas.length>0) {
+        ingTotal += d.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+      } else if(parseFloat(d.rendimiento||0)>0 && parseFloat(d.precio_venta||0)>0) {
+        ingTotal += parseFloat(d.rendimiento)*parseFloat(d.precio_venta)*_haParaCultivo(c,cu,cultivosList)
+      }
+    })
+    // Fallback: solo si el campo tiene rendimiento Y precio_venta explícitamente guardados
+    if(ingTotal===0 && parseFloat(c.rendimiento||0)>0 && parseFloat(c.precio_venta||0)>0) {
+      ingTotal = parseFloat(c.rendimiento)*parseFloat(c.precio_venta)*ha
+    }
+    var ingHa = ha>0 ? ingTotal/ha : 0
     var mgHa = ingHa-costoHa
-    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingHa*ha
+    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingTotal
     gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubroGlobal[r]=(porRubroGlobal[r]||0)+(g.total_de_usd||0)})
-    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa, rend:rend, pr:pr}
+    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa}
   })
   var mgTotal = totalIngreso-totalCosto
   var mgHaGlobal = totalHa>0?mgTotal/totalHa:0

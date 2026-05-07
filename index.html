@@ -1192,6 +1192,58 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Campos específicos de flete -->
+    <div id="flete-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#f5f0ff;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#7c3aed">🚛 Ingresá la cantidad de toneladas y el precio por tonelada. El total se calcula automáticamente.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-flete-desc" placeholder="Ej: Flete cosecha a acopio, empresa transportista..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.7rem">
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="g-flete-moneda" style="cursor:pointer" onchange="onFleteMonedaChange()">
+            <option value="usd">USD</option>
+            <option value="ars">Pesos (ARS)</option>
+          </select>
+        </div>
+        <div class="fg" id="g-flete-tc-row" style="display:none">
+          <label class="fl">Tipo de cambio (ARS/USD)</label>
+          <input class="fi" type="number" id="g-flete-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg">
+          <label class="fl">Toneladas</label>
+          <input class="fi" type="number" id="g-flete-tons" placeholder="Ej: 30" min="0" step="0.1" oninput="calcConv()"/>
+        </div>
+        <div class="fg">
+          <label class="fl" id="g-flete-precio-label">Precio por tonelada (USD/tn)</label>
+          <input class="fi" type="number" id="g-flete-precio" placeholder="Ej: 25" min="0" step="0.01" oninput="calcConv()"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Campos específicos de empleados -->
+    <div id="empleados-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#fce7f3;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#9d174d">👷 Ingresá el monto total del gasto de personal.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-emp-desc" placeholder="Ej: Jornalero, maquinista, salario mensual..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.7rem">
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="g-emp-moneda" style="cursor:pointer" onchange="onEmpMonedaChange()">
+            <option value="usd">USD</option>
+            <option value="ars">Pesos (ARS)</option>
+          </select>
+        </div>
+        <div class="fg" id="g-emp-tc-row" style="display:none">
+          <label class="fl">Tipo de cambio (ARS/USD)</label>
+          <input class="fi" type="number" id="g-emp-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl" id="g-emp-monto-label">Monto total (USD)</label>
+        <input class="fi" type="number" id="g-emp-monto" placeholder="Ej: 500" min="0" step="0.01" oninput="calcConv()"/>
+      </div>
+    </div>
+
     <div id="gasto-main-fields">
     <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
 
@@ -3957,6 +4009,8 @@ window.onRubroChange = function() {
   var rubro = document.getElementById('g-rubro').value
   var subDiv = document.getElementById('laboreo-subtipos')
   var riegoDiv = document.getElementById('riego-campos')
+  var fleteDiv = document.getElementById('flete-campos')
+  var empDiv = document.getElementById('empleados-campos')
   var normalFields = document.getElementById('gasto-main-fields')
   var colUnidad = document.getElementById('gasto-col-unidad')
   var colCantidad = document.getElementById('gasto-col-cantidad')
@@ -3967,23 +4021,27 @@ window.onRubroChange = function() {
   var precLabel = document.getElementById('g-precio-unit-label')
   var unidad = document.getElementById('g-unidad')
 
-  // Reset defaults
+  // Reset todos a ocultos
   if(subDiv) subDiv.style.display = 'none'
   if(riegoDiv) riegoDiv.style.display = 'none'
+  if(fleteDiv) fleteDiv.style.display = 'none'
+  if(empDiv) empDiv.style.display = 'none'
   if(normalFields) normalFields.style.display = 'block'
   if(colUnidad) colUnidad.style.display = ''
   if(colCantidad) colCantidad.style.display = ''
   if(gridCols) gridCols.style.gridTemplateColumns = '1fr 1fr 1fr'
   if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
 
-  var SIMPLE_RUBROS = ['semillas','laboreo','flete','empleados','arrendamiento']
-  var isSimple = SIMPLE_RUBROS.indexOf(rubro) >= 0
-
   if(rubro === 'riego') {
     if(riegoDiv) riegoDiv.style.display = 'block'
     if(normalFields) normalFields.style.display = 'none'
-  } else if(isSimple) {
-    // Solo mostrar campo de precio USD/ha, sin unidad ni cantidad
+  } else if(rubro === 'flete') {
+    if(fleteDiv) fleteDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(rubro === 'empleados') {
+    if(empDiv) empDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(rubro === 'laboreo' || rubro === 'semillas' || rubro === 'arrendamiento') {
     if(colUnidad) colUnidad.style.display = 'none'
     if(colCantidad) colCantidad.style.display = 'none'
     if(gridCols) gridCols.style.gridTemplateColumns = '1fr'
@@ -3996,12 +4054,6 @@ window.onRubroChange = function() {
     } else if(rubro === 'semillas') {
       if(descLabel) descLabel.textContent = 'Variedad / Producto'
       if(descInput) descInput.placeholder = 'Ej: Soja RR1, Pioneer 1050W, NK880...'
-    } else if(rubro === 'flete') {
-      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
-      if(descInput) descInput.placeholder = 'Ej: Flete cosecha a acopio'
-    } else if(rubro === 'empleados') {
-      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
-      if(descInput) descInput.placeholder = 'Ej: Jornalero, maquinista, salario mensual...'
     } else if(rubro === 'arrendamiento') {
       if(descLabel) descLabel.textContent = 'Descripción (opcional)'
       if(descInput) descInput.placeholder = 'Ej: Lote norte, campaña 24/25...'
@@ -4019,7 +4071,6 @@ window.onRubroChange = function() {
     if(descLabel) descLabel.textContent = 'Fertilizante / Producto'
     if(descInput) descInput.placeholder = 'Ej: Urea 46%, DAP, SPS, Nitrato de amonio...'
   } else {
-    // otros y categorías personalizadas
     if(unidad) unidad.value = 'usd_ha'
     if(precLabel) precLabel.textContent = 'Precio (USD/ha)'
     if(descLabel) descLabel.textContent = 'Descripción'
@@ -4034,6 +4085,22 @@ window.onUnidadChange = function() {
   var l = map[unidad]||map.litros
   if(cantLabel) cantLabel.textContent = l[0]
   if(precLabel) precLabel.textContent = l[1]
+}
+window.onFleteMonedaChange = function() {
+  var moneda = document.getElementById('g-flete-moneda')?.value||'usd'
+  var tcRow = document.getElementById('g-flete-tc-row')
+  var prLabel = document.getElementById('g-flete-precio-label')
+  if(tcRow) tcRow.style.display = moneda==='ars' ? '' : 'none'
+  if(prLabel) prLabel.textContent = moneda==='ars' ? 'Precio por tonelada (ARS/tn)' : 'Precio por tonelada (USD/tn)'
+  calcConv()
+}
+window.onEmpMonedaChange = function() {
+  var moneda = document.getElementById('g-emp-moneda')?.value||'usd'
+  var tcRow = document.getElementById('g-emp-tc-row')
+  var montoLabel = document.getElementById('g-emp-monto-label')
+  if(tcRow) tcRow.style.display = moneda==='ars' ? '' : 'none'
+  if(montoLabel) montoLabel.textContent = moneda==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
+  calcConv()
 }
 window.selSubTipo = function(btn, tipo) {
   document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
@@ -4882,7 +4949,14 @@ window.openModalGasto = function() {
   var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
   document.getElementById('laboreo-subtipos').style.display='none'
   document.getElementById('riego-campos').style.display='none'
+  document.getElementById('flete-campos').style.display='none'
+  document.getElementById('empleados-campos').style.display='none'
   document.getElementById('gasto-main-fields').style.display='block'
+  ;['g-flete-desc','g-flete-tons','g-flete-precio','g-flete-tc','g-emp-desc','g-emp-monto','g-emp-tc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+  var _flm=document.getElementById('g-flete-moneda'); if(_flm) _flm.value='usd'
+  var _emm=document.getElementById('g-emp-moneda'); if(_emm) _emm.value='usd'
+  var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
+  var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
@@ -4895,6 +4969,17 @@ window.calcConv = function() {
     var kva = parseFloat(document.getElementById('g-riego-kva')?.value)||0
     var costoKva = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
     usdTotal = kva * costoKva
+  } else if(rubro === 'flete') {
+    var _fl_tons = parseFloat(document.getElementById('g-flete-tons')?.value)||0
+    var _fl_pr = parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _fl_mon = document.getElementById('g-flete-moneda')?.value||'usd'
+    var _fl_tc = parseFloat(document.getElementById('g-flete-tc')?.value)||1
+    if(_fl_tons && _fl_pr) usdTotal = _fl_mon==='ars' ? (_fl_tons * _fl_pr) / _fl_tc : _fl_tons * _fl_pr
+  } else if(rubro === 'empleados') {
+    var _emp_monto = parseFloat(document.getElementById('g-emp-monto')?.value)||0
+    var _emp_mon = document.getElementById('g-emp-moneda')?.value||'usd'
+    var _emp_tc = parseFloat(document.getElementById('g-emp-tc')?.value)||1
+    if(_emp_monto) usdTotal = _emp_mon==='ars' ? _emp_monto / _emp_tc : _emp_monto
   } else {
     var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
     var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
@@ -4929,6 +5014,20 @@ window.guardarGasto = async function() {
   if(rubro==='riego') {
     if(!kvaRiego||kvaRiego<=0){showToast('⚠️ Ingresá el consumo en kVA','err');return}
     if(!costoKvaRiego||costoKvaRiego<=0){showToast('⚠️ Ingresá el costo por kVA','err');return}
+  } else if(rubro==='flete') {
+    var _flTons=parseFloat(document.getElementById('g-flete-tons')?.value)||0
+    var _flPr=parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _flMon=document.getElementById('g-flete-moneda')?.value||'usd'
+    var _flTc=parseFloat(document.getElementById('g-flete-tc')?.value)||0
+    if(!_flTons||_flTons<=0){showToast('⚠️ Ingresá la cantidad de toneladas','err');return}
+    if(!_flPr||_flPr<=0){showToast('⚠️ Ingresá el precio de flete','err');return}
+    if(_flMon==='ars'&&(!_flTc||_flTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
+  } else if(rubro==='empleados') {
+    var _empMon=document.getElementById('g-emp-moneda')?.value||'usd'
+    var _empMonto=parseFloat(document.getElementById('g-emp-monto')?.value)||0
+    var _empTc=parseFloat(document.getElementById('g-emp-tc')?.value)||0
+    if(!_empMonto||_empMonto<=0){showToast('⚠️ Ingresá el monto del gasto','err');return}
+    if(_empMon==='ars'&&(!_empTc||_empTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
   } else {
     if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
   }
@@ -4943,6 +5042,10 @@ window.guardarGasto = async function() {
   var usdTotal = 0
   if(rubro === 'riego') {
     usdTotal = kvaRiego * costoKvaRiego
+  } else if(rubro === 'flete') {
+    usdTotal = _flMon==='ars' ? (_flTons * _flPr) / _flTc : _flTons * _flPr
+  } else if(rubro === 'empleados') {
+    usdTotal = _empMon==='ars' ? _empMonto / _empTc : _empMonto
   } else if(unidad === 'usd_ha') {
     usdTotal = precioUnit * haFinal
   } else if(cantidad) {
@@ -4975,6 +5078,21 @@ window.guardarGasto = async function() {
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
     if(rubro === 'riego') { _p.kva_consumo = kvaRiego; _p.costo_kva = costoKvaRiego }
+    if(rubro === 'flete') {
+      _p.cantidad = _flTons
+      _p.precio_unitario = _flPr
+      _p.unidad = _flMon==='ars' ? 'ton_ars' : 'toneladas'
+      if(_flMon==='ars') _p.precio_cereal = _flTc
+      var _flDesc=document.getElementById('g-flete-desc')?.value?.trim()||null
+      if(_flDesc) _p.descripcion = _flDesc
+    }
+    if(rubro === 'empleados') {
+      _p.precio_unitario = _empMonto
+      _p.unidad = _empMon==='ars' ? 'total_ars' : 'total_usd'
+      if(_empMon==='ars') _p.precio_cereal = _empTc
+      var _empDesc=document.getElementById('g-emp-desc')?.value?.trim()||null
+      if(_empDesc) _p.descripcion = _empDesc
+    }
     if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
@@ -5020,6 +5138,8 @@ window.guardarGasto = async function() {
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
     document.getElementById('riego-campos').style.display='none'
+    document.getElementById('flete-campos').style.display='none'
+    document.getElementById('empleados-campos').style.display='none'
     document.getElementById('gasto-main-fields').style.display='block'
     var _cu=document.getElementById('gasto-col-unidad'); if(_cu) _cu.style.display=''
     var _cc=document.getElementById('gasto-col-cantidad'); if(_cc) _cc.style.display=''
@@ -5027,6 +5147,11 @@ window.guardarGasto = async function() {
     var _dl=document.getElementById('g-desc-label'); if(_dl) _dl.textContent='Insumo / Producto'
     var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
     var _pu=document.getElementById('g-precio-unit-label'); if(_pu) _pu.textContent='Precio (USD/L)'
+    ;['g-flete-desc','g-flete-tons','g-flete-precio','g-flete-tc','g-emp-desc','g-emp-monto','g-emp-tc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+    var _flm=document.getElementById('g-flete-moneda'); if(_flm) _flm.value='usd'
+    var _emm=document.getElementById('g-emp-moneda'); if(_emm) _emm.value='usd'
+    var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
+    var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
     document.getElementById('div-nueva-cat').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
@@ -5073,6 +5198,27 @@ window.editarGasto = function(id) {
   if(g.rubro === 'riego') {
     if(g.kva_consumo) document.getElementById('g-riego-kva').value = g.kva_consumo
     if(g.costo_kva) document.getElementById('g-riego-costo-kva').value = g.costo_kva
+  }
+  // Flete: poblar campos específicos
+  if(g.rubro === 'flete') {
+    var _eflMon = (g.unidad==='ton_ars') ? 'ars' : 'usd'
+    var eflMonEl = document.getElementById('g-flete-moneda'); if(eflMonEl) eflMonEl.value = _eflMon
+    var eflTonsEl = document.getElementById('g-flete-tons'); if(eflTonsEl && g.cantidad) eflTonsEl.value = g.cantidad
+    var eflPrEl = document.getElementById('g-flete-precio'); if(eflPrEl && g.precio_unitario) eflPrEl.value = g.precio_unitario
+    if(_eflMon==='ars') { var eflTcEl=document.getElementById('g-flete-tc'); if(eflTcEl && g.precio_cereal) eflTcEl.value = g.precio_cereal }
+    var eflDescEl = document.getElementById('g-flete-desc'); if(eflDescEl && g.descripcion) eflDescEl.value = g.descripcion
+    var eflTcRow = document.getElementById('g-flete-tc-row'); if(eflTcRow) eflTcRow.style.display = _eflMon==='ars' ? '' : 'none'
+    var eflPrLbl = document.getElementById('g-flete-precio-label'); if(eflPrLbl) eflPrLbl.textContent = _eflMon==='ars' ? 'Precio por tonelada (ARS/tn)' : 'Precio por tonelada (USD/tn)'
+  }
+  // Empleados: poblar campos específicos
+  if(g.rubro === 'empleados') {
+    var _eempMon = (g.unidad==='total_ars') ? 'ars' : 'usd'
+    var eempMonEl = document.getElementById('g-emp-moneda'); if(eempMonEl) eempMonEl.value = _eempMon
+    var eempMontoEl = document.getElementById('g-emp-monto'); if(eempMontoEl && g.precio_unitario) eempMontoEl.value = g.precio_unitario
+    if(_eempMon==='ars') { var eempTcEl=document.getElementById('g-emp-tc'); if(eempTcEl && g.precio_cereal) eempTcEl.value = g.precio_cereal }
+    var eempDescEl = document.getElementById('g-emp-desc'); if(eempDescEl && g.descripcion) eempDescEl.value = g.descripcion
+    var eempTcRow = document.getElementById('g-emp-tc-row'); if(eempTcRow) eempTcRow.style.display = _eempMon==='ars' ? '' : 'none'
+    var eempMontoLbl = document.getElementById('g-emp-monto-label'); if(eempMontoLbl) eempMontoLbl.textContent = _eempMon==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
   }
   onRubroChange()
   calcConv()

@@ -5489,7 +5489,13 @@ window.abrirCampo = function(id) {
   var tabSens = document.getElementById('tab-sens-campo')
   if (tabRent) tabRent.style.display = puedeVerRentabilidad() ? '' : 'none'
   if (tabSens) tabSens.style.display = puedeVerRentabilidad() ? '' : 'none'
-  renderDetGastos()
+  // Renderizar tab activo (Ingresos) de inmediato
+  renderIngresosTab()
+  // Pre-renderizar las otras tabs en background → cambio de tab sin espera
+  setTimeout(function() {
+    renderDetGastos()
+    if (puedeVerRentabilidad()) renderCampoRent()
+  }, 0)
   window.scrollTo(0,0)
 }
 

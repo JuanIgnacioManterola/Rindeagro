@@ -364,7 +364,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   body * { visibility: hidden }
   #modulo-rentabilidad, #modulo-rentabilidad * { visibility: visible }
   #modulo-rentabilidad { position: fixed; top: 0; left: 0; width: 100%; padding: 24px }
-  .overlay, #screen-loading, .app-nav, #banner-colaborador { display: none !important }
+  .overlay, #screen-loading, .app-nav, #banner-colaborador, #dev-widget { display: none !important }
   #rent-pdf-banner { display: none !important }
   canvas { max-width: 100% }
 }
@@ -1502,6 +1502,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
   </div>
 </div>
+
+<!-- ── DEV WIDGET (solo visible con ?dev=1) ── -->
+<div id="dev-widget" style="display:none;position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;font-family:'DM Sans',sans-serif">
+  <!-- Badge toggle -->
+  <button id="dev-badge" onclick="_devToggle()" style="background:#1a1a18;color:#c9a84c;border:1.5px solid rgba(201,168,76,.4);border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.06em;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.3)">
+    <span style="width:7px;height:7px;border-radius:50%;background:#c9a84c;display:inline-block"></span> DEV
+  </button>
+  <!-- Panel -->
+  <div id="dev-panel" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;width:240px;background:#1a1a18;border:1.5px solid rgba(201,168,76,.3);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5)">
+    <!-- Header -->
+    <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:10px;font-weight:700;color:rgba(201,168,76,.8);letter-spacing:.1em;text-transform:uppercase">Dev Mode</div>
+      <div id="dev-status" style="font-size:12px;color:#fff;margin-top:3px;font-weight:500">Admin</div>
+    </div>
+    <!-- Simulate section -->
+    <div style="padding:10px 14px 8px">
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Simular vista de</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button onclick="_devSimular('sin_permisos')"    class="dev-sim-btn">🚫 Sin permisos</button>
+        <button onclick="_devSimular('carga_basica')"    class="dev-sim-btn">📝 Solo carga</button>
+        <button onclick="_devSimular('sin_rentabilidad')" class="dev-sim-btn">👁 Sin rentabilidad</button>
+        <button onclick="_devSimular('acceso_completo')" class="dev-sim-btn">✅ Acceso completo</button>
+      </div>
+    </div>
+    <!-- Back to admin -->
+    <div style="padding:0 14px 12px">
+      <button onclick="_devVolverAdmin()" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.08);color:#c9a84c;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.08)'">🔑 Volver a Admin</button>
+    </div>
+  </div>
+</div>
+<style>
+.dev-sim-btn{width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:all .15s}
+.dev-sim-btn:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)}
+</style>
 
 <div class="toast" id="toast"></div>
 
@@ -5962,6 +5996,87 @@ window.compartirInvWA = function() {
   var mensaje = encodeURIComponent('Hola! Te invito a colaborar en mi cuenta de RindeAgro para cargar datos del campo.\n\nEntrá por este link para sumarte:\n' + link + '\n\nEl link expira en 7 días.')
   window.open('https://wa.me/?text=' + mensaje, '_blank')
 }
+
+// ══════════════════════════════════════════════
+// DEV WIDGET — solo activo con ?dev=1 en la URL
+// ══════════════════════════════════════════════
+;(function() {
+  var _devActive = new URLSearchParams(window.location.search).get('dev') === '1'
+  if (!_devActive) return
+
+  // Mostrar el widget cuando la app esté lista
+  function _devInit() {
+    var w = document.getElementById('dev-widget')
+    if (w) w.style.display = 'block'
+    _devUpdateStatus()
+  }
+
+  function _devUpdateStatus() {
+    var el = document.getElementById('dev-status')
+    if (!el) return
+    var ctx = window.CONTEXTO
+    if (!ctx || !ctx.esColaborador) {
+      el.textContent = '🔑 Admin (vista completa)'
+      el.style.color = '#c9a84c'
+    } else {
+      var p = ctx.permisos || {}
+      var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                  rentabilidad_campo:'Rent/campo',rentabilidad_total:'Rent/total',mapa:'Mapa',alertas:'Alertas'}
+      var acc = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
+      el.textContent = acc.length ? '👤 Colaborador · ' + acc.length + ' módulo' + (acc.length!==1?'s':'') : '👤 Colaborador · Sin permisos'
+      el.style.color = '#fff'
+    }
+  }
+
+  window._devToggle = function() {
+    var panel = document.getElementById('dev-panel')
+    if (!panel) return
+    var open = panel.style.display !== 'none'
+    panel.style.display = open ? 'none' : 'block'
+    if (!open) _devUpdateStatus()
+  }
+
+  window._devSimular = function(preset) {
+    if (!window.CONTEXTO) return
+    var p = PERMISOS_PRESETS[preset]
+    if (!p) return
+    var NOMBRES = {sin_permisos:'Sin permisos', carga_basica:'Solo carga', sin_rentabilidad:'Sin rentabilidad', acceso_completo:'Acceso completo'}
+    window.CONTEXTO = {
+      esColaborador: true,
+      ownerIdActivo: window.CONTEXTO.ownerIdActivo || (usuario && usuario.id),
+      rolActivo: 'colaborador',
+      userId: window.CONTEXTO.userId || (usuario && usuario.id),
+      nombreDisplay: 'Dev · ' + (NOMBRES[preset] || preset),
+      permisos: Object.assign({}, p)
+    }
+    _renderBannerColaborador()
+    renderDashboard()
+    _devUpdateStatus()
+    showToast('🛠 Vista: ' + (NOMBRES[preset]||preset), 'info')
+  }
+
+  window._devVolverAdmin = function() {
+    if (!usuario) return
+    window.CONTEXTO = {
+      esColaborador: false,
+      ownerIdActivo: usuario.id,
+      rolActivo: 'dueño',
+      userId: usuario.id
+    }
+    _renderBannerColaborador()
+    renderDashboard()
+    _devUpdateStatus()
+    showToast('🔑 Vista admin restaurada', 'ok')
+  }
+
+  // Inicializar cuando la app esté lista (poll hasta que usuario exista)
+  var _devPoll = setInterval(function() {
+    if (typeof usuario !== 'undefined' && usuario) {
+      clearInterval(_devPoll)
+      _devInit()
+    }
+  }, 400)
+})()
 
 window.eliminarCampo = async function(id, nombre) {
   if(!confirm('¿Eliminar el campo "'+nombre+'"? Se van a borrar también todos sus gastos, lluvias y análisis de suelo. Esta acción no se puede deshacer.')) return

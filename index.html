@@ -1035,35 +1035,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..." oninput="_autoMapaDesdeUbicacion()"/>
       </div>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg">
-        <label class="fl">Rendimiento esperado (qq/ha)</label>
-        <input class="fi" type="number" id="c-rend" placeholder="Ej: 40" min="0" step="0.1"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Precio de venta est. (USD/tn)</label>
-        <input class="fi" type="number" id="c-precio-venta" placeholder="Ej: 300" min="0" step="1"/>
-      </div>
-    </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg">
-        <label class="fl">Tenencia</label>
-        <select class="fi" id="c-ten" style="cursor:pointer">
-          <option value="propio">Propio</option>
-          <option value="alquilado">Alquilado</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Sistema de siembra</label>
-        <select class="fi" id="c-sistema" style="cursor:pointer">
-          <option value="">Sin especificar</option>
-          <option value="directa">Siembra directa</option>
-          <option value="convencional">Labranza convencional</option>
-          <option value="minima">Labranza mínima</option>
-          <option value="organica">Orgánico / Agroecológico</option>
-        </select>
-      </div>
-    </div>
+    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
     <div class="fg" style="margin-bottom:.9rem">
       <label class="fl">Observaciones (opcional)</label>
       <input class="fi" type="text" id="c-obs" placeholder="Ej: Suelo arenoso, con riego, historial de 50qq de soja..."/>
@@ -3518,8 +3490,7 @@ window.openModalCampo = function() {
   if(btn)btn.textContent='Guardar campo'
   if(eid)eid.value=''
   // Limpiar campos del formulario
-  ;['c-nombre','c-ha','c-rend','c-precio-venta','c-obs','c-localidad'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
-  var _sisEl2=document.getElementById('c-sistema'); if(_sisEl2) _sisEl2.value=''
+  ;['c-nombre','c-ha','c-obs','c-localidad'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
   var _tenEl=document.getElementById('c-ten'); if(_tenEl) _tenEl.value='propio'
   // Reset cultivo chips
   document.querySelectorAll('.cult-chip').forEach(function(b) {
@@ -3851,7 +3822,6 @@ window.guardarCampo = async function() {
       provincia: document.getElementById('c-prov')?.value||null,
       zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null,
       hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null,
-      sistema_siembra: document.getElementById('c-sistema')?.value||null,
       observaciones: document.getElementById('c-obs')?.value?.trim()||null
     }
 
@@ -3996,9 +3966,6 @@ window.editarCampoActual = function() {
   if(c.zonas_cultivo) { try { cultivosZonasTemp = JSON.parse(c.zonas_cultivo) } catch(e){} }
   if(c.hectareas_cultivo) { try { cultivosHectareasTemp = JSON.parse(c.hectareas_cultivo) } catch(e){} }
   renderZonasBtns()
-  var _rendEl=document.getElementById('c-rend'); if(_rendEl) _rendEl.value = c.rendimiento||''
-  var _pvEl=document.getElementById('c-precio-venta'); if(_pvEl) _pvEl.value = c.precio_venta||''
-  var _sisEl=document.getElementById('c-sistema'); if(_sisEl) _sisEl.value = c.sistema_siembra||''
   var _obsEl=document.getElementById('c-obs'); if(_obsEl) _obsEl.value = c.observaciones||''
   document.getElementById('c-ten').value = c.tenencia||'propio'
   if(document.getElementById('c-localidad'))document.getElementById('c-localidad').value=c.localidad||''
@@ -5504,8 +5471,7 @@ window.abrirCampo = function(id) {
   var c = campos.find(function(f){return f.id===id})
   if (!c) return
   document.getElementById('det-campo-nombre').textContent = c.nombre
-  var _metaSis = c.sistema_siembra ? ' · '+{directa:'Siembra directa',convencional:'Labranza convencional',minima:'Labranza mínima',organica:'Orgánico'}[c.sistema_siembra]||c.sistema_siembra : ''
-  document.getElementById('det-campo-meta').textContent = (c.hectareas||0).toLocaleString('es-AR') + ' ha · ' + (c.cultivo||'Sin cultivo') + ' · ' + (c.tenencia||'propio') + (c.provincia?' · '+c.provincia:'') + _metaSis
+  document.getElementById('det-campo-meta').textContent = (c.hectareas||0).toLocaleString('es-AR') + ' ha · ' + (c.cultivo||'Sin cultivo') + ' · ' + (c.tenencia||'propio') + (c.provincia?' · '+c.provincia:'')
   document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
   document.getElementById('mod-campo-detalle').classList.add('active')
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})

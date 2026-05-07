@@ -1193,10 +1193,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <div id="gasto-main-fields">
-    <div class="fg"><label class="fl">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
+    <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
-      <div class="fg">
+    <div id="gasto-3col-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg" id="gasto-col-unidad">
         <label class="fl">Unidad de medida</label>
         <select class="fi" id="g-unidad" style="cursor:pointer" onchange="onUnidadChange()">
           <option value="litros">Litros / ha (L/ha)</option>
@@ -1205,11 +1205,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <option value="usd_ha">USD / ha directo</option>
         </select>
       </div>
-      <div class="fg">
+      <div class="fg" id="gasto-col-cantidad">
         <label class="fl" id="g-cant-label">Cantidad (L/ha)</label>
         <input class="fi" type="number" id="g-cantidad" placeholder="Ej: 3.5" min="0" step="0.01" oninput="calcConv()"/>
       </div>
-      <div class="fg">
+      <div class="fg" id="gasto-col-precio">
         <label class="fl" id="g-precio-unit-label">Precio (USD/L)</label>
         <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 3.2" min="0" step="0.01" oninput="calcConv()"/>
       </div>
@@ -3957,32 +3957,73 @@ window.onRubroChange = function() {
   var rubro = document.getElementById('g-rubro').value
   var subDiv = document.getElementById('laboreo-subtipos')
   var riegoDiv = document.getElementById('riego-campos')
-  var camposGrid = document.querySelector('#ov-gasto .fg:has(#g-unidad)')?.parentElement
-  var mainFields = document.getElementById('gasto-campos-principales')
-  if(subDiv) subDiv.style.display = rubro==='laboreo' ? 'block' : 'none'
-  if(riegoDiv) riegoDiv.style.display = rubro==='riego' ? 'block' : 'none'
-  if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
-  // Ocultar campos normales cuando es riego
   var normalFields = document.getElementById('gasto-main-fields')
-  if(normalFields) normalFields.style.display = rubro==='riego' ? 'none' : 'block'
-  var unidad = document.getElementById('g-unidad')
+  var colUnidad = document.getElementById('gasto-col-unidad')
+  var colCantidad = document.getElementById('gasto-col-cantidad')
+  var gridCols = document.getElementById('gasto-3col-grid')
+  var descLabel = document.getElementById('g-desc-label')
+  var descInput = document.getElementById('g-desc')
   var cantLabel = document.getElementById('g-cant-label')
   var precLabel = document.getElementById('g-precio-unit-label')
-  if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
-    if(unidad) unidad.value='litros'
-    if(cantLabel) cantLabel.textContent='Cantidad (L/ha)'
-    if(precLabel) precLabel.textContent='Precio (USD/L)'
-  } else if(rubro==='fertilizantes'||rubro==='semillas') {
-    if(unidad) unidad.value='kg'
-    if(cantLabel) cantLabel.textContent='Cantidad (kg/ha)'
-    if(precLabel) precLabel.textContent='Precio (USD/kg)'
-  } else if(rubro==='laboreo') {
-    if(unidad) unidad.value='usd_ha'
-    if(cantLabel) cantLabel.textContent='—'
-    if(precLabel) precLabel.textContent='Precio (USD/ha)'
-  } else if(rubro==='riego') {
-    // Riego usa sus propios campos, limpiar los normales
-    if(unidad) unidad.value='usd_ha'
+  var unidad = document.getElementById('g-unidad')
+
+  // Reset defaults
+  if(subDiv) subDiv.style.display = 'none'
+  if(riegoDiv) riegoDiv.style.display = 'none'
+  if(normalFields) normalFields.style.display = 'block'
+  if(colUnidad) colUnidad.style.display = ''
+  if(colCantidad) colCantidad.style.display = ''
+  if(gridCols) gridCols.style.gridTemplateColumns = '1fr 1fr 1fr'
+  if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
+
+  var SIMPLE_RUBROS = ['semillas','laboreo','flete','empleados','arrendamiento']
+  var isSimple = SIMPLE_RUBROS.indexOf(rubro) >= 0
+
+  if(rubro === 'riego') {
+    if(riegoDiv) riegoDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(isSimple) {
+    // Solo mostrar campo de precio USD/ha, sin unidad ni cantidad
+    if(colUnidad) colUnidad.style.display = 'none'
+    if(colCantidad) colCantidad.style.display = 'none'
+    if(gridCols) gridCols.style.gridTemplateColumns = '1fr'
+    if(unidad) unidad.value = 'usd_ha'
+    if(precLabel) precLabel.textContent = 'Precio (USD/ha)'
+    if(rubro === 'laboreo') {
+      if(subDiv) subDiv.style.display = 'block'
+      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
+      if(descInput) descInput.placeholder = 'Ej: Empresa proveedora, observaciones...'
+    } else if(rubro === 'semillas') {
+      if(descLabel) descLabel.textContent = 'Variedad / Producto'
+      if(descInput) descInput.placeholder = 'Ej: Soja RR1, Pioneer 1050W, NK880...'
+    } else if(rubro === 'flete') {
+      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
+      if(descInput) descInput.placeholder = 'Ej: Flete cosecha a acopio'
+    } else if(rubro === 'empleados') {
+      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
+      if(descInput) descInput.placeholder = 'Ej: Jornalero, maquinista, salario mensual...'
+    } else if(rubro === 'arrendamiento') {
+      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
+      if(descInput) descInput.placeholder = 'Ej: Lote norte, campaña 24/25...'
+    }
+  } else if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
+    if(unidad) unidad.value = 'litros'
+    if(cantLabel) cantLabel.textContent = 'Cantidad (L/ha)'
+    if(precLabel) precLabel.textContent = 'Precio (USD/L)'
+    if(descLabel) descLabel.textContent = 'Insumo / Producto'
+    if(descInput) descInput.placeholder = 'Ej: Glifosato 480, Clorotalonil 72%...'
+  } else if(rubro==='fertilizantes') {
+    if(unidad) unidad.value = 'kg'
+    if(cantLabel) cantLabel.textContent = 'Cantidad (kg/ha)'
+    if(precLabel) precLabel.textContent = 'Precio (USD/kg)'
+    if(descLabel) descLabel.textContent = 'Fertilizante / Producto'
+    if(descInput) descInput.placeholder = 'Ej: Urea 46%, DAP, SPS, Nitrato de amonio...'
+  } else {
+    // otros y categorías personalizadas
+    if(unidad) unidad.value = 'usd_ha'
+    if(precLabel) precLabel.textContent = 'Precio (USD/ha)'
+    if(descLabel) descLabel.textContent = 'Descripción'
+    if(descInput) descInput.placeholder = 'Ingresá una descripción...'
   }
 }
 window.onUnidadChange = function() {
@@ -4833,6 +4874,15 @@ window.openModalGasto = function() {
     b.style.borderColor = 'var(--borde)'
     b.style.color = 'var(--texto-mid)'
   })
+  // Reset campo visibility to defaults
+  var _cu=document.getElementById('gasto-col-unidad'); if(_cu) _cu.style.display=''
+  var _cc=document.getElementById('gasto-col-cantidad'); if(_cc) _cc.style.display=''
+  var _cg=document.getElementById('gasto-3col-grid'); if(_cg) _cg.style.gridTemplateColumns='1fr 1fr 1fr'
+  var _dl=document.getElementById('g-desc-label'); if(_dl) _dl.textContent='Insumo / Producto'
+  var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
+  document.getElementById('laboreo-subtipos').style.display='none'
+  document.getElementById('riego-campos').style.display='none'
+  document.getElementById('gasto-main-fields').style.display='block'
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
@@ -4874,7 +4924,7 @@ window.guardarGasto = async function() {
   var costoKvaRiego = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
 
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
-  if(rubro==='laboreo'&&!gastoSubTipo){showToast('⚠️ Seleccioná el tipo de labor','err');return}
+  // sub-tipo de laboreo es opcional
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
   if(rubro==='riego') {
     if(!kvaRiego||kvaRiego<=0){showToast('⚠️ Ingresá el consumo en kVA','err');return}
@@ -4971,6 +5021,12 @@ window.guardarGasto = async function() {
     document.getElementById('laboreo-subtipos').style.display='none'
     document.getElementById('riego-campos').style.display='none'
     document.getElementById('gasto-main-fields').style.display='block'
+    var _cu=document.getElementById('gasto-col-unidad'); if(_cu) _cu.style.display=''
+    var _cc=document.getElementById('gasto-col-cantidad'); if(_cc) _cc.style.display=''
+    var _cg=document.getElementById('gasto-3col-grid'); if(_cg) _cg.style.gridTemplateColumns='1fr 1fr 1fr'
+    var _dl=document.getElementById('g-desc-label'); if(_dl) _dl.textContent='Insumo / Producto'
+    var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
+    var _pu=document.getElementById('g-precio-unit-label'); if(_pu) _pu.textContent='Precio (USD/L)'
     document.getElementById('div-nueva-cat').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))

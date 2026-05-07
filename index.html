@@ -1244,6 +1244,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Campos específicos de arrendamiento -->
+    <div id="arrendamiento-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#fef3c7;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#d97706">🏠 El arrendamiento se expresa en quintales de soja por hectárea. El valor en USD se calcula automáticamente con el precio de la soja.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-arr-desc" placeholder="Ej: Lote norte, campaña 24/25..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg">
+          <label class="fl">Quintales de soja / ha (qq/ha)</label>
+          <input class="fi" type="number" id="g-arr-qq" placeholder="Ej: 9" min="0" step="0.1" oninput="calcConv()"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Precio soja (USD/tn)</label>
+          <input class="fi" type="number" id="g-arr-precio-soja" placeholder="Ej: 300" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
+    </div>
+
     <div id="gasto-main-fields">
     <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
 
@@ -4026,6 +4042,7 @@ window.onRubroChange = function() {
   if(riegoDiv) riegoDiv.style.display = 'none'
   if(fleteDiv) fleteDiv.style.display = 'none'
   if(empDiv) empDiv.style.display = 'none'
+  var arrDiv2 = document.getElementById('arrendamiento-campos'); if(arrDiv2) arrDiv2.style.display = 'none'
   if(normalFields) normalFields.style.display = 'block'
   if(colUnidad) colUnidad.style.display = ''
   if(colCantidad) colCantidad.style.display = ''
@@ -4041,7 +4058,14 @@ window.onRubroChange = function() {
   } else if(rubro === 'empleados') {
     if(empDiv) empDiv.style.display = 'block'
     if(normalFields) normalFields.style.display = 'none'
-  } else if(rubro === 'laboreo' || rubro === 'semillas' || rubro === 'arrendamiento') {
+  } else if(rubro === 'arrendamiento') {
+    var arrDiv = document.getElementById('arrendamiento-campos')
+    if(arrDiv) arrDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+    // Pre-fill precio soja
+    var arrPsEl = document.getElementById('g-arr-precio-soja')
+    if(arrPsEl && !arrPsEl.value) arrPsEl.value = precios.soja || 300
+  } else if(rubro === 'laboreo' || rubro === 'semillas') {
     if(colUnidad) colUnidad.style.display = 'none'
     if(colCantidad) colCantidad.style.display = 'none'
     if(gridCols) gridCols.style.gridTemplateColumns = '1fr'
@@ -4054,9 +4078,6 @@ window.onRubroChange = function() {
     } else if(rubro === 'semillas') {
       if(descLabel) descLabel.textContent = 'Variedad / Producto'
       if(descInput) descInput.placeholder = 'Ej: Soja RR1, Pioneer 1050W, NK880...'
-    } else if(rubro === 'arrendamiento') {
-      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
-      if(descInput) descInput.placeholder = 'Ej: Lote norte, campaña 24/25...'
     }
   } else if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
     if(unidad) unidad.value = 'litros'
@@ -4980,6 +5001,12 @@ window.calcConv = function() {
     var _emp_mon = document.getElementById('g-emp-moneda')?.value||'usd'
     var _emp_tc = parseFloat(document.getElementById('g-emp-tc')?.value)||1
     if(_emp_monto) usdTotal = _emp_mon==='ars' ? _emp_monto / _emp_tc : _emp_monto
+  } else if(rubro === 'arrendamiento') {
+    var _arr_qq = parseFloat(document.getElementById('g-arr-qq')?.value)||0
+    var _arr_ps = parseFloat(document.getElementById('g-arr-precio-soja')?.value)||precios.soja||300
+    var _arr_campo = campos.find(function(c){return c.id===(campoDet||campoRent)})
+    ha = (_arr_campo?.hectareas) || ha
+    if(_arr_qq && _arr_ps) usdTotal = _arr_qq * (_arr_ps / 10) * ha
   } else {
     var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
     var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
@@ -4993,7 +5020,12 @@ window.calcConv = function() {
   if(usdTotal > 0) {
     document.getElementById('cv-usd').textContent = 'USD ' + usdTotal.toLocaleString('es-AR', {maximumFractionDigits:2})
     document.getElementById('cv-usdha').textContent = 'USD ' + (usdTotal/ha).toFixed(2) + '/ha'
-    document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
+    if(rubro === 'arrendamiento') {
+      var _arr_qq2 = parseFloat(document.getElementById('g-arr-qq')?.value)||0
+      document.getElementById('cv-qq').textContent = _arr_qq2.toFixed(1) + ' qq/ha'
+    } else {
+      document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
+    }
   }
 }
 window.guardarGasto = async function() {
@@ -5028,6 +5060,11 @@ window.guardarGasto = async function() {
     var _empTc=parseFloat(document.getElementById('g-emp-tc')?.value)||0
     if(!_empMonto||_empMonto<=0){showToast('⚠️ Ingresá el monto del gasto','err');return}
     if(_empMon==='ars'&&(!_empTc||_empTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
+  } else if(rubro==='arrendamiento') {
+    var _arrQq=parseFloat(document.getElementById('g-arr-qq')?.value)||0
+    var _arrPs=parseFloat(document.getElementById('g-arr-precio-soja')?.value)||0
+    if(!_arrQq||_arrQq<=0){showToast('⚠️ Ingresá los quintales de soja/ha','err');return}
+    if(!_arrPs||_arrPs<=0){showToast('⚠️ Ingresá el precio de la soja','err');return}
   } else {
     if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
   }
@@ -5046,6 +5083,8 @@ window.guardarGasto = async function() {
     usdTotal = _flMon==='ars' ? (_flTons * _flPr) / _flTc : _flTons * _flPr
   } else if(rubro === 'empleados') {
     usdTotal = _empMon==='ars' ? _empMonto / _empTc : _empMonto
+  } else if(rubro === 'arrendamiento') {
+    usdTotal = _arrQq * (_arrPs / 10) * haFinal
   } else if(unidad === 'usd_ha') {
     usdTotal = precioUnit * haFinal
   } else if(cantidad) {
@@ -5092,6 +5131,14 @@ window.guardarGasto = async function() {
       if(_empMon==='ars') _p.precio_cereal = _empTc
       var _empDesc=document.getElementById('g-emp-desc')?.value?.trim()||null
       if(_empDesc) _p.descripcion = _empDesc
+    }
+    if(rubro === 'arrendamiento') {
+      _p.cantidad = _arrQq
+      _p.precio_unitario = _arrPs
+      _p.unidad = 'qq_soja'
+      _p.precio_cereal = _arrPs
+      var _arrDesc=document.getElementById('g-arr-desc')?.value?.trim()||null
+      if(_arrDesc) _p.descripcion = _arrDesc
     }
     if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
 
@@ -5152,6 +5199,8 @@ window.guardarGasto = async function() {
     var _emm=document.getElementById('g-emp-moneda'); if(_emm) _emm.value='usd'
     var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
     var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
+    var _arrd=document.getElementById('arrendamiento-campos'); if(_arrd) _arrd.style.display='none'
+    ;['g-arr-desc','g-arr-qq','g-arr-precio-soja'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
     document.getElementById('div-nueva-cat').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
@@ -5209,6 +5258,12 @@ window.editarGasto = function(id) {
     var eflDescEl = document.getElementById('g-flete-desc'); if(eflDescEl && g.descripcion) eflDescEl.value = g.descripcion
     var eflTcRow = document.getElementById('g-flete-tc-row'); if(eflTcRow) eflTcRow.style.display = _eflMon==='ars' ? '' : 'none'
     var eflPrLbl = document.getElementById('g-flete-precio-label'); if(eflPrLbl) eflPrLbl.textContent = _eflMon==='ars' ? 'Precio por tonelada (ARS/tn)' : 'Precio por tonelada (USD/tn)'
+  }
+  // Arrendamiento: poblar campos específicos
+  if(g.rubro === 'arrendamiento') {
+    var earrQqEl = document.getElementById('g-arr-qq'); if(earrQqEl && g.cantidad) earrQqEl.value = g.cantidad
+    var earrPsEl = document.getElementById('g-arr-precio-soja'); if(earrPsEl) earrPsEl.value = g.precio_unitario || g.precio_cereal || precios.soja || 300
+    var earrDescEl = document.getElementById('g-arr-desc'); if(earrDescEl && g.descripcion) earrDescEl.value = g.descripcion
   }
   // Empleados: poblar campos específicos
   if(g.rubro === 'empleados') {

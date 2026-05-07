@@ -6291,14 +6291,14 @@ function renderCampoRent() {
     return {cult:cult,ha:h2,ingTotal:ingTotal,ingHa:ingHa,ventas:ventas}
   })
   var totalIngUSD=ingRowsData.reduce(function(a,r2){return a+r2.ingTotal},0)
-  var ingHaReal=ha>0?(totalIngUSD>0?totalIngUSD/ha:ingHa):ingHa
+  var ingHaReal=ha>0?totalIngUSD/ha:0  // solo datos reales; 0 si no se cargó ingreso
   var mgHaReal=ingHaReal-costoHa
   var mcReal=mgHaReal>=0?'#1a7a52':'#c0392b'
 
   // ── Métricas ──
   var mEl=document.getElementById('cr-mets')
   if(mEl) mEl.innerHTML=[
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHaReal),s:totalIngUSD>0?'USD '+Math.round(totalIngUSD)+' total':rend+'t \xd7 USD '+Math.round(pr),c:'#1a5fa8'},
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHaReal),s:totalIngUSD>0?'USD '+Math.round(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD)+' total',c:'#c0392b'},
     {l:'Margen neto/ha',v:(mgHaReal>=0?'+':'')+'USD '+Math.round(mgHaReal),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
     {l:'Margen total',v:(mgHaReal*ha>=0?'+':'')+'USD '+Math.round(mgHaReal*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mcReal},

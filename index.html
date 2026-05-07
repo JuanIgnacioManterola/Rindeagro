@@ -478,11 +478,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
-      <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
+      <button class="anl" id="nav-campos" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
 
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
-      <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
-      <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
+      <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
+      <button class="anl" id="nav-alertas" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
 <button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
@@ -642,7 +642,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-campos">
     <div class="mod-header">
       <div><div class="mod-titulo">🌾 Mis campos</div><div class="mod-sub">Hacé clic en un campo para ver su detalle completo</div></div>
-      <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
+      <button class="btn-vs" id="btn-add-campo-nav" onclick="openModalCampo()">+ Nuevo campo</button>
     </div>
     <div id="campos-lista-cards"></div>
   </div>
@@ -680,11 +680,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
-        <button class="campo-tab active" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
-        <button class="campo-tab" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab active" id="tab-ingresos-campo" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
+        <button class="campo-tab" id="tab-gastos-campo" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
         <button class="campo-tab" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
-        <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
-        <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
+        <button class="campo-tab" id="tab-lluvias-campo" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
+        <button class="campo-tab" id="tab-suelo-campo" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
       </div>
     </div>
 
@@ -712,7 +712,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="card" id="gastos-card-lista">
         <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
-          <button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>
+          <button class="btn-vs" id="btn-add-gasto-tab" onclick="openModalGasto()">+ Agregar gasto</button>
         </div>
         <div id="det-gastos-lista"></div>
       </div>
@@ -804,7 +804,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="grid4" id="det-lluvia-mets" style="margin-bottom:14px"></div>
       <div class="grid2">
         <div class="card">
-          <div class="card-hdr"><span class="card-tit">Registro de lluvias</span><button class="btn-vs" onclick="openModalLluviaCampo()">+ Registrar</button></div>
+          <div class="card-hdr"><span class="card-tit">Registro de lluvias</span><button class="btn-vs" id="btn-add-lluvia-tab" onclick="openModalLluviaCampo()">+ Registrar</button></div>
           <div id="det-lluvia-lista"></div>
         </div>
         <div>
@@ -831,7 +831,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
             </select>
           </div>
           <div id="det-suelo-semaforo"></div>
-          <button class="btn-vs" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
+          <button class="btn-vs" id="btn-add-suelo-tab" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
         </div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
@@ -1426,27 +1426,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
       <!-- TAB INVITAR -->
       <div id="eq-sec-invitar" style="display:none">
-        <div style="margin-bottom:1.25rem">
-          <div style="font-size:12px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem">Rol del nuevo miembro</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <label id="eq-label-col" style="border:2px solid var(--verde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:var(--verde-pale);transition:all .2s" onclick="resaltarRolLabel('col')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input type="radio" name="eq-rol" value="colaborador" checked style="accent-color:var(--verde)"/>
-                <div style="font-size:14px;font-weight:700;color:var(--verde)">Colaborador</div>
-              </div>
-              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Carga gastos, lluvias e ingresos. No ve rentabilidad.</div>
-            </label>
-            <label id="eq-label-adm" style="border:2px solid var(--borde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:all .2s" onclick="resaltarRolLabel('adm')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input type="radio" name="eq-rol" value="administrador" style="accent-color:var(--verde)"/>
-                <div style="font-size:14px;font-weight:700;color:var(--verde)">Administrador</div>
-              </div>
-              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Puede además invitar a otros colaboradores.</div>
-            </label>
+        <!-- Presets rápidos -->
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Acceso rápido</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            <button onclick="_eqPreset('sin_permisos')" id="eq-preset-sin" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>🚫 Sin permisos</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">No ve ningún módulo</div>
+            </button>
+            <button onclick="_eqPreset('carga_basica')" id="eq-preset-carga" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--verde);background:var(--verde-pale);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--verde);text-align:left;transition:all .18s">
+              <div>📝 Solo carga</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Gastos + Lluvias</div>
+            </button>
+            <button onclick="_eqPreset('sin_rentabilidad')" id="eq-preset-sinrent" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>👁 Todo sin rentabilidad</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Sin módulos financieros</div>
+            </button>
+            <button onclick="_eqPreset('acceso_completo')" id="eq-preset-completo" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>✅ Acceso completo</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Igual que el administrador</div>
+            </button>
           </div>
         </div>
 
-        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.25rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <!-- Grid de módulos con permisos -->
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Permisos por módulo</div>
+          <div style="border:.5px solid var(--borde);border-radius:11px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:6px 12px;background:var(--crema-dark);border-bottom:.5px solid var(--borde)">
+              <div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em">Módulo</div>
+              <div style="font-size:10px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:.05em;text-align:center">Nada</div>
+              <div style="font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.05em;text-align:center">Ver</div>
+              <div style="font-size:10px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.05em;text-align:center">Editar</div>
+            </div>
+            <div id="eq-permisos-filas"></div>
+          </div>
+        </div>
+
+        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.1rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
           <span>🔗</span> Generar link de invitación
         </button>
 
@@ -1540,13 +1553,35 @@ var charts = {}
 // Contexto de sesión (dueño o colaborador)
 window.CONTEXTO = null
 
+// ── PRESETS DE PERMISOS ──
+var PERMISOS_PRESETS = {
+  sin_permisos:    {campos:null,gastos:null,ingresos:null,lluvias:null,suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:null,alertas:null},
+  carga_basica:    {campos:'ver',gastos:'editar',ingresos:null,lluvias:'editar',suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',alertas:null},
+  sin_rentabilidad:{campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',alertas:'ver'},
+  acceso_completo: {campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:'ver',rentabilidad_total:'ver',mapa:'editar',alertas:'ver'}
+}
+
+// puedeVer: true si el usuario puede ver el módulo (o es dueño)
+function puedeVer(modulo) {
+  if (!window.CONTEXTO || !window.CONTEXTO.esColaborador) return true
+  var p = window.CONTEXTO.permisos || {}
+  return p[modulo] === 'ver' || p[modulo] === 'editar'
+}
+
+// puedeEditar: true si el usuario puede editar el módulo (o es dueño)
+function puedeEditar(modulo) {
+  if (!window.CONTEXTO || !window.CONTEXTO.esColaborador) return true
+  var p = window.CONTEXTO.permisos || {}
+  return p[modulo] === 'editar'
+}
+
+// Compat: backward compatibility con código que usa las funciones viejas
 function puedeVerRentabilidad() {
-  if (!window.CONTEXTO) return true
-  return window.CONTEXTO.rolActivo === 'dueño'
+  return puedeVer('rentabilidad_campo') || puedeVer('rentabilidad_total')
 }
 function puedeInvitar() {
   if (!window.CONTEXTO) return false
-  return window.CONTEXTO.rolActivo === 'dueño' || window.CONTEXTO.rolActivo === 'administrador'
+  return !window.CONTEXTO.esColaborador || window.CONTEXTO.rolActivo === 'administrador'
 }
 
 // ── INIT ──
@@ -5492,20 +5527,31 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
   document.querySelectorAll('.anl')[1]?.classList.add('active')
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
-  document.querySelectorAll('.campo-tab')[0]?.classList.add('active')
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
-  document.getElementById('sec-ingresos')?.classList.add('active')
-  // Ocultar tabs de rentabilidad para colaboradores
-  var tabRent = document.getElementById('tab-rentabilidad-campo')
-  var tabSens = document.getElementById('tab-sens-campo')
-  if (tabRent) tabRent.style.display = puedeVerRentabilidad() ? '' : 'none'
-  if (tabSens) tabSens.style.display = puedeVerRentabilidad() ? '' : 'none'
-  // Renderizar tab activo (Ingresos) de inmediato
-  renderIngresosTab()
-  // Pre-renderizar las otras tabs en background → cambio de tab sin espera
+  // Aplicar visibilidad de tabs según permisos
+  _aplicarPermisosUI()
+  // Determinar primer tab visible y activarlo
+  var _tabOpts = [
+    {id:'tab-ingresos-campo', sec:'sec-ingresos',  mod:'ingresos', render: function(){renderIngresosTab()}},
+    {id:'tab-gastos-campo',   sec:'sec-gastos',    mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
+    {id:'tab-lluvias-campo',  sec:'sec-lluvias',   mod:'lluvias',  render: function(){renderDetLluvias()}},
+    {id:'tab-suelo-campo',    sec:'sec-suelo',     mod:'suelo',    render: function(){renderDetSuelo()}}
+  ]
+  var _primerTab = null
+  for (var _ti = 0; _ti < _tabOpts.length; _ti++) {
+    if (puedeVer(_tabOpts[_ti].mod)) { _primerTab = _tabOpts[_ti]; break }
+  }
+  if (_primerTab) {
+    var _tBtn = document.getElementById(_primerTab.id)
+    var _tSec = document.getElementById(_primerTab.sec)
+    if (_tBtn) _tBtn.classList.add('active')
+    if (_tSec) _tSec.classList.add('active')
+    _primerTab.render()
+  }
+  // Pre-renderizar gastos y rentabilidad en background
   setTimeout(function() {
-    renderDetGastos()
-    if (puedeVerRentabilidad()) renderCampoRent()
+    if (puedeVer('gastos') && (!_primerTab || _primerTab.mod !== 'gastos')) { gastosCultivoActivo=null; renderDetGastos() }
+    if (puedeVer('rentabilidad_campo')) renderCampoRent()
   }, 0)
   window.scrollTo(0,0)
 }
@@ -5526,7 +5572,7 @@ window.volverACampos = function() {
 async function determinarContextoUsuario(userId) {
   try {
     var { data: equipoData } = await sb.from('equipo')
-      .select('owner_id, rol, nombre_display')
+      .select('owner_id, rol, nombre_display, permisos')
       .eq('miembro_id', userId)
       .eq('activo', true)
       .single()
@@ -5536,7 +5582,8 @@ async function determinarContextoUsuario(userId) {
         ownerIdActivo: equipoData.owner_id,
         rolActivo: equipoData.rol,
         userId: userId,
-        nombreDisplay: equipoData.nombre_display
+        nombreDisplay: equipoData.nombre_display,
+        permisos: equipoData.permisos || {}
       }
     } else {
       window.CONTEXTO = {
@@ -5607,7 +5654,8 @@ async function aceptarInvitacionPendiente(userId) {
       miembro_id: userId,
       rol: rol || 'colaborador',
       nombre_display: nombreMiembro,
-      activo: true
+      activo: true,
+      permisos: inv.permisos || {}
     })
     await sb.from('invitaciones').update({ usado: true }).eq('token', token)
     localStorage.removeItem('rindeagro_inv_token')
@@ -5621,22 +5669,69 @@ async function aceptarInvitacionPendiente(userId) {
 
 function _renderBannerColaborador() {
   var banner = document.getElementById('banner-colaborador')
-  var nomEl = document.getElementById('banner-col-nombre')
-  var rolEl = document.getElementById('banner-col-rol')
-  var navRent = document.getElementById('nav-rentabilidad')
-  var btnEquipo = document.getElementById('btn-mi-equipo')
+  var nomEl  = document.getElementById('banner-col-nombre')
+  var rolEl  = document.getElementById('banner-col-rol')
   if (!banner) return
   if (window.CONTEXTO?.esColaborador) {
     banner.style.display = 'flex'
     if (nomEl) nomEl.textContent = window.CONTEXTO.nombreDisplay || 'el productor'
-    if (rolEl) rolEl.textContent = 'Rol: ' + (window.CONTEXTO.rolActivo || 'colaborador') + ' · El análisis de rentabilidad no está disponible en este modo'
+    if (rolEl) {
+      // Describir los módulos accesibles
+      var p = window.CONTEXTO.permisos || {}
+      var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                  rentabilidad_campo:'Rentabilidad campo',rentabilidad_total:'Rentabilidad total',mapa:'Mapa',alertas:'Alertas'}
+      var accesibles = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
+      rolEl.textContent = accesibles.length
+        ? 'Módulos: ' + accesibles.map(function(k){return LABS[k]}).join(', ')
+        : 'Sin permisos asignados'
+    }
   } else {
     banner.style.display = 'none'
   }
-  // Ocultar Rentabilidad en nav para colaboradores
-  if (navRent) navRent.style.display = puedeVerRentabilidad() ? '' : 'none'
-  // Mostrar "Mi equipo" solo para dueños
-  if (btnEquipo) btnEquipo.style.display = puedeInvitar() ? '' : 'none'
+  _aplicarPermisosUI()
+}
+
+// ── Aplica visibilidad de nav, tabs y botones de acción según CONTEXTO.permisos ──
+function _aplicarPermisosUI() {
+  var esCol = window.CONTEXTO && window.CONTEXTO.esColaborador
+
+  // ── Nav items ──
+  var navCampos   = document.getElementById('nav-campos')
+  var navRent     = document.getElementById('nav-rentabilidad')
+  var navMapa     = document.getElementById('nav-mapa')
+  var navAlertas  = document.getElementById('nav-alertas')
+  var btnEquipo   = document.getElementById('btn-mi-equipo')
+  if (navCampos)  navCampos.style.display  = (esCol && !puedeVer('campos'))           ? 'none' : ''
+  if (navRent)    navRent.style.display    = (esCol && !puedeVer('rentabilidad_total')) ? 'none' : ''
+  if (navMapa)    navMapa.style.display    = (esCol && !puedeVer('mapa'))              ? 'none' : ''
+  if (navAlertas) navAlertas.style.display = (esCol && !puedeVer('alertas'))           ? 'none' : ''
+  if (btnEquipo)  btnEquipo.style.display  = puedeInvitar() ? '' : 'none'
+
+  // ── Campo tabs ──
+  var tabIngresos = document.getElementById('tab-ingresos-campo')
+  var tabGastos   = document.getElementById('tab-gastos-campo')
+  var tabRent     = document.getElementById('tab-rentabilidad-campo')
+  var tabSens     = document.getElementById('tab-sens-campo')
+  var tabLluvias  = document.getElementById('tab-lluvias-campo')
+  var tabSuelo    = document.getElementById('tab-suelo-campo')
+  if (tabIngresos) tabIngresos.style.display = (esCol && !puedeVer('ingresos'))           ? 'none' : ''
+  if (tabGastos)   tabGastos.style.display   = (esCol && !puedeVer('gastos'))             ? 'none' : ''
+  if (tabRent)     tabRent.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
+  if (tabSens)     tabSens.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
+  if (tabLluvias)  tabLluvias.style.display  = (esCol && !puedeVer('lluvias'))             ? 'none' : ''
+  if (tabSuelo)    tabSuelo.style.display    = (esCol && !puedeVer('suelo'))               ? 'none' : ''
+
+  // ── Botones de acción ──
+  var btnAddCampoNav  = document.getElementById('btn-add-campo-nav')
+  var btnAddCampoDash = document.getElementById('dash-campos-btn')
+  var btnAddGasto     = document.getElementById('btn-add-gasto-tab')
+  var btnAddLluvia    = document.getElementById('btn-add-lluvia-tab')
+  var btnAddSuelo     = document.getElementById('btn-add-suelo-tab')
+  if (btnAddCampoNav)  btnAddCampoNav.style.display  = puedeEditar('campos')  ? '' : 'none'
+  if (btnAddCampoDash) btnAddCampoDash.style.display = puedeEditar('campos')  ? '' : 'none'
+  if (btnAddGasto)     btnAddGasto.style.display     = puedeEditar('gastos')  ? '' : 'none'
+  if (btnAddLluvia)    btnAddLluvia.style.display    = puedeEditar('lluvias') ? '' : 'none'
+  if (btnAddSuelo)     btnAddSuelo.style.display     = puedeEditar('suelo')   ? '' : 'none'
 }
 
 window.switchToProductor = async function(productorId, nombre, rol) {
@@ -5681,6 +5776,12 @@ window.switchEquipoTab = function(tab, btn) {
     var btnGen = document.getElementById('btn-generar-inv')
     btnGen.disabled = false
     btnGen.innerHTML = '<span>🔗</span> Generar link de invitación'
+    // Inicializar con preset "carga básica" si no hay nada configurado aún
+    if (!window._eqPermisosActuales || Object.keys(window._eqPermisosActuales).length === 0) {
+      window._eqPermisosActuales = Object.assign({}, PERMISOS_PRESETS.carga_basica)
+    }
+    _eqRenderFilas()
+    _eqResaltarPresetActivo()
   }
 }
 
@@ -5710,13 +5811,22 @@ async function _renderListaMiembros() {
     }
     el.innerHTML = data.map(function(m){
       var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+      var mp = m.permisos || {}
+      var MLABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',alertas:'Alertas'}
+      var mAcceso = Object.keys(MLABS).filter(function(k){return mp[k]==='ver'||mp[k]==='editar'})
+      var mResumen, mColor
+      if (!mAcceso.length) { mResumen='Sin permisos'; mColor='var(--rojo)' }
+      else if (mAcceso.length >= Object.keys(MLABS).length) { mResumen='Acceso completo'; mColor='#1a7a52' }
+      else { mResumen=mAcceso.length+' módulo'+(mAcceso.length!==1?'s':''); mColor='var(--verde)' }
+      var mTooltip = mAcceso.length ? mAcceso.map(function(k){return MLABS[k]}).join(', ') : 'Ningún módulo'
       return '<div style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--verde-pale);border-radius:12px;margin-bottom:.5rem">'
         +'<div style="width:38px;height:38px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:13px;font-weight:600;color:var(--verde)">'+m.nombre_display+'</div>'
-          +(m.whatsapp?'<div style="font-size:11px;color:var(--texto-suave)">+54 9 '+m.whatsapp+'</div>':'')
+          +'<div style="font-size:11px;color:var(--texto-suave);margin-top:2px" title="'+mTooltip+'">'+mTooltip+'</div>'
         +'</div>'
-        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.1);color:var(--verde);font-weight:600;white-space:nowrap;text-transform:capitalize">'+m.rol+'</span>'
+        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.08);color:'+mColor+';font-weight:600;white-space:nowrap">'+mResumen+'</span>'
         +'<button onclick="removerMiembro(\''+m.id+'\',\''+m.nombre_display.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0" title="Remover">🗑</button>'
         +'</div>'
     }).join('')
@@ -5735,18 +5845,92 @@ window.removerMiembro = async function(equipoId, nombre, btn) {
   } catch(e) { showToast('⚠️ Error al remover','err'); btn.disabled = false }
 }
 
+
+// ── PERMISOS: estado interno del configurador de invitación ──
+window._eqPermisosActuales = {}
+
+var _EQ_MODULOS = [
+  {k:'campos',             lab:'🌾 Campos'},
+  {k:'gastos',             lab:'💰 Gastos'},
+  {k:'ingresos',           lab:'💵 Ingresos'},
+  {k:'lluvias',            lab:'🌧️ Lluvias'},
+  {k:'suelo',              lab:'🔬 Suelo'},
+  {k:'rentabilidad_campo', lab:'📊 Rentabilidad por campo'},
+  {k:'rentabilidad_total', lab:'📊 Rentabilidad total'},
+  {k:'mapa',               lab:'🗺️ Mapa'},
+  {k:'alertas',            lab:'🔔 Alertas'}
+]
+
+function _eqRenderFilas() {
+  var el = document.getElementById('eq-permisos-filas')
+  if (!el) return
+  el.innerHTML = _EQ_MODULOS.map(function(m, i) {
+    var val = window._eqPermisosActuales[m.k] || null
+    var bg = i % 2 === 1 ? 'background:var(--crema-dark);' : ''
+    return '<div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:7px 12px;border-bottom:.5px solid var(--borde);'+bg+'">'
+      + '<div style="font-size:12px;font-weight:500;color:var(--texto);display:flex;align-items:center">'+m.lab+'</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">'
+        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (!val?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'',null)" style="accent-color:var(--rojo);width:15px;height:15px;cursor:pointer">'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">'
+        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (val==='ver'?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'','ver')" style="accent-color:var(--azul);width:15px;height:15px;cursor:pointer">'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">'
+        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (val==='editar'?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'','editar')" style="accent-color:var(--verde);width:15px;height:15px;cursor:pointer">'
+      + '</div>'
+    + '</div>'
+  }).join('')
+}
+
+window._eqSetPerm = function(modulo, valor) {
+  window._eqPermisosActuales[modulo] = valor || null
+  _eqResaltarPresetActivo()
+}
+
+function _eqResaltarPresetActivo() {
+  // Detectar qué preset coincide con el estado actual
+  var pActual = JSON.stringify(window._eqPermisosActuales||{})
+  var presetActivo = null
+  var presetMap = {sin_permisos:'sin', carga_basica:'carga', sin_rentabilidad:'sinrent', acceso_completo:'completo'}
+  Object.keys(presetMap).forEach(function(nombre) {
+    if (JSON.stringify(PERMISOS_PRESETS[nombre]) === pActual) presetActivo = presetMap[nombre]
+  })
+  // Resetear todos
+  Object.values(presetMap).forEach(function(pid) {
+    var b = document.getElementById('eq-preset-' + pid)
+    if (!b) return
+    b.style.borderColor = 'var(--borde)'
+    b.style.background  = 'transparent'
+    b.style.color       = 'var(--texto-mid)'
+  })
+  // Resaltar activo
+  if (presetActivo) {
+    var b = document.getElementById('eq-preset-' + presetActivo)
+    if (b) { b.style.borderColor='var(--verde)'; b.style.background='var(--verde-pale)'; b.style.color='var(--verde)' }
+  }
+}
+
+window._eqPreset = function(nombre) {
+  var preset = PERMISOS_PRESETS[nombre]
+  if (!preset) return
+  window._eqPermisosActuales = Object.assign({}, preset)
+  _eqRenderFilas()
+  _eqResaltarPresetActivo()
+}
+
 window.generarInvitacion = async function() {
-  var rolSel = document.querySelector('input[name="eq-rol"]:checked')?.value || 'colaborador'
   var btn = document.getElementById('btn-generar-inv')
   btn.disabled = true; btn.innerHTML = 'Generando...'
   try {
     var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
+    var permisos = window._eqPermisosActuales || {}
     var { error } = await sb.from('invitaciones').insert({
       token: token,
       owner_id: usuario.id,
-      rol: rolSel
+      rol: 'colaborador',
+      permisos: permisos
     })
     if (error) throw error
     var link = 'https://rindeagro.lat/?inv=' + token
@@ -5807,17 +5991,9 @@ window.eliminarCampo = async function(id, nombre) {
 
 window.switchCampoTab = function(tab, btn) {
   // Bloquear tabs de rentabilidad para colaboradores
-  if (tab === 'rentabilidad' && !puedeVerRentabilidad()) {
-    document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
-    document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
-    var secEl = document.getElementById('sec-'+tab)
-    if (secEl) {
-      secEl.classList.add('active')
-      secEl.innerHTML = '<div style="text-align:center;padding:40px"><p style="color:var(--verde);font-size:18px;font-weight:600;margin-bottom:.5rem">Acceso restringido</p><p style="color:#888">El análisis de rentabilidad es visible solo para el administrador de la cuenta.</p></div>'
-    }
-    if(btn) btn.classList.add('active')
-    return
-  }
+  // Bloquear acceso a tabs sin permiso
+  var _moduloTab = tab === 'rentabilidad' ? 'rentabilidad_campo' : tab
+  if (!puedeVer(_moduloTab)) return  // tab oculto — no debería ocurrir pero por seguridad
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
   var sec = document.getElementById('sec-'+tab)

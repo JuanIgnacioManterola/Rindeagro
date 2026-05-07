@@ -1995,26 +1995,42 @@ function renderDashboard() {
   } catch(e) {}
 }
 
+// ── Helper: ingresos reales de un campo (solo datos guardados, nunca defaults) ──
+function _ingRealParaCampo(c) {
+  var ha = c.hectareas||0
+  var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var savedIngr = {}; try{ savedIngr=JSON.parse(c.ingresos_cultivos||'{}') }catch(e){}
+  var total = 0
+  cultivosList.forEach(function(cu){
+    var d = savedIngr[cu]||{}
+    if(Array.isArray(d.ventas) && d.ventas.length>0) {
+      total += d.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+    } else if(parseFloat(d.rendimiento||0)>0 && parseFloat(d.precio_venta||0)>0) {
+      total += parseFloat(d.rendimiento)*parseFloat(d.precio_venta)*_haParaCultivo(c,cu,cultivosList)
+    }
+  })
+  // Solo usar rendimiento/precio del campo si fueron guardados explícitamente por el usuario
+  if(total===0 && parseFloat(c.rendimiento||0)>0 && parseFloat(c.precio_venta||0)>0) {
+    total = parseFloat(c.rendimiento)*parseFloat(c.precio_venta)*ha
+  }
+  return total
+}
+
 function _renderDashboardProductor() {
   var totalHa=0,ing=0,cost=0
-  campos.forEach(c => {
+  campos.forEach(function(c) {
     var ha=c.hectareas||0; totalHa+=ha
-    var cult=c.cultivo||'Soja'
-    var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var rend=c.rendimiento||rendEst
-    var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-    var pr=c.precio_venta||prEst
-    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-    var costoHa = ha>0?gc/ha:190
-    ing+=rend*pr*ha; cost+=costoHa*ha
+    var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    ing += _ingRealParaCampo(c)
+    cost += gc
   })
   var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
   var dashMets = document.getElementById('dash-mets')
   if(!dashMets) return
   dashMets.innerHTML = [
     {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
-    {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
-    {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
+    {l:'Ingresos',v:'USD '+Math.round(ing/1000)+'k',s:ing>0?'Total cargado':'Sin ingresos cargados',c:'#1a5fa8'},
+    {l:'Margen neto',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:ing>0?pct+'% del ingreso':'',c:mg>=0?'#1a7a52':'#c0392b'},
     {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
   ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
 
@@ -2030,16 +2046,15 @@ function _renderDashboardProductor() {
   } else {
     el.innerHTML = campos.map((c,i)=>{
       var ha=c.hectareas||0, cult=c.cultivo||'Soja'
-      var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-      var rend=c.rendimiento||rendEst
-      var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-      var pr=c.precio_venta||prEst
       var gc=gastos.filter(g=>g.campo_id===c.id)
-      var costoHa=ha>0?gc.reduce((a,g)=>a+(g.total_de_usd||0),0)/ha:190
-      var mg=rend*pr-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
-      var tieneGastos=gc.length>0, tieneRend=!!c.rendimiento
-      var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
-      var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+      var costoTotal=gc.reduce((a,g)=>a+(g.total_de_usd||0),0)
+      var costoHa=ha>0?costoTotal/ha:0
+      var ingTotal=_ingRealParaCampo(c)
+      var ingHa=ha>0?ingTotal/ha:0
+      var mg=ingHa-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
+      var tieneGastos=gc.length>0, tieneIngresos=ingTotal>0
+      var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+      var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
       var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
       var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
       return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
@@ -2100,12 +2115,10 @@ function renderRentabilidad() {
     selEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
       campos.map(function(c,i){
         var ha=c.hectareas||0,cult=c.cultivo||'Soja'
-        var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-        var rend=c.rendimiento||rendEst
-        var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-        var pr=c.precio_venta||prEst
         var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        var cHa=ha>0?gc/ha:190,mg=rend*pr-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
+        var cHa=ha>0?gc/ha:0
+        var ingTotal=_ingRealParaCampo(c), iHa=ha>0?ingTotal/ha:0
+        var mg=iHa-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
         var sel=c.id===campoRent
         return '<div onclick="selCampoRent(\'' + c.id + '\')" style="border:2px solid '+(sel?'var(--verde)':'var(--borde)')+';background:'+(sel?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s">' +
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:'+(sel?'rgba(255,255,255,.7)':COLS[i%COLS.length])+'"></div><span style="font-size:13px;font-weight:600;color:'+(sel?'#fff':'var(--verde)')+'">'+c.nombre+'</span></div>' +
@@ -2136,12 +2149,16 @@ function renderRentabilidad() {
   var ha = campoRent==='todos'?campos.reduce((a,c)=>a+(c.hectareas||0),0):(campo?.hectareas||0)
   var cult = campo?.cultivo||'Soja'
   var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-  var rend = campo?.rendimiento||rendEst
+  var rend = campo?.rendimiento||rendEst   // solo para tabla de sensibilidad
   var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-  var pr = campo?.precio_venta||prEst
+  var pr = campo?.precio_venta||prEst      // solo para tabla de sensibilidad
   var costoUSD = gf.reduce((a,g)=>a+(g.total_de_usd||0),0)
   var costoHa = ha>0?costoUSD/ha:0
-  var ingHa = rend*pr
+  // Ingresos reales únicamente (sin defaults)
+  var _ingTotalReal = campoRent==='todos'
+    ? campos.reduce(function(a,c){return a+_ingRealParaCampo(c)},0)
+    : (campo ? _ingRealParaCampo(campo) : 0)
+  var ingHa = ha>0?_ingTotalReal/ha:0
   var mgHa = ingHa-costoHa
   var mgPct = ingHa>0?(mgHa/ingHa*100).toFixed(1):0
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
@@ -2259,7 +2276,7 @@ function renderRentabilidad() {
 
   // Métricas secundarias (por ha, quintales equiv.)
   document.getElementById('rent-mets').innerHTML = [
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t/ha × USD '+pr+'/t'+(campo?.rendimiento?' ✓ real':' est.'),c:'#1a5fa8'},
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:_ingTotalReal>0?'USD '+Math.round(_ingTotalReal).toLocaleString('es-AR')+' total':'Sin ingresos cargados',c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD).toLocaleString('es-AR')+' total',c:'#c0392b'},
     {l:'Margen neto/ha',v:(mgHa>=0?'+':'')+'USD '+Math.round(mgHa),s:mgPct+'% del ingreso',c:mc},
     {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
@@ -2302,14 +2319,11 @@ function renderRentabilidad() {
 
   // Comparativa
   var comp = campos.map((c,i)=>{
-    var h=c.hectareas||0,cu=c.cultivo||'Soja'
-    var reEst=cu==='Maíz'?8:cu==='Trigo'?3:3.2
-    var re=c.rendimiento||reEst
-    var prrEst=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
-    var prr=c.precio_venta||prrEst
+    var h=c.hectareas||0
     var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-    var cHa=h>0?gc2/h:190
-    return {...c,mg:re*prr-cHa,col:COLORES[i%COLORES.length]}
+    var cHa=h>0?gc2/h:0
+    var iHa=h>0?_ingRealParaCampo(c)/h:0
+    return {...c,mg:iHa-cHa,col:COLORES[i%COLORES.length]}
   }).sort((a,b)=>b.mg-a.mg)
   var maxMg=Math.max(...comp.map(c=>Math.abs(c.mg)))
   var ranks=['🥇','🥈','🥉','4️⃣','5️⃣']
@@ -5424,13 +5438,10 @@ window.renderCamposLista = function() {
   var camposOrdenados = campos.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"","es") })
   camposOrdenados.forEach(function(c,i) {
     var ha = c.hectareas||0, cult = c.cultivo||'Soja'
-    var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var rend = c.rendimiento||rendEst
-    var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-    var pr = c.precio_venta||prEst
     var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-    var cHa = ha>0?gc/ha:190
-    var mg = rend*pr - cHa
+    var cHa = ha>0?gc/ha:0
+    var ingTotal = _ingRealParaCampo(c)
+    var mg = (ha>0?ingTotal/ha:0) - cHa
     var mc = mg>=0?'#1a7a52':'#c0392b'
     var llMm = lluvias.filter(function(l){return l.campo_id===c.id}).reduce(function(a,l){return a+(l.mm||0)},0)
     var nG = gastos.filter(function(g){return g.campo_id===c.id}).length
@@ -5444,9 +5455,9 @@ window.renderCamposLista = function() {
     html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑 Eliminar</button>'
     html += '</div>'
     var tieneGastos=gastos.filter(function(g){return g.campo_id===c.id}).length>0
-    var tieneRend=!!c.rendimiento
-    var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
-    var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+    var tieneIngresos=ingTotal>0
+    var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+    var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
     var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
     var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
     html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
@@ -6271,8 +6282,8 @@ function renderCampoRent() {
   })
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = ha>0?costoUSD/ha:0
-  var ingHa = rend*pr
-  var mgHa = ingHa-costoHa
+  // ingHa/mgHa preliminares — se recalculan con datos reales más abajo (ingHaReal)
+  var ingHa = 0, mgHa = -costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
 
   // ── Ingresos por cultivo (datos del tab Ingresos) ──
@@ -6922,12 +6933,8 @@ function renderDetGastos() {
   var ha = c.hectareas||1
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = costoUSD/ha
-  var cult = c.cultivo||'Soja'
-  var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-  var rend = c.rendimiento||rendEst
-  var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-  var pr = c.precio_venta||prEst
-  var ingHa = rend*pr, mgHa = ingHa-costoHa
+  var ingTotalReal = _ingRealParaCampo(c)
+  var ingHa = ha>0?ingTotalReal/ha:0, mgHa = ingHa-costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}

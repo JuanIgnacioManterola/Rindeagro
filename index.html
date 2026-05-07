@@ -5901,19 +5901,26 @@ function _eqRenderFilas() {
   el.innerHTML = _EQ_MODULOS.map(function(m, i) {
     var val = window._eqPermisosActuales[m.k] || null
     var bg = i % 2 === 1 ? 'background:var(--crema-dark);' : ''
-    return '<div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:7px 12px;border-bottom:.5px solid var(--borde);'+bg+'">'
-      + '<div style="font-size:12px;font-weight:500;color:var(--texto);display:flex;align-items:center">'+m.lab+'</div>'
-      + '<div style="display:flex;align-items:center;justify-content:center">'
-        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (!val?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'',null)" style="accent-color:var(--rojo);width:15px;height:15px;cursor:pointer">'
-      + '</div>'
-      + '<div style="display:flex;align-items:center;justify-content:center">'
-        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (val==='ver'?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'','ver')" style="accent-color:var(--azul);width:15px;height:15px;cursor:pointer">'
-      + '</div>'
-      + '<div style="display:flex;align-items:center;justify-content:center">'
-        + '<input type="radio" name="eq-perm-'+m.k+'" ' + (val==='editar'?'checked':'') + ' onchange="_eqSetPerm(''+m.k+'','editar')" style="accent-color:var(--verde);width:15px;height:15px;cursor:pointer">'
-      + '</div>'
+    // Usar data-mod y data-val para evitar problemas de escapado de comillas en onchange
+    function radio(v, color, checked) {
+      return '<input type="radio" name="eq-perm-' + m.k + '" data-mod="' + m.k + '" data-val="' + (v||'') + '" '
+        + (checked ? 'checked ' : '')
+        + 'onchange="_eqSetPermEl(this)" style="accent-color:' + color + ';width:15px;height:15px;cursor:pointer">'
+    }
+    return '<div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:7px 12px;border-bottom:.5px solid var(--borde);' + bg + '">'
+      + '<div style="font-size:12px;font-weight:500;color:var(--texto);display:flex;align-items:center">' + m.lab + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio(null,  'var(--rojo)',  !val) + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio('ver', 'var(--azul)',  val==='ver') + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio('editar','var(--verde)',val==='editar') + '</div>'
     + '</div>'
   }).join('')
+}
+
+window._eqSetPermEl = function(input) {
+  var mod = input.dataset.mod
+  var val = input.dataset.val || null
+  window._eqPermisosActuales[mod] = val
+  _eqResaltarPresetActivo()
 }
 
 window._eqSetPerm = function(modulo, valor) {

@@ -2672,6 +2672,7 @@ var mapInstance = null
 var capas = {}
 
 var _mapaLayers = []
+var _mapaPolyByCampo = {}  // campoId → polygon layer
 
 function initMapa() {
   if (mapaIniciado) return
@@ -2693,6 +2694,7 @@ function renderPoligonosMapa() {
   // Limpiar capas anteriores
   _mapaLayers.forEach(function(l){ mapInstance.removeLayer(l) })
   _mapaLayers = []
+  _mapaPolyByCampo = {}
 
   var bounds = []
 
@@ -2743,6 +2745,7 @@ function renderPoligonosMapa() {
           })
           var marker = L.marker(center, {icon: label, interactive: false}).addTo(mapInstance)
 
+          _mapaPolyByCampo[c.id] = poly  // registrar para búsqueda directa
           _mapaLayers.push(poly)
           _mapaLayers.push(marker)
           pts.forEach(function(p){ bounds.push(p) })
@@ -2841,17 +2844,13 @@ window.irACampoEnMapa = function(id) {
     try {
       var pts = typeof c.poligono==='string' ? JSON.parse(c.poligono) : c.poligono
       if(pts && pts.length >= 3) {
-        // Buscar el layer del polígono entre _mapaLayers
-        var poly = null
-        _mapaLayers.forEach(function(l) {
-          if(l.getBounds && !l.getLatLng) poly = l // es un polígono, no un marker
-        })
         mapInstance.fitBounds(pts, {padding:[40,40], maxZoom:15})
-        // Resaltar brevemente el polígono
+        // Resaltar el polígono específico de este campo
+        var poly = _mapaPolyByCampo[id] || null
         if(poly) {
           var colOriginal = poly.options.color
           poly.setStyle({color:'#c9a84c',weight:4,fillOpacity:.4})
-          setTimeout(function(){ poly.setStyle({color:colOriginal,weight:2.5,fillOpacity:.25}) }, 1500)
+          setTimeout(function(){ poly.setStyle({color:colOriginal,weight:2.5,fillOpacity:.35}) }, 1500)
           setTimeout(function(){ poly.openPopup() }, 300)
         }
         // Scroll al mapa

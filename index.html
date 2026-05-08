@@ -482,7 +482,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
-      <button class="anl" id="nav-alertas" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
+      <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
 <button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
@@ -529,8 +529,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div>
         <div class="card">
-          <div class="card-hdr"><span class="card-tit">Alertas urgentes</span></div>
-          <div id="dash-alertas"></div>
+          <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
+          <div id="dash-tareas"></div>
         </div>
 
       </div>
@@ -930,13 +930,67 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="mp-planes-lista"></div>
   </div>
 
-  <div class="modulo" id="mod-notificaciones">
+  <div class="modulo" id="mod-tareas">
     <div class="mod-header">
-      <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente</div></div>
-      <div style="display:flex;gap:6px" id="notif-filtros"></div>
+      <div><div class="mod-titulo">✅ Tareas</div><div class="mod-sub" id="tareas-sub">Gestioná y asigná tareas a tu equipo</div></div>
+      <button id="btn-nueva-tarea" onclick="abrirModalTarea()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Nueva tarea</button>
     </div>
-    <div id="notif-lista"></div>
+    <!-- Filtros por estado -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="tareas-filtros"></div>
+    <!-- Lista de tareas -->
+    <div id="tareas-lista"></div>
   </div>
+  </div>
+</div>
+
+<!-- MODAL TAREA -->
+<div class="overlay" id="ov-tarea">
+  <div class="modal" style="max-width:500px">
+    <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
+    <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:1.2rem">Nueva tarea</div>
+
+    <div class="fg">
+      <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
+      <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Descripción</label>
+      <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Campo (opcional)</label>
+        <select class="fi" id="t-campo" style="cursor:pointer">
+          <option value="">Todos los campos</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Prioridad</label>
+        <select class="fi" id="t-prioridad" style="cursor:pointer">
+          <option value="media">🟡 Media</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="baja">🟢 Baja</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Asignar a</label>
+        <select class="fi" id="t-asignado" style="cursor:pointer">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Fecha límite</label>
+        <input class="fi" type="date" id="t-fecha"/>
+      </div>
+    </div>
+
+    <input type="hidden" id="t-id"/>
+    <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()" style="margin-top:1.2rem">Guardar tarea</button>
   </div>
 </div>
 
@@ -1590,10 +1644,10 @@ window.CONTEXTO = null
 
 // ── PRESETS DE PERMISOS ──
 var PERMISOS_PRESETS = {
-  sin_permisos:    {campos:null,gastos:null,ingresos:null,lluvias:null,suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:null,alertas:null},
-  carga_basica:    {campos:'ver',gastos:'editar',ingresos:null,lluvias:'editar',suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',alertas:null},
-  sin_rentabilidad:{campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',alertas:'ver'},
-  acceso_completo: {campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:'ver',rentabilidad_total:'ver',mapa:'editar',alertas:'ver'}
+  sin_permisos:    {campos:null,gastos:null,ingresos:null,lluvias:null,suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:null,tareas:null},
+  carga_basica:    {campos:'ver',gastos:'editar',ingresos:null,lluvias:'editar',suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',tareas:'ver'},
+  sin_rentabilidad:{campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',tareas:'ver'},
+  acceso_completo: {campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:'ver',rentabilidad_total:'ver',mapa:'editar',tareas:'ver'}
 }
 
 // puedeVer: true si el usuario puede ver el módulo (o es dueño)
@@ -1807,12 +1861,13 @@ async function cargarTodo() {
     }
     return r
   }
-  var [resP, resC, resG, resL, resS] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
+    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
+    sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false})
   ])
 
   // Perfil → nombre/saludo
@@ -1832,12 +1887,14 @@ async function cargarTodo() {
   var freshGastos  = (resG.status==='fulfilled' && resG.value && Array.isArray(resG.value.data)) ? resG.value.data : null
   var freshLluvias = (resL.status==='fulfilled' && resL.value && Array.isArray(resL.value.data)) ? resL.value.data : null
   var freshAnalisis= (resS.status==='fulfilled' && resS.value && Array.isArray(resS.value.data)) ? resS.value.data : null
+  var freshTareas  = (resT && resT.status==='fulfilled' && resT.value && Array.isArray(resT.value.data)) ? resT.value.data : null
 
   // Solo sobrescribir si la DB respondió con datos reales (puede estar vació pero not null)
   if(freshCampos  !== null) campos    = freshCampos
   if(freshGastos  !== null) gastos    = freshGastos
   if(freshLluvias !== null) lluvias   = freshLluvias
   if(freshAnalisis!== null) analisisS = freshAnalisis
+  if(freshTareas  !== null) tareas    = freshTareas
 
   // Siempre fusionar pending aunque la DB haya respondido
   _mergePendingCampos()
@@ -1870,7 +1927,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
+  var mods = ['dashboard','campos','rentabilidad-total','mapa','tareas']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -1886,7 +1943,7 @@ window.showModulo = function(mod) {
   }
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
-  if (mod === 'notificaciones') renderNotificaciones()
+  if (mod === 'tareas') renderTareas()
 }
 
 window.openModalPrecios = function() {
@@ -2054,28 +2111,8 @@ function renderDashboard() {
   try { _renderBannerColaborador() } catch(e) {}
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
-  // Alertas (compartido)
-  try {
-    var alertas = generarAlertas()
-    var el2 = document.getElementById('dash-alertas')
-    if (el2) {
-      if (!alertas.length) {
-        el2.innerHTML = `<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin alertas pendientes ✓</div>`
-      } else {
-        el2.innerHTML = alertas.slice(0,4).map(a=>`
-          <div class="notif-item">
-            <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
-            <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">${a.campo}</div></div>
-            <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+'d'}</span>
-          </div>`).join('')
-      }
-    }
-  } catch(e) { console.error('alertas render:', e) }
-  try {
-    var badge = document.getElementById('notif-badge')
-    var urgentes = alertas.filter(a=>a.tipo==='urgente').length
-    if(badge) badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
-  } catch(e) {}
+  // Tareas en dashboard
+  try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
 }
 
 // ── Helper: ingresos reales de un campo (solo datos guardados, nunca defaults) ──
@@ -3008,67 +3045,271 @@ window.irACiudadMapa_global = function(lat, lng, nombre) {
 }
 
 // ── NOTIFICACIONES ──
-function generarAlertas() {
-  var alertas = []
-  var hoy = new Date()
+// ── SISTEMA DE TAREAS ──
+var tareas = []
+var filtroTareas = 'pendiente'
 
-  campos.forEach(c=>{
-    var cult = c.cultivo||'Soja'
-    // Alertas agronómicas según cultivo
-    if(cult==='Soja'){
-      alertas.push({ico:'🌸',tit:'Ventana fungicida en R1 · '+c.nombre,campo:c.nombre,dias:8,tipo:'pronto'})
-      alertas.push({ico:'⚗️',tit:'Monitorear chinche en R3 · '+c.nombre,campo:c.nombre,dias:21,tipo:'info'})
-    }
-    if(cult==='Maíz'){
-      alertas.push({ico:'⚗️',tit:'Refertilización en V6 · '+c.nombre,campo:c.nombre,dias:3,tipo:'urgente'})
-      alertas.push({ico:'🌽',tit:'Monitorear cogollero · '+c.nombre,campo:c.nombre,dias:14,tipo:'pronto'})
-    }
-    if(cult==='Trigo'){
-      alertas.push({ico:'💊',tit:'Fungicida en espigazón · '+c.nombre,campo:c.nombre,dias:7,tipo:'pronto'})
-    }
-  })
-
-  // Alerta precio
-  if(precios.soja>=280){
-    alertas.push({ico:'💰',tit:'Soja sobre precio objetivo (USD 280/t)',campo:'Todos los campos',dias:0,tipo:'info'})
-  }
-
-  return alertas.sort((a,b)=>{
-    var o={urgente:0,pronto:1,info:2}
-    return (o[a.tipo]||2)-(o[b.tipo]||2)||a.dias-b.dias
-  })
+async function loadTareas() {
+  if (!usuario) return
+  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var { data, error } = await sb.from('tareas').select('*').eq('owner_id', ownerId).order('created_at', {ascending: false})
+    if (!error && data) tareas = data
+  } catch(e) { console.error('loadTareas:', e) }
 }
 
-var filtroNotif = 'todas'
-function renderNotificaciones() {
-  var alertas = generarAlertas()
-  var filtros = ['todas','urgente','pronto','info']
-  document.getElementById('notif-filtros').innerHTML = filtros.map(f=>{
-    var count = f==='todas'?alertas.length:alertas.filter(a=>a.tipo===f).length
-    return `<button style="font-size:12px;padding:5px 12px;border-radius:20px;border:.5px solid ${filtroNotif===f?'var(--verde)':'var(--borde)'};background:${filtroNotif===f?'var(--verde)':'transparent'};color:${filtroNotif===f?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" onclick="setFiltroNotif('${f}',this)">${f==='todas'?'Todas':f==='urgente'?'🔴 Urgentes':f==='pronto'?'🟡 Próximas':'ℹ️ Info'} (${count})</button>`
+function _tarjPrioridad(p) {
+  if (p === 'alta')  return '<span style="background:#fdecea;color:#c0392b;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🔴 Alta</span>'
+  if (p === 'baja')  return '<span style="background:#e8f5ee;color:#0d6e41;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🟢 Baja</span>'
+  return '<span style="background:#fff7e0;color:#b7860b;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🟡 Media</span>'
+}
+
+function _tarjFecha(fecha) {
+  if (!fecha) return ''
+  var d = new Date(fecha + 'T00:00:00'), hoy = new Date()
+  hoy.setHours(0,0,0,0)
+  var diff = Math.round((d - hoy) / 86400000)
+  var label = d.toLocaleDateString('es-AR', {day:'2-digit', month:'short'})
+  if (diff < 0)  return '<span style="color:#c0392b;font-size:11px;font-weight:600">⚠️ Vencida · '+label+'</span>'
+  if (diff === 0) return '<span style="color:#c97a14;font-size:11px;font-weight:600">📅 Hoy</span>'
+  if (diff === 1) return '<span style="color:#c97a14;font-size:11px;font-weight:600">📅 Mañana</span>'
+  if (diff <= 7)  return '<span style="color:#c97a14;font-size:11px">📅 En '+diff+' días · '+label+'</span>'
+  return '<span style="color:var(--texto-suave);font-size:11px">📅 '+label+'</span>'
+}
+
+function _tarjCampo(campo_id) {
+  if (!campo_id) return ''
+  var c = campos.find(function(x){ return x.id === campo_id })
+  return c ? '<span style="font-size:11px;color:var(--texto-suave)">🌾 '+c.nombre+'</span>' : ''
+}
+
+function _tarjAsignado(uid) {
+  if (!uid) return '<span style="font-size:11px;color:var(--texto-suave)">Sin asignar</span>'
+  var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
+  if (miembro && miembro.nombre) return '<span style="font-size:11px;color:var(--texto-suave)">👤 '+miembro.nombre+'</span>'
+  return '<span style="font-size:11px;color:var(--texto-suave)">👤 Usuario</span>'
+}
+
+function renderTareas() {
+  var esAdmin = !window.CONTEXTO || !window.CONTEXTO.esColaborador
+  var filtros = [
+    {k:'pendiente',  lab:'⏳ Pendientes'},
+    {k:'en_progreso',lab:'🔄 En progreso'},
+    {k:'programada', lab:'📆 Programadas'},
+    {k:'completada', lab:'✅ Completadas'}
+  ]
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+
+  var lista = tareas.filter(function(t) {
+    if (filtroTareas === 'programada') {
+      return t.estado === 'pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy
+    }
+    if (filtroTareas === 'pendiente') {
+      if (t.estado !== 'pendiente') return false
+      if (t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy) return false
+      return true
+    }
+    return t.estado === filtroTareas
+  })
+
+  var counts = {
+    pendiente:   tareas.filter(function(t){ return t.estado==='pendiente' && (!t.fecha_vencimiento || new Date(t.fecha_vencimiento+'T00:00:00')<=hoy) }).length,
+    en_progreso: tareas.filter(function(t){ return t.estado==='en_progreso' }).length,
+    programada:  tareas.filter(function(t){ return t.estado==='pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento+'T00:00:00')>hoy }).length,
+    completada:  tareas.filter(function(t){ return t.estado==='completada' }).length
+  }
+
+  var badge = document.getElementById('tareas-badge')
+  var pending = counts.pendiente + counts.en_progreso
+  if (badge) badge.textContent = pending > 0 ? '✅ Tareas ('+pending+')' : '✅ Tareas'
+
+  var filEl = document.getElementById('tareas-filtros')
+  if (filEl) filEl.innerHTML = filtros.map(function(f) {
+    var on = filtroTareas === f.k
+    return '<button onclick="window._setFiltroTareas(\''+f.k+'\')" style="font-size:12px;padding:5px 14px;border-radius:20px;border:.5px solid '+(on?'var(--verde)':'var(--borde)')+';background:'+(on?'var(--verde)':'transparent')+';color:'+(on?'#fff':'var(--texto-mid)')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:'+(on?'600':'400')+'">'+f.lab+(counts[f.k]?' ('+counts[f.k]+')':"")+'</button>'
   }).join('')
 
-  var lista = filtroNotif==='todas'?alertas:alertas.filter(a=>a.tipo===filtroNotif)
-  var el = document.getElementById('notif-lista')
-  if(!lista.length){
-    el.innerHTML=`<div class="card"><div class="empty"><div class="empty-i">✅</div><div class="empty-t">Sin alertas en esta categoría</div></div></div>`
+  var btnNueva = document.getElementById('btn-nueva-tarea')
+  if (btnNueva) btnNueva.style.display = esAdmin ? '' : 'none'
+
+  var el = document.getElementById('tareas-lista')
+  if (!el) return
+  if (!lista.length) {
+    var msgs = {pendiente:'Sin tareas pendientes', en_progreso:'Sin tareas en progreso', programada:'Sin tareas programadas', completada:'Sin tareas completadas'}
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">'+(filtroTareas==='completada'?'🎉':'📋')+'</div><div class="empty-t">'+msgs[filtroTareas]+'</div>'+(esAdmin&&filtroTareas!=='completada'?'<br><button class="btn-primary" onclick="abrirModalTarea()" style="margin-top:12px">+ Crear primera tarea</button>':'')+'</div></div>'
     return
   }
-  el.innerHTML = lista.map(a=>`<div class="card" style="margin-bottom:8px">
-    <div class="notif-item" style="padding:0;border:none">
-      <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
-      <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">📍 ${a.campo}</div></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-        <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+' días'}</span>
-        <button style="font-size:10px;padding:3px 8px;border-radius:5px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif" onclick="showToast('✓ Marcado como hecho','ok')">✓ Hecho</button>
-      </div>
-    </div>
-  </div>`).join('')
+
+  var prioOrd = {alta:0, media:1, baja:2}
+  lista = lista.slice().sort(function(a,b) {
+    var aVenc = a.fecha_vencimiento && new Date(a.fecha_vencimiento+'T00:00:00') < hoy ? -1 : 0
+    var bVenc = b.fecha_vencimiento && new Date(b.fecha_vencimiento+'T00:00:00') < hoy ? -1 : 0
+    if (aVenc !== bVenc) return aVenc - bVenc
+    return (prioOrd[a.prioridad]||1) - (prioOrd[b.prioridad]||1)
+  })
+
+  el.innerHTML = lista.map(function(t) {
+    var esCompletada = t.estado === 'completada'
+    var borderColor = t.prioridad==='alta' ? '#c0392b' : t.prioridad==='baja' ? '#0d6e41' : '#c9a84c'
+    var completadaAt = t.completada_at ? ' · '+new Date(t.completada_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) : ''
+    return '<div class="card" style="margin-bottom:8px;border-left:3px solid '+borderColor+';'+(esCompletada?'opacity:.7':'')+';">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:14px;font-weight:600;color:var(--texto);'+(esCompletada?'text-decoration:line-through;color:var(--texto-suave)':'')+'">'+t.titulo+'</div>'
+      +(t.descripcion ? '<div style="font-size:12px;color:var(--texto-suave);margin-top:3px;line-height:1.5">'+t.descripcion+'</div>' : '')
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center">'
+      +_tarjPrioridad(t.prioridad)
+      +_tarjCampo(t.campo_id)
+      +_tarjAsignado(t.asignado_a)
+      +(t.fecha_vencimiento ? _tarjFecha(t.fecha_vencimiento) : '')
+      +(esCompletada ? '<span style="font-size:11px;color:var(--texto-suave)">Completada'+completadaAt+'</span>' : '')
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">'
+      +(!esCompletada ? '<button onclick="completarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap">✓ Completar</button>' : '')
+      +(!esCompletada && t.estado!=='en_progreso' ? '<button onclick="iniciarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">▶ Iniciar</button>' : '')
+      +(esAdmin ? '<button onclick="abrirModalTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">✏️ Editar</button>' : '')
+      +(esAdmin && esCompletada ? '<button onclick="eliminarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--rojo);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">🗑</button>' : '')
+      +'</div>'
+      +'</div>'
+      +'</div>'
+  }).join('')
 }
 
-window.setFiltroNotif = function(f) {
-  filtroNotif = f
-  renderNotificaciones()
+window._setFiltroTareas = function(f) { filtroTareas = f; renderTareas() }
+
+function _renderDashTareas() {
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var el = document.getElementById('dash-tareas')
+  if (!el) return
+  var urgentes = tareas.filter(function(t) {
+    if (t.estado === 'completada') return false
+    if (t.estado === 'en_progreso') return true
+    if (!t.fecha_vencimiento) return t.estado === 'pendiente' && t.prioridad === 'alta'
+    return new Date(t.fecha_vencimiento+'T00:00:00') <= hoy
+  }).slice(0, 4)
+  if (!urgentes.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin tareas urgentes ✓</div>'
+    return
+  }
+  el.innerHTML = urgentes.map(function(t) {
+    var isVenc = t.fecha_vencimiento && new Date(t.fecha_vencimiento+'T00:00:00') < hoy
+    var color = t.prioridad==='alta'||isVenc ? 'var(--rojo-pale)' : t.estado==='en_progreso' ? '#e8f0fe' : 'var(--amber-pale)'
+    var ico = t.estado==='en_progreso' ? '🔄' : isVenc ? '⚠️' : '🔴'
+    return '<div class="notif-item">'
+      +'<div class="notif-ico" style="background:'+color+'">'+ico+'</div>'
+      +'<div class="notif-body"><div class="notif-tit">'+t.titulo+'</div><div class="notif-meta">'+(t.fecha_vencimiento?_tarjFecha(t.fecha_vencimiento):'Alta prioridad')+'</div></div>'
+      +'</div>'
+  }).join('')
+}
+
+window.abrirModalTarea = async function(id) {
+  var ov = document.getElementById('ov-tarea')
+  var selCampo = document.getElementById('t-campo')
+  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + campos.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
+  var selAsig = document.getElementById('t-asignado')
+  if (selAsig) {
+    var miembros = window._equipoCache || []
+    selAsig.innerHTML = '<option value="">Sin asignar</option>'
+      + (usuario ? [{colaborador_id: usuario.id, nombre: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.colaborador_id||'')+'">'+m.nombre+'</option>' }).join('')
+  }
+  if (id) {
+    var t = tareas.find(function(x){ return x.id === id })
+    if (!t) return
+    document.getElementById('tarea-modal-tit').textContent = 'Editar tarea'
+    document.getElementById('t-id').value = t.id
+    document.getElementById('t-titulo').value = t.titulo || ''
+    document.getElementById('t-desc').value = t.descripcion || ''
+    document.getElementById('t-campo').value = t.campo_id || ''
+    document.getElementById('t-prioridad').value = t.prioridad || 'media'
+    document.getElementById('t-asignado').value = t.asignado_a || ''
+    document.getElementById('t-fecha').value = t.fecha_vencimiento || ''
+  } else {
+    document.getElementById('tarea-modal-tit').textContent = 'Nueva tarea'
+    document.getElementById('t-id').value = ''
+    document.getElementById('t-titulo').value = ''
+    document.getElementById('t-desc').value = ''
+    document.getElementById('t-campo').value = ''
+    document.getElementById('t-prioridad').value = 'media'
+    document.getElementById('t-asignado').value = ''
+    document.getElementById('t-fecha').value = ''
+  }
+  ov.classList.add('open')
+  setTimeout(function(){ document.getElementById('t-titulo').focus() }, 100)
+}
+
+window.guardarTarea = async function() {
+  var titulo = (document.getElementById('t-titulo').value || '').trim()
+  if (!titulo) { showToast('⚠️ El título es obligatorio', 'err'); return }
+  var btn = document.getElementById('btn-guardar-tarea')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var id = document.getElementById('t-id').value
+  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var payload = {
+    titulo: titulo,
+    descripcion: document.getElementById('t-desc').value.trim() || null,
+    campo_id:    document.getElementById('t-campo').value || null,
+    prioridad:   document.getElementById('t-prioridad').value || 'media',
+    asignado_a:  document.getElementById('t-asignado').value || null,
+    fecha_vencimiento: document.getElementById('t-fecha').value || null,
+    owner_id: ownerId
+  }
+  try {
+    if (id) {
+      var { error } = await sb.from('tareas').update(payload).eq('id', id)
+      if (error) throw error
+      var idx = tareas.findIndex(function(t){ return t.id === id })
+      if (idx >= 0) tareas[idx] = Object.assign(tareas[idx], payload)
+      showToast('✓ Tarea actualizada', 'ok')
+    } else {
+      payload.estado = 'pendiente'
+      var { data, error } = await sb.from('tareas').insert([payload]).select().single()
+      if (error) throw error
+      tareas.unshift(data)
+      showToast('✓ Tarea creada', 'ok')
+    }
+    document.getElementById('ov-tarea').classList.remove('open')
+    renderTareas()
+    _renderDashTareas()
+  } catch(e) {
+    showToast('⚠️ Error: '+e.message, 'err')
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar tarea'
+  }
+}
+
+window.completarTarea = async function(id) {
+  try {
+    var now = new Date().toISOString()
+    var { error } = await sb.from('tareas').update({estado:'completada', completada_at: now}).eq('id', id)
+    if (error) throw error
+    var t = tareas.find(function(x){ return x.id === id })
+    if (t) { t.estado = 'completada'; t.completada_at = now }
+    showToast('🎉 Tarea completada', 'ok')
+    renderTareas(); _renderDashTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+}
+
+window.iniciarTarea = async function(id) {
+  try {
+    var { error } = await sb.from('tareas').update({estado:'en_progreso'}).eq('id', id)
+    if (error) throw error
+    var t = tareas.find(function(x){ return x.id === id })
+    if (t) t.estado = 'en_progreso'
+    showToast('▶ Tarea iniciada', 'ok')
+    renderTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+}
+
+window.eliminarTarea = async function(id) {
+  if (!confirm('¿Eliminar esta tarea?')) return
+  try {
+    var { error } = await sb.from('tareas').delete().eq('id', id)
+    if (error) throw error
+    tareas = tareas.filter(function(t){ return t.id !== id })
+    showToast('✓ Eliminada', 'ok')
+    renderTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
 }
 
 // ── CRUD CAMPOS ──
@@ -6166,7 +6407,7 @@ function _renderBannerColaborador() {
       // Describir los módulos accesibles
       var p = window.CONTEXTO.permisos || {}
       var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
-                  rentabilidad_campo:'Rentabilidad campo',rentabilidad_total:'Rentabilidad total',mapa:'Mapa',alertas:'Alertas'}
+                  rentabilidad_campo:'Rentabilidad campo',rentabilidad_total:'Rentabilidad total',mapa:'Mapa',tareas:'Tareas'}
       var accesibles = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
       rolEl.textContent = accesibles.length
         ? 'Módulos: ' + accesibles.map(function(k){return LABS[k]}).join(', ')
@@ -6186,12 +6427,12 @@ function _aplicarPermisosUI() {
   var navCampos   = document.getElementById('nav-campos')
   var navRent     = document.getElementById('nav-rentabilidad')
   var navMapa     = document.getElementById('nav-mapa')
-  var navAlertas  = document.getElementById('nav-alertas')
+  var navTareas   = document.getElementById('nav-tareas')
   var btnEquipo   = document.getElementById('btn-mi-equipo')
   if (navCampos)  navCampos.style.display  = (esCol && !puedeVer('campos'))           ? 'none' : ''
   if (navRent)    navRent.style.display    = (esCol && !puedeVer('rentabilidad_total')) ? 'none' : ''
   if (navMapa)    navMapa.style.display    = (esCol && !puedeVer('mapa'))              ? 'none' : ''
-  if (navAlertas) navAlertas.style.display = (esCol && !puedeVer('alertas'))           ? 'none' : ''
+  if (navTareas)  navTareas.style.display  = (esCol && !puedeVer('tareas'))            ? 'none' : ''
   if (btnEquipo)  btnEquipo.style.display  = puedeInvitar() ? '' : 'none'
 
   // ── Campo tabs ──
@@ -6300,7 +6541,7 @@ async function _renderListaMiembros() {
       var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
       var mp = m.permisos || {}
       var MLABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
-                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',alertas:'Alertas'}
+                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',tareas:'Tareas'}
       var mAcceso = Object.keys(MLABS).filter(function(k){return mp[k]==='ver'||mp[k]==='editar'})
       var mResumen, mColor
       if (!mAcceso.length) { mResumen='Sin permisos'; mColor='var(--rojo)' }
@@ -6345,7 +6586,7 @@ var _EQ_MODULOS = [
   {k:'rentabilidad_campo', lab:'📊 Rentabilidad por campo'},
   {k:'rentabilidad_total', lab:'📊 Rentabilidad total'},
   {k:'mapa',               lab:'🗺️ Mapa'},
-  {k:'alertas',            lab:'🔔 Alertas'}
+  {k:'tareas',             lab:'✅ Tareas'}
 ]
 
 function _eqRenderFilas() {
@@ -6481,7 +6722,7 @@ window.compartirInvWA = function() {
     } else {
       var p = ctx.permisos || {}
       var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
-                  rentabilidad_campo:'Rent/campo',rentabilidad_total:'Rent/total',mapa:'Mapa',alertas:'Alertas'}
+                  rentabilidad_campo:'Rent/campo',rentabilidad_total:'Rent/total',mapa:'Mapa',tareas:'Tareas'}
       var acc = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
       el.textContent = acc.length ? '👤 Colaborador · ' + acc.length + ' módulo' + (acc.length!==1?'s':'') : '👤 Colaborador · Sin permisos'
       el.style.color = '#fff'

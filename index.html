@@ -1857,7 +1857,7 @@ function _mergePendingCampos() {
 
 async function cargarTodo() {
   _mostrarPrecios('BCR Rosario · BNA')
-  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var uid = (window.CONTEXTO && window.CONTEXTO.ownerIdActivo) ? window.CONTEXTO.ownerIdActivo : usuario.id
 
   // ── 1. MOSTRAR CACHÉ GUARDADA INSTANTÁNEAMENTE ───────────────────────────
   // El usuario ve sus datos en < 100ms mientras la DB responde en background
@@ -1922,7 +1922,12 @@ async function cargarTodo() {
   if(freshGastos  !== null) gastos    = freshGastos
   if(freshLluvias !== null) lluvias   = freshLluvias
   if(freshAnalisis!== null) analisisS = freshAnalisis
-  if(freshTareas  !== null) tareas    = freshTareas
+  if(freshTareas  !== null) {
+    tareas = freshTareas
+    // Si el módulo tareas está visible, refrescar
+    var modT = document.getElementById('mod-tareas')
+    if (modT && modT.classList.contains('active')) renderTareas()
+  }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
 
@@ -3419,68 +3424,55 @@ window._abrirArchivo = function(url, nombre, tipo) {
     lb.addEventListener('touchend', function() { dragging = false })
     return
   }
-  // PDFs y docs → Blob URL
+  // Docs: si es URL HTTPS (Storage) abre directo, si es base64 convierte a Blob
   try {
-    var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]
-    var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n)
-    while (n--) u8[n] = bstr.charCodeAt(n)
-    var blob = new Blob([u8], { type: mime })
-    var blobUrl = URL.createObjectURL(blob)
-    var win = window.open(blobUrl, '_blank')
-    if (!win) { var a = document.createElement('a'); a.href = blobUrl; a.download = nombre || 'archivo'; a.click() }
-    setTimeout(function(){ URL.revokeObjectURL(blobUrl) }, 60000)
+    if (url.startsWith('http')) {
+      var w = window.open(url, '_blank')
+      if (!w) { var a2 = document.createElement('a'); a2.href = url; a2.target = '_blank'; a2.click() }
+    } else {
+      var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]
+      var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n)
+      while (n--) u8[n] = bstr.charCodeAt(n)
+      var blob = new Blob([u8], { type: mime })
+      var blobUrl = URL.createObjectURL(blob)
+      var w2 = window.open(blobUrl, '_blank')
+      if (!w2) { var a3 = document.createElement('a'); a3.href = blobUrl; a3.download = nombre || 'archivo'; a3.click() }
+      setTimeout(function(){ URL.revokeObjectURL(blobUrl) }, 60000)
+    }
   } catch(e) { showToast('⚠️ No se pudo abrir el archivo', 'err') }
 }
 
-// ── Helper: convierte archivo a base64 DataURL (sin storage externo) ─────────
-// Límite: 5 MB por archivo. Las imágenes se comprimen automáticamente.
-function _archivoABase64(file) {
-  return new Promise(function(resolve, reject) {
-    if (file.size > 10 * 1024 * 1024) {
-      reject(new Error(file.name + ' supera 10 MB.'))
-      return
+// ── Sube un archivo a Supabase Storage y devuelve la URL pública ─────────────
+async function _subirArchivoStorage(file) {
+  if (!usuario) throw new Error('No autenticado')
+  var ts = Date.now()
+  var safeName = (file.name || 'archivo').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80)
+  if (!safeName) safeName = 'archivo_' + ts
+  var path = usuario.id + '/' + ts + '_' + safeName
+  var { data, error } = await sb.storage.from('tareas-archivos').upload(path, file, {
+    cacheControl: '3600', upsert: false
+  })
+  if (error) throw error
+  var { data: ud } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+  return { url: ud.publicUrl, path: path }
+}
+
+// ── Genera preview base64 para thumbnail (solo para mostrar en UI) ────────────
+function _generarPreview(file) {
+  return new Promise(function(resolve) {
+    if (!file.type.startsWith('image/')) { resolve(null); return }
+    var img = new Image()
+    var ou = URL.createObjectURL(file)
+    img.onload = function() {
+      URL.revokeObjectURL(ou)
+      var MAX = 120, w = img.width, h = img.height
+      if (w > MAX || h > MAX) { var r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r) }
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h
+      cv.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(cv.toDataURL('image/jpeg', 0.7))
     }
-    // Imágenes: comprimir con canvas, garantizar que el base64 final sea < 200 KB
-    if (file.type.startsWith('image/')) {
-      var img = new Image()
-      var objectUrl = URL.createObjectURL(file)
-      img.onload = function() {
-        URL.revokeObjectURL(objectUrl)
-        // Compresión progresiva: empieza alta calidad, reduce hasta entrar en 500 KB base64
-        // (~683 KB de string length, ya que base64 = bytes * 1.37)
-        var LIMITE = 500 * 1024 * 1.37
-        var pasos = [
-          { max: 1600, q: 0.90 },
-          { max: 1200, q: 0.82 },
-          { max: 900,  q: 0.72 },
-          { max: 650,  q: 0.60 },
-          { max: 450,  q: 0.50 }
-        ]
-        var resultado = null
-        for (var pi = 0; pi < pasos.length; pi++) {
-          var MAX = pasos[pi].max, q = pasos[pi].q
-          var w = img.width, h = img.height
-          if (w > MAX || h > MAX) {
-            var ratio = Math.min(MAX/w, MAX/h)
-            w = Math.round(w * ratio); h = Math.round(h * ratio)
-          }
-          var canvas = document.createElement('canvas')
-          canvas.width = w; canvas.height = h
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-          resultado = canvas.toDataURL('image/jpeg', q)
-          if (resultado.length < LIMITE) break
-        }
-        resolve(resultado)
-      }
-      img.onerror = function() { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo leer la imagen')) }
-      img.src = objectUrl
-    } else {
-      // Documentos: leer como base64 directamente
-      var reader = new FileReader()
-      reader.onload = function(e) { resolve(e.target.result) }
-      reader.onerror = function() { reject(new Error('Error al leer ' + file.name)) }
-      reader.readAsDataURL(file)
-    }
+    img.onerror = function() { URL.revokeObjectURL(ou); resolve(null) }
+    img.src = ou
   })
 }
 
@@ -3488,17 +3480,22 @@ window._tareasAgregarArchivos = async function(input) {
   var files = Array.from(input.files || [])
   if (!files.length) return
   var labelEl = document.getElementById('t-upload-label')
-  if (labelEl) labelEl.textContent = 'Procesando...'
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
+    if (file.size > 50 * 1024 * 1024) { showToast('⚠️ ' + file.name + ' supera 50 MB', 'err'); continue }
+    if (labelEl) labelEl.textContent = 'Procesando...'
     try {
-      var dataUrl = await _archivoABase64(file)
+      var preview = await _generarPreview(file)
+      // Guardamos referencia al archivo original para subir al guardar
       window._tareasArchivosPendientes.push({
-        nombre: file.name, url: dataUrl,
+        nombre: file.name,
+        url: null,              // se llena al guardar (Storage URL)
+        previewUrl: preview,    // solo para mostrar en UI antes de guardar
+        fileRef: file,          // archivo original
         tipo: file.type || 'application/octet-stream',
         tamanio: file.size
       })
-      showToast('✓ ' + file.name + ' adjuntado', 'ok')
+      showToast('✓ ' + file.name + ' listo para adjuntar', 'ok')
     } catch(e) {
       showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
     }
@@ -3518,7 +3515,7 @@ function _tareasRenderArchivosPendientes() {
     var ico = isImg ? '🖼️' : a.tipo.includes('pdf') ? '📄' : a.tipo.includes('word') || a.tipo.includes('doc') ? '📝' : a.tipo.includes('excel') || a.tipo.includes('sheet') || a.tipo.includes('xls') ? '📊' : '📎'
     var kb = a.tamanio > 1024*1024 ? (a.tamanio/1024/1024).toFixed(1)+' MB' : Math.round(a.tamanio/1024)+' KB'
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
-      +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
+      +(isImg && (a.previewUrl || a.url) ? '<img src="'+(a.previewUrl || a.url)+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
       +'<div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</div><div style="color:var(--texto-suave);font-size:10px">'+kb+'</div></div>'
       +'<button onclick="window._tareasQuitarArchivo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
       +'</div>'
@@ -3564,13 +3561,31 @@ window.guardarTarea = async function() {
   var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
   var fechaVal = document.getElementById('t-fecha').value || null
 
-  // Archivos: combinar existentes con los pendientes nuevos
+  // ── Subir archivos pendientes a Storage (cada uno con su fileRef) ──────────
+  var pendientes = window._tareasArchivosPendientes.slice()
+  var archivosNuevos = []
+  if (pendientes.length) {
+    btn.textContent = 'Subiendo archivos...'
+    for (var fi = 0; fi < pendientes.length; fi++) {
+      var ap = pendientes[fi]
+      try {
+        var res = await _subirArchivoStorage(ap.fileRef)
+        archivosNuevos.push({ nombre: ap.nombre, url: res.url, path: res.path, tipo: ap.tipo, tamanio: ap.tamanio })
+      } catch(storErr) {
+        showToast('⚠️ No se pudo subir "' + ap.nombre + '": ' + (storErr.message || 'Error Storage'), 'err')
+        // No bloquea: la tarea se guarda igual sin ese archivo
+      }
+    }
+    btn.textContent = 'Guardando...'
+  }
+
+  // Archivos: existentes (ya guardados) + los nuevos recién subidos
   var archivosExistentes = []
   if (id) {
     var tExist = tareas.find(function(x){ return x.id === id })
     if (tExist) archivosExistentes = _safeJSON(tExist.archivos, [])
   }
-  var archivosFinales = archivosExistentes.concat(window._tareasArchivosPendientes)
+  var archivosFinales = archivosExistentes.concat(archivosNuevos)
 
   // Payload base — columnas que siempre existen
   var payloadBase = {

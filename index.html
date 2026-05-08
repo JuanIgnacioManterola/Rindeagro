@@ -3580,10 +3580,18 @@ window.guardarTarea = async function() {
       owner_id:          ownerId
     }
 
+    // Helper: INSERT/UPDATE con timeout de 15s
+    var _dbRun = function(promise) {
+      return Promise.race([
+        promise,
+        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (15s). Verificá que el proyecto Supabase esté activo en app.supabase.com')) }, 15000) })
+      ])
+    }
+
     if (id) {
       // ── EDICIÓN ───────────────────────────────────────────────
-      var { error: eUpd } = await sb.from('tareas').update(payload).eq('id', id)
-      if (eUpd) throw new Error(eUpd.message || JSON.stringify(eUpd))
+      var resUpd = await _dbRun(sb.from('tareas').update(payload).eq('id', id))
+      if (resUpd.error) throw new Error(resUpd.error.message || JSON.stringify(resUpd.error))
       var idx = tareas.findIndex(function(t){ return t.id === id })
       if (idx >= 0) tareas[idx] = Object.assign({}, tareas[idx], payload)
       showToast('✓ Tarea actualizada', 'ok')
@@ -3591,8 +3599,8 @@ window.guardarTarea = async function() {
     } else {
       // ── NUEVA ─────────────────────────────────────────────────
       var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
-      var { error: eIns } = await sb.from('tareas').insert([payloadIns])
-      if (eIns) throw new Error(eIns.message || JSON.stringify(eIns))
+      var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
+      if (resIns.error) throw new Error(resIns.error.message || JSON.stringify(resIns.error))
       tareas.unshift(Object.assign({}, payloadIns, { created_at: new Date().toISOString(), completada_at: null }))
       showToast('✓ Tarea creada', 'ok')
     }

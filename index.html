@@ -3365,26 +3365,39 @@ window._abrirArchivo = function(url, nombre, tipo) {
 // Límite: 5 MB por archivo. Las imágenes se comprimen automáticamente.
 function _archivoABase64(file) {
   return new Promise(function(resolve, reject) {
-    if (file.size > 3 * 1024 * 1024) {
-      reject(new Error(file.name + ' supera 3 MB. Usá una foto más comprimida.'))
+    if (file.size > 10 * 1024 * 1024) {
+      reject(new Error(file.name + ' supera 10 MB.'))
       return
     }
-    // Imágenes: comprimir con canvas antes de guardar
+    // Imágenes: comprimir con canvas, garantizar que el base64 final sea < 200 KB
     if (file.type.startsWith('image/')) {
       var img = new Image()
       var objectUrl = URL.createObjectURL(file)
       img.onload = function() {
         URL.revokeObjectURL(objectUrl)
-        var MAX = 800  // px máximo lado largo — mantiene peso bajo
-        var w = img.width, h = img.height
-        if (w > MAX || h > MAX) {
-          var ratio = Math.min(MAX/w, MAX/h)
-          w = Math.round(w * ratio); h = Math.round(h * ratio)
+        // Intentos de compresión progresiva hasta quedar bajo 200 KB en base64
+        var pasos = [
+          { max: 900, q: 0.72 },
+          { max: 650, q: 0.60 },
+          { max: 450, q: 0.50 },
+          { max: 300, q: 0.40 }
+        ]
+        var resultado = null
+        for (var pi = 0; pi < pasos.length; pi++) {
+          var MAX = pasos[pi].max, q = pasos[pi].q
+          var w = img.width, h = img.height
+          if (w > MAX || h > MAX) {
+            var ratio = Math.min(MAX/w, MAX/h)
+            w = Math.round(w * ratio); h = Math.round(h * ratio)
+          }
+          var canvas = document.createElement('canvas')
+          canvas.width = w; canvas.height = h
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+          resultado = canvas.toDataURL('image/jpeg', q)
+          // base64 length / 1.37 ≈ bytes; queremos < 200 KB
+          if (resultado.length < 200 * 1024 * 1.37) break
         }
-        var canvas = document.createElement('canvas')
-        canvas.width = w; canvas.height = h
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-        resolve(canvas.toDataURL('image/jpeg', 0.65))
+        resolve(resultado)
       }
       img.onerror = function() { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo leer la imagen')) }
       img.src = objectUrl
@@ -3513,11 +3526,11 @@ window.guardarTarea = async function() {
 
     if (id) {
       // ── EDICIÓN ──────────────────────────────────────────────
-      var resUpd = await _sbRace(sb.from('tareas').update(payloadFull).eq('id', id), 20000)
+      var resUpd = await _sbRace(sb.from('tareas').update(payloadFull).eq('id', id), 30000)
       if (resUpd.error) {
         if (_tareaErrEsColumna(resUpd.error)) {
           // columna archivos no existe: guardar sin archivos
-          var resUpd2 = await _sbRace(sb.from('tareas').update(payloadBase).eq('id', id), 20000)
+          var resUpd2 = await _sbRace(sb.from('tareas').update(payloadBase).eq('id', id), 30000)
           if (resUpd2.error) throw new Error(_tareaErrMsg(resUpd2.error))
         } else {
           throw new Error(_tareaErrMsg(resUpd.error))
@@ -3530,12 +3543,12 @@ window.guardarTarea = async function() {
     } else {
       // ── NUEVA TAREA ───────────────────────────────────────────
       var payloadIns = Object.assign({}, payloadFull, { estado: 'pendiente', id: newId })
-      var resIns = await _sbRace(sb.from('tareas').insert([payloadIns]), 20000)
+      var resIns = await _sbRace(sb.from('tareas').insert([payloadIns]), 30000)
       if (resIns.error) {
         if (_tareaErrEsColumna(resIns.error)) {
           // columna archivos no existe: reintentar sin archivos
           var payloadIns2 = Object.assign({}, payloadBase, { estado: 'pendiente', id: newId })
-          var resIns2 = await _sbRace(sb.from('tareas').insert([payloadIns2]), 20000)
+          var resIns2 = await _sbRace(sb.from('tareas').insert([payloadIns2]), 30000)
           if (resIns2.error) throw new Error(_tareaErrMsg(resIns2.error))
         } else {
           throw new Error(_tareaErrMsg(resIns.error))

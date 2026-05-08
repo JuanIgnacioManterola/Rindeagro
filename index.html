@@ -3310,53 +3310,60 @@ window.abrirModalTarea = async function(id) {
 // ── Archivos adjuntos en tareas ──
 window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio, path}]
 
-// ── Helper compartido para subir archivos al bucket ──────────────────────────
-// Retorna {url, path} o lanza error con mensaje claro
-async function _subirArchivoStorage(file, subfolder) {
-  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : (usuario && usuario.id)
-  if (!ownerId) throw new Error('Sin sesión')
-  if (file.size > 15 * 1024 * 1024) throw new Error(file.name + ' supera 15 MB')
-  var ext = (file.name.split('.').pop() || 'bin').toLowerCase()
-  var safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext
-  var path = ownerId + '/' + (subfolder||'archivos') + '/' + safeName
-  // Timeout de 30s para que no quede colgado
-  var uploadPromise = sb.storage.from('tareas-archivos').upload(path, file, {
-    upsert: true, contentType: file.type || 'application/octet-stream'
-  })
-  var timeoutPromise = new Promise(function(_, reject) {
-    setTimeout(function(){ reject(new Error('Tiempo de espera agotado (30s)')) }, 30000)
-  })
-  var result = await Promise.race([uploadPromise, timeoutPromise])
-  if (result.error) {
-    var errMsg = result.error.message || String(result.error)
-    if (/unauthorized|security policy|violates|403/i.test(errMsg)) {
-      throw new Error('Sin permiso para subir. Ejecutá las políticas de storage en Supabase SQL Editor')
+// ── Helper: convierte archivo a base64 DataURL (sin storage externo) ─────────
+// Límite: 5 MB por archivo. Las imágenes se comprimen automáticamente.
+function _archivoABase64(file) {
+  return new Promise(function(resolve, reject) {
+    if (file.size > 5 * 1024 * 1024) {
+      reject(new Error(file.name + ' supera 5 MB. Usá una foto más comprimida.'))
+      return
     }
-    if (/not found|bucket|does not exist/i.test(errMsg)) {
-      throw new Error('Bucket "tareas-archivos" no existe. Crealo en Supabase Storage (público)')
+    // Imágenes: comprimir con canvas antes de guardar
+    if (file.type.startsWith('image/')) {
+      var img = new Image()
+      var objectUrl = URL.createObjectURL(file)
+      img.onload = function() {
+        URL.revokeObjectURL(objectUrl)
+        var MAX = 1200  // px máximo lado largo
+        var w = img.width, h = img.height
+        if (w > MAX || h > MAX) {
+          var ratio = Math.min(MAX/w, MAX/h)
+          w = Math.round(w * ratio); h = Math.round(h * ratio)
+        }
+        var canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.onerror = function() { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo leer la imagen')) }
+      img.src = objectUrl
+    } else {
+      // Documentos: leer como base64 directamente
+      var reader = new FileReader()
+      reader.onload = function(e) { resolve(e.target.result) }
+      reader.onerror = function() { reject(new Error('Error al leer ' + file.name)) }
+      reader.readAsDataURL(file)
     }
-    throw new Error(errMsg)
-  }
-  var { data: urlData } = sb.storage.from('tareas-archivos').getPublicUrl(path)
-  return { url: urlData.publicUrl, path: path }
+  })
 }
 
 window._tareasAgregarArchivos = async function(input) {
   var files = Array.from(input.files || [])
   if (!files.length) return
   var labelEl = document.getElementById('t-upload-label')
-  if (labelEl) labelEl.textContent = 'Subiendo...'
+  if (labelEl) labelEl.textContent = 'Procesando...'
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
     try {
-      var { url, path } = await _subirArchivoStorage(file, 'tareas')
+      var dataUrl = await _archivoABase64(file)
       window._tareasArchivosPendientes.push({
-        nombre: file.name, url: url, tipo: file.type || 'application/octet-stream',
-        tamanio: file.size, path: path
+        nombre: file.name, url: dataUrl,
+        tipo: file.type || 'application/octet-stream',
+        tamanio: file.size
       })
-      showToast('✓ ' + file.name + ' subido', 'ok')
+      showToast('✓ ' + file.name + ' adjuntado', 'ok')
     } catch(e) {
-      showToast('⚠️ ' + (e.message || 'Error al subir ' + file.name), 'err')
+      showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
     }
   }
   input.value = ''
@@ -3381,11 +3388,7 @@ function _tareasRenderArchivosPendientes() {
   }).join('')
 }
 
-window._tareasQuitarArchivo = async function(i) {
-  var a = window._tareasArchivosPendientes[i]
-  if (!a) return
-  // Borrar del storage si ya fue subido
-  if (a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+window._tareasQuitarArchivo = function(i) {
   window._tareasArchivosPendientes.splice(i, 1)
   _tareasRenderArchivosPendientes()
 }
@@ -3394,9 +3397,7 @@ window._tareasEliminarArchivoGuardado = async function(tareaId, idx) {
   var t = tareas.find(function(x){ return x.id === tareaId })
   if (!t) return
   var archivos = _safeJSON(t.archivos, [])
-  var a = archivos[idx]
-  if (!a) return
-  if (a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+  if (!archivos[idx]) return
   archivos.splice(idx, 1)
   try {
     await sb.from('tareas').update({archivos: archivos}).eq('id', tareaId)
@@ -6415,18 +6416,19 @@ window._sueloAgregarArchivos = async function(input) {
   var files = Array.from(input.files || [])
   if (!files.length) return
   var labelEl = document.getElementById('s-upload-label')
-  if (labelEl) labelEl.textContent = 'Subiendo...'
+  if (labelEl) labelEl.textContent = 'Procesando...'
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
     try {
-      var { url, path } = await _subirArchivoStorage(file, 'suelos')
+      var dataUrl = await _archivoABase64(file)
       window._sueloArchivosPendientes.push({
-        nombre: file.name, url: url, tipo: file.type || 'application/octet-stream',
-        tamanio: file.size, path: path
+        nombre: file.name, url: dataUrl,
+        tipo: file.type || 'application/octet-stream',
+        tamanio: file.size
       })
-      showToast('✓ ' + file.name + ' subido', 'ok')
+      showToast('✓ ' + file.name + ' adjuntado', 'ok')
     } catch(e) {
-      showToast('⚠️ ' + (e.message || 'Error al subir ' + file.name), 'err')
+      showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
     }
   }
   input.value = ''
@@ -6449,9 +6451,7 @@ function _sueloRenderArchivos() {
       +'</div>'
   }).join('')
 }
-window._sueloQuitarArchivo = async function(i) {
-  var a = window._sueloArchivosPendientes[i]
-  if (a && a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+window._sueloQuitarArchivo = function(i) {
   window._sueloArchivosPendientes.splice(i, 1)
   _sueloRenderArchivos()
 }

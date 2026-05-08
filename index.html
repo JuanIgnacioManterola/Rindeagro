@@ -3445,15 +3445,18 @@ window._abrirArchivo = function(url, nombre, tipo) {
 // ── Sube un archivo a Supabase Storage y devuelve la URL pública ─────────────
 async function _subirArchivoStorage(file) {
   if (!usuario) throw new Error('No autenticado')
+  if (!file) throw new Error('Archivo inválido')
   var ts = Date.now()
-  var safeName = (file.name || 'archivo').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80)
-  if (!safeName) safeName = 'archivo_' + ts
-  var path = usuario.id + '/' + ts + '_' + safeName
-  var { data, error } = await sb.storage.from('tareas-archivos').upload(path, file, {
-    cacheControl: '3600', upsert: false
+  var ext = (file.name || '').split('.').pop() || 'bin'
+  var baseName = (file.name || 'archivo').replace(/\.[^/.]+$/, '')
+    .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'archivo'
+  var path = usuario.id + '/' + ts + '_' + baseName + '.' + ext
+  var { error } = await sb.storage.from('tareas-archivos').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream'
   })
-  if (error) throw error
+  if (error) throw new Error('Storage: ' + (error.message || JSON.stringify(error)))
   var { data: ud } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+  if (!ud || !ud.publicUrl) throw new Error('No se obtuvo URL pública del archivo')
   return { url: ud.publicUrl, path: path }
 }
 
@@ -3561,19 +3564,24 @@ window.guardarTarea = async function() {
   var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
   var fechaVal = document.getElementById('t-fecha').value || null
 
-  // ── Subir archivos pendientes a Storage (cada uno con su fileRef) ──────────
+  // ── Subir archivos pendientes a Storage (con timeout de 20s por archivo) ─────
   var pendientes = window._tareasArchivosPendientes.slice()
   var archivosNuevos = []
   if (pendientes.length) {
     btn.textContent = 'Subiendo archivos...'
     for (var fi = 0; fi < pendientes.length; fi++) {
       var ap = pendientes[fi]
+      if (!ap.fileRef) continue   // skip si no hay ref (no debería pasar)
       try {
-        var res = await _subirArchivoStorage(ap.fileRef)
-        archivosNuevos.push({ nombre: ap.nombre, url: res.url, path: res.path, tipo: ap.tipo, tamanio: ap.tamanio })
+        var uploadRes = await Promise.race([
+          _subirArchivoStorage(ap.fileRef),
+          new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout_storage')) }, 20000) })
+        ])
+        archivosNuevos.push({ nombre: ap.nombre, url: uploadRes.url, path: uploadRes.path, tipo: ap.tipo, tamanio: ap.tamanio })
       } catch(storErr) {
-        showToast('⚠️ No se pudo subir "' + ap.nombre + '": ' + (storErr.message || 'Error Storage'), 'err')
-        // No bloquea: la tarea se guarda igual sin ese archivo
+        console.error('Storage upload error:', storErr)
+        showToast('⚠️ Archivo "' + ap.nombre + '" no se pudo subir — la tarea se guarda igual', 'err')
+        // No bloquea el guardado de la tarea
       }
     }
     btn.textContent = 'Guardando...'

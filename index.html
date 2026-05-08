@@ -1420,6 +1420,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
       <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
     </div>
+    <!-- Adjuntar PDF / foto del análisis -->
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Adjuntar informe (opcional)</label>
+      <div id="s-archivos-lista" style="margin-bottom:6px"></div>
+      <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+        📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
+        <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
+      </label>
+    </div>
     <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
   </div>
 </div>
@@ -3301,45 +3310,53 @@ window.abrirModalTarea = async function(id) {
 // ── Archivos adjuntos en tareas ──
 window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio, path}]
 
+// ── Helper compartido para subir archivos al bucket ──────────────────────────
+// Retorna {url, path} o lanza error con mensaje claro
+async function _subirArchivoStorage(file, subfolder) {
+  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : (usuario && usuario.id)
+  if (!ownerId) throw new Error('Sin sesión')
+  if (file.size > 15 * 1024 * 1024) throw new Error(file.name + ' supera 15 MB')
+  var ext = (file.name.split('.').pop() || 'bin').toLowerCase()
+  var safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext
+  var path = ownerId + '/' + (subfolder||'archivos') + '/' + safeName
+  // Timeout de 30s para que no quede colgado
+  var uploadPromise = sb.storage.from('tareas-archivos').upload(path, file, {
+    upsert: true, contentType: file.type || 'application/octet-stream'
+  })
+  var timeoutPromise = new Promise(function(_, reject) {
+    setTimeout(function(){ reject(new Error('Tiempo de espera agotado (30s)')) }, 30000)
+  })
+  var result = await Promise.race([uploadPromise, timeoutPromise])
+  if (result.error) {
+    var errMsg = result.error.message || String(result.error)
+    if (/unauthorized|security policy|violates|403/i.test(errMsg)) {
+      throw new Error('Sin permiso para subir. Ejecutá las políticas de storage en Supabase SQL Editor')
+    }
+    if (/not found|bucket|does not exist/i.test(errMsg)) {
+      throw new Error('Bucket "tareas-archivos" no existe. Crealo en Supabase Storage (público)')
+    }
+    throw new Error(errMsg)
+  }
+  var { data: urlData } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+  return { url: urlData.publicUrl, path: path }
+}
+
 window._tareasAgregarArchivos = async function(input) {
   var files = Array.from(input.files || [])
   if (!files.length) return
-  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : (usuario && usuario.id)
-  if (!ownerId) return
   var labelEl = document.getElementById('t-upload-label')
   if (labelEl) labelEl.textContent = 'Subiendo...'
-  var subioAlguno = false
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
-    if (file.size > 10 * 1024 * 1024) { showToast('⚠️ ' + file.name + ' supera 10 MB', 'err'); continue }
-    var ext = (file.name.split('.').pop()||'bin').toLowerCase()
-    var safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext
-    var path = ownerId + '/tareas/' + safeName
     try {
-      var { data: upData, error: upErr } = await sb.storage.from('tareas-archivos').upload(path, file, {upsert: false, contentType: file.type||'application/octet-stream'})
-      if (upErr) {
-        var errMsg = upErr.message || ''
-        // Bucket no creado → instrucciones claras
-        if (/not found|bucket|does not exist|Bucket/i.test(errMsg)) {
-          showToast('⚠️ Creá el bucket "tareas-archivos" en Supabase Storage (público) para subir archivos', 'err')
-        } else {
-          showToast('⚠️ Error al subir ' + file.name + ': ' + errMsg, 'err')
-        }
-        continue
-      }
-      var { data: urlData } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+      var { url, path } = await _subirArchivoStorage(file, 'tareas')
       window._tareasArchivosPendientes.push({
-        nombre: file.name, url: urlData.publicUrl, tipo: file.type || 'application/octet-stream',
+        nombre: file.name, url: url, tipo: file.type || 'application/octet-stream',
         tamanio: file.size, path: path
       })
-      subioAlguno = true
+      showToast('✓ ' + file.name + ' subido', 'ok')
     } catch(e) {
-      var msg = e.message || ''
-      if (/not found|bucket|Bucket/i.test(msg)) {
-        showToast('⚠️ Bucket "tareas-archivos" no encontrado. Crealo en Supabase Storage (público)', 'err')
-      } else {
-        showToast('⚠️ Error al subir ' + file.name + ': ' + msg, 'err')
-      }
+      showToast('⚠️ ' + (e.message || 'Error al subir ' + file.name), 'err')
     }
   }
   input.value = ''
@@ -6393,11 +6410,65 @@ window.eliminarLluvia = async function(id) {
 }
 
 // ── CRUD SUELO ──
-window.openModalSuelo = function() {
-  document.getElementById('ov-suelo').classList.add('open')
-  document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
+window._sueloArchivosPendientes = []
+window._sueloAgregarArchivos = async function(input) {
+  var files = Array.from(input.files || [])
+  if (!files.length) return
+  var labelEl = document.getElementById('s-upload-label')
+  if (labelEl) labelEl.textContent = 'Subiendo...'
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i]
+    try {
+      var { url, path } = await _subirArchivoStorage(file, 'suelos')
+      window._sueloArchivosPendientes.push({
+        nombre: file.name, url: url, tipo: file.type || 'application/octet-stream',
+        tamanio: file.size, path: path
+      })
+      showToast('✓ ' + file.name + ' subido', 'ok')
+    } catch(e) {
+      showToast('⚠️ ' + (e.message || 'Error al subir ' + file.name), 'err')
+    }
+  }
+  input.value = ''
+  if (labelEl) labelEl.textContent = 'Subir PDF o foto del análisis'
+  _sueloRenderArchivos()
 }
-window.closeModalSuelo = function() { document.getElementById('ov-suelo').classList.remove('open') }
+function _sueloRenderArchivos() {
+  var el = document.getElementById('s-archivos-lista')
+  if (!el) return
+  var lista = window._sueloArchivosPendientes
+  if (!lista.length) { el.innerHTML = ''; return }
+  el.innerHTML = lista.map(function(a, i) {
+    var isImg = (a.tipo||'').startsWith('image/')
+    var ico = isImg ? '🖼️' : '📄'
+    var kb = a.tamanio > 1024*1024 ? (a.tamanio/1024/1024).toFixed(1)+' MB' : Math.round(a.tamanio/1024)+' KB'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+      +'<span style="font-size:16px">'+ico+'</span>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</div><div style="color:var(--texto-suave);font-size:10px">'+kb+'</div></div>'
+      +'<button onclick="window._sueloQuitarArchivo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px">×</button>'
+      +'</div>'
+  }).join('')
+}
+window._sueloQuitarArchivo = async function(i) {
+  var a = window._sueloArchivosPendientes[i]
+  if (a && a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+  window._sueloArchivosPendientes.splice(i, 1)
+  _sueloRenderArchivos()
+}
+
+window.openModalSuelo = function() {
+  window._sueloArchivosPendientes = []
+  _sueloRenderArchivos()
+  document.getElementById('ov-suelo').classList.add('open')
+  document.getElementById('s-fecha').value = new Date().toISOString().split('T')[0]
+  // Limpiar campos
+  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value=''
+  })
+}
+window.closeModalSuelo = function() {
+  document.getElementById('ov-suelo').classList.remove('open')
+}
 window.guardarSuelo = async function() {
   var campoId=document.getElementById('s-campo').value
   var fecha=document.getElementById('s-fecha').value
@@ -6409,15 +6480,29 @@ window.guardarSuelo = async function() {
   try{
     var _ownerUid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
     const g=id=>parseFloat(document.getElementById(id).value)||null
-    const {data,error}=await sb.from('analisis_suelo').insert({
-      campo_id:campoId,usuario_id:_ownerUid2,fecha,
+    var payloadSuelo = {
+      campo_id:campoId, usuario_id:_ownerUid2, fecha,
       laboratorio:document.getElementById('s-lab').value.trim()||null,
-      n_total:g('s-n'),p_disponible:g('s-p'),k:g('s-k'),s:g('s-s'),
-      materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b'),
+      n_total:g('s-n'), p_disponible:g('s-p'), k:g('s-k'), s:g('s-s'),
+      materia_org:g('s-mo'), ph:g('s-ph'), zinc:g('s-zn'), boro:g('s-b'),
       notas:null
-    }).select().single()
-    if(error)throw error
-    analisisS.unshift(data)
+    }
+    // Adjuntar archivos si hay (columna puede no existir en DB vieja → retry sin ella)
+    if (window._sueloArchivosPendientes.length) {
+      payloadSuelo.archivos = window._sueloArchivosPendientes
+    }
+    var ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
+    if (ins.error) {
+      // Reintentar sin archivos si la columna no existe
+      if (/column|archivos|schema|does not exist|PGRST204/i.test(ins.error.message||'')) {
+        delete payloadSuelo.archivos
+        ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
+      }
+      if (ins.error) throw ins.error
+    }
+    analisisS.unshift(ins.data)
+    window._sueloArchivosPendientes = []
+    _sueloRenderArchivos()
     _guardarCache()
     if(campoDet) renderDetSuelo(); else renderSuelo()
     closeModalSuelo()
@@ -8456,8 +8541,13 @@ window.openModalLluviaCampo = function() {
 }
 
 window.openModalSueloCampo = function() {
+  window._sueloArchivosPendientes = []
+  _sueloRenderArchivos()
   document.getElementById('ov-suelo').classList.add('open')
   document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
+  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value=''
+  })
   setTimeout(function(){if(campoDet)document.getElementById('s-campo').value=campoDet},50)
 }
 

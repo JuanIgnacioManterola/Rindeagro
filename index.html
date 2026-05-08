@@ -3308,21 +3308,39 @@ window._tareasAgregarArchivos = async function(input) {
   if (!ownerId) return
   var labelEl = document.getElementById('t-upload-label')
   if (labelEl) labelEl.textContent = 'Subiendo...'
+  var subioAlguno = false
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
     if (file.size > 10 * 1024 * 1024) { showToast('⚠️ ' + file.name + ' supera 10 MB', 'err'); continue }
-    var ext = file.name.split('.').pop()
+    var ext = (file.name.split('.').pop()||'bin').toLowerCase()
     var safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext
     var path = ownerId + '/tareas/' + safeName
     try {
-      var { data: upData, error: upErr } = await sb.storage.from('tareas-archivos').upload(path, file, {upsert: false})
-      if (upErr) throw upErr
+      var { data: upData, error: upErr } = await sb.storage.from('tareas-archivos').upload(path, file, {upsert: false, contentType: file.type||'application/octet-stream'})
+      if (upErr) {
+        var errMsg = upErr.message || ''
+        // Bucket no creado → instrucciones claras
+        if (/not found|bucket|does not exist|Bucket/i.test(errMsg)) {
+          showToast('⚠️ Creá el bucket "tareas-archivos" en Supabase Storage (público) para subir archivos', 'err')
+        } else {
+          showToast('⚠️ Error al subir ' + file.name + ': ' + errMsg, 'err')
+        }
+        continue
+      }
       var { data: urlData } = sb.storage.from('tareas-archivos').getPublicUrl(path)
       window._tareasArchivosPendientes.push({
         nombre: file.name, url: urlData.publicUrl, tipo: file.type || 'application/octet-stream',
         tamanio: file.size, path: path
       })
-    } catch(e) { showToast('⚠️ Error al subir ' + file.name + ': ' + (e.message||''), 'err') }
+      subioAlguno = true
+    } catch(e) {
+      var msg = e.message || ''
+      if (/not found|bucket|Bucket/i.test(msg)) {
+        showToast('⚠️ Bucket "tareas-archivos" no encontrado. Crealo en Supabase Storage (público)', 'err')
+      } else {
+        showToast('⚠️ Error al subir ' + file.name + ': ' + msg, 'err')
+      }
+    }
   }
   input.value = ''
   if (labelEl) labelEl.textContent = 'Subir foto o documento'
@@ -3386,40 +3404,53 @@ window.guardarTarea = async function() {
     if (tExist) archivosExistentes = _safeJSON(tExist.archivos, [])
   }
   var archivosFinales = archivosExistentes.concat(window._tareasArchivosPendientes)
-  var payload = {
+  // Payload base — columnas seguras que siempre existen
+  var payloadBase = {
     titulo: titulo,
     descripcion: document.getElementById('t-desc').value.trim() || null,
     campo_id:    document.getElementById('t-campo').value || null,
     prioridad:   document.getElementById('t-prioridad').value || 'media',
     asignado_a:  document.getElementById('t-asignado').value || null,
     fecha_vencimiento: fechaVal,
-    owner_id: ownerId,
-    archivos: archivosFinales.length ? archivosFinales : null
+    owner_id: ownerId
   }
+  // archivos solo si hay contenido (la columna puede no existir en DB vieja)
+  var payloadConArchivos = archivosFinales.length
+    ? Object.assign({}, payloadBase, {archivos: archivosFinales})
+    : payloadBase
   try {
     if (id) {
-      var { error } = await sb.from('tareas').update(payload).eq('id', id)
-      if (error) throw error
+      // Intentar con archivos; si falla por columna, reintentar sin archivos
+      var { error: errUpd } = await sb.from('tareas').update(payloadConArchivos).eq('id', id)
+      if (errUpd) {
+        if (/column|archivos|schema|does not exist|PGRST204/i.test(errUpd.message||'')) {
+          var { error: errUpd2 } = await sb.from('tareas').update(payloadBase).eq('id', id)
+          if (errUpd2) throw errUpd2
+        } else { throw errUpd }
+      }
       var idx = tareas.findIndex(function(t){ return t.id === id })
-      if (idx >= 0) tareas[idx] = Object.assign(tareas[idx], payload)
+      if (idx >= 0) tareas[idx] = Object.assign(tareas[idx], payloadConArchivos)
       showToast('✓ Tarea actualizada', 'ok')
     } else {
-      payload.estado = 'pendiente'
-      // Generar ID en cliente para no depender del SELECT post-insert (evita problema de RLS)
+      var payloadIns = Object.assign({}, payloadConArchivos, {estado: 'pendiente'})
       var newId = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
-      payload.id = newId
-      var { error } = await sb.from('tareas').insert([payload])
-      if (error) throw error
-      // Construir objeto local (sin esperar SELECT)
-      var nuevaTarea = Object.assign({}, payload, {created_at: new Date().toISOString(), completada_at: null})
+      payloadIns.id = newId
+      var { error: errIns } = await sb.from('tareas').insert([payloadIns])
+      if (errIns) {
+        // Si falló por la columna archivos, reintentar con payload base
+        if (/column|archivos|schema|does not exist|PGRST204/i.test(errIns.message||'')) {
+          var payloadBase2 = Object.assign({}, payloadBase, {estado: 'pendiente', id: newId})
+          var { error: errIns2 } = await sb.from('tareas').insert([payloadBase2])
+          if (errIns2) throw errIns2
+        } else { throw errIns }
+      }
+      var nuevaTarea = Object.assign({}, payloadIns, {created_at: new Date().toISOString(), completada_at: null})
       tareas.unshift(nuevaTarea)
       showToast('✓ Tarea creada', 'ok')
     }
-    // Limpiar archivos pendientes
     window._tareasArchivosPendientes = []
     _tareasRenderArchivosPendientes()
     document.getElementById('ov-tarea').classList.remove('open')
-    // Cambiar al filtro correcto según la fecha
     var hoy = new Date(); hoy.setHours(0,0,0,0)
     if (fechaVal && new Date(fechaVal + 'T00:00:00') > hoy) {
       filtroTareas = 'programada'
@@ -4019,21 +4050,27 @@ window.openModalCampo = function() {
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
       })
-      // Rubber-band: línea fantasma desde el último punto al cursor
+      // Rubber-band: línea fantasma + punto cursor mientras se dibuja el polígono
       window._mapaCampoModal.on('mousemove',function(e){
         if(!_polyModo || _polyPuntos.length < 1) {
           if(window._polyRubberBand){ try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){} window._polyRubberBand=null }
+          if(window._polyCursorDot){ try{window._mapaCampoModal.removeLayer(window._polyCursorDot)}catch(ex){} window._polyCursorDot=null }
           return
         }
         var last = _polyPuntos[_polyPuntos.length-1]
-        var pts = _polyPuntos.length >= 3
-          ? [last, [e.latlng.lat,e.latlng.lng], _polyPuntos[0]]
-          : [last, [e.latlng.lat,e.latlng.lng]]
+        var cur = [e.latlng.lat, e.latlng.lng]
+        var pts = _polyPuntos.length >= 3 ? [last, cur, _polyPuntos[0]] : [last, cur]
         if(!window._polyRubberBand) {
-          window._polyRubberBand = L.polyline(pts, {color:'#c9a84c', weight:1.5, dashArray:'6,5', opacity:0.6, interactive:false}).addTo(window._mapaCampoModal)
-        } else {
-          window._polyRubberBand.setLatLngs(pts)
-        }
+          window._polyRubberBand = L.polyline(pts, {color:'#c9a84c', weight:2, dashArray:'7,5', opacity:0.75, interactive:false}).addTo(window._mapaCampoModal)
+        } else { window._polyRubberBand.setLatLngs(pts) }
+        // Punto circular en la posición actual del cursor
+        var dotIcon = L.divIcon({
+          className:'', iconSize:[10,10], iconAnchor:[5,5],
+          html:'<div style="width:10px;height:10px;border-radius:50%;background:#c9a84c;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);pointer-events:none"></div>'
+        })
+        if(!window._polyCursorDot) {
+          window._polyCursorDot = L.marker(cur, {icon:dotIcon, interactive:false, zIndexOffset:500}).addTo(window._mapaCampoModal)
+        } else { window._polyCursorDot.setLatLng(cur) }
       })
     } else {
       window._mapaCampoModal.invalidateSize()
@@ -4090,6 +4127,7 @@ function _cerrarPoligono(){
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
   if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+  if(window._polyCursorDot){try{m.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
   _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
   _polyModo=false
   document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
@@ -4124,6 +4162,7 @@ window.limpiarPoligono = function(){
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
   if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+  if(window._polyCursorDot){try{m.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
   _polyPuntos=[];_polyModo=false;_campoCoordsLat=null;_campoCoordsLng=null
   var btn=document.getElementById('btn-poly-start')
   btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
@@ -4555,17 +4594,22 @@ window.editarCampoActual = function() {
       window._mapaCampoModal.on('mousemove',function(e){
         if(!_polyModo || _polyPuntos.length < 1) {
           if(window._polyRubberBand){try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+          if(window._polyCursorDot){try{window._mapaCampoModal.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
           return
         }
         var last = _polyPuntos[_polyPuntos.length-1]
-        var pts = _polyPuntos.length >= 3
-          ? [last, [e.latlng.lat,e.latlng.lng], _polyPuntos[0]]
-          : [last, [e.latlng.lat,e.latlng.lng]]
+        var cur = [e.latlng.lat, e.latlng.lng]
+        var pts = _polyPuntos.length >= 3 ? [last, cur, _polyPuntos[0]] : [last, cur]
         if(!window._polyRubberBand) {
-          window._polyRubberBand = L.polyline(pts,{color:'#c9a84c',weight:1.5,dashArray:'6,5',opacity:0.6,interactive:false}).addTo(window._mapaCampoModal)
-        } else {
-          window._polyRubberBand.setLatLngs(pts)
-        }
+          window._polyRubberBand = L.polyline(pts,{color:'#c9a84c',weight:2,dashArray:'7,5',opacity:0.75,interactive:false}).addTo(window._mapaCampoModal)
+        } else { window._polyRubberBand.setLatLngs(pts) }
+        var dotIcon = L.divIcon({
+          className:'', iconSize:[10,10], iconAnchor:[5,5],
+          html:'<div style="width:10px;height:10px;border-radius:50%;background:#c9a84c;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);pointer-events:none"></div>'
+        })
+        if(!window._polyCursorDot) {
+          window._polyCursorDot = L.marker(cur, {icon:dotIcon, interactive:false, zIndexOffset:500}).addTo(window._mapaCampoModal)
+        } else { window._polyCursorDot.setLatLng(cur) }
       })
     }
     var m = window._mapaCampoModal

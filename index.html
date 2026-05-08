@@ -1861,13 +1861,14 @@ async function cargarTodo() {
     }
     return r
   }
-  var [resP, resC, resG, resL, resS, resT] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false})
+    sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false}),
+    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true)
   ])
 
   // Perfil → nombre/saludo
@@ -1895,6 +1896,8 @@ async function cargarTodo() {
   if(freshLluvias !== null) lluvias   = freshLluvias
   if(freshAnalisis!== null) analisisS = freshAnalisis
   if(freshTareas  !== null) tareas    = freshTareas
+  // Cachear equipo para selector de asignados en tareas
+  if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
 
   // Siempre fusionar pending aunque la DB haya respondido
   _mergePendingCampos()

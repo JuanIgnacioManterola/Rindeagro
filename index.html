@@ -3119,8 +3119,9 @@ function _tarjArchivos(t) {
   var imgs = archivos.filter(function(a){ return (a.tipo||'').startsWith('image/') })
   var docs = archivos.filter(function(a){ return !(a.tipo||'').startsWith('image/') })
   var html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
-  imgs.slice(0,3).forEach(function(a) {
-    html += '<a href="'+a.url+'" target="_blank" title="'+a.nombre+'" style="display:block;width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;border:.5px solid var(--borde)">'
+  imgs.slice(0,3).forEach(function(a, ai) {
+    var tId = t.id || ''
+    html += '<a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="'+a.nombre+'" style="display:block;width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;border:.5px solid var(--borde);cursor:zoom-in">'
       +'<img src="'+a.url+'" style="width:100%;height:100%;object-fit:cover"></a>'
   })
   if (imgs.length > 3) {
@@ -3286,8 +3287,8 @@ window.abrirModalTarea = async function(id) {
       var ico = isImg ? '🖼️' : (a.tipo||'').includes('pdf') ? '📄' : '📎'
       var kb = (a.tamanio||0) > 1024*1024 ? ((a.tamanio||0)/1024/1024).toFixed(1)+' MB' : Math.round((a.tamanio||0)/1024)+' KB'
       return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
-        +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
-        +'<div style="flex:1;min-width:0"><a href="'+a.url+'" target="_blank" style="font-weight:500;color:var(--verde);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">'+a.nombre+'</a><div style="color:var(--texto-suave);font-size:10px">'+kb+' · guardado</div></div>'
+        +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:zoom-in" onclick="window._abrirArchivoTarea(\''+id+'\','+i+')">' : '<span style="font-size:18px;cursor:pointer" onclick="window._abrirArchivoTarea(\''+id+'\','+i+'\')">'+ico+'</span>')
+        +'<div style="flex:1;min-width:0"><a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+id+'\','+i+')" style="font-weight:500;color:var(--verde);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">'+a.nombre+'</a><div style="color:var(--texto-suave);font-size:10px">'+kb+' · guardado</div></div>'
         +'<button onclick="window._tareasEliminarArchivoGuardado(\''+id+'\','+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
         +'</div>'
     }).join('')
@@ -3308,7 +3309,57 @@ window.abrirModalTarea = async function(id) {
 }
 
 // ── Archivos adjuntos en tareas ──
-window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio, path}]
+window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio}]
+
+// Abre un archivo guardado de una tarea (busca por id + índice en el array local)
+window._abrirArchivoTarea = function(tareaId, fileIdx) {
+  var t = tareas.find(function(x){ return x.id === tareaId })
+  if (!t) return
+  var archivos = _safeJSON(t.archivos, [])
+  var a = archivos[fileIdx]
+  if (a) window._abrirArchivo(a.url, a.nombre, a.tipo)
+}
+
+// ── Abre un archivo base64 correctamente (Blob URL) ──────────────────────────
+// Chrome bloquea data: URLs en pestañas nuevas, así que convertimos a blob primero
+window._abrirArchivo = function(url, nombre, tipo) {
+  if (!url) return
+  // Si es una imagen → mostrar en lightbox
+  if ((tipo || '').startsWith('image/') || /^data:image\//i.test(url)) {
+    var ov = document.getElementById('_lightbox-ov')
+    if (!ov) {
+      ov = document.createElement('div')
+      ov.id = '_lightbox-ov'
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out'
+      ov.innerHTML = '<img id="_lightbox-img" style="max-width:92vw;max-height:88vh;border-radius:10px;box-shadow:0 4px 32px rgba(0,0,0,.5)" src=""><div id="_lightbox-nom" style="position:fixed;bottom:24px;left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.7"></div>'
+      ov.addEventListener('click', function(){ document.body.removeChild(ov) })
+      document.body.appendChild(ov)
+    } else {
+      ov.style.display = 'flex'
+    }
+    document.getElementById('_lightbox-img').src = url
+    document.getElementById('_lightbox-nom').textContent = nombre || ''
+    return
+  }
+  // Para PDF y otros docs → Blob URL
+  try {
+    var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]
+    var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n)
+    while (n--) u8[n] = bstr.charCodeAt(n)
+    var blob = new Blob([u8], { type: mime })
+    var blobUrl = URL.createObjectURL(blob)
+    var win = window.open(blobUrl, '_blank')
+    if (!win) {
+      // popup bloqueado → descarga directa
+      var a = document.createElement('a')
+      a.href = blobUrl; a.download = nombre || 'archivo'
+      a.click()
+    }
+    setTimeout(function(){ URL.revokeObjectURL(blobUrl) }, 60000)
+  } catch(e) {
+    showToast('⚠️ No se pudo abrir el archivo', 'err')
+  }
+}
 
 // ── Helper: convierte archivo a base64 DataURL (sin storage externo) ─────────
 // Límite: 5 MB por archivo. Las imágenes se comprimen automáticamente.

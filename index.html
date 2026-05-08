@@ -3407,6 +3407,17 @@ window._tareasEliminarArchivoGuardado = async function(tareaId, idx) {
   } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
 }
 
+// Extrae mensaje legible de un error de Supabase o JS
+function _tareaErrMsg(e) {
+  if (!e) return 'Error desconocido'
+  if (typeof e === 'string') return e
+  return e.message || e.details || e.hint || e.error_description || JSON.stringify(e)
+}
+// True si el error es por columna archivos inexistente en la DB
+function _tareaErrEsColumna(e) {
+  return /column|archivos|schema|does not exist|PGRST204/i.test(_tareaErrMsg(e))
+}
+
 window.guardarTarea = async function() {
   var titulo = (document.getElementById('t-titulo').value || '').trim()
   if (!titulo) { showToast('⚠️ El título es obligatorio', 'err'); return }
@@ -3415,69 +3426,83 @@ window.guardarTarea = async function() {
   var id = document.getElementById('t-id').value
   var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
   var fechaVal = document.getElementById('t-fecha').value || null
-  // Archivos: combinar existentes (en edición) con los pendientes nuevos
+
+  // Archivos: combinar existentes con los pendientes nuevos
   var archivosExistentes = []
   if (id) {
     var tExist = tareas.find(function(x){ return x.id === id })
     if (tExist) archivosExistentes = _safeJSON(tExist.archivos, [])
   }
   var archivosFinales = archivosExistentes.concat(window._tareasArchivosPendientes)
-  // Payload base — columnas seguras que siempre existen
+
+  // Payload base — columnas que siempre existen
   var payloadBase = {
     titulo: titulo,
-    descripcion: document.getElementById('t-desc').value.trim() || null,
+    descripcion: (document.getElementById('t-desc').value || '').trim() || null,
     campo_id:    document.getElementById('t-campo').value || null,
     prioridad:   document.getElementById('t-prioridad').value || 'media',
     asignado_a:  document.getElementById('t-asignado').value || null,
     fecha_vencimiento: fechaVal,
     owner_id: ownerId
   }
-  // Payload completo — archivo incluido en la misma operación
-  var payloadFull = archivosFinales.length
-    ? Object.assign({}, payloadBase, {archivos: archivosFinales})
-    : payloadBase
-  try {
-    var newId = id || (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)}))
 
-    // helper: extrae mensaje de error de Supabase o JS
-    function _errMsg(e) { return (e && (e.message || e.details || e.hint || JSON.stringify(e))) || 'Error desconocido' }
-    // helper: true si el error es por columna inexistente
-    function _esErrColumna(e) { return /column|archivos|schema|does not exist|PGRST204/i.test(_errMsg(e)) }
+  // Payload completo — archivos incluidos en la misma operación
+  var hayArchivos = archivosFinales.length > 0
+  var payloadFull = hayArchivos
+    ? Object.assign({}, payloadBase, { archivos: archivosFinales })
+    : payloadBase
+
+  try {
+    var newId = id || (crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+        }))
 
     if (id) {
-      // EDICIÓN: todo en una sola operación, timeout 20s
+      // ── EDICIÓN ──────────────────────────────────────────────
       var resUpd = await _sbRace(sb.from('tareas').update(payloadFull).eq('id', id), 20000)
       if (resUpd.error) {
-        if (_esErrColumna(resUpd.error)) {
+        if (_tareaErrEsColumna(resUpd.error)) {
+          // columna archivos no existe: guardar sin archivos
           var resUpd2 = await _sbRace(sb.from('tareas').update(payloadBase).eq('id', id), 20000)
-          if (resUpd2.error) throw new Error(_errMsg(resUpd2.error))
-        } else { throw new Error(_errMsg(resUpd.error)) }
+          if (resUpd2.error) throw new Error(_tareaErrMsg(resUpd2.error))
+        } else {
+          throw new Error(_tareaErrMsg(resUpd.error))
+        }
       }
       var idx = tareas.findIndex(function(t){ return t.id === id })
-      var localUpd = Object.assign({}, idx >= 0 ? tareas[idx] : {}, payloadFull)
-      if (idx >= 0) tareas[idx] = localUpd
+      if (idx >= 0) tareas[idx] = Object.assign({}, tareas[idx], payloadFull)
       showToast('✓ Tarea actualizada', 'ok')
+
     } else {
-      // NUEVA TAREA: INSERT con todo junto en una sola operación, timeout 20s
-      var payloadIns = Object.assign({}, payloadFull, {estado: 'pendiente', id: newId})
+      // ── NUEVA TAREA ───────────────────────────────────────────
+      var payloadIns = Object.assign({}, payloadFull, { estado: 'pendiente', id: newId })
       var resIns = await _sbRace(sb.from('tareas').insert([payloadIns]), 20000)
       if (resIns.error) {
-        if (_esErrColumna(resIns.error)) {
-          // columna archivos no existe: INSERT sin archivos
-          var payloadIns2 = Object.assign({}, payloadBase, {estado: 'pendiente', id: newId})
+        if (_tareaErrEsColumna(resIns.error)) {
+          // columna archivos no existe: reintentar sin archivos
+          var payloadIns2 = Object.assign({}, payloadBase, { estado: 'pendiente', id: newId })
           var resIns2 = await _sbRace(sb.from('tareas').insert([payloadIns2]), 20000)
-          if (resIns2.error) throw new Error(_errMsg(resIns2.error))
-        } else { throw new Error(_errMsg(resIns.error)) }
+          if (resIns2.error) throw new Error(_tareaErrMsg(resIns2.error))
+        } else {
+          throw new Error(_tareaErrMsg(resIns.error))
+        }
       }
-      var nuevaTarea = Object.assign({}, payloadIns, {created_at: new Date().toISOString(), completada_at: null})
+      var nuevaTarea = Object.assign({}, payloadIns, {
+        created_at: new Date().toISOString(),
+        completada_at: null
+      })
       tareas.unshift(nuevaTarea)
       showToast('✓ Tarea creada', 'ok')
     }
 
+    // ── Post-guardado ─────────────────────────────────────────
     window._tareasArchivosPendientes = []
     _tareasRenderArchivosPendientes()
     document.getElementById('ov-tarea').classList.remove('open')
-    var hoy = new Date(); hoy.setHours(0,0,0,0)
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0)
     if (fechaVal && new Date(fechaVal + 'T00:00:00') > hoy) {
       filtroTareas = 'programada'
     } else if (!id) {
@@ -3485,11 +3510,14 @@ window.guardarTarea = async function() {
     }
     renderTareas()
     _renderDashTareas()
+
   } catch(e) {
     console.error('guardarTarea error:', e)
-    showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'), 'err')
+    var msg = (e && e.message) ? e.message : String(e)
+    showToast('⚠️ ' + (msg || 'Error al guardar. Intentá de nuevo.'), 'err')
   } finally {
-    btn.disabled = false; btn.textContent = id ? 'Guardar cambios' : 'Guardar tarea'
+    btn.disabled = false
+    btn.textContent = id ? 'Guardar cambios' : 'Guardar tarea'
   }
 }
 

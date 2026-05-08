@@ -2302,7 +2302,7 @@ function renderRentabilidad() {
         var cSaved = {}; try{ cSaved=JSON.parse(c.ingresos_cultivos||'{}') }catch(e){}
         var cIng = cCults.reduce(function(a,cu){
           var d=cSaved[cu]||{rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||0,hectareas:cHa}
-          var haCu=parseFloat((JSON.parse(c.hectareas_cultivo||'{}'))[cu]||(cHa/cCults.length))
+          var haCu=parseFloat((_safeJSON(c.hectareas_cultivo))[cu]||(cHa/cCults.length))
           return a + parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
         },0)
         var cGas = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
@@ -3851,19 +3851,35 @@ window.openModalCampo = function() {
       window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
       L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapaCampoModal)
       window._mapaCampoModal.on('click',function(e){
-        if(_zonaCultivoActivo) return  // zona mode takes priority
+        if(_zonaCultivoActivo) return
         if(!_polyModo) return
         _polyPuntos.push([e.latlng.lat,e.latlng.lng])
         _dibujarPolyTemp()
         var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
         _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
         if(el)el.style.display='block'
-        if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+        if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos — doble clic para cerrar'
       })
       window._mapaCampoModal.on('dblclick',function(){
-        if(_zonaCultivoActivo) return  // zona mode takes priority
+        if(_zonaCultivoActivo) return
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
+      })
+      // Rubber-band: línea fantasma desde el último punto al cursor
+      window._mapaCampoModal.on('mousemove',function(e){
+        if(!_polyModo || _polyPuntos.length < 1) {
+          if(window._polyRubberBand){ try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){} window._polyRubberBand=null }
+          return
+        }
+        var last = _polyPuntos[_polyPuntos.length-1]
+        var pts = _polyPuntos.length >= 3
+          ? [last, [e.latlng.lat,e.latlng.lng], _polyPuntos[0]]
+          : [last, [e.latlng.lat,e.latlng.lng]]
+        if(!window._polyRubberBand) {
+          window._polyRubberBand = L.polyline(pts, {color:'#c9a84c', weight:1.5, dashArray:'6,5', opacity:0.6, interactive:false}).addTo(window._mapaCampoModal)
+        } else {
+          window._polyRubberBand.setLatLngs(pts)
+        }
       })
     } else {
       window._mapaCampoModal.invalidateSize()
@@ -3919,6 +3935,7 @@ function _cerrarPoligono(){
   var m=window._mapaCampoModal; if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
   _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
   _polyModo=false
   document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
@@ -3952,6 +3969,7 @@ window.limpiarPoligono = function(){
   var m=window._mapaCampoModal;if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
   _polyPuntos=[];_polyModo=false;_campoCoordsLat=null;_campoCoordsLng=null
   var btn=document.getElementById('btn-poly-start')
   btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
@@ -4185,6 +4203,8 @@ window.guardarCampo = async function() {
       // Recargar campo actualizado
       var rGet = await _sbRace(sb.from('campos').select('*').eq('id', editId).single(), 6000)
       if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
+      // Forzar re-init del tab de ingresos para reflejar cultivos/hectáreas nuevos
+      window._ingVentasCampoId = null
       _guardarCache()
 
     } else {
@@ -4343,11 +4363,26 @@ window.editarCampoActual = function() {
         var elC=document.getElementById('campo-coords'),txtC=document.getElementById('campo-coords-txt')
         _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
         if(elC)elC.style.display='block'
-        if(txtC)txtC.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+        if(txtC)txtC.textContent='Polígono: '+_polyPuntos.length+' puntos — doble clic para cerrar'
       })
       window._mapaCampoModal.on('dblclick',function(){
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
+      })
+      window._mapaCampoModal.on('mousemove',function(e){
+        if(!_polyModo || _polyPuntos.length < 1) {
+          if(window._polyRubberBand){try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+          return
+        }
+        var last = _polyPuntos[_polyPuntos.length-1]
+        var pts = _polyPuntos.length >= 3
+          ? [last, [e.latlng.lat,e.latlng.lng], _polyPuntos[0]]
+          : [last, [e.latlng.lat,e.latlng.lng]]
+        if(!window._polyRubberBand) {
+          window._polyRubberBand = L.polyline(pts,{color:'#c9a84c',weight:1.5,dashArray:'6,5',opacity:0.6,interactive:false}).addTo(window._mapaCampoModal)
+        } else {
+          window._polyRubberBand.setLatLngs(pts)
+        }
       })
     }
     var m = window._mapaCampoModal
@@ -6832,9 +6867,18 @@ window._ingVentasCampoId = null // sentinel para saber cuándo reiniciar
 // Prioridad: 1) hectareas_cultivo (del polígono dibujado)
 //            2) ingresos_cultivos[cult].hectareas (guardado en tab Ingresos)
 //            3) campo.hectareas / nCultivos
+
+// Parsea JSON de forma segura — acepta string, objeto ya parseado, o null/undefined
+function _safeJSON(val, fallback) {
+  if (fallback === undefined) fallback = {}
+  if (!val) return fallback
+  if (typeof val === 'object') return val
+  try { return JSON.parse(val) } catch(e) { return fallback }
+}
+
 function _haParaCultivo(c, cult, cultivosList) {
   var haCultivoMap = {}
-  try { haCultivoMap = JSON.parse(c.hectareas_cultivo||'{}') } catch(e) {}
+  haCultivoMap = _safeJSON(c.hectareas_cultivo, {})
   if(haCultivoMap[cult]) return parseFloat(haCultivoMap[cult])
   var savedIngr = {}
   try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}

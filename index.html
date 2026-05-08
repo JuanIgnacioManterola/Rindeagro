@@ -989,6 +989,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Archivos adjuntos -->
+    <div style="margin-top:12px">
+      <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
+      <div id="t-archivos-lista" style="margin-bottom:8px"></div>
+      <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+        <span style="font-size:16px">📁</span>
+        <span id="t-upload-label">Subir foto o documento</span>
+        <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
+      </label>
+      <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+    </div>
+
     <input type="hidden" id="t-id"/>
     <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()" style="margin-top:1.2rem">Guardar tarea</button>
   </div>
@@ -3086,6 +3098,26 @@ function _tarjCampo(campo_id) {
   return c ? '<span style="font-size:11px;color:var(--texto-suave)">🌾 '+c.nombre+'</span>' : ''
 }
 
+function _tarjArchivos(t) {
+  var archivos = _safeJSON(t.archivos, [])
+  if (!archivos.length) return ''
+  var imgs = archivos.filter(function(a){ return (a.tipo||'').startsWith('image/') })
+  var docs = archivos.filter(function(a){ return !(a.tipo||'').startsWith('image/') })
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
+  imgs.slice(0,3).forEach(function(a) {
+    html += '<a href="'+a.url+'" target="_blank" title="'+a.nombre+'" style="display:block;width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;border:.5px solid var(--borde)">'
+      +'<img src="'+a.url+'" style="width:100%;height:100%;object-fit:cover"></a>'
+  })
+  if (imgs.length > 3) {
+    html += '<div style="width:36px;height:36px;border-radius:5px;background:var(--crema);border:.5px solid var(--borde);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--verde)">+'+( imgs.length-3)+'</div>'
+  }
+  if (docs.length) {
+    html += '<span style="font-size:11px;color:var(--texto-suave);display:flex;align-items:center;gap:3px;background:var(--crema);padding:3px 7px;border-radius:5px;border:.5px solid var(--borde)">📎 '+docs.length+' archivo'+(docs.length>1?'s':'')+'</span>'
+  }
+  html += '</div>'
+  return html
+}
+
 function _tarjAsignado(uid) {
   if (!uid) return '<span style="font-size:11px;color:var(--texto-suave)">Sin asignar</span>'
   var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
@@ -3166,6 +3198,7 @@ function renderTareas() {
       +_tarjAsignado(t.asignado_a)
       +(t.fecha_vencimiento ? _tarjFecha(t.fecha_vencimiento) : '')
       +(esCompletada ? '<span style="font-size:11px;color:var(--texto-suave)">Completada'+completadaAt+'</span>' : '')
+      +(_tarjArchivos(t))
       +'</div>'
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">'
@@ -3208,13 +3241,16 @@ function _renderDashTareas() {
 
 window.abrirModalTarea = async function(id) {
   var ov = document.getElementById('ov-tarea')
+  // Limpiar archivos pendientes de apertura anterior
+  window._tareasArchivosPendientes = []
+  _tareasRenderArchivosPendientes()
   var selCampo = document.getElementById('t-campo')
   if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + campos.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
   var selAsig = document.getElementById('t-asignado')
   if (selAsig) {
     var miembros = window._equipoCache || []
     selAsig.innerHTML = '<option value="">Sin asignar</option>'
-      + (usuario ? [{colaborador_id: usuario.id, nombre: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.colaborador_id||'')+'">'+m.nombre+'</option>' }).join('')
+      + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
   }
   if (id) {
     var t = tareas.find(function(x){ return x.id === id })
@@ -3227,6 +3263,19 @@ window.abrirModalTarea = async function(id) {
     document.getElementById('t-prioridad').value = t.prioridad || 'media'
     document.getElementById('t-asignado').value = t.asignado_a || ''
     document.getElementById('t-fecha').value = t.fecha_vencimiento || ''
+    // Mostrar archivos ya guardados en la tarea
+    var archGuard = _safeJSON(t.archivos, [])
+    var listaEl = document.getElementById('t-archivos-lista')
+    if (listaEl) listaEl.innerHTML = archGuard.map(function(a, i) {
+      var isImg = (a.tipo||'').startsWith('image/')
+      var ico = isImg ? '🖼️' : (a.tipo||'').includes('pdf') ? '📄' : '📎'
+      var kb = (a.tamanio||0) > 1024*1024 ? ((a.tamanio||0)/1024/1024).toFixed(1)+' MB' : Math.round((a.tamanio||0)/1024)+' KB'
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+        +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
+        +'<div style="flex:1;min-width:0"><a href="'+a.url+'" target="_blank" style="font-weight:500;color:var(--verde);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">'+a.nombre+'</a><div style="color:var(--texto-suave);font-size:10px">'+kb+' · guardado</div></div>'
+        +'<button onclick="window._tareasEliminarArchivoGuardado(''+id+'','+i+');document.getElementById('ov-tarea').classList.remove('open')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
+        +'</div>'
+    }).join('')
   } else {
     document.getElementById('tarea-modal-tit').textContent = 'Nueva tarea'
     document.getElementById('t-id').value = ''
@@ -3236,9 +3285,84 @@ window.abrirModalTarea = async function(id) {
     document.getElementById('t-prioridad').value = 'media'
     document.getElementById('t-asignado').value = ''
     document.getElementById('t-fecha').value = ''
+    var listaEl2 = document.getElementById('t-archivos-lista')
+    if (listaEl2) listaEl2.innerHTML = ''
   }
   ov.classList.add('open')
   setTimeout(function(){ document.getElementById('t-titulo').focus() }, 100)
+}
+
+// ── Archivos adjuntos en tareas ──
+window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio, path}]
+
+window._tareasAgregarArchivos = async function(input) {
+  var files = Array.from(input.files || [])
+  if (!files.length) return
+  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : (usuario && usuario.id)
+  if (!ownerId) return
+  var labelEl = document.getElementById('t-upload-label')
+  if (labelEl) labelEl.textContent = 'Subiendo...'
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i]
+    if (file.size > 10 * 1024 * 1024) { showToast('⚠️ ' + file.name + ' supera 10 MB', 'err'); continue }
+    var ext = file.name.split('.').pop()
+    var safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext
+    var path = ownerId + '/tareas/' + safeName
+    try {
+      var { data: upData, error: upErr } = await sb.storage.from('tareas-archivos').upload(path, file, {upsert: false})
+      if (upErr) throw upErr
+      var { data: urlData } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+      window._tareasArchivosPendientes.push({
+        nombre: file.name, url: urlData.publicUrl, tipo: file.type || 'application/octet-stream',
+        tamanio: file.size, path: path
+      })
+    } catch(e) { showToast('⚠️ Error al subir ' + file.name + ': ' + (e.message||''), 'err') }
+  }
+  input.value = ''
+  if (labelEl) labelEl.textContent = 'Subir foto o documento'
+  _tareasRenderArchivosPendientes()
+}
+
+function _tareasRenderArchivosPendientes() {
+  var el = document.getElementById('t-archivos-lista')
+  if (!el) return
+  var lista = window._tareasArchivosPendientes
+  if (!lista.length) { el.innerHTML = ''; return }
+  el.innerHTML = lista.map(function(a, i) {
+    var isImg = a.tipo.startsWith('image/')
+    var ico = isImg ? '🖼️' : a.tipo.includes('pdf') ? '📄' : a.tipo.includes('word') || a.tipo.includes('doc') ? '📝' : a.tipo.includes('excel') || a.tipo.includes('sheet') || a.tipo.includes('xls') ? '📊' : '📎'
+    var kb = a.tamanio > 1024*1024 ? (a.tamanio/1024/1024).toFixed(1)+' MB' : Math.round(a.tamanio/1024)+' KB'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+      +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
+      +'<div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</div><div style="color:var(--texto-suave);font-size:10px">'+kb+'</div></div>'
+      +'<button onclick="window._tareasQuitarArchivo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
+      +'</div>'
+  }).join('')
+}
+
+window._tareasQuitarArchivo = async function(i) {
+  var a = window._tareasArchivosPendientes[i]
+  if (!a) return
+  // Borrar del storage si ya fue subido
+  if (a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+  window._tareasArchivosPendientes.splice(i, 1)
+  _tareasRenderArchivosPendientes()
+}
+
+window._tareasEliminarArchivoGuardado = async function(tareaId, idx) {
+  var t = tareas.find(function(x){ return x.id === tareaId })
+  if (!t) return
+  var archivos = _safeJSON(t.archivos, [])
+  var a = archivos[idx]
+  if (!a) return
+  if (a.path) { try { await sb.storage.from('tareas-archivos').remove([a.path]) } catch(e) {} }
+  archivos.splice(idx, 1)
+  try {
+    await sb.from('tareas').update({archivos: archivos}).eq('id', tareaId)
+    t.archivos = archivos
+    renderTareas()
+    showToast('✓ Archivo eliminado', 'ok')
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
 }
 
 window.guardarTarea = async function() {
@@ -3248,14 +3372,23 @@ window.guardarTarea = async function() {
   btn.disabled = true; btn.textContent = 'Guardando...'
   var id = document.getElementById('t-id').value
   var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var fechaVal = document.getElementById('t-fecha').value || null
+  // Archivos: combinar existentes (en edición) con los pendientes nuevos
+  var archivosExistentes = []
+  if (id) {
+    var tExist = tareas.find(function(x){ return x.id === id })
+    if (tExist) archivosExistentes = _safeJSON(tExist.archivos, [])
+  }
+  var archivosFinales = archivosExistentes.concat(window._tareasArchivosPendientes)
   var payload = {
     titulo: titulo,
     descripcion: document.getElementById('t-desc').value.trim() || null,
     campo_id:    document.getElementById('t-campo').value || null,
     prioridad:   document.getElementById('t-prioridad').value || 'media',
     asignado_a:  document.getElementById('t-asignado').value || null,
-    fecha_vencimiento: document.getElementById('t-fecha').value || null,
-    owner_id: ownerId
+    fecha_vencimiento: fechaVal,
+    owner_id: ownerId,
+    archivos: archivosFinales.length ? archivosFinales : null
   }
   try {
     if (id) {
@@ -3266,18 +3399,33 @@ window.guardarTarea = async function() {
       showToast('✓ Tarea actualizada', 'ok')
     } else {
       payload.estado = 'pendiente'
-      var { data, error } = await sb.from('tareas').insert([payload]).select().single()
+      // Generar ID en cliente para no depender del SELECT post-insert (evita problema de RLS)
+      var newId = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      payload.id = newId
+      var { error } = await sb.from('tareas').insert([payload])
       if (error) throw error
-      tareas.unshift(data)
+      // Construir objeto local (sin esperar SELECT)
+      var nuevaTarea = Object.assign({}, payload, {created_at: new Date().toISOString(), completada_at: null})
+      tareas.unshift(nuevaTarea)
       showToast('✓ Tarea creada', 'ok')
     }
+    // Limpiar archivos pendientes
+    window._tareasArchivosPendientes = []
+    _tareasRenderArchivosPendientes()
     document.getElementById('ov-tarea').classList.remove('open')
+    // Cambiar al filtro correcto según la fecha
+    var hoy = new Date(); hoy.setHours(0,0,0,0)
+    if (fechaVal && new Date(fechaVal + 'T00:00:00') > hoy) {
+      filtroTareas = 'programada'
+    } else if (!id) {
+      filtroTareas = 'pendiente'
+    }
     renderTareas()
     _renderDashTareas()
   } catch(e) {
-    showToast('⚠️ Error: '+e.message, 'err')
+    showToast('⚠️ Error al guardar: '+(e.message||'Intentá de nuevo'), 'err')
   } finally {
-    btn.disabled = false; btn.textContent = 'Guardar tarea'
+    btn.disabled = false; btn.textContent = id ? 'Guardar cambios' : 'Guardar tarea'
   }
 }
 

@@ -3320,28 +3320,106 @@ window._abrirArchivoTarea = function(tareaId, fileIdx) {
   if (a) window._abrirArchivo(a.url, a.nombre, a.tipo)
 }
 
-// ── Abre un archivo base64 correctamente (Blob URL) ──────────────────────────
-// Chrome bloquea data: URLs en pestañas nuevas, así que convertimos a blob primero
+// ── Lightbox con zoom completo ────────────────────────────────────────────────
 window._abrirArchivo = function(url, nombre, tipo) {
   if (!url) return
-  // Si es una imagen → mostrar en lightbox
   if ((tipo || '').startsWith('image/') || /^data:image\//i.test(url)) {
-    var ov = document.getElementById('_lightbox-ov')
-    if (!ov) {
-      ov = document.createElement('div')
-      ov.id = '_lightbox-ov'
-      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out'
-      ov.innerHTML = '<img id="_lightbox-img" style="max-width:92vw;max-height:88vh;border-radius:10px;box-shadow:0 4px 32px rgba(0,0,0,.5)" src=""><div id="_lightbox-nom" style="position:fixed;bottom:24px;left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.7"></div>'
-      ov.addEventListener('click', function(){ document.body.removeChild(ov) })
-      document.body.appendChild(ov)
-    } else {
-      ov.style.display = 'flex'
+    // Remover instancia anterior si existe
+    var old = document.getElementById('_lb')
+    if (old) document.body.removeChild(old)
+
+    var lb = document.createElement('div')
+    lb.id = '_lb'
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;overflow:hidden;touch-action:none'
+    lb.innerHTML = [
+      '<div id="_lb-wrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">',
+        '<img id="_lb-img" src="'+url+'" style="max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 4px 40px rgba(0,0,0,.6);transform-origin:center center;user-select:none;pointer-events:none">',
+      '</div>',
+      '<div style="position:fixed;bottom:18px;left:0;right:0;text-align:center;color:rgba(255,255,255,.6);font-size:12px;pointer-events:none">'+(nombre||'')+'</div>',
+      '<div style="position:fixed;top:14px;right:18px;display:flex;gap:8px;z-index:2">',
+        '<button id="_lb-dl" title="Descargar" style="background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:18px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬇</button>',
+        '<button id="_lb-close" style="background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:20px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>',
+      '</div>',
+      '<div style="position:fixed;bottom:44px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.45);border-radius:20px;padding:6px 12px;z-index:2">',
+        '<button id="_lb-zm" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center">＋</button>',
+        '<button id="_lb-zm0" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;width:44px;height:34px;display:flex;align-items:center;justify-content:center" title="Resetear zoom">1:1</button>',
+        '<button id="_lb-zm2" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center">－</button>',
+      '</div>'
+    ].join('')
+    document.body.appendChild(lb)
+
+    var img = document.getElementById('_lb-img')
+    var scale = 1, tx = 0, ty = 0
+    var dragging = false, lastX = 0, lastY = 0
+
+    function applyT() {
+      img.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')'
     }
-    document.getElementById('_lightbox-img').src = url
-    document.getElementById('_lightbox-nom').textContent = nombre || ''
+    function zoom(delta, cx, cy) {
+      var prev = scale
+      scale = Math.min(8, Math.max(0.5, scale + delta))
+      // Zoom centrado en el punto (cx, cy)
+      var rect = img.getBoundingClientRect()
+      var ox = cx - (rect.left + rect.width/2)
+      var oy = cy - (rect.top + rect.height/2)
+      tx += -ox * (scale/prev - 1)
+      ty += -oy * (scale/prev - 1)
+      applyT()
+    }
+    function resetZoom() { scale = 1; tx = 0; ty = 0; applyT() }
+
+    // Botones
+    document.getElementById('_lb-close').onclick = function(e) { e.stopPropagation(); document.body.removeChild(lb) }
+    document.getElementById('_lb-zm').onclick = function(e) { e.stopPropagation(); zoom(0.5, window.innerWidth/2, window.innerHeight/2) }
+    document.getElementById('_lb-zm2').onclick = function(e) { e.stopPropagation(); zoom(-0.5, window.innerWidth/2, window.innerHeight/2) }
+    document.getElementById('_lb-zm0').onclick = function(e) { e.stopPropagation(); resetZoom() }
+    document.getElementById('_lb-dl').onclick = function(e) {
+      e.stopPropagation()
+      var a = document.createElement('a'); a.href = url; a.download = nombre || 'imagen.jpg'; a.click()
+    }
+    // Fondo cierra
+    lb.addEventListener('click', function(e) { if (e.target === lb || e.target.id === '_lb-wrap') document.body.removeChild(lb) })
+    // Rueda del mouse → zoom
+    lb.addEventListener('wheel', function(e) { e.preventDefault(); zoom(e.deltaY < 0 ? 0.25 : -0.25, e.clientX, e.clientY) }, { passive: false })
+    // Doble click → zoom x2 / reset
+    lb.addEventListener('dblclick', function(e) {
+      if (scale > 1) resetZoom()
+      else zoom(1.5, e.clientX, e.clientY)
+    })
+    // Drag para mover
+    lb.addEventListener('mousedown', function(e) { if (scale > 1) { dragging = true; lastX = e.clientX; lastY = e.clientY; lb.style.cursor = 'grabbing' } })
+    lb.addEventListener('mousemove', function(e) {
+      if (!dragging) return
+      tx += e.clientX - lastX; ty += e.clientY - lastY
+      lastX = e.clientX; lastY = e.clientY; applyT()
+    })
+    lb.addEventListener('mouseup',   function() { dragging = false; lb.style.cursor = '' })
+    lb.addEventListener('mouseleave', function() { dragging = false; lb.style.cursor = '' })
+    // Touch: pinch zoom
+    var t0, t1, initDist, initScale
+    lb.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        t0 = e.touches[0]; t1 = e.touches[1]
+        initDist = Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY)
+        initScale = scale
+      } else if (e.touches.length === 1 && scale > 1) {
+        dragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
+      }
+    }, { passive: true })
+    lb.addEventListener('touchmove', function(e) {
+      e.preventDefault()
+      if (e.touches.length === 2) {
+        var d = Math.hypot(e.touches[1].clientX-e.touches[0].clientX, e.touches[1].clientY-e.touches[0].clientY)
+        scale = Math.min(8, Math.max(0.5, initScale * d / initDist)); applyT()
+      } else if (dragging && e.touches.length === 1) {
+        tx += e.touches[0].clientX - lastX; ty += e.touches[0].clientY - lastY
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; applyT()
+      }
+    }, { passive: false })
+    lb.addEventListener('touchend', function() { dragging = false })
     return
   }
-  // Para PDF y otros docs → Blob URL
+  // PDFs y docs → Blob URL
   try {
     var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]
     var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n)
@@ -3349,16 +3427,9 @@ window._abrirArchivo = function(url, nombre, tipo) {
     var blob = new Blob([u8], { type: mime })
     var blobUrl = URL.createObjectURL(blob)
     var win = window.open(blobUrl, '_blank')
-    if (!win) {
-      // popup bloqueado → descarga directa
-      var a = document.createElement('a')
-      a.href = blobUrl; a.download = nombre || 'archivo'
-      a.click()
-    }
+    if (!win) { var a = document.createElement('a'); a.href = blobUrl; a.download = nombre || 'archivo'; a.click() }
     setTimeout(function(){ URL.revokeObjectURL(blobUrl) }, 60000)
-  } catch(e) {
-    showToast('⚠️ No se pudo abrir el archivo', 'err')
-  }
+  } catch(e) { showToast('⚠️ No se pudo abrir el archivo', 'err') }
 }
 
 // ── Helper: convierte archivo a base64 DataURL (sin storage externo) ─────────
@@ -3375,12 +3446,15 @@ function _archivoABase64(file) {
       var objectUrl = URL.createObjectURL(file)
       img.onload = function() {
         URL.revokeObjectURL(objectUrl)
-        // Intentos de compresión progresiva hasta quedar bajo 200 KB en base64
+        // Compresión progresiva: empieza alta calidad, reduce hasta entrar en 500 KB base64
+        // (~683 KB de string length, ya que base64 = bytes * 1.37)
+        var LIMITE = 500 * 1024 * 1.37
         var pasos = [
-          { max: 900, q: 0.72 },
-          { max: 650, q: 0.60 },
-          { max: 450, q: 0.50 },
-          { max: 300, q: 0.40 }
+          { max: 1600, q: 0.90 },
+          { max: 1200, q: 0.82 },
+          { max: 900,  q: 0.72 },
+          { max: 650,  q: 0.60 },
+          { max: 450,  q: 0.50 }
         ]
         var resultado = null
         for (var pi = 0; pi < pasos.length; pi++) {
@@ -3394,8 +3468,7 @@ function _archivoABase64(file) {
           canvas.width = w; canvas.height = h
           canvas.getContext('2d').drawImage(img, 0, 0, w, h)
           resultado = canvas.toDataURL('image/jpeg', q)
-          // base64 length / 1.37 ≈ bytes; queremos < 200 KB
-          if (resultado.length < 200 * 1024 * 1.37) break
+          if (resultado.length < LIMITE) break
         }
         resolve(resultado)
       }

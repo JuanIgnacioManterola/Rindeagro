@@ -3437,35 +3437,43 @@ window.guardarTarea = async function() {
     ? Object.assign({}, payloadBase, {archivos: archivosFinales})
     : payloadBase
   try {
+    var newId = id || (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)}))
+
     if (id) {
-      // Intentar con archivos; si falla por columna, reintentar sin archivos
-      var { error: errUpd } = await sb.from('tareas').update(payloadConArchivos).eq('id', id)
-      if (errUpd) {
-        if (/column|archivos|schema|does not exist|PGRST204/i.test(errUpd.message||'')) {
-          var { error: errUpd2 } = await sb.from('tareas').update(payloadBase).eq('id', id)
-          if (errUpd2) throw errUpd2
-        } else { throw errUpd }
-      }
+      // EDICIÓN: guardar datos base primero, archivos después
+      var { error: errUpd } = await sb.from('tareas').update(payloadBase).eq('id', id)
+      if (errUpd) throw errUpd
       var idx = tareas.findIndex(function(t){ return t.id === id })
-      if (idx >= 0) tareas[idx] = Object.assign(tareas[idx], payloadConArchivos)
+      var localUpd = Object.assign({}, idx >= 0 ? tareas[idx] : {}, payloadBase)
+      // Actualizar archivos en background si hay cambios
+      if (archivosFinales.length) {
+        sb.from('tareas').update({archivos: archivosFinales}).eq('id', id).then(function(r){
+          if (!r.error) { localUpd.archivos = archivosFinales }
+        }).catch(function(){})
+        localUpd.archivos = archivosFinales
+      }
+      if (idx >= 0) tareas[idx] = localUpd
       showToast('✓ Tarea actualizada', 'ok')
     } else {
-      var payloadIns = Object.assign({}, payloadConArchivos, {estado: 'pendiente'})
-      var newId = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
-      payloadIns.id = newId
+      // NUEVA TAREA: INSERT solo con campos base (siempre liviano)
+      var payloadIns = Object.assign({}, payloadBase, {estado: 'pendiente', id: newId})
       var { error: errIns } = await sb.from('tareas').insert([payloadIns])
-      if (errIns) {
-        // Si falló por la columna archivos, reintentar con payload base
-        if (/column|archivos|schema|does not exist|PGRST204/i.test(errIns.message||'')) {
-          var payloadBase2 = Object.assign({}, payloadBase, {estado: 'pendiente', id: newId})
-          var { error: errIns2 } = await sb.from('tareas').insert([payloadBase2])
-          if (errIns2) throw errIns2
-        } else { throw errIns }
-      }
+      if (errIns) throw errIns
       var nuevaTarea = Object.assign({}, payloadIns, {created_at: new Date().toISOString(), completada_at: null})
       tareas.unshift(nuevaTarea)
       showToast('✓ Tarea creada', 'ok')
+      // UPDATE archivos en background (no bloquea el guardado)
+      if (archivosFinales.length) {
+        sb.from('tareas').update({archivos: archivosFinales}).eq('id', newId).then(function(r){
+          if (!r.error) {
+            var t = tareas.find(function(x){ return x.id === newId })
+            if (t) { t.archivos = archivosFinales; renderTareas() }
+          }
+        }).catch(function(){})
+        nuevaTarea.archivos = archivosFinales
+      }
     }
+
     window._tareasArchivosPendientes = []
     _tareasRenderArchivosPendientes()
     document.getElementById('ov-tarea').classList.remove('open')
@@ -3478,7 +3486,8 @@ window.guardarTarea = async function() {
     renderTareas()
     _renderDashTareas()
   } catch(e) {
-    showToast('⚠️ Error al guardar: '+(e.message||'Intentá de nuevo'), 'err')
+    console.error('guardarTarea error:', e)
+    showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'), 'err')
   } finally {
     btn.disabled = false; btn.textContent = id ? 'Guardar cambios' : 'Guardar tarea'
   }

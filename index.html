@@ -1509,10 +1509,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div style="padding:1.75rem 2rem">
       <!-- TAB MIEMBROS -->
       <div id="eq-sec-miembros">
-        <div id="eq-miembros-lista" style="margin-bottom:1.25rem;min-height:60px"></div>
-        <button onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))" style="width:100%;padding:12px;border-radius:10px;border:2px dashed var(--borde);background:transparent;color:var(--verde);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.borderColor='var(--verde)';this.style.background='var(--verde-pale)'" onmouseout="this.style.borderColor='var(--borde)';this.style.background='transparent'">
-          <span style="font-size:18px">+</span> Invitar nuevo miembro
-        </button>
+        <!-- Toolbar: toggle vista + botón invitar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:10px">
+          <div style="display:flex;background:var(--crema-dark);border-radius:9px;padding:3px;gap:2px">
+            <button id="eq-toggle-persona" onclick="_eqSetVista('persona')" style="padding:5px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:var(--verde);color:#fff;transition:all .2s">👤 Por persona</button>
+            <button id="eq-toggle-campo" onclick="_eqSetVista('campo')" style="padding:5px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:var(--texto-suave);transition:all .2s">🌾 Por campo</button>
+          </div>
+          <button onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1.5px solid var(--verde);background:transparent;color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s" onmouseover="this.style.background='var(--verde-pale)'" onmouseout="this.style.background='transparent'">
+            + Invitar
+          </button>
+        </div>
+        <div id="eq-miembros-lista" style="min-height:60px"></div>
       </div>
 
       <!-- TAB INVITAR -->
@@ -7103,10 +7110,69 @@ window.resaltarRolLabel = function(cual) {
   lA.style.background   = cual==='adm' ? 'var(--verde-pale)' : 'transparent'
 }
 
+// ── EQUIPO: vista actual (persona | campo) ──
+window._eqVista = 'persona'
+window._eqMiembrosData = []
+
+window._eqSetVista = function(v) {
+  window._eqVista = v
+  var btnP = document.getElementById('eq-toggle-persona')
+  var btnC = document.getElementById('eq-toggle-campo')
+  if (btnP) { btnP.style.background = v==='persona' ? 'var(--verde)' : 'transparent'; btnP.style.color = v==='persona' ? '#fff' : 'var(--texto-suave)' }
+  if (btnC) { btnC.style.background = v==='campo'   ? 'var(--verde)' : 'transparent'; btnC.style.color = v==='campo'   ? '#fff' : 'var(--texto-suave)' }
+  _renderListaMiembros()
+}
+
+var _EQ_ROL_INFO = {
+  administrador:      { label:'Administrador',        color:'#1a5c38', bg:'#d4edda' },
+  admin_sin_finanzas: { label:'Admin sin finanzas',   color:'#1a4a8a', bg:'#dce8fb' },
+  operario:           { label:'Operario',             color:'#7a5c00', bg:'#fff3cd' },
+  colaborador:        { label:'Colaborador',          color:'#555',    bg:'#f0f0f0' }
+}
+
+function _eqDetectarRol(m) {
+  var p = m.permisos || {}
+  var tieneRent = p.rentabilidad_campo || p.rentabilidad_total
+  var tieneEdicion = Object.values(p).some(function(v){ return v === 'editar' })
+  var modulos = Object.values(p).filter(function(v){ return v })
+  if (!modulos.length) return 'operario'
+  if (tieneRent && tieneEdicion) return 'administrador'
+  if (!tieneRent && tieneEdicion) return 'admin_sin_finanzas'
+  return 'operario'
+}
+
+function _eqAvatar(nombre, size) {
+  size = size || 36
+  var iniciales = (nombre||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:'+(size*0.36)+'px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
+}
+
+function _eqRolBadge(rolKey) {
+  var info = _EQ_ROL_INFO[rolKey] || _EQ_ROL_INFO.colaborador
+  return '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+info.bg+';color:'+info.color+';white-space:nowrap">'+info.label+'</span>'
+}
+
+function _eqCamposChips(m) {
+  var acc = m.campos_acceso
+  if (!acc || !acc.length) return '<span style="font-size:11px;color:var(--texto-suave)">Todos los campos</span>'
+  return acc.map(function(cid){
+    var c = campos.find(function(x){ return x.id === cid })
+    return c ? '<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--crema-dark);color:var(--texto-mid)">'+c.nombre+'</span>' : ''
+  }).join(' ')
+}
+
+// Semana actual: lunes a hoy
+function _eqInicioSemana() {
+  var d = new Date(); d.setHours(0,0,0,0)
+  var day = d.getDay() || 7
+  d.setDate(d.getDate() - day + 1)
+  return d.toISOString()
+}
+
 async function _renderListaMiembros() {
   var el = document.getElementById('eq-miembros-lista')
   if (!el) return
-  el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.5rem 0">Cargando...</div>'
+  el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Cargando...</div>'
   try {
     var { data } = await sb.from('equipo')
       .select('*')
@@ -7114,43 +7180,231 @@ async function _renderListaMiembros() {
       .eq('activo', true)
       .order('creado_en', { ascending: false })
     if (!data || !data.length) {
-      el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Todavía no tenés miembros en tu equipo.</div>'
+      el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:2rem 0">Todavía no tenés miembros en tu equipo.<br><span style="font-size:12px">Usá el botón + Invitar para sumar a alguien.</span></div>'
       return
     }
-    el.innerHTML = data.map(function(m){
-      var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
-      var mp = m.permisos || {}
-      var MLABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
-                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',tareas:'Tareas'}
-      var mAcceso = Object.keys(MLABS).filter(function(k){return mp[k]==='ver'||mp[k]==='editar'})
-      var mResumen, mColor
-      if (!mAcceso.length) { mResumen='Sin permisos'; mColor='var(--rojo)' }
-      else if (mAcceso.length >= Object.keys(MLABS).length) { mResumen='Acceso completo'; mColor='#1a7a52' }
-      else { mResumen=mAcceso.length+' módulo'+(mAcceso.length!==1?'s':''); mColor='var(--verde)' }
-      var mTooltip = mAcceso.length ? mAcceso.map(function(k){return MLABS[k]}).join(', ') : 'Ningún módulo'
-      return '<div style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--verde-pale);border-radius:12px;margin-bottom:.5rem">'
-        +'<div style="width:38px;height:38px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
-        +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:13px;font-weight:600;color:var(--verde)">'+m.nombre_display+'</div>'
-          +'<div style="font-size:11px;color:var(--texto-suave);margin-top:2px" title="'+mTooltip+'">'+mTooltip+'</div>'
-        +'</div>'
-        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.08);color:'+mColor+';font-weight:600;white-space:nowrap">'+mResumen+'</span>'
-        +'<button onclick="removerMiembro(\''+m.id+'\',\''+m.nombre_display.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0" title="Remover">🗑</button>'
-        +'</div>'
-    }).join('')
+    window._eqMiembrosData = data
+
+    // Contar actividad semanal por miembro
+    var semana = _eqInicioSemana()
+    var miembroIds = data.map(function(m){ return m.miembro_id })
+    var ownerId = usuario.id
+
+    // Gastos, lluvias y tareas de esta semana por miembro
+    var [rG, rL, rT] = await Promise.all([
+      sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+      sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+      sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
+    ])
+
+    function contarPor(rows, campo, uid) {
+      return (rows && rows.data || []).filter(function(r){ return r[campo] === uid }).length
+    }
+
+    if (window._eqVista === 'persona') {
+      _renderVistaPorPersona(data, contarPor, rG, rL, rT)
+    } else {
+      _renderVistaPorCampo(data, contarPor, rG, rL, rT)
+    }
   } catch(e) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Error al cargar</div>'
+    el.innerHTML = '<div style="font-size:12px;color:var(--rojo)">Error al cargar: '+(e.message||'')+'</div>'
   }
 }
 
+function _renderVistaPorPersona(data, contarPor, rG, rL, rT) {
+  var el = document.getElementById('eq-miembros-lista')
+
+  // Cabecera tabla
+  var html = '<div style="display:grid;grid-template-columns:1fr 130px 72px 72px 72px 36px;gap:8px;padding:6px 12px;border-bottom:1.5px solid var(--borde);margin-bottom:4px">'
+    + ['Usuario','Rol','Gastos','Lluvias','Tareas',''].map(function(h,i){
+        return '<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;'+(i>1?'text-align:center':'')+'">'+h+'</div>'
+      }).join('')
+    + '</div>'
+
+  html += data.map(function(m) {
+    var rol = _eqDetectarRol(m)
+    var g = contarPor(rG, 'creado_por', m.miembro_id)
+    var l = contarPor(rL, 'creado_por', m.miembro_id)
+    var t = contarPor(rT, 'asignado_a', m.miembro_id)
+    var chips = _eqCamposChips(m)
+    var safeNom = (m.nombre_display||'').replace(/'/g, '')
+    var safeRol = rol
+
+    return '<div style="display:grid;grid-template-columns:1fr 130px 72px 72px 72px 36px;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;transition:background .15s" onmouseover="this.style.background=\'var(--crema-dark)\'" onmouseout="this.style.background=\'transparent\'">'
+      // Avatar + nombre + campos
+      + '<div style="display:flex;align-items:center;gap:10px;min-width:0">'
+        + _eqAvatar(m.nombre_display, 34)
+        + '<div style="min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m.nombre_display+'</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">'+chips+'</div>'
+        + '</div>'
+      + '</div>'
+      // Rol (clickeable para cambiar)
+      + '<div><button onclick="_eqCambiarRol(\''+m.id+'\',\''+safeNom+'\',\''+safeRol+'\')" style="all:unset;cursor:pointer;display:inline-block">'+_eqRolBadge(rol)+'<span style="font-size:9px;color:var(--texto-suave);margin-left:3px">▾</span></button></div>'
+      // Contadores semana
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(g?'var(--verde)':'var(--texto-suave)')+'">'+g+'</div>'
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(l?'var(--verde)':'var(--texto-suave)')+'">'+l+'</div>'
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(t?'var(--verde)':'var(--texto-suave)')+'">'+t+'</div>'
+      // Eliminar
+      + '<div style="text-align:center"><button onclick="removerMiembro(\''+m.id+'\',\''+safeNom+'\',this)" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:15px;padding:4px;border-radius:6px;transition:all .15s" onmouseover="this.style.color=\'var(--rojo)\'" onmouseout="this.style.color=\'var(--texto-suave)\'">🗑</button></div>'
+    + '</div>'
+  }).join('')
+
+  html += '<div style="font-size:10px;color:var(--texto-suave);text-align:right;margin-top:.5rem;padding-right:4px">Gastos / Lluvias / Tareas = esta semana</div>'
+  el.innerHTML = html
+}
+
+function _renderVistaPorCampo(data, contarPor, rG, rL, rT) {
+  var el = document.getElementById('eq-miembros-lista')
+  if (!campos.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:1.5rem">No hay campos cargados.</div>'
+    return
+  }
+
+  var html = ''
+  campos.forEach(function(c) {
+    var miembrosDelCampo = data.filter(function(m) {
+      if (!m.campos_acceso || !m.campos_acceso.length) return true // acceso a todos
+      return m.campos_acceso.includes(c.id)
+    })
+
+    html += '<div style="margin-bottom:1.2rem">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;padding:6px 0;border-bottom:1.5px solid var(--borde);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
+        + '<span>🌾 '+c.nombre+'</span>'
+        + '<span style="font-size:10px;font-weight:400;color:var(--texto-suave)">'+miembrosDelCampo.length+' miembro'+(miembrosDelCampo.length!==1?'s':'')+'</span>'
+      + '</div>'
+
+    if (!miembrosDelCampo.length) {
+      html += '<div style="font-size:12px;color:var(--texto-suave);padding:.5rem 0">Sin miembros asignados a este campo</div>'
+    } else {
+      miembrosDelCampo.forEach(function(m) {
+        var rol = _eqDetectarRol(m)
+        var info = _EQ_ROL_INFO[rol] || _EQ_ROL_INFO.colaborador
+        var safeNom = (m.nombre_display||'').replace(/'/g,'')
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:4px;transition:background .15s" onmouseover="this.style.background=\'var(--crema-dark)\'" onmouseout="this.style.background=\'transparent\'">'
+          + _eqAvatar(m.nombre_display, 32)
+          + '<div style="flex:1;font-size:13px;font-weight:600;color:var(--texto)">'+m.nombre_display+'</div>'
+          + '<button onclick="_eqCambiarRol(\''+m.id+'\',\''+safeNom+'\',\''+rol+'\')" style="all:unset;cursor:pointer">'+_eqRolBadge(rol)+'<span style="font-size:9px;margin-left:2px">▾</span></button>'
+          + '<button onclick="_eqQuitarCampo(\''+m.id+'\',\''+safeNom+'\',\''+c.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;padding:4px 6px;border-radius:6px;white-space:nowrap" title="Quitar acceso a este campo" onmouseover="this.style.color=\'var(--rojo)\'" onmouseout="this.style.color=\'var(--texto-suave)\'">✕ quitar</button>'
+        + '</div>'
+      })
+    }
+    html += '</div>'
+  })
+
+  el.innerHTML = html
+}
+
+window._eqCambiarRol = function(equipoId, nombre, rolActual) {
+  // Modal de advertencia para cambio de rol
+  var roles = [
+    { key:'administrador',      label:'👔 Administrador',       desc:'Acceso completo incluyendo finanzas' },
+    { key:'admin_sin_finanzas', label:'👁 Admin sin finanzas',  desc:'Todo excepto rentabilidad' },
+    { key:'operario',           label:'📲 Operario',            desc:'Solo carga de datos' }
+  ]
+
+  var existente = document.getElementById('_modal-cambiar-rol')
+  if (existente) existente.remove()
+
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-cambiar-rol'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.3rem">Cambiar rol</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.2rem">Estás cambiando el rol de <strong>'+nombre+'</strong>. Esto modifica qué puede ver y hacer en la app.</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem">'
+    + roles.map(function(r) {
+        var activo = r.key === rolActual
+        var info = _EQ_ROL_INFO[r.key]
+        return '<button onclick="_eqConfirmarCambioRol(\''+equipoId+'\',\''+nombre+'\',\''+r.key+'\')" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;border:2px solid '+(activo?'var(--verde)':'var(--borde)')+';background:'+(activo?'var(--verde-pale)':'#fff')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;text-align:left;transition:all .15s" onmouseover="if(!'+activo+')this.style.borderColor=\'var(--verde)\';this.style.background=\'var(--verde-pale)\'" onmouseout="if(!'+activo+')this.style.borderColor=\'var(--borde)\';this.style.background=\''+( activo ? 'var(--verde-pale)' : '#fff')+ '\'">'
+          + '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+info.bg+';color:'+info.color+'">'+r.label.split(' ').slice(1).join(' ')+'</span>'
+          + '<div><div style="font-size:13px;font-weight:600;color:var(--texto)">'+r.label+'</div><div style="font-size:11px;color:var(--texto-suave)">'+r.desc+'</div></div>'
+          + (activo ? '<span style="margin-left:auto;font-size:11px;color:var(--verde)">✓ actual</span>' : '')
+        + '</button>'
+      }).join('')
+    + '</div>'
+    + '<button onclick="document.getElementById(\'_modal-cambiar-rol\').remove()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+  + '</div>'
+
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarCambioRol = async function(equipoId, nombre, nuevoRol) {
+  var modal = document.getElementById('_modal-cambiar-rol')
+  if (modal) modal.remove()
+  try {
+    var nuevosPermisos = Object.assign({}, PERMISOS_PRESETS[_EQ_ROL_PRESETS[nuevoRol]])
+    await sb.from('equipo').update({ permisos: nuevosPermisos }).eq('id', equipoId)
+    showToast('✓ Rol de '+nombre+' actualizado','ok')
+    _renderListaMiembros()
+  } catch(e) { showToast('⚠️ Error al cambiar rol','err') }
+}
+
+window._eqQuitarCampo = async function(equipoId, nombre, campoId) {
+  var m = (window._eqMiembrosData||[]).find(function(x){ return x.id === equipoId })
+  if (!m) return
+  var acc = (m.campos_acceso||[]).filter(function(id){ return id !== campoId })
+  var campo = campos.find(function(c){ return c.id === campoId })
+  var nomCampo = campo ? campo.nombre : 'este campo'
+
+  var existente = document.getElementById('_modal-quitar-campo')
+  if (existente) existente.remove()
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-quitar-campo'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.5rem">Quitar acceso al campo</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem"><strong>'+nombre+'</strong> ya no va a poder ver ni cargar datos en <strong>'+nomCampo+'</strong>.</div>'
+    + '<div style="display:flex;gap:10px">'
+      + '<button onclick="document.getElementById(\'_modal-quitar-campo\').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+      + '<button onclick="_eqConfirmarQuitarCampo(\''+equipoId+'\',\''+nombre+'\',\''+JSON.stringify(acc).replace(/'/g,'')+'\')" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--rojo);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Quitar acceso</button>'
+    + '</div>'
+  + '</div>'
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarQuitarCampo = async function(equipoId, nombre, accJson) {
+  var modal = document.getElementById('_modal-quitar-campo')
+  if (modal) modal.remove()
+  try {
+    var acc = JSON.parse(accJson)
+    await sb.from('equipo').update({ campos_acceso: acc.length ? acc : null }).eq('id', equipoId)
+    showToast('✓ Acceso quitado','ok')
+    _renderListaMiembros()
+  } catch(e) { showToast('⚠️ Error al quitar acceso','err') }
+}
+
 window.removerMiembro = async function(equipoId, nombre, btn) {
-  if (!confirm('¿Seguro que querés remover a ' + nombre + ' del equipo?')) return
-  btn.disabled = true
+  var existente = document.getElementById('_modal-remover-miembro')
+  if (existente) existente.remove()
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-remover-miembro'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.5rem">Remover miembro</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem"><strong>'+nombre+'</strong> perderá todo el acceso a tu cuenta. Esta acción se puede revertir invitándolo de nuevo.</div>'
+    + '<div style="display:flex;gap:10px">'
+      + '<button onclick="document.getElementById(\'_modal-remover-miembro\').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+      + '<button id="_btn-conf-remover" onclick="_eqConfirmarRemover(\''+equipoId+'\',\''+nombre+'\')" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--rojo);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Remover</button>'
+    + '</div>'
+  + '</div>'
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarRemover = async function(equipoId, nombre) {
+  var modal = document.getElementById('_modal-remover-miembro')
+  var btn = document.getElementById('_btn-conf-remover')
+  if (btn) { btn.disabled = true; btn.textContent = 'Removiendo...' }
   try {
     await sb.from('equipo').update({ activo: false }).eq('id', equipoId)
+    if (modal) modal.remove()
     _renderListaMiembros()
-    showToast('✓ ' + nombre + ' fue removido del equipo','ok')
-  } catch(e) { showToast('⚠️ Error al remover','err'); btn.disabled = false }
+    showToast('✓ '+nombre+' fue removido del equipo','ok')
+  } catch(e) { showToast('⚠️ Error al remover','err'); if(btn){ btn.disabled=false; btn.textContent='Remover' } }
 }
 
 

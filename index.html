@@ -543,15 +543,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit" id="dash-campos-tit">Mis campos</span><button class="btn-vs" id="dash-campos-btn" onclick="openModalCampo()">+ Nuevo campo</button></div>
           <div id="dash-campos"></div>
         </div>
-
       </div>
       <div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
           <div id="dash-tareas"></div>
         </div>
-
       </div>
+    </div>
+
+    <!-- Widget Mi equipo -->
+    <div class="card" id="dash-equipo-card" style="margin-top:1rem">
+      <div class="card-hdr">
+        <span class="card-tit">👥 Mi equipo</span>
+        <button class="btn-vs" onclick="openModalMiEquipo()">+ Invitar</button>
+      </div>
+      <div id="dash-equipo"></div>
     </div>
   </div>
 
@@ -2230,8 +2237,61 @@ function renderDashboard() {
   try { _renderBannerColaborador() } catch(e) {}
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
-  // Tareas en dashboard
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
+  try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
+}
+
+async function _renderDashEquipo() {
+  var el = document.getElementById('dash-equipo')
+  var card = document.getElementById('dash-equipo-card')
+  if (!el || !usuario) return
+
+  // Colaboradores no ven el widget de equipo
+  if (window.CONTEXTO && window.CONTEXTO.esColaborador) {
+    if (card) card.style.display = 'none'
+    return
+  }
+  if (card) card.style.display = ''
+
+  try {
+    var { data } = await sb.from('equipo').select('id,nombre_display,permisos,creado_en')
+      .eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false })
+
+    if (!data || !data.length) {
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;gap:16px;flex-wrap:wrap">'
+        + '<div>'
+          + '<div style="font-size:13px;font-weight:500;color:var(--texto-mid);margin-bottom:2px">Todavía no tenés miembros en tu equipo</div>'
+          + '<div style="font-size:12px;color:var(--texto-suave)">Invitá a alguien para colaborar en la carga de datos y gestión de campos</div>'
+        + '</div>'
+        + '<button onclick="openModalMiEquipo()" style="white-space:nowrap;padding:8px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s">+ Invitar miembro</button>'
+      + '</div>'
+      return
+    }
+
+    // Avatares en fila + resumen
+    var avatares = data.slice(0, 5).map(function(m) {
+      var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+      var rol = _eqDetectarRol ? _eqDetectarRol(m) : 'colaborador'
+      var info = (typeof _EQ_ROL_INFO !== 'undefined' && _EQ_ROL_INFO[rol]) || { bg:'#e8ede3', color:'var(--verde)' }
+      return '<div title="'+m.nombre_display+'" style="width:36px;height:36px;border-radius:50%;background:var(--verde);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;margin-left:-8px;flex-shrink:0">'+iniciales+'</div>'
+    }).join('')
+
+    var extras = data.length > 5 ? '<div style="width:36px;height:36px;border-radius:50%;background:var(--crema-dark);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--texto-suave);margin-left:-8px">+' + (data.length - 5) + '</div>' : ''
+
+    var nombres = data.slice(0, 3).map(function(m){ return m.nombre_display.split(' ')[0] }).join(', ')
+    if (data.length > 3) nombres += ' y ' + (data.length - 3) + ' más'
+
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:.5rem 0;flex-wrap:wrap">'
+      + '<div style="display:flex;align-items:center;padding-left:8px">' + avatares + extras + '</div>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:600;color:var(--texto)">' + nombres + '</div>'
+        + '<div style="font-size:12px;color:var(--texto-suave);margin-top:1px">' + data.length + ' miembro' + (data.length !== 1 ? 's' : '') + ' activo' + (data.length !== 1 ? 's' : '') + '</div>'
+      + '</div>'
+      + '<button onclick="openModalMiEquipo()" style="white-space:nowrap;padding:7px 14px;border-radius:9px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-mid)\'">Ver equipo →</button>'
+    + '</div>'
+  } catch(e) {
+    el.innerHTML = ''
+  }
 }
 
 // ── Helper: ingresos reales de un campo (solo datos guardados, nunca defaults) ──

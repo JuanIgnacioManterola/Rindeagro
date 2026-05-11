@@ -155,9 +155,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .anl{font-size:15px;padding:9px 16px;border-radius:9px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:6px;font-weight:500}
 .anl:hover{background:var(--crema);color:var(--verde)}
 .anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
-.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde)}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde);cursor:pointer;position:relative;user-select:none}
+.user-chip:hover{background:#e8ede3}
 .u-av{width:26px;height:26px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
 .u-nm{font-size:12px;font-weight:500;color:var(--texto-mid)}
+.user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:12px;border:.5px solid var(--borde);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;overflow:hidden;z-index:9999;display:none;flex-direction:column}
+.user-dropdown.open{display:flex}
+.user-dropdown-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:500;color:var(--texto-mid);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;transition:background .12s}
+.user-dropdown-item:hover{background:#f4f7f0}
+.user-dropdown-item.danger{color:var(--rojo)}
+.user-dropdown-item.danger:hover{background:#fff0f0}
+.user-dropdown-sep{height:.5px;background:var(--borde);margin:4px 0}
 .btn-salir{font-size:12px;padding:6px 12px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-salir:hover{border-color:var(--rojo);color:var(--rojo)}
 .modulo{display:none;max-width:1400px;margin:0 auto;padding:2rem 1.25rem}
@@ -485,10 +493,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
-<button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
-      <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
-      <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
-      <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
+      <div class="user-chip" id="user-chip-btn" onclick="_toggleUserDropdown()">
+        <div class="u-av" id="d-av">?</div>
+        <span class="u-nm" id="d-nm">...</span>
+        <span style="font-size:10px;color:var(--texto-suave);margin-left:2px">▾</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <button class="user-dropdown-item" id="btn-mi-equipo" onclick="event.stopPropagation();_closeUserDropdown();openModalMiEquipo()">👥 Mi equipo</button>
+          <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();showModulo('mi-plan')">⭐ Mi plan</button>
+          <div class="user-dropdown-sep"></div>
+          <button class="user-dropdown-item danger" onclick="event.stopPropagation();_closeUserDropdown();cerrarSesion()">🚪 Cerrar sesión</button>
+        </div>
+      </div>
     </div>
   </nav>
   <!-- Banner colaborador -->
@@ -4154,6 +4169,19 @@ window.suscribirse = async function(planId) {
   } catch(e) { showToast('⚠️ Error de conexión', 'err') }
 }
 
+window._toggleUserDropdown = function() {
+  var dd = document.getElementById('user-dropdown')
+  if (!dd) return
+  dd.classList.toggle('open')
+}
+window._closeUserDropdown = function() {
+  var dd = document.getElementById('user-dropdown')
+  if (dd) dd.classList.remove('open')
+}
+document.addEventListener('click', function(e) {
+  var chip = document.getElementById('user-chip-btn')
+  if (chip && !chip.contains(e.target)) window._closeUserDropdown()
+})
 window.cerrarSesion = function() {
   // Limpiar estado local PRIMERO sin esperar red
   usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[];window.CONTEXTO=null

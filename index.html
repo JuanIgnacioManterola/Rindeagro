@@ -7501,7 +7501,8 @@ window._eqToggleCampo = function(chk) {
 function _eqHabilitarGenerar() {
   var btn = document.getElementById('btn-generar-inv')
   if (!btn) return
-  var ok = window._eqRolActual && (window._eqRolActual === 'operario' || window._eqCamposSeleccionados.length > 0)
+  // Habilitado si hay un rol seleccionado (los campos son opcionales — sin selección = todos)
+  var ok = !!window._eqRolActual
   btn.style.opacity = ok ? '1' : '.5'
   btn.style.pointerEvents = ok ? '' : 'none'
 }
@@ -7591,15 +7592,16 @@ window.generarInvitacion = async function() {
       : Math.random().toString(36).substring(2,18)
     var permisos = window._eqPermisosActuales || {}
     var rol = window._eqRolActual || 'operario'
-    var camposInv = (rol === 'operario') ? null : (window._eqCamposSeleccionados || null)
-    var { error } = await sb.from('invitaciones').insert({
-      token: token,
-      owner_id: usuario.id,
-      rol: 'colaborador',
-      permisos: permisos,
-      campos_acceso: camposInv
-    })
-    if (error) throw error
+    var camposInv = (rol === 'operario') ? null : (window._eqCamposSeleccionados && window._eqCamposSeleccionados.length ? window._eqCamposSeleccionados : null)
+    var payload = { token: token, owner_id: usuario.id, rol: 'colaborador', permisos: permisos }
+    // Intentar con campos_acceso; si la columna no existe en DB se reintenta sin ella
+    var { error } = await sb.from('invitaciones').insert(Object.assign({}, payload, { campos_acceso: camposInv }))
+    if (error && error.message && error.message.includes('campos_acceso')) {
+      var res2 = await sb.from('invitaciones').insert(payload)
+      if (res2.error) throw new Error(res2.error.message || JSON.stringify(res2.error))
+    } else if (error) {
+      throw new Error(error.message || JSON.stringify(error))
+    }
     var link = 'https://rindeagro.lat/?inv=' + token
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''

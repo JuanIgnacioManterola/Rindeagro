@@ -292,8 +292,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 /* MODALES */
 .overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--blanco);border-radius:22px;padding:2.25rem;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;overflow-y:auto}
+.modal{background:var(--blanco);border-radius:22px;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 .overlay.open .modal{transform:translateY(0)}
+.modal-header{flex-shrink:0;padding:2.25rem 2.25rem 0;position:relative}
+.modal-body{flex:1;overflow-y:auto;padding:1.25rem 2.25rem}
+.modal-footer{flex-shrink:0;padding:1rem 2.25rem 2.25rem}
 .m-close{position:absolute;top:1rem;right:1rem;width:28px;height:28px;border-radius:50%;background:var(--crema);border:none;cursor:pointer;font-size:14px;color:var(--texto-mid);display:flex;align-items:center;justify-content:center}
 .m-close:hover{background:var(--crema-dark)}
 .m-tit{font-size:18px;font-weight:600;color:var(--verde);margin-bottom:.3rem;font-family:'Playfair Display',serif}
@@ -961,72 +964,75 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <!-- MODAL TAREA -->
 <div class="overlay" id="ov-tarea">
   <div class="modal" style="max-width:500px">
-    <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
-    <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:1.2rem">Nueva tarea</div>
-
-    <div class="fg">
-      <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
-      <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
+    <div class="modal-header">
+      <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
+      <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:.25rem">Nueva tarea</div>
     </div>
-
-    <div class="fg">
-      <label class="fl">Descripción</label>
-      <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Campo (opcional)</label>
-        <select class="fi" id="t-campo" style="cursor:pointer">
-          <option value="">Todos los campos</option>
-        </select>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
       </div>
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Prioridad</label>
-        <select class="fi" id="t-prioridad" style="cursor:pointer">
-          <option value="media">🟡 Media</option>
-          <option value="alta">🔴 Alta</option>
-          <option value="baja">🟢 Baja</option>
-        </select>
+      <div class="fg">
+        <label class="fl">Descripción</label>
+        <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
       </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Asignar a</label>
-        <select class="fi" id="t-asignado" style="cursor:pointer">
-          <option value="">Sin asignar</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Campo (opcional)</label>
+          <select class="fi" id="t-campo" style="cursor:pointer">
+            <option value="">Todos los campos</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Prioridad</label>
+          <select class="fi" id="t-prioridad" style="cursor:pointer">
+            <option value="media">🟡 Media</option>
+            <option value="alta">🔴 Alta</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
+        </div>
       </div>
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Fecha límite</label>
-        <input class="fi" type="date" id="t-fecha"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Asignar a</label>
+          <select class="fi" id="t-asignado" style="cursor:pointer">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Fecha límite</label>
+          <input class="fi" type="date" id="t-fecha"/>
+        </div>
       </div>
+      <!-- Archivos adjuntos -->
+      <div style="margin-top:12px">
+        <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
+        <div id="t-archivos-lista" style="margin-bottom:8px"></div>
+        <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+          <span style="font-size:16px">📁</span>
+          <span id="t-upload-label">Subir foto o documento</span>
+          <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
+        </label>
+        <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+      </div>
+      <input type="hidden" id="t-id"/>
     </div>
-
-    <!-- Archivos adjuntos -->
-    <div style="margin-top:12px">
-      <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
-      <div id="t-archivos-lista" style="margin-bottom:8px"></div>
-      <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
-        <span style="font-size:16px">📁</span>
-        <span id="t-upload-label">Subir foto o documento</span>
-        <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
-      </label>
-      <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()">Guardar tarea</button>
     </div>
-
-    <input type="hidden" id="t-id"/>
-    <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()" style="margin-top:1.2rem">Guardar tarea</button>
   </div>
 </div>
 
 <!-- MODALES AUTH -->
 <div class="overlay" id="ov-auth">
   <div class="modal">
-    <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
-    <div class="tabs"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModal()">✕</button>
+      <div class="m-tit" style="font-size:18px;margin-bottom:.75rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+      <div class="tabs" style="margin-bottom:0"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
+    </div>
+    <div class="modal-body">
     <div id="f-reg">
       <!-- Formulario de registro: solo 1 paso, sin "primer campo" -->
       <div id="rs2">
@@ -1063,25 +1069,35 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="font-size:11px;color:var(--texto-suave);text-align:center;margin-top:6px">Te mandamos un link a tu email para entrar sin contraseña</div>
       <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--texto-suave)">¿No tenés cuenta? <strong style="color:var(--verde);cursor:pointer" onclick="switchTab('registro')">Creá una gratis →</strong></div>
     </div>
+    </div>
   </div>
 </div>
 
 <!-- MODAL NUEVA CONTRASEÑA (recovery) -->
 <div class="overlay" id="ov-nueva-pass">
   <div class="modal">
-    <div class="m-tit" style="font-size:18px;margin-bottom:.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
-    <div class="m-sub2" style="margin-bottom:1.5rem">Ingresá tu nueva contraseña</div>
-    <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-    <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-    <button class="fb" id="btn-nueva-pass" onclick="guardarNuevaPass()">Guardar contraseña</button>
+    <div class="modal-header">
+      <div class="m-tit" style="font-size:18px;margin-bottom:.25rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+      <div class="m-sub2" style="margin-bottom:0">Ingresá tu nueva contraseña</div>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-nueva-pass" onclick="guardarNuevaPass()">Guardar contraseña</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL CAMPO -->
 <div class="overlay" id="ov-campo">
   <div class="modal" style="max-width:540px">
-    <button class="m-close" onclick="closeModalCampo()">✕</button>
-    <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub">Completá los datos de tu campo</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCampo()">✕</button>
+      <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub" style="margin-bottom:0">Completá los datos de tu campo</div>
+    </div>
+    <div class="modal-body">
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
     <div class="fg" style="margin-bottom:.9rem"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
     <div class="fg" style="margin-bottom:.9rem">
@@ -1200,17 +1216,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
-    <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
-    <input type="hidden" id="c-edit-id" value=""/>
+      <input type="hidden" id="c-edit-id" value=""/>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL GASTO -->
 <div class="overlay" id="ov-gasto">
   <div class="modal" style="max-width:520px">
-    <button class="m-close" onclick="closeModalGasto()">✕</button>
-    <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
-    <div class="m-sub">El sistema convierte automáticamente a USD y quintales por hectárea</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalGasto()">✕</button>
+      <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
+      <div class="m-sub" style="margin-bottom:0">El sistema convierte automáticamente a USD y quintales por hectárea</div>
+    </div>
+    <div class="modal-body">
     <input type="hidden" id="g-edit-id" value=""/>
 
     <div class="fg" style="margin-bottom:.9rem">
@@ -1388,100 +1410,115 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
     </div>
 
-    <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL LLUVIA -->
 <div class="overlay" id="ov-lluvia">
   <div class="modal">
-    <button class="m-close" onclick="closeModalLluvia()">✕</button>
-    <div class="m-tit">Registrar lluvia</div><div class="m-sub">Ingresá los datos de la lluvia</div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
-      <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalLluvia()">✕</button>
+      <div class="m-tit">Registrar lluvia</div><div class="m-sub" style="margin-bottom:0">Ingresá los datos de la lluvia</div>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Milímetros *</label><input class="fi" type="number" id="ll-mm" placeholder="Ej: 25" min="0" step="0.1"/></div>
-      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ll-tipo" style="cursor:pointer"><option value="pareja">Lluvia pareja</option><option value="tormenta">Tormenta</option><option value="garua">Garúa</option><option value="granizo">Granizo</option></select></div>
+    <div class="modal-body">
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+        <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
+      </div>
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Milímetros *</label><input class="fi" type="number" id="ll-mm" placeholder="Ej: 25" min="0" step="0.1"/></div>
+        <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ll-tipo" style="cursor:pointer"><option value="pareja">Lluvia pareja</option><option value="tormenta">Tormenta</option><option value="garua">Garúa</option><option value="granizo">Granizo</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Etapa del cultivo</label><select class="fi" id="ll-etapa" style="cursor:pointer"><option value="barbecho">Barbecho</option><option value="siembra">Siembra</option><option value="vegetativo">Vegetativo</option><option value="floracion">Floración (crítica)</option><option value="llenado">Llenado de grano</option><option value="maduracion">Maduración</option></select></div>
+      <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
     </div>
-    <div class="fg"><label class="fl">Etapa del cultivo</label><select class="fi" id="ll-etapa" style="cursor:pointer"><option value="barbecho">Barbecho</option><option value="siembra">Siembra</option><option value="vegetativo">Vegetativo</option><option value="floracion">Floración (crítica)</option><option value="llenado">Llenado de grano</option><option value="maduracion">Maduración</option></select></div>
-    <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
-    <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+    <div class="modal-footer">
+      <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL SUELO -->
 <div class="overlay" id="ov-suelo">
   <div class="modal">
-    <button class="m-close" onclick="closeModalSuelo()">✕</button>
-    <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub">Ingresá los valores del laboratorio</div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
-      <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalSuelo()">✕</button>
+      <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub" style="margin-bottom:0">Ingresá los valores del laboratorio</div>
     </div>
-    <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
-    <div class="form-row3" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
-      <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
-      <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+    <div class="modal-body">
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+        <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+      </div>
+      <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
+      <div class="form-row3" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
+        <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
+        <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+      </div>
+      <div class="form-row3" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
+        <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
+        <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+      </div>
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
+        <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
+      </div>
+      <div class="fg" style="margin-bottom:.9rem">
+        <label class="fl">Adjuntar informe (opcional)</label>
+        <div id="s-archivos-lista" style="margin-bottom:6px"></div>
+        <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+          📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
+          <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
+        </label>
+      </div>
     </div>
-    <div class="form-row3" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
-      <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
-      <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
-      <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
-    </div>
-    <!-- Adjuntar PDF / foto del análisis -->
-    <div class="fg" style="margin-bottom:.9rem">
-      <label class="fl">Adjuntar informe (opcional)</label>
-      <div id="s-archivos-lista" style="margin-bottom:6px"></div>
-      <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
-        📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
-        <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
-      </label>
-    </div>
-    <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
   </div>
 </div>
 
 <!-- MODAL CERRAR CAMPAÑA -->
 <div class="overlay" id="ov-campana">
   <div class="modal" style="max-width:480px">
-    <button class="m-close" onclick="closeModalCampana()">✕</button>
-    <div class="m-tit">Cerrar campaña agrícola</div>
-    <div class="m-sub" id="camp-modal-sub">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
-
-    <div class="fg" style="margin-bottom:.9rem">
-      <label class="fl">Nombre de la campaña *</label>
-      <input class="fi" type="text" id="camp-nombre" placeholder="Ej: 25/26, Campaña Soja 2025..." maxlength="40"/>
-      <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Podés usar cualquier nombre, por ejemplo el año agrícola: 25/26</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCampana()">✕</button>
+      <div class="m-tit">Cerrar campaña agrícola</div>
+      <div class="m-sub" id="camp-modal-sub" style="margin-bottom:0">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
     </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
-      <div class="fg">
-        <label class="fl">Inicio de campaña</label>
-        <input class="fi" type="date" id="camp-inicio"/>
+    <div class="modal-body">
+      <div class="fg" style="margin-bottom:.9rem">
+        <label class="fl">Nombre de la campaña *</label>
+        <input class="fi" type="text" id="camp-nombre" placeholder="Ej: 25/26, Campaña Soja 2025..." maxlength="40"/>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Podés usar cualquier nombre, por ejemplo el año agrícola: 25/26</div>
       </div>
-      <div class="fg">
-        <label class="fl">Fin de campaña</label>
-        <input class="fi" type="date" id="camp-fin"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg">
+          <label class="fl">Inicio de campaña</label>
+          <input class="fi" type="date" id="camp-inicio"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Fin de campaña</label>
+          <input class="fi" type="date" id="camp-fin"/>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:1.25rem">
+        <label class="fl">Notas (opcional)</label>
+        <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
+      </div>
+      <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;font-size:13px;color:var(--verde)">
+        ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
       </div>
     </div>
-
-    <div class="fg" style="margin-bottom:1.25rem">
-      <label class="fl">Notas (opcional)</label>
-      <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
+    <div class="modal-footer">
+      <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
     </div>
-
-    <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--verde)">
-      ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
-    </div>
-
-    <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
   </div>
 </div>
 

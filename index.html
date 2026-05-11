@@ -364,7 +364,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   body * { visibility: hidden }
   #modulo-rentabilidad, #modulo-rentabilidad * { visibility: visible }
   #modulo-rentabilidad { position: fixed; top: 0; left: 0; width: 100%; padding: 24px }
-  .overlay, #screen-loading, .app-nav, #banner-colaborador { display: none !important }
+  .overlay, #screen-loading, .app-nav, #banner-colaborador, #dev-widget { display: none !important }
   #rent-pdf-banner { display: none !important }
   canvas { max-width: 100% }
 }
@@ -404,7 +404,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <h1 class="fu d1">Sabé exactamente<br>cuánto <em>rinde</em><br>tu campaña</h1>
       <p class="hero-sub fu d2">Rentabilidad, análisis de suelo, precios de Rosario y registro agronómico — todo desde el celular. Cargá datos por WhatsApp desde el campo.</p>
       <div class="hero-ctas fu d3">
-        <button class="btn-hero btn-verde" onclick="openModal('registro')">🌱 Empezar 15 días gratis</button>
+        <button class="btn-hero btn-verde" onclick="openModal('registro')">🌱 Empezar 15 días gratis agus</button>
         <a class="btn-hero btn-outline" href="#features">Ver funcionalidades →</a>
       </div>
       <p class="hero-trust fu d4">
@@ -478,11 +478,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
-      <button class="anl" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
+      <button class="anl" id="nav-campos" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
 
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
-      <button class="anl" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
-      <button class="anl" onclick="showModulo('notificaciones')"><span>🔔</span><span id="notif-badge">Alertas</span></button>
+      <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
+      <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
 <button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
@@ -529,8 +529,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div>
         <div class="card">
-          <div class="card-hdr"><span class="card-tit">Alertas urgentes</span></div>
-          <div id="dash-alertas"></div>
+          <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
+          <div id="dash-tareas"></div>
         </div>
 
       </div>
@@ -642,7 +642,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-campos">
     <div class="mod-header">
       <div><div class="mod-titulo">🌾 Mis campos</div><div class="mod-sub">Hacé clic en un campo para ver su detalle completo</div></div>
-      <button class="btn-vs" onclick="openModalCampo()">+ Nuevo campo</button>
+      <button class="btn-vs" id="btn-add-campo-nav" onclick="openModalCampo()">+ Nuevo campo</button>
     </div>
     <div id="campos-lista-cards"></div>
   </div>
@@ -680,11 +680,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
-        <button class="campo-tab active" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
-        <button class="campo-tab" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab active" id="tab-ingresos-campo" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
+        <button class="campo-tab" id="tab-gastos-campo" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
         <button class="campo-tab" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
-        <button class="campo-tab" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
-        <button class="campo-tab" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
+        <button class="campo-tab" id="tab-lluvias-campo" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
+        <button class="campo-tab" id="tab-suelo-campo" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
       </div>
     </div>
 
@@ -712,7 +712,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="card" id="gastos-card-lista">
         <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
-          <button class="btn-vs" onclick="openModalGasto()">+ Agregar gasto</button>
+          <button class="btn-vs" id="btn-add-gasto-tab" onclick="openModalGasto()">+ Agregar gasto</button>
         </div>
         <div id="det-gastos-lista"></div>
       </div>
@@ -804,7 +804,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="grid4" id="det-lluvia-mets" style="margin-bottom:14px"></div>
       <div class="grid2">
         <div class="card">
-          <div class="card-hdr"><span class="card-tit">Registro de lluvias</span><button class="btn-vs" onclick="openModalLluviaCampo()">+ Registrar</button></div>
+          <div class="card-hdr"><span class="card-tit">Registro de lluvias</span><button class="btn-vs" id="btn-add-lluvia-tab" onclick="openModalLluviaCampo()">+ Registrar</button></div>
           <div id="det-lluvia-lista"></div>
         </div>
         <div>
@@ -831,7 +831,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
             </select>
           </div>
           <div id="det-suelo-semaforo"></div>
-          <button class="btn-vs" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
+          <button class="btn-vs" id="btn-add-suelo-tab" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
         </div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
@@ -849,6 +849,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-rentabilidad-total">
     <div class="mod-header">
       <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
+      <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
     </div>
     <!-- Métricas globales -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
@@ -876,6 +877,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="card">
       <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
       <div id="rt-comparativa"></div>
+    </div>
+    <!-- Resumen de gastos por rubro -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-hdr"><span class="card-tit">Gasto total por rubro · campaña</span></div>
+      <div id="rt-resumen-rubro"></div>
     </div>
   </div>
 
@@ -924,13 +930,79 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="mp-planes-lista"></div>
   </div>
 
-  <div class="modulo" id="mod-notificaciones">
+  <div class="modulo" id="mod-tareas">
     <div class="mod-header">
-      <div><div class="mod-titulo">🔔 Alertas y notificaciones</div><div class="mod-sub">Alertas agronómicas calculadas automáticamente</div></div>
-      <div style="display:flex;gap:6px" id="notif-filtros"></div>
+      <div><div class="mod-titulo">✅ Tareas</div><div class="mod-sub" id="tareas-sub">Gestioná y asigná tareas a tu equipo</div></div>
+      <button id="btn-nueva-tarea" onclick="abrirModalTarea()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Nueva tarea</button>
     </div>
-    <div id="notif-lista"></div>
+    <!-- Filtros por estado -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="tareas-filtros"></div>
+    <!-- Lista de tareas -->
+    <div id="tareas-lista"></div>
   </div>
+  </div>
+</div>
+
+<!-- MODAL TAREA -->
+<div class="overlay" id="ov-tarea">
+  <div class="modal" style="max-width:500px">
+    <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
+    <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:1.2rem">Nueva tarea</div>
+
+    <div class="fg">
+      <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
+      <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Descripción</label>
+      <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Campo (opcional)</label>
+        <select class="fi" id="t-campo" style="cursor:pointer">
+          <option value="">Todos los campos</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Prioridad</label>
+        <select class="fi" id="t-prioridad" style="cursor:pointer">
+          <option value="media">🟡 Media</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="baja">🟢 Baja</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Asignar a</label>
+        <select class="fi" id="t-asignado" style="cursor:pointer">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Fecha límite</label>
+        <input class="fi" type="date" id="t-fecha"/>
+      </div>
+    </div>
+
+    <!-- Archivos adjuntos -->
+    <div style="margin-top:12px">
+      <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
+      <div id="t-archivos-lista" style="margin-bottom:8px"></div>
+      <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+        <span style="font-size:16px">📁</span>
+        <span id="t-upload-label">Subir foto o documento</span>
+        <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
+      </label>
+      <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+    </div>
+
+    <input type="hidden" id="t-id"/>
+    <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()" style="margin-top:1.2rem">Guardar tarea</button>
   </div>
 </div>
 
@@ -1035,9 +1107,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="text" id="c-localidad" placeholder="Ej: Río Cuarto, Pergamino..." oninput="_autoMapaDesdeUbicacion()"/>
       </div>
     </div>
-    <div class="form-row2" style="margin-bottom:.5rem">
+    <div class="fg" style="margin-bottom:.9rem"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Observaciones (opcional)</label>
+      <input class="fi" type="text" id="c-obs" placeholder="Ej: Suelo arenoso, con riego, historial de 50qq de soja..."/>
     </div>
-    <div class="fg"><label class="fl">Tenencia</label><select class="fi" id="c-ten" style="cursor:pointer"><option value="propio">Propio</option><option value="alquilado">Alquilado</option></select></div>
     <!-- Mapa para marcar lote -->
     <div style="margin-top:.9rem;margin-bottom:.9rem">
       <label class="fl">Ubicación del lote (opcional)</label>
@@ -1192,11 +1266,79 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
-    <div id="gasto-main-fields">
-    <div class="fg"><label class="fl">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
+    <!-- Campos específicos de flete -->
+    <div id="flete-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#f5f0ff;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#7c3aed">🚛 Ingresá la cantidad de toneladas y el precio por tonelada. El total se calcula automáticamente.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-flete-desc" placeholder="Ej: Flete cosecha a acopio, empresa transportista..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.7rem">
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="g-flete-moneda" style="cursor:pointer" onchange="onFleteMonedaChange()">
+            <option value="usd">USD</option>
+            <option value="ars">Pesos (ARS)</option>
+          </select>
+        </div>
+        <div class="fg" id="g-flete-tc-row" style="display:none">
+          <label class="fl">Tipo de cambio (ARS/USD)</label>
+          <input class="fi" type="number" id="g-flete-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg">
+          <label class="fl">Toneladas</label>
+          <input class="fi" type="number" id="g-flete-tons" placeholder="Ej: 30" min="0" step="0.1" oninput="calcConv()"/>
+        </div>
+        <div class="fg">
+          <label class="fl" id="g-flete-precio-label">Precio por tonelada (USD/tn)</label>
+          <input class="fi" type="number" id="g-flete-precio" placeholder="Ej: 25" min="0" step="0.01" oninput="calcConv()"/>
+        </div>
+      </div>
+    </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
+    <!-- Campos específicos de empleados -->
+    <div id="empleados-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#fce7f3;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#9d174d">👷 Ingresá el monto total del gasto de personal.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-emp-desc" placeholder="Ej: Jornalero, maquinista, salario mensual..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.7rem">
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="g-emp-moneda" style="cursor:pointer" onchange="onEmpMonedaChange()">
+            <option value="usd">USD</option>
+            <option value="ars">Pesos (ARS)</option>
+          </select>
+        </div>
+        <div class="fg" id="g-emp-tc-row" style="display:none">
+          <label class="fl">Tipo de cambio (ARS/USD)</label>
+          <input class="fi" type="number" id="g-emp-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
       <div class="fg">
+        <label class="fl" id="g-emp-monto-label">Monto total (USD)</label>
+        <input class="fi" type="number" id="g-emp-monto" placeholder="Ej: 500" min="0" step="0.01" oninput="calcConv()"/>
+      </div>
+    </div>
+
+    <!-- Campos específicos de arrendamiento -->
+    <div id="arrendamiento-campos" style="display:none;margin-bottom:.9rem">
+      <div style="background:#fef3c7;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:13px;color:#d97706">🏠 El arrendamiento se expresa en quintales de soja por hectárea. El valor en USD se calcula automáticamente con el precio de la soja.</div>
+      <div class="fg" style="margin-bottom:.7rem"><label class="fl">Descripción (opcional)</label><input class="fi" type="text" id="g-arr-desc" placeholder="Ej: Lote norte, campaña 24/25..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg">
+          <label class="fl">Quintales de soja / ha (qq/ha)</label>
+          <input class="fi" type="number" id="g-arr-qq" placeholder="Ej: 9" min="0" step="0.1" oninput="calcConv()"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Precio soja (USD/tn)</label>
+          <input class="fi" type="number" id="g-arr-precio-soja" placeholder="Ej: 300" min="0" step="1" oninput="calcConv()"/>
+        </div>
+      </div>
+    </div>
+
+    <div id="gasto-main-fields">
+    <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
+
+    <div id="gasto-3col-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
+      <div class="fg" id="gasto-col-unidad">
         <label class="fl">Unidad de medida</label>
         <select class="fi" id="g-unidad" style="cursor:pointer" onchange="onUnidadChange()">
           <option value="litros">Litros / ha (L/ha)</option>
@@ -1205,11 +1347,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <option value="usd_ha">USD / ha directo</option>
         </select>
       </div>
-      <div class="fg">
+      <div class="fg" id="gasto-col-cantidad">
         <label class="fl" id="g-cant-label">Cantidad (L/ha)</label>
         <input class="fi" type="number" id="g-cantidad" placeholder="Ej: 3.5" min="0" step="0.01" oninput="calcConv()"/>
       </div>
-      <div class="fg">
+      <div class="fg" id="gasto-col-precio">
         <label class="fl" id="g-precio-unit-label">Precio (USD/L)</label>
         <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 3.2" min="0" step="0.01" oninput="calcConv()"/>
       </div>
@@ -1277,6 +1419,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="form-row2" style="margin-bottom:.9rem">
       <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
       <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
+    </div>
+    <!-- Adjuntar PDF / foto del análisis -->
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">Adjuntar informe (opcional)</label>
+      <div id="s-archivos-lista" style="margin-bottom:6px"></div>
+      <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+        📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
+        <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
+      </label>
     </div>
     <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
   </div>
@@ -1351,27 +1502,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
       <!-- TAB INVITAR -->
       <div id="eq-sec-invitar" style="display:none">
-        <div style="margin-bottom:1.25rem">
-          <div style="font-size:12px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem">Rol del nuevo miembro</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <label id="eq-label-col" style="border:2px solid var(--verde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:var(--verde-pale);transition:all .2s" onclick="resaltarRolLabel('col')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input type="radio" name="eq-rol" value="colaborador" checked style="accent-color:var(--verde)"/>
-                <div style="font-size:14px;font-weight:700;color:var(--verde)">Colaborador</div>
-              </div>
-              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Carga gastos, lluvias e ingresos. No ve rentabilidad.</div>
-            </label>
-            <label id="eq-label-adm" style="border:2px solid var(--borde);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:all .2s" onclick="resaltarRolLabel('adm')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input type="radio" name="eq-rol" value="administrador" style="accent-color:var(--verde)"/>
-                <div style="font-size:14px;font-weight:700;color:var(--verde)">Administrador</div>
-              </div>
-              <div style="font-size:11px;color:var(--texto-suave);line-height:1.5;padding-left:20px">Puede además invitar a otros colaboradores.</div>
-            </label>
+        <!-- Presets rápidos -->
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Acceso rápido</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            <button onclick="_eqPreset('sin_permisos')" id="eq-preset-sin" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>🚫 Sin permisos</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">No ve ningún módulo</div>
+            </button>
+            <button onclick="_eqPreset('carga_basica')" id="eq-preset-carga" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--verde);background:var(--verde-pale);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--verde);text-align:left;transition:all .18s">
+              <div>📝 Solo carga</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Gastos + Lluvias</div>
+            </button>
+            <button onclick="_eqPreset('sin_rentabilidad')" id="eq-preset-sinrent" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>👁 Todo sin rentabilidad</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Sin módulos financieros</div>
+            </button>
+            <button onclick="_eqPreset('acceso_completo')" id="eq-preset-completo" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
+              <div>✅ Acceso completo</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Igual que el administrador</div>
+            </button>
           </div>
         </div>
 
-        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.25rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <!-- Grid de módulos con permisos -->
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Permisos por módulo</div>
+          <div style="border:.5px solid var(--borde);border-radius:11px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:6px 12px;background:var(--crema-dark);border-bottom:.5px solid var(--borde)">
+              <div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em">Módulo</div>
+              <div style="font-size:10px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:.05em;text-align:center">Nada</div>
+              <div style="font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.05em;text-align:center">Ver</div>
+              <div style="font-size:10px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.05em;text-align:center">Editar</div>
+            </div>
+            <div id="eq-permisos-filas"></div>
+          </div>
+        </div>
+
+        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.1rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
           <span>🔗</span> Generar link de invitación
         </button>
 
@@ -1414,6 +1578,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
   </div>
 </div>
+
+<!-- ── DEV WIDGET (solo visible con ?dev=1) ── -->
+<div id="dev-widget" style="display:none;position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;font-family:'DM Sans',sans-serif">
+  <!-- Badge toggle -->
+  <button id="dev-badge" onclick="_devToggle()" style="background:#1a1a18;color:#c9a84c;border:1.5px solid rgba(201,168,76,.4);border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.06em;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.3)">
+    <span style="width:7px;height:7px;border-radius:50%;background:#c9a84c;display:inline-block"></span> DEV
+  </button>
+  <!-- Panel -->
+  <div id="dev-panel" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;width:240px;background:#1a1a18;border:1.5px solid rgba(201,168,76,.3);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5)">
+    <!-- Header -->
+    <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:10px;font-weight:700;color:rgba(201,168,76,.8);letter-spacing:.1em;text-transform:uppercase">Dev Mode</div>
+      <div id="dev-status" style="font-size:12px;color:#fff;margin-top:3px;font-weight:500">Admin</div>
+    </div>
+    <!-- Simulate section -->
+    <div style="padding:10px 14px 8px">
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Simular vista de</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button onclick="_devSimular('sin_permisos')"    class="dev-sim-btn">🚫 Sin permisos</button>
+        <button onclick="_devSimular('carga_basica')"    class="dev-sim-btn">📝 Solo carga</button>
+        <button onclick="_devSimular('sin_rentabilidad')" class="dev-sim-btn">👁 Sin rentabilidad</button>
+        <button onclick="_devSimular('acceso_completo')" class="dev-sim-btn">✅ Acceso completo</button>
+      </div>
+    </div>
+    <!-- Back to admin -->
+    <div style="padding:0 14px 12px">
+      <button onclick="_devVolverAdmin()" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.08);color:#c9a84c;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.08)'">🔑 Volver a Admin</button>
+    </div>
+  </div>
+</div>
+<style>
+.dev-sim-btn{width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:all .15s}
+.dev-sim-btn:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)}
+</style>
 
 <div class="toast" id="toast"></div>
 
@@ -1465,13 +1663,35 @@ var charts = {}
 // Contexto de sesión (dueño o colaborador)
 window.CONTEXTO = null
 
+// ── PRESETS DE PERMISOS ──
+var PERMISOS_PRESETS = {
+  sin_permisos:    {campos:null,gastos:null,ingresos:null,lluvias:null,suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:null,tareas:null},
+  carga_basica:    {campos:'ver',gastos:'editar',ingresos:null,lluvias:'editar',suelo:null,rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',tareas:'ver'},
+  sin_rentabilidad:{campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:null,rentabilidad_total:null,mapa:'ver',tareas:'ver'},
+  acceso_completo: {campos:'editar',gastos:'editar',ingresos:'editar',lluvias:'editar',suelo:'editar',rentabilidad_campo:'ver',rentabilidad_total:'ver',mapa:'editar',tareas:'ver'}
+}
+
+// puedeVer: true si el usuario puede ver el módulo (o es dueño)
+function puedeVer(modulo) {
+  if (!window.CONTEXTO || !window.CONTEXTO.esColaborador) return true
+  var p = window.CONTEXTO.permisos || {}
+  return p[modulo] === 'ver' || p[modulo] === 'editar'
+}
+
+// puedeEditar: true si el usuario puede editar el módulo (o es dueño)
+function puedeEditar(modulo) {
+  if (!window.CONTEXTO || !window.CONTEXTO.esColaborador) return true
+  var p = window.CONTEXTO.permisos || {}
+  return p[modulo] === 'editar'
+}
+
+// Compat: backward compatibility con código que usa las funciones viejas
 function puedeVerRentabilidad() {
-  if (!window.CONTEXTO) return true
-  return window.CONTEXTO.rolActivo === 'dueño'
+  return puedeVer('rentabilidad_campo') || puedeVer('rentabilidad_total')
 }
 function puedeInvitar() {
   if (!window.CONTEXTO) return false
-  return window.CONTEXTO.rolActivo === 'dueño' || window.CONTEXTO.rolActivo === 'administrador'
+  return !window.CONTEXTO.esColaborador || window.CONTEXTO.rolActivo === 'administrador'
 }
 
 // ── INIT ──
@@ -1521,6 +1741,12 @@ async function init() {
   // + SIGNED_IN (login nuevo) + SIGNED_OUT
   sb.auth.onAuthStateChange(async function(event, session) {
     if (event === 'INITIAL_SESSION') {
+      // Si es un flujo de recovery, no entrar a la app — esperar PASSWORD_RECOVERY
+      var _hashParams = new URLSearchParams(window.location.hash.replace('#','?').slice(1))
+      if (_hashParams.get('type') === 'recovery') {
+        hideLoading()
+        return
+      }
       // Dispara siempre al cargar la página con el estado actual de sesión
       if (session && session.user) {
         await window._entrarApp(session.user)
@@ -1531,19 +1757,32 @@ async function init() {
       }
     } else if (event === 'SIGNED_IN' && session && session.user && !usuario) {
       // Login nuevo: magic link, OTP, password
+      // No entrar si es recovery (PASSWORD_RECOVERY se encarga)
+      var _hashParams2 = new URLSearchParams(window.location.hash.replace('#','?').slice(1))
+      if (_hashParams2.get('type') === 'recovery') return
       await window._entrarApp(session.user)
       showToast('✓ ¡Bienvenido!', 'ok')
     } else if (event === 'PASSWORD_RECOVERY') {
       hideLoading()
-      document.getElementById('ov-nueva-pass').classList.add('open')
+      showScreen('landing')
+      initLanding()
+      setTimeout(function() {
+        document.getElementById('ov-nueva-pass').classList.add('open')
+      }, 100)
     } else if (event === 'SIGNED_OUT') {
       // Limpiar cache del usuario que salió
       try { var _ck = _cacheKey(); if(_ck) localStorage.removeItem(_ck) } catch(e) {}
-      usuario = null; campos = []; gastos = []; lluvias = []; window.CONTEXTO = null
+      // Resetear todo el estado de la app
+      usuario = null; campos = []; gastos = []; lluvias = []; analisisS = []
+      tareas = []; filtroTareas = 'pendiente'; window.CONTEXTO = null
+      window._equipoCache = []
+      // Cerrar cualquier overlay abierto
+      try { document.querySelectorAll('.overlay').forEach(function(o){ o.classList.remove('open') }) } catch(e) {}
+      // Ir a landing solo si estábamos en la app
       var appEl = document.getElementById('screen-app')
       if (appEl && appEl.classList.contains('active')) {
-        showScreen('landing'); initLanding()
-        setTimeout(function(){ openModal('login'); showToast('⚠️ Sesión cerrada. Ingresá de nuevo.','err') }, 300)
+        showScreen('landing')
+        showToast('⚠️ Sesión cerrada. Ingresá de nuevo.', 'err')
       }
     }
   })
@@ -1618,7 +1857,7 @@ function _mergePendingCampos() {
 
 async function cargarTodo() {
   _mostrarPrecios('BCR Rosario · BNA')
-  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var uid = (window.CONTEXTO && window.CONTEXTO.ownerIdActivo) ? window.CONTEXTO.ownerIdActivo : usuario.id
 
   // ── 1. MOSTRAR CACHÉ GUARDADA INSTANTÁNEAMENTE ───────────────────────────
   // El usuario ve sus datos en < 100ms mientras la DB responde en background
@@ -1649,12 +1888,14 @@ async function cargarTodo() {
     }
     return r
   }
-  var [resP, resC, resG, resL, resS] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false})
+    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
+    sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false}),
+    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true)
   ])
 
   // Perfil → nombre/saludo
@@ -1674,12 +1915,21 @@ async function cargarTodo() {
   var freshGastos  = (resG.status==='fulfilled' && resG.value && Array.isArray(resG.value.data)) ? resG.value.data : null
   var freshLluvias = (resL.status==='fulfilled' && resL.value && Array.isArray(resL.value.data)) ? resL.value.data : null
   var freshAnalisis= (resS.status==='fulfilled' && resS.value && Array.isArray(resS.value.data)) ? resS.value.data : null
+  var freshTareas  = (resT && resT.status==='fulfilled' && resT.value && Array.isArray(resT.value.data)) ? resT.value.data : null
 
   // Solo sobrescribir si la DB respondió con datos reales (puede estar vació pero not null)
   if(freshCampos  !== null) campos    = freshCampos
   if(freshGastos  !== null) gastos    = freshGastos
   if(freshLluvias !== null) lluvias   = freshLluvias
   if(freshAnalisis!== null) analisisS = freshAnalisis
+  if(freshTareas  !== null) {
+    tareas = freshTareas
+    // Si el módulo tareas está visible, refrescar
+    var modT = document.getElementById('mod-tareas')
+    if (modT && modT.classList.contains('active')) renderTareas()
+  }
+  // Cachear equipo para selector de asignados en tareas
+  if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
 
   // Siempre fusionar pending aunque la DB haya respondido
   _mergePendingCampos()
@@ -1712,7 +1962,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','mapa','notificaciones']
+  var mods = ['dashboard','campos','rentabilidad-total','mapa','tareas']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -1728,7 +1978,7 @@ window.showModulo = function(mod) {
   }
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
-  if (mod === 'notificaciones') renderNotificaciones()
+  if (mod === 'tareas') renderTareas()
 }
 
 window.openModalPrecios = function() {
@@ -1896,50 +2146,46 @@ function renderDashboard() {
   try { _renderBannerColaborador() } catch(e) {}
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
-  // Alertas (compartido)
-  try {
-    var alertas = generarAlertas()
-    var el2 = document.getElementById('dash-alertas')
-    if (el2) {
-      if (!alertas.length) {
-        el2.innerHTML = `<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin alertas pendientes ✓</div>`
-      } else {
-        el2.innerHTML = alertas.slice(0,4).map(a=>`
-          <div class="notif-item">
-            <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
-            <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">${a.campo}</div></div>
-            <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+'d'}</span>
-          </div>`).join('')
-      }
+  // Tareas en dashboard
+  try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
+}
+
+// ── Helper: ingresos reales de un campo (solo datos guardados, nunca defaults) ──
+function _ingRealParaCampo(c) {
+  var ha = c.hectareas||0
+  var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var savedIngr = {}; try{ savedIngr=JSON.parse(c.ingresos_cultivos||'{}') }catch(e){}
+  var total = 0
+  cultivosList.forEach(function(cu){
+    var d = savedIngr[cu]||{}
+    if(Array.isArray(d.ventas) && d.ventas.length>0) {
+      total += d.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+    } else if(parseFloat(d.rendimiento||0)>0 && parseFloat(d.precio_venta||0)>0) {
+      total += parseFloat(d.rendimiento)*parseFloat(d.precio_venta)*_haParaCultivo(c,cu,cultivosList)
     }
-  } catch(e) { console.error('alertas render:', e) }
-  try {
-    var badge = document.getElementById('notif-badge')
-    var urgentes = alertas.filter(a=>a.tipo==='urgente').length
-    if(badge) badge.textContent = urgentes>0 ? '🔔 Alertas ('+urgentes+')' : '🔔 Alertas'
-  } catch(e) {}
+  })
+  // Solo usar rendimiento/precio del campo si fueron guardados explícitamente por el usuario
+  if(total===0 && parseFloat(c.rendimiento||0)>0 && parseFloat(c.precio_venta||0)>0) {
+    total = parseFloat(c.rendimiento)*parseFloat(c.precio_venta)*ha
+  }
+  return total
 }
 
 function _renderDashboardProductor() {
   var totalHa=0,ing=0,cost=0
-  campos.forEach(c => {
+  campos.forEach(function(c) {
     var ha=c.hectareas||0; totalHa+=ha
-    var cult=c.cultivo||'Soja'
-    var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var rend=c.rendimiento||rendEst
-    var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-    var pr=c.precio_venta||prEst
-    var gc=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-    var costoHa = ha>0?gc/ha:190
-    ing+=rend*pr*ha; cost+=costoHa*ha
+    var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    ing += _ingRealParaCampo(c)
+    cost += gc
   })
   var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
   var dashMets = document.getElementById('dash-mets')
   if(!dashMets) return
   dashMets.innerHTML = [
     {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
-    {l:'Ingreso proyectado',v:'USD '+Math.round(ing/1000)+'k',s:'Precio Rosario',c:'#1a5fa8'},
-    {l:'Margen estimado',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:pct+'% del ingreso',c:mg>=0?'#1a7a52':'#c0392b'},
+    {l:'Ingresos',v:'USD '+Math.round(ing/1000)+'k',s:ing>0?'Total cargado':'Sin ingresos cargados',c:'#1a5fa8'},
+    {l:'Margen neto',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:ing>0?pct+'% del ingreso':'',c:mg>=0?'#1a7a52':'#c0392b'},
     {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
   ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
 
@@ -1955,16 +2201,15 @@ function _renderDashboardProductor() {
   } else {
     el.innerHTML = campos.map((c,i)=>{
       var ha=c.hectareas||0, cult=c.cultivo||'Soja'
-      var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-      var rend=c.rendimiento||rendEst
-      var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-      var pr=c.precio_venta||prEst
       var gc=gastos.filter(g=>g.campo_id===c.id)
-      var costoHa=ha>0?gc.reduce((a,g)=>a+(g.total_de_usd||0),0)/ha:190
-      var mg=rend*pr-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
-      var tieneGastos=gc.length>0, tieneRend=!!c.rendimiento
-      var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
-      var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+      var costoTotal=gc.reduce((a,g)=>a+(g.total_de_usd||0),0)
+      var costoHa=ha>0?costoTotal/ha:0
+      var ingTotal=_ingRealParaCampo(c)
+      var ingHa=ha>0?ingTotal/ha:0
+      var mg=ingHa-costoHa, mc=mg>=0?'#1a7a52':'#c0392b'
+      var tieneGastos=gc.length>0, tieneIngresos=ingTotal>0
+      var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+      var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
       var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
       var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
       return `<div class="campo-row" onclick="abrirCampo('${c.id}')">
@@ -2025,12 +2270,10 @@ function renderRentabilidad() {
     selEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
       campos.map(function(c,i){
         var ha=c.hectareas||0,cult=c.cultivo||'Soja'
-        var rendEst=cult==='Maíz'?8:cult==='Trigo'?3:3.2
-        var rend=c.rendimiento||rendEst
-        var prEst=cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-        var pr=c.precio_venta||prEst
         var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        var cHa=ha>0?gc/ha:190,mg=rend*pr-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
+        var cHa=ha>0?gc/ha:0
+        var ingTotal=_ingRealParaCampo(c), iHa=ha>0?ingTotal/ha:0
+        var mg=iHa-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
         var sel=c.id===campoRent
         return '<div onclick="selCampoRent(\'' + c.id + '\')" style="border:2px solid '+(sel?'var(--verde)':'var(--borde)')+';background:'+(sel?'var(--verde)':'var(--blanco)')+';border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:all .2s">' +
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:'+(sel?'rgba(255,255,255,.7)':COLS[i%COLS.length])+'"></div><span style="font-size:13px;font-weight:600;color:'+(sel?'#fff':'var(--verde)')+'">'+c.nombre+'</span></div>' +
@@ -2061,12 +2304,16 @@ function renderRentabilidad() {
   var ha = campoRent==='todos'?campos.reduce((a,c)=>a+(c.hectareas||0),0):(campo?.hectareas||0)
   var cult = campo?.cultivo||'Soja'
   var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-  var rend = campo?.rendimiento||rendEst
+  var rend = campo?.rendimiento||rendEst   // solo para tabla de sensibilidad
   var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-  var pr = campo?.precio_venta||prEst
+  var pr = campo?.precio_venta||prEst      // solo para tabla de sensibilidad
   var costoUSD = gf.reduce((a,g)=>a+(g.total_de_usd||0),0)
   var costoHa = ha>0?costoUSD/ha:0
-  var ingHa = rend*pr
+  // Ingresos reales únicamente (sin defaults)
+  var _ingTotalReal = campoRent==='todos'
+    ? campos.reduce(function(a,c){return a+_ingRealParaCampo(c)},0)
+    : (campo ? _ingRealParaCampo(campo) : 0)
+  var ingHa = ha>0?_ingTotalReal/ha:0
   var mgHa = ingHa-costoHa
   var mgPct = ingHa>0?(mgHa/ingHa*100).toFixed(1):0
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
@@ -2087,7 +2334,7 @@ function renderRentabilidad() {
         var cSaved = {}; try{ cSaved=JSON.parse(c.ingresos_cultivos||'{}') }catch(e){}
         var cIng = cCults.reduce(function(a,cu){
           var d=cSaved[cu]||{rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||0,hectareas:cHa}
-          var haCu=parseFloat((JSON.parse(c.hectareas_cultivo||'{}'))[cu]||(cHa/cCults.length))
+          var haCu=parseFloat((_safeJSON(c.hectareas_cultivo))[cu]||(cHa/cCults.length))
           return a + parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
         },0)
         var cGas = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
@@ -2184,7 +2431,7 @@ function renderRentabilidad() {
 
   // Métricas secundarias (por ha, quintales equiv.)
   document.getElementById('rent-mets').innerHTML = [
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:rend+'t/ha × USD '+pr+'/t'+(campo?.rendimiento?' ✓ real':' est.'),c:'#1a5fa8'},
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHa),s:_ingTotalReal>0?'USD '+Math.round(_ingTotalReal).toLocaleString('es-AR')+' total':'Sin ingresos cargados',c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD).toLocaleString('es-AR')+' total',c:'#c0392b'},
     {l:'Margen neto/ha',v:(mgHa>=0?'+':'')+'USD '+Math.round(mgHa),s:mgPct+'% del ingreso',c:mc},
     {l:'Margen total',v:(mgHa*ha>=0?'+':'')+'USD '+Math.round(mgHa*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mc},
@@ -2227,14 +2474,11 @@ function renderRentabilidad() {
 
   // Comparativa
   var comp = campos.map((c,i)=>{
-    var h=c.hectareas||0,cu=c.cultivo||'Soja'
-    var reEst=cu==='Maíz'?8:cu==='Trigo'?3:3.2
-    var re=c.rendimiento||reEst
-    var prrEst=cu==='Maíz'?precios.maiz:cu==='Trigo'?precios.trigo:precios.soja
-    var prr=c.precio_venta||prrEst
+    var h=c.hectareas||0
     var gc2=gastos.filter(g=>g.campo_id===c.id).reduce((a,g)=>a+(g.total_de_usd||0),0)
-    var cHa=h>0?gc2/h:190
-    return {...c,mg:re*prr-cHa,col:COLORES[i%COLORES.length]}
+    var cHa=h>0?gc2/h:0
+    var iHa=h>0?_ingRealParaCampo(c)/h:0
+    return {...c,mg:iHa-cHa,col:COLORES[i%COLORES.length]}
   }).sort((a,b)=>b.mg-a.mg)
   var maxMg=Math.max(...comp.map(c=>Math.abs(c.mg)))
   var ranks=['🥇','🥈','🥉','4️⃣','5️⃣']
@@ -2597,6 +2841,7 @@ var mapInstance = null
 var capas = {}
 
 var _mapaLayers = []
+var _mapaPolyByCampo = {}  // campoId → polygon layer
 
 function initMapa() {
   if (mapaIniciado) return
@@ -2618,6 +2863,7 @@ function renderPoligonosMapa() {
   // Limpiar capas anteriores
   _mapaLayers.forEach(function(l){ mapInstance.removeLayer(l) })
   _mapaLayers = []
+  _mapaPolyByCampo = {}
 
   var bounds = []
 
@@ -2668,6 +2914,7 @@ function renderPoligonosMapa() {
           })
           var marker = L.marker(center, {icon: label, interactive: false}).addTo(mapInstance)
 
+          _mapaPolyByCampo[c.id] = poly  // registrar para búsqueda directa
           _mapaLayers.push(poly)
           _mapaLayers.push(marker)
           pts.forEach(function(p){ bounds.push(p) })
@@ -2766,17 +3013,13 @@ window.irACampoEnMapa = function(id) {
     try {
       var pts = typeof c.poligono==='string' ? JSON.parse(c.poligono) : c.poligono
       if(pts && pts.length >= 3) {
-        // Buscar el layer del polígono entre _mapaLayers
-        var poly = null
-        _mapaLayers.forEach(function(l) {
-          if(l.getBounds && !l.getLatLng) poly = l // es un polígono, no un marker
-        })
         mapInstance.fitBounds(pts, {padding:[40,40], maxZoom:15})
-        // Resaltar brevemente el polígono
+        // Resaltar el polígono específico de este campo
+        var poly = _mapaPolyByCampo[id] || null
         if(poly) {
           var colOriginal = poly.options.color
           poly.setStyle({color:'#c9a84c',weight:4,fillOpacity:.4})
-          setTimeout(function(){ poly.setStyle({color:colOriginal,weight:2.5,fillOpacity:.25}) }, 1500)
+          setTimeout(function(){ poly.setStyle({color:colOriginal,weight:2.5,fillOpacity:.35}) }, 1500)
           setTimeout(function(){ poly.openPopup() }, 300)
         }
         // Scroll al mapa
@@ -2837,67 +3080,613 @@ window.irACiudadMapa_global = function(lat, lng, nombre) {
 }
 
 // ── NOTIFICACIONES ──
-function generarAlertas() {
-  var alertas = []
-  var hoy = new Date()
+// ── SISTEMA DE TAREAS ──
+var tareas = []
+var filtroTareas = 'pendiente'
 
-  campos.forEach(c=>{
-    var cult = c.cultivo||'Soja'
-    // Alertas agronómicas según cultivo
-    if(cult==='Soja'){
-      alertas.push({ico:'🌸',tit:'Ventana fungicida en R1 · '+c.nombre,campo:c.nombre,dias:8,tipo:'pronto'})
-      alertas.push({ico:'⚗️',tit:'Monitorear chinche en R3 · '+c.nombre,campo:c.nombre,dias:21,tipo:'info'})
-    }
-    if(cult==='Maíz'){
-      alertas.push({ico:'⚗️',tit:'Refertilización en V6 · '+c.nombre,campo:c.nombre,dias:3,tipo:'urgente'})
-      alertas.push({ico:'🌽',tit:'Monitorear cogollero · '+c.nombre,campo:c.nombre,dias:14,tipo:'pronto'})
-    }
-    if(cult==='Trigo'){
-      alertas.push({ico:'💊',tit:'Fungicida en espigazón · '+c.nombre,campo:c.nombre,dias:7,tipo:'pronto'})
-    }
-  })
-
-  // Alerta precio
-  if(precios.soja>=280){
-    alertas.push({ico:'💰',tit:'Soja sobre precio objetivo (USD 280/t)',campo:'Todos los campos',dias:0,tipo:'info'})
-  }
-
-  return alertas.sort((a,b)=>{
-    var o={urgente:0,pronto:1,info:2}
-    return (o[a.tipo]||2)-(o[b.tipo]||2)||a.dias-b.dias
-  })
+async function loadTareas() {
+  if (!usuario) return
+  var ownerId = window.CONTEXTO && window.CONTEXTO.ownerIdActivo ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var { data, error } = await sb.from('tareas').select('*').eq('owner_id', ownerId).order('created_at', {ascending: false})
+    if (!error && data) tareas = data
+  } catch(e) { console.error('loadTareas:', e) }
 }
 
-var filtroNotif = 'todas'
-function renderNotificaciones() {
-  var alertas = generarAlertas()
-  var filtros = ['todas','urgente','pronto','info']
-  document.getElementById('notif-filtros').innerHTML = filtros.map(f=>{
-    var count = f==='todas'?alertas.length:alertas.filter(a=>a.tipo===f).length
-    return `<button style="font-size:12px;padding:5px 12px;border-radius:20px;border:.5px solid ${filtroNotif===f?'var(--verde)':'var(--borde)'};background:${filtroNotif===f?'var(--verde)':'transparent'};color:${filtroNotif===f?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" onclick="setFiltroNotif('${f}',this)">${f==='todas'?'Todas':f==='urgente'?'🔴 Urgentes':f==='pronto'?'🟡 Próximas':'ℹ️ Info'} (${count})</button>`
+function _tarjPrioridad(p) {
+  if (p === 'alta')  return '<span style="background:#fdecea;color:#c0392b;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🔴 Alta</span>'
+  if (p === 'baja')  return '<span style="background:#e8f5ee;color:#0d6e41;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🟢 Baja</span>'
+  return '<span style="background:#fff7e0;color:#b7860b;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">🟡 Media</span>'
+}
+
+function _tarjFecha(fecha) {
+  if (!fecha) return ''
+  var d = new Date(fecha + 'T00:00:00'), hoy = new Date()
+  hoy.setHours(0,0,0,0)
+  var diff = Math.round((d - hoy) / 86400000)
+  var label = d.toLocaleDateString('es-AR', {day:'2-digit', month:'short'})
+  if (diff < 0)  return '<span style="color:#c0392b;font-size:11px;font-weight:600">⚠️ Vencida · '+label+'</span>'
+  if (diff === 0) return '<span style="color:#c97a14;font-size:11px;font-weight:600">📅 Hoy</span>'
+  if (diff === 1) return '<span style="color:#c97a14;font-size:11px;font-weight:600">📅 Mañana</span>'
+  if (diff <= 7)  return '<span style="color:#c97a14;font-size:11px">📅 En '+diff+' días · '+label+'</span>'
+  return '<span style="color:var(--texto-suave);font-size:11px">📅 '+label+'</span>'
+}
+
+function _tarjCampo(campo_id) {
+  if (!campo_id) return ''
+  var c = campos.find(function(x){ return x.id === campo_id })
+  return c ? '<span style="font-size:11px;color:var(--texto-suave)">🌾 '+c.nombre+'</span>' : ''
+}
+
+function _tarjArchivos(t) {
+  var archivos = _safeJSON(t.archivos, [])
+  if (!archivos.length) return ''
+  var imgs = archivos.filter(function(a){ return (a.tipo||'').startsWith('image/') })
+  var docs = archivos.filter(function(a){ return !(a.tipo||'').startsWith('image/') })
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
+  imgs.slice(0,3).forEach(function(a, ai) {
+    var tId = t.id || ''
+    html += '<a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="'+a.nombre+'" style="display:block;width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;border:.5px solid var(--borde);cursor:zoom-in">'
+      +'<img src="'+a.url+'" style="width:100%;height:100%;object-fit:cover"></a>'
+  })
+  if (imgs.length > 3) {
+    html += '<div style="width:36px;height:36px;border-radius:5px;background:var(--crema);border:.5px solid var(--borde);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--verde)">+'+( imgs.length-3)+'</div>'
+  }
+  if (docs.length) {
+    html += '<span style="font-size:11px;color:var(--texto-suave);display:flex;align-items:center;gap:3px;background:var(--crema);padding:3px 7px;border-radius:5px;border:.5px solid var(--borde)">📎 '+docs.length+' archivo'+(docs.length>1?'s':'')+'</span>'
+  }
+  html += '</div>'
+  return html
+}
+
+function _tarjAsignado(uid) {
+  if (!uid) return '<span style="font-size:11px;color:var(--texto-suave)">Sin asignar</span>'
+  var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
+  if (miembro && miembro.nombre) return '<span style="font-size:11px;color:var(--texto-suave)">👤 '+miembro.nombre+'</span>'
+  return '<span style="font-size:11px;color:var(--texto-suave)">👤 Usuario</span>'
+}
+
+function renderTareas() {
+  var esAdmin = !window.CONTEXTO || !window.CONTEXTO.esColaborador
+  var filtros = [
+    {k:'pendiente',  lab:'⏳ Pendientes'},
+    {k:'en_progreso',lab:'🔄 En progreso'},
+    {k:'programada', lab:'📆 Programadas'},
+    {k:'completada', lab:'✅ Completadas'}
+  ]
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+
+  var lista = tareas.filter(function(t) {
+    if (filtroTareas === 'programada') {
+      return t.estado === 'pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy
+    }
+    if (filtroTareas === 'pendiente') {
+      if (t.estado !== 'pendiente') return false
+      if (t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy) return false
+      return true
+    }
+    return t.estado === filtroTareas
+  })
+
+  var counts = {
+    pendiente:   tareas.filter(function(t){ return t.estado==='pendiente' && (!t.fecha_vencimiento || new Date(t.fecha_vencimiento+'T00:00:00')<=hoy) }).length,
+    en_progreso: tareas.filter(function(t){ return t.estado==='en_progreso' }).length,
+    programada:  tareas.filter(function(t){ return t.estado==='pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento+'T00:00:00')>hoy }).length,
+    completada:  tareas.filter(function(t){ return t.estado==='completada' }).length
+  }
+
+  var badge = document.getElementById('tareas-badge')
+  var pending = counts.pendiente + counts.en_progreso
+  if (badge) badge.textContent = pending > 0 ? '✅ Tareas ('+pending+')' : '✅ Tareas'
+
+  var filEl = document.getElementById('tareas-filtros')
+  if (filEl) filEl.innerHTML = filtros.map(function(f) {
+    var on = filtroTareas === f.k
+    return '<button onclick="window._setFiltroTareas(\''+f.k+'\')" style="font-size:12px;padding:5px 14px;border-radius:20px;border:.5px solid '+(on?'var(--verde)':'var(--borde)')+';background:'+(on?'var(--verde)':'transparent')+';color:'+(on?'#fff':'var(--texto-mid)')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:'+(on?'600':'400')+'">'+f.lab+(counts[f.k]?' ('+counts[f.k]+')':"")+'</button>'
   }).join('')
 
-  var lista = filtroNotif==='todas'?alertas:alertas.filter(a=>a.tipo===filtroNotif)
-  var el = document.getElementById('notif-lista')
-  if(!lista.length){
-    el.innerHTML=`<div class="card"><div class="empty"><div class="empty-i">✅</div><div class="empty-t">Sin alertas en esta categoría</div></div></div>`
+  var btnNueva = document.getElementById('btn-nueva-tarea')
+  if (btnNueva) btnNueva.style.display = esAdmin ? '' : 'none'
+
+  var el = document.getElementById('tareas-lista')
+  if (!el) return
+  if (!lista.length) {
+    var msgs = {pendiente:'Sin tareas pendientes', en_progreso:'Sin tareas en progreso', programada:'Sin tareas programadas', completada:'Sin tareas completadas'}
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">'+(filtroTareas==='completada'?'🎉':'📋')+'</div><div class="empty-t">'+msgs[filtroTareas]+'</div>'+(esAdmin&&filtroTareas!=='completada'?'<br><button class="btn-primary" onclick="abrirModalTarea()" style="margin-top:12px">+ Crear primera tarea</button>':'')+'</div></div>'
     return
   }
-  el.innerHTML = lista.map(a=>`<div class="card" style="margin-bottom:8px">
-    <div class="notif-item" style="padding:0;border:none">
-      <div class="notif-ico" style="background:${a.tipo==='urgente'?'var(--rojo-pale)':a.tipo==='pronto'?'var(--amber-pale)':'var(--verde-pale)'}">${a.ico}</div>
-      <div class="notif-body"><div class="notif-tit">${a.tit}</div><div class="notif-meta">📍 ${a.campo}</div></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-        <span class="dias-chip ${a.tipo==='urgente'?'dias-u':a.tipo==='pronto'?'dias-p':'dias-ok'}">${a.dias===0?'Hoy':'En '+a.dias+' días'}</span>
-        <button style="font-size:10px;padding:3px 8px;border-radius:5px;border:.5px solid var(--borde);background:transparent;cursor:pointer;color:var(--texto-suave);font-family:'DM Sans',sans-serif" onclick="showToast('✓ Marcado como hecho','ok')">✓ Hecho</button>
-      </div>
-    </div>
-  </div>`).join('')
+
+  var prioOrd = {alta:0, media:1, baja:2}
+  lista = lista.slice().sort(function(a,b) {
+    var aVenc = a.fecha_vencimiento && new Date(a.fecha_vencimiento+'T00:00:00') < hoy ? -1 : 0
+    var bVenc = b.fecha_vencimiento && new Date(b.fecha_vencimiento+'T00:00:00') < hoy ? -1 : 0
+    if (aVenc !== bVenc) return aVenc - bVenc
+    return (prioOrd[a.prioridad]||1) - (prioOrd[b.prioridad]||1)
+  })
+
+  el.innerHTML = lista.map(function(t) {
+    var esCompletada = t.estado === 'completada'
+    var borderColor = t.prioridad==='alta' ? '#c0392b' : t.prioridad==='baja' ? '#0d6e41' : '#c9a84c'
+    var completadaAt = t.completada_at ? ' · '+new Date(t.completada_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) : ''
+    return '<div class="card" style="margin-bottom:8px;border-left:3px solid '+borderColor+';'+(esCompletada?'opacity:.7':'')+';">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:14px;font-weight:600;color:var(--texto);'+(esCompletada?'text-decoration:line-through;color:var(--texto-suave)':'')+'">'+t.titulo+'</div>'
+      +(t.descripcion ? '<div style="font-size:12px;color:var(--texto-suave);margin-top:3px;line-height:1.5">'+t.descripcion+'</div>' : '')
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center">'
+      +_tarjPrioridad(t.prioridad)
+      +_tarjCampo(t.campo_id)
+      +_tarjAsignado(t.asignado_a)
+      +(t.fecha_vencimiento ? _tarjFecha(t.fecha_vencimiento) : '')
+      +(esCompletada ? '<span style="font-size:11px;color:var(--texto-suave)">Completada'+completadaAt+'</span>' : '')
+      +(_tarjArchivos(t))
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">'
+      +(!esCompletada ? '<button onclick="completarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap">✓ Completar</button>' : '')
+      +(!esCompletada && t.estado!=='en_progreso' ? '<button onclick="iniciarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">▶ Iniciar</button>' : '')
+      +(esAdmin ? '<button onclick="abrirModalTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">✏️ Editar</button>' : '')
+      +(esAdmin && esCompletada ? '<button onclick="eliminarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--rojo);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">🗑</button>' : '')
+      +'</div>'
+      +'</div>'
+      +'</div>'
+  }).join('')
 }
 
-window.setFiltroNotif = function(f) {
-  filtroNotif = f
-  renderNotificaciones()
+window._setFiltroTareas = function(f) { filtroTareas = f; renderTareas() }
+
+function _renderDashTareas() {
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var el = document.getElementById('dash-tareas')
+  if (!el) return
+  var urgentes = tareas.filter(function(t) {
+    if (t.estado === 'completada') return false
+    if (t.estado === 'en_progreso') return true
+    if (!t.fecha_vencimiento) return t.estado === 'pendiente' && t.prioridad === 'alta'
+    return new Date(t.fecha_vencimiento+'T00:00:00') <= hoy
+  }).slice(0, 4)
+  if (!urgentes.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.75rem 0">Sin tareas urgentes ✓</div>'
+    return
+  }
+  el.innerHTML = urgentes.map(function(t) {
+    var isVenc = t.fecha_vencimiento && new Date(t.fecha_vencimiento+'T00:00:00') < hoy
+    var color = t.prioridad==='alta'||isVenc ? 'var(--rojo-pale)' : t.estado==='en_progreso' ? '#e8f0fe' : 'var(--amber-pale)'
+    var ico = t.estado==='en_progreso' ? '🔄' : isVenc ? '⚠️' : '🔴'
+    return '<div class="notif-item">'
+      +'<div class="notif-ico" style="background:'+color+'">'+ico+'</div>'
+      +'<div class="notif-body"><div class="notif-tit">'+t.titulo+'</div><div class="notif-meta">'+(t.fecha_vencimiento?_tarjFecha(t.fecha_vencimiento):'Alta prioridad')+'</div></div>'
+      +'</div>'
+  }).join('')
+}
+
+window.abrirModalTarea = async function(id) {
+  var ov = document.getElementById('ov-tarea')
+  // Limpiar archivos pendientes de apertura anterior
+  window._tareasArchivosPendientes = []
+  _tareasRenderArchivosPendientes()
+  var selCampo = document.getElementById('t-campo')
+  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + campos.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
+  var selAsig = document.getElementById('t-asignado')
+  if (selAsig) {
+    var miembros = window._equipoCache || []
+    selAsig.innerHTML = '<option value="">Sin asignar</option>'
+      + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
+  }
+  if (id) {
+    var t = tareas.find(function(x){ return x.id === id })
+    if (!t) return
+    document.getElementById('tarea-modal-tit').textContent = 'Editar tarea'
+    document.getElementById('t-id').value = t.id
+    document.getElementById('t-titulo').value = t.titulo || ''
+    document.getElementById('t-desc').value = t.descripcion || ''
+    document.getElementById('t-campo').value = t.campo_id || ''
+    document.getElementById('t-prioridad').value = t.prioridad || 'media'
+    document.getElementById('t-asignado').value = t.asignado_a || ''
+    document.getElementById('t-fecha').value = t.fecha_vencimiento || ''
+    // Mostrar archivos ya guardados en la tarea
+    var archGuard = _safeJSON(t.archivos, [])
+    var listaEl = document.getElementById('t-archivos-lista')
+    if (listaEl) listaEl.innerHTML = archGuard.map(function(a, i) {
+      var isImg = (a.tipo||'').startsWith('image/')
+      var ico = isImg ? '🖼️' : (a.tipo||'').includes('pdf') ? '📄' : '📎'
+      var kb = (a.tamanio||0) > 1024*1024 ? ((a.tamanio||0)/1024/1024).toFixed(1)+' MB' : Math.round((a.tamanio||0)/1024)+' KB'
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+        +(isImg ? '<img src="'+a.url+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:zoom-in" onclick="window._abrirArchivoTarea(\''+id+'\','+i+')">' : '<span style="font-size:18px;cursor:pointer" onclick="window._abrirArchivoTarea(\''+id+'\','+i+'\')">'+ico+'</span>')
+        +'<div style="flex:1;min-width:0"><a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+id+'\','+i+')" style="font-weight:500;color:var(--verde);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">'+a.nombre+'</a><div style="color:var(--texto-suave);font-size:10px">'+kb+' · guardado</div></div>'
+        +'<button onclick="window._tareasEliminarArchivoGuardado(\''+id+'\','+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
+        +'</div>'
+    }).join('')
+  } else {
+    document.getElementById('tarea-modal-tit').textContent = 'Nueva tarea'
+    document.getElementById('t-id').value = ''
+    document.getElementById('t-titulo').value = ''
+    document.getElementById('t-desc').value = ''
+    document.getElementById('t-campo').value = ''
+    document.getElementById('t-prioridad').value = 'media'
+    document.getElementById('t-asignado').value = ''
+    document.getElementById('t-fecha').value = ''
+    var listaEl2 = document.getElementById('t-archivos-lista')
+    if (listaEl2) listaEl2.innerHTML = ''
+  }
+  ov.classList.add('open')
+  setTimeout(function(){ document.getElementById('t-titulo').focus() }, 100)
+}
+
+// ── Archivos adjuntos en tareas ──
+window._tareasArchivosPendientes = []  // [{nombre, url, tipo, tamanio}]
+
+// Abre un archivo guardado de una tarea (busca por id + índice en el array local)
+window._abrirArchivoTarea = function(tareaId, fileIdx) {
+  var t = tareas.find(function(x){ return x.id === tareaId })
+  if (!t) return
+  var archivos = _safeJSON(t.archivos, [])
+  var a = archivos[fileIdx]
+  if (a) window._abrirArchivo(a.url, a.nombre, a.tipo)
+}
+
+// ── Lightbox con zoom completo ────────────────────────────────────────────────
+window._abrirArchivo = function(url, nombre, tipo) {
+  if (!url) return
+  if ((tipo || '').startsWith('image/') || /^data:image\//i.test(url)) {
+    // Remover instancia anterior si existe
+    var old = document.getElementById('_lb')
+    if (old) document.body.removeChild(old)
+
+    var lb = document.createElement('div')
+    lb.id = '_lb'
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;overflow:hidden;touch-action:none'
+    lb.innerHTML = [
+      '<div id="_lb-wrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">',
+        '<img id="_lb-img" src="'+url+'" style="max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 4px 40px rgba(0,0,0,.6);transform-origin:center center;user-select:none;pointer-events:none">',
+      '</div>',
+      '<div style="position:fixed;bottom:18px;left:0;right:0;text-align:center;color:rgba(255,255,255,.6);font-size:12px;pointer-events:none">'+(nombre||'')+'</div>',
+      '<div style="position:fixed;top:14px;right:18px;display:flex;gap:8px;z-index:2">',
+        '<button id="_lb-dl" title="Descargar" style="background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:18px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬇</button>',
+        '<button id="_lb-close" style="background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:20px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>',
+      '</div>',
+      '<div style="position:fixed;bottom:44px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.45);border-radius:20px;padding:6px 12px;z-index:2">',
+        '<button id="_lb-zm" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center">＋</button>',
+        '<button id="_lb-zm0" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;width:44px;height:34px;display:flex;align-items:center;justify-content:center" title="Resetear zoom">1:1</button>',
+        '<button id="_lb-zm2" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center">－</button>',
+      '</div>'
+    ].join('')
+    document.body.appendChild(lb)
+
+    var img = document.getElementById('_lb-img')
+    var scale = 1, tx = 0, ty = 0
+    var dragging = false, lastX = 0, lastY = 0
+
+    function applyT() {
+      img.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')'
+    }
+    function zoom(delta, cx, cy) {
+      var prev = scale
+      scale = Math.min(8, Math.max(0.5, scale + delta))
+      // Zoom centrado en el punto (cx, cy)
+      var rect = img.getBoundingClientRect()
+      var ox = cx - (rect.left + rect.width/2)
+      var oy = cy - (rect.top + rect.height/2)
+      tx += -ox * (scale/prev - 1)
+      ty += -oy * (scale/prev - 1)
+      applyT()
+    }
+    function resetZoom() { scale = 1; tx = 0; ty = 0; applyT() }
+
+    // Botones
+    document.getElementById('_lb-close').onclick = function(e) { e.stopPropagation(); document.body.removeChild(lb) }
+    document.getElementById('_lb-zm').onclick = function(e) { e.stopPropagation(); zoom(0.5, window.innerWidth/2, window.innerHeight/2) }
+    document.getElementById('_lb-zm2').onclick = function(e) { e.stopPropagation(); zoom(-0.5, window.innerWidth/2, window.innerHeight/2) }
+    document.getElementById('_lb-zm0').onclick = function(e) { e.stopPropagation(); resetZoom() }
+    document.getElementById('_lb-dl').onclick = function(e) {
+      e.stopPropagation()
+      var a = document.createElement('a'); a.href = url; a.download = nombre || 'imagen.jpg'; a.click()
+    }
+    // Fondo cierra
+    lb.addEventListener('click', function(e) { if (e.target === lb || e.target.id === '_lb-wrap') document.body.removeChild(lb) })
+    // Rueda del mouse → zoom
+    lb.addEventListener('wheel', function(e) { e.preventDefault(); zoom(e.deltaY < 0 ? 0.25 : -0.25, e.clientX, e.clientY) }, { passive: false })
+    // Doble click → zoom x2 / reset
+    lb.addEventListener('dblclick', function(e) {
+      if (scale > 1) resetZoom()
+      else zoom(1.5, e.clientX, e.clientY)
+    })
+    // Drag para mover
+    lb.addEventListener('mousedown', function(e) { if (scale > 1) { dragging = true; lastX = e.clientX; lastY = e.clientY; lb.style.cursor = 'grabbing' } })
+    lb.addEventListener('mousemove', function(e) {
+      if (!dragging) return
+      tx += e.clientX - lastX; ty += e.clientY - lastY
+      lastX = e.clientX; lastY = e.clientY; applyT()
+    })
+    lb.addEventListener('mouseup',   function() { dragging = false; lb.style.cursor = '' })
+    lb.addEventListener('mouseleave', function() { dragging = false; lb.style.cursor = '' })
+    // Touch: pinch zoom
+    var t0, t1, initDist, initScale
+    lb.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        t0 = e.touches[0]; t1 = e.touches[1]
+        initDist = Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY)
+        initScale = scale
+      } else if (e.touches.length === 1 && scale > 1) {
+        dragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
+      }
+    }, { passive: true })
+    lb.addEventListener('touchmove', function(e) {
+      e.preventDefault()
+      if (e.touches.length === 2) {
+        var d = Math.hypot(e.touches[1].clientX-e.touches[0].clientX, e.touches[1].clientY-e.touches[0].clientY)
+        scale = Math.min(8, Math.max(0.5, initScale * d / initDist)); applyT()
+      } else if (dragging && e.touches.length === 1) {
+        tx += e.touches[0].clientX - lastX; ty += e.touches[0].clientY - lastY
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; applyT()
+      }
+    }, { passive: false })
+    lb.addEventListener('touchend', function() { dragging = false })
+    return
+  }
+  // Docs: si es URL HTTPS (Storage) abre directo, si es base64 convierte a Blob
+  try {
+    if (url.startsWith('http')) {
+      var w = window.open(url, '_blank')
+      if (!w) { var a2 = document.createElement('a'); a2.href = url; a2.target = '_blank'; a2.click() }
+    } else {
+      var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]
+      var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n)
+      while (n--) u8[n] = bstr.charCodeAt(n)
+      var blob = new Blob([u8], { type: mime })
+      var blobUrl = URL.createObjectURL(blob)
+      var w2 = window.open(blobUrl, '_blank')
+      if (!w2) { var a3 = document.createElement('a'); a3.href = blobUrl; a3.download = nombre || 'archivo'; a3.click() }
+      setTimeout(function(){ URL.revokeObjectURL(blobUrl) }, 60000)
+    }
+  } catch(e) { showToast('⚠️ No se pudo abrir el archivo', 'err') }
+}
+
+// ── Sube un archivo a Supabase Storage y devuelve la URL pública ─────────────
+async function _subirArchivoStorage(file) {
+  if (!usuario) throw new Error('No autenticado')
+  if (!file) throw new Error('Archivo inválido')
+  var ts = Date.now()
+  var ext = (file.name || '').split('.').pop() || 'bin'
+  var baseName = (file.name || 'archivo').replace(/\.[^/.]+$/, '')
+    .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'archivo'
+  var path = usuario.id + '/' + ts + '_' + baseName + '.' + ext
+  var { error } = await sb.storage.from('tareas-archivos').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream'
+  })
+  if (error) throw new Error('Storage: ' + (error.message || JSON.stringify(error)))
+  var { data: ud } = sb.storage.from('tareas-archivos').getPublicUrl(path)
+  if (!ud || !ud.publicUrl) throw new Error('No se obtuvo URL pública del archivo')
+  return { url: ud.publicUrl, path: path }
+}
+
+// ── Genera preview base64 para thumbnail (solo para mostrar en UI) ────────────
+function _generarPreview(file) {
+  return new Promise(function(resolve) {
+    if (!file.type.startsWith('image/')) { resolve(null); return }
+    var img = new Image()
+    var ou = URL.createObjectURL(file)
+    img.onload = function() {
+      URL.revokeObjectURL(ou)
+      var MAX = 120, w = img.width, h = img.height
+      if (w > MAX || h > MAX) { var r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r) }
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h
+      cv.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(cv.toDataURL('image/jpeg', 0.7))
+    }
+    img.onerror = function() { URL.revokeObjectURL(ou); resolve(null) }
+    img.src = ou
+  })
+}
+
+window._tareasAgregarArchivos = async function(input) {
+  var files = Array.from(input.files || [])
+  if (!files.length) return
+  var labelEl = document.getElementById('t-upload-label')
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i]
+    if (file.size > 50 * 1024 * 1024) { showToast('⚠️ ' + file.name + ' supera 50 MB', 'err'); continue }
+    if (labelEl) labelEl.textContent = 'Procesando...'
+    try {
+      var preview = await _generarPreview(file)
+      // Guardamos referencia al archivo original para subir al guardar
+      window._tareasArchivosPendientes.push({
+        nombre: file.name,
+        url: null,              // se llena al guardar (Storage URL)
+        previewUrl: preview,    // solo para mostrar en UI antes de guardar
+        fileRef: file,          // archivo original
+        tipo: file.type || 'application/octet-stream',
+        tamanio: file.size
+      })
+      showToast('✓ ' + file.name + ' listo para adjuntar', 'ok')
+    } catch(e) {
+      showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
+    }
+  }
+  input.value = ''
+  if (labelEl) labelEl.textContent = 'Subir foto o documento'
+  _tareasRenderArchivosPendientes()
+}
+
+function _tareasRenderArchivosPendientes() {
+  var el = document.getElementById('t-archivos-lista')
+  if (!el) return
+  var lista = window._tareasArchivosPendientes
+  if (!lista.length) { el.innerHTML = ''; return }
+  el.innerHTML = lista.map(function(a, i) {
+    var isImg = a.tipo.startsWith('image/')
+    var ico = isImg ? '🖼️' : a.tipo.includes('pdf') ? '📄' : a.tipo.includes('word') || a.tipo.includes('doc') ? '📝' : a.tipo.includes('excel') || a.tipo.includes('sheet') || a.tipo.includes('xls') ? '📊' : '📎'
+    var kb = a.tamanio > 1024*1024 ? (a.tamanio/1024/1024).toFixed(1)+' MB' : Math.round(a.tamanio/1024)+' KB'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+      +(isImg && (a.previewUrl || a.url) ? '<img src="'+(a.previewUrl || a.url)+'" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0">' : '<span style="font-size:18px">'+ico+'</span>')
+      +'<div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</div><div style="color:var(--texto-suave);font-size:10px">'+kb+'</div></div>'
+      +'<button onclick="window._tareasQuitarArchivo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px;flex-shrink:0">×</button>'
+      +'</div>'
+  }).join('')
+}
+
+window._tareasQuitarArchivo = function(i) {
+  window._tareasArchivosPendientes.splice(i, 1)
+  _tareasRenderArchivosPendientes()
+}
+
+window._tareasEliminarArchivoGuardado = async function(tareaId, idx) {
+  var t = tareas.find(function(x){ return x.id === tareaId })
+  if (!t) return
+  var archivos = _safeJSON(t.archivos, [])
+  if (!archivos[idx]) return
+  archivos.splice(idx, 1)
+  try {
+    await sb.from('tareas').update({archivos: archivos}).eq('id', tareaId)
+    t.archivos = archivos
+    renderTareas()
+    showToast('✓ Archivo eliminado', 'ok')
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+}
+
+// Extrae mensaje legible de un error de Supabase o JS
+function _tareaErrMsg(e) {
+  if (!e) return 'Error desconocido'
+  if (typeof e === 'string') return e
+  return e.message || e.details || e.hint || e.error_description || JSON.stringify(e)
+}
+// True si el error es por columna archivos inexistente en la DB
+function _tareaErrEsColumna(e) {
+  return /column|archivos|schema|does not exist|PGRST204/i.test(_tareaErrMsg(e))
+}
+
+window.guardarTarea = async function() {
+  var titulo = (document.getElementById('t-titulo').value || '').trim()
+  if (!titulo) { showToast('⚠️ El título es obligatorio', 'err'); return }
+  var btn = document.getElementById('btn-guardar-tarea')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var id = document.getElementById('t-id').value
+
+  try {
+    var ownerId = (window.CONTEXTO && window.CONTEXTO.ownerIdActivo) ? window.CONTEXTO.ownerIdActivo : usuario.id
+    var fechaVal = document.getElementById('t-fecha').value || null
+    var newId = id || (crypto.randomUUID ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+          var r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16) }))
+
+    // ── Payload base (siempre funciona) ───────────────────────
+    var payload = {
+      titulo:            titulo,
+      descripcion:       (document.getElementById('t-desc').value || '').trim() || null,
+      campo_id:          document.getElementById('t-campo').value || null,
+      prioridad:         document.getElementById('t-prioridad').value || 'media',
+      asignado_a:        document.getElementById('t-asignado').value || null,
+      fecha_vencimiento: fechaVal,
+      owner_id:          ownerId
+    }
+
+    // Helper: INSERT/UPDATE con timeout de 15s
+    var _dbRun = function(promise) {
+      return Promise.race([
+        promise,
+        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (15s). Verificá que el proyecto Supabase esté activo en app.supabase.com')) }, 15000) })
+      ])
+    }
+
+    if (id) {
+      // ── EDICIÓN ───────────────────────────────────────────────
+      var resUpd = await _dbRun(sb.from('tareas').update(payload).eq('id', id))
+      if (resUpd.error) throw new Error(resUpd.error.message || JSON.stringify(resUpd.error))
+      var idx = tareas.findIndex(function(t){ return t.id === id })
+      if (idx >= 0) tareas[idx] = Object.assign({}, tareas[idx], payload)
+      showToast('✓ Tarea actualizada', 'ok')
+
+    } else {
+      // ── NUEVA ─────────────────────────────────────────────────
+      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
+      var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
+      if (resIns.error) throw new Error(resIns.error.message || JSON.stringify(resIns.error))
+      tareas.unshift(Object.assign({}, payloadIns, { created_at: new Date().toISOString(), completada_at: null }))
+      showToast('✓ Tarea creada', 'ok')
+    }
+
+    // ── Subir archivos a Storage en background (no bloquea) ───
+    var pendientes = window._tareasArchivosPendientes.slice()
+    if (pendientes.length) {
+      var targetId = id || newId
+      ;(async function() {
+        var archivosSubidos = []
+        // Recuperar archivos ya guardados si es edición
+        var tRef = tareas.find(function(x){ return x.id === targetId })
+        if (tRef) archivosSubidos = _safeJSON(tRef.archivos, [])
+        for (var fi = 0; fi < pendientes.length; fi++) {
+          var ap = pendientes[fi]
+          if (!ap.fileRef) continue
+          try {
+            var up = await Promise.race([
+              _subirArchivoStorage(ap.fileRef),
+              new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('timeout')) }, 25000) })
+            ])
+            archivosSubidos.push({ nombre: ap.nombre, url: up.url, path: up.path, tipo: ap.tipo, tamanio: ap.tamanio })
+          } catch(e2) {
+            console.error('Storage error:', e2.message)
+            showToast('⚠️ "' + ap.nombre + '" no se subió: ' + e2.message, 'err')
+          }
+        }
+        if (archivosSubidos.length) {
+          var { error: eArch } = await sb.from('tareas').update({ archivos: archivosSubidos }).eq('id', targetId)
+          if (!eArch) {
+            var tUpd = tareas.find(function(x){ return x.id === targetId })
+            if (tUpd) { tUpd.archivos = archivosSubidos; renderTareas() }
+          }
+        }
+      })()
+    }
+
+    window._tareasArchivosPendientes = []
+    _tareasRenderArchivosPendientes()
+    document.getElementById('ov-tarea').classList.remove('open')
+    var hoy = new Date(); hoy.setHours(0,0,0,0)
+    filtroTareas = (fechaVal && new Date(fechaVal+'T00:00:00') > hoy) ? 'programada' : (id ? filtroTareas : 'pendiente')
+    renderTareas()
+    _renderDashTareas()
+
+  } catch(e) {
+    console.error('guardarTarea error:', e)
+    showToast('⚠️ Error: ' + (e.message || String(e)), 'err')
+  } finally {
+    btn.disabled = false
+    btn.textContent = id ? 'Guardar cambios' : 'Guardar tarea'
+  }
+}
+
+window.completarTarea = async function(id) {
+  try {
+    var now = new Date().toISOString()
+    var { error } = await sb.from('tareas').update({estado:'completada', completada_at: now}).eq('id', id)
+    if (error) throw error
+    var t = tareas.find(function(x){ return x.id === id })
+    if (t) { t.estado = 'completada'; t.completada_at = now }
+    showToast('🎉 Tarea completada', 'ok')
+    renderTareas(); _renderDashTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+}
+
+window.iniciarTarea = async function(id) {
+  try {
+    var { error } = await sb.from('tareas').update({estado:'en_progreso'}).eq('id', id)
+    if (error) throw error
+    var t = tareas.find(function(x){ return x.id === id })
+    if (t) t.estado = 'en_progreso'
+    showToast('▶ Tarea iniciada', 'ok')
+    renderTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+}
+
+window.eliminarTarea = async function(id) {
+  if (!confirm('¿Eliminar esta tarea?')) return
+  try {
+    var { error } = await sb.from('tareas').delete().eq('id', id)
+    if (error) throw error
+    tareas = tareas.filter(function(t){ return t.id !== id })
+    showToast('✓ Eliminada', 'ok')
+    renderTareas()
+  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
 }
 
 // ── CRUD CAMPOS ──
@@ -3419,6 +4208,9 @@ window.openModalCampo = function() {
   if(sub)sub.textContent='Completá los datos de tu campo'
   if(btn)btn.textContent='Guardar campo'
   if(eid)eid.value=''
+  // Limpiar campos del formulario
+  ;['c-nombre','c-ha','c-obs','c-localidad'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+  var _tenEl=document.getElementById('c-ten'); if(_tenEl) _tenEl.value='propio'
   // Reset cultivo chips
   document.querySelectorAll('.cult-chip').forEach(function(b) {
     b.style.background = 'transparent'
@@ -3433,19 +4225,41 @@ window.openModalCampo = function() {
       window._mapaCampoModal = L.map('mapa-campo-modal',{doubleClickZoom:false}).setView([-33.65,-64.60],6)
       L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google',maxZoom:20}).addTo(window._mapaCampoModal)
       window._mapaCampoModal.on('click',function(e){
-        if(_zonaCultivoActivo) return  // zona mode takes priority
+        if(_zonaCultivoActivo) return
         if(!_polyModo) return
         _polyPuntos.push([e.latlng.lat,e.latlng.lng])
         _dibujarPolyTemp()
         var el=document.getElementById('campo-coords'),txt=document.getElementById('campo-coords-txt')
         _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
         if(el)el.style.display='block'
-        if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+        if(txt)txt.textContent='Polígono: '+_polyPuntos.length+' puntos — doble clic para cerrar'
       })
       window._mapaCampoModal.on('dblclick',function(){
-        if(_zonaCultivoActivo) return  // zona mode takes priority
+        if(_zonaCultivoActivo) return
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
+      })
+      // Rubber-band: línea fantasma + punto cursor mientras se dibuja el polígono
+      window._mapaCampoModal.on('mousemove',function(e){
+        if(!_polyModo || _polyPuntos.length < 1) {
+          if(window._polyRubberBand){ try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){} window._polyRubberBand=null }
+          if(window._polyCursorDot){ try{window._mapaCampoModal.removeLayer(window._polyCursorDot)}catch(ex){} window._polyCursorDot=null }
+          return
+        }
+        var last = _polyPuntos[_polyPuntos.length-1]
+        var cur = [e.latlng.lat, e.latlng.lng]
+        var pts = _polyPuntos.length >= 3 ? [last, cur, _polyPuntos[0]] : [last, cur]
+        if(!window._polyRubberBand) {
+          window._polyRubberBand = L.polyline(pts, {color:'#c9a84c', weight:2, dashArray:'7,5', opacity:0.75, interactive:false}).addTo(window._mapaCampoModal)
+        } else { window._polyRubberBand.setLatLngs(pts) }
+        // Punto circular en la posición actual del cursor
+        var dotIcon = L.divIcon({
+          className:'', iconSize:[10,10], iconAnchor:[5,5],
+          html:'<div style="width:10px;height:10px;border-radius:50%;background:#c9a84c;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);pointer-events:none"></div>'
+        })
+        if(!window._polyCursorDot) {
+          window._polyCursorDot = L.marker(cur, {icon:dotIcon, interactive:false, zIndexOffset:500}).addTo(window._mapaCampoModal)
+        } else { window._polyCursorDot.setLatLng(cur) }
       })
     } else {
       window._mapaCampoModal.invalidateSize()
@@ -3501,6 +4315,8 @@ function _cerrarPoligono(){
   var m=window._mapaCampoModal; if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+  if(window._polyCursorDot){try{m.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
   _polyLayer=L.polygon(_polyPuntos,{color:'#c9a84c',fillColor:'#c9a84c',fillOpacity:0.25,weight:2}).addTo(m)
   _polyModo=false
   document.getElementById('btn-poly-start').textContent='✏️ Dibujar polígono'
@@ -3534,6 +4350,8 @@ window.limpiarPoligono = function(){
   var m=window._mapaCampoModal;if(!m)return
   _polyTempLines.forEach(function(l){m.removeLayer(l)});_polyTempLines=[]
   if(_polyLayer){m.removeLayer(_polyLayer);_polyLayer=null}
+  if(window._polyRubberBand){try{m.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+  if(window._polyCursorDot){try{m.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
   _polyPuntos=[];_polyModo=false;_campoCoordsLat=null;_campoCoordsLng=null
   var btn=document.getElementById('btn-poly-start')
   btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'
@@ -3748,25 +4566,72 @@ window.guardarCampo = async function() {
       precio_venta: parseFloat(document.getElementById('c-precio-venta')?.value)||null,
       provincia: document.getElementById('c-prov')?.value||null,
       zonas_cultivo: Object.keys(cultivosZonasTemp).length ? JSON.stringify(cultivosZonasTemp) : null,
-      hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null
+      hectareas_cultivo: Object.keys(cultivosHectareasTemp).length ? JSON.stringify(cultivosHectareasTemp) : null,
+      observaciones: document.getElementById('c-obs')?.value?.trim()||null
     }
 
     var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
     var savedId = editId
 
     if(isEdit) {
-      // UPDATE: primero con todo, si falla por columna solo con base
-      var r1 = await _sbRace(sb.from('campos').update({...payloadBase,...payloadExtra}).eq('id', editId), 8000)
-      if(r1.error) {
-        if(/column|schema|does not exist|PGRST204/i.test(r1.error.message||'')) {
-          var r2 = await _sbRace(sb.from('campos').update(payloadBase).eq('id', editId), 8000)
-          if(r2.error) throw new Error(r2.error.message||'Error al actualizar')
-        } else { throw new Error(r1.error.message||'Error al actualizar') }
-      }
-      // Recargar campo actualizado
-      var rGet = await _sbRace(sb.from('campos').select('*').eq('id', editId).single(), 6000)
-      if(rGet.data) { var idx=campos.findIndex(function(c){return c.id===editId}); if(idx>=0) campos[idx]=rGet.data }
+      // ── OPTIMISTIC EDIT ──────────────────────────────────────────────────
+      // 1. Actualizar el array local INMEDIATAMENTE (la UI responde al instante)
+      var idxEdit = campos.findIndex(function(c){ return c.id === editId })
+      var campoAnterior = idxEdit >= 0 ? Object.assign({}, campos[idxEdit]) : null
+      var campoActualizado = Object.assign({}, campoAnterior || {}, payloadBase, payloadExtra, {id: editId, usuario_id: uid})
+      if(idxEdit >= 0) campos[idxEdit] = campoActualizado; else campos.unshift(campoActualizado)
+      window._ingVentasCampoId = null
       _guardarCache()
+
+      // 2. Cerrar modal + feedback INMEDIATO
+      closeModalCampo()
+      showToast('✓ Campo actualizado','ok')
+      poblarSelectoresCampo()
+      renderDashboard()
+      if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
+      if(campoDet === editId) {
+        var cUp2 = campos.find(function(x){ return x.id === editId })
+        if(cUp2) {
+          document.getElementById('det-campo-nombre').textContent = cUp2.nombre
+          document.getElementById('det-campo-meta').textContent = (cUp2.hectareas||0).toLocaleString('es-AR') + ' ha · ' + (cUp2.cultivo||'Sin cultivo') + ' · ' + (cUp2.tenencia||'propio') + (cUp2.provincia?' · '+cUp2.provincia:'')
+          try { renderIngresosTab(); renderDetGastos(); renderRentabilidad() } catch(er) {}
+        }
+      }
+
+      // 3. Sincronizar con DB en background (no bloquea la UI)
+      ;(async function _bgEditSync() {
+        try {
+          // Intento 1: UPDATE con payload completo
+          var re1 = await sb.from('campos').update({...payloadBase,...payloadExtra}).eq('id', editId)
+          if(re1.error) {
+            // Si falló por columna inexistente, intentar solo con base
+            if(/column|schema|does not exist|PGRST204/i.test(re1.error.message||'')) {
+              var re2 = await sb.from('campos').update(payloadBase).eq('id', editId)
+              if(re2.error) {
+                console.error('guardarCampo edit bg error (base):', re2.error.message)
+                // Revertir cambio local en caso de error grave
+                if(campoAnterior && idxEdit >= 0) {
+                  var iRev = campos.findIndex(function(c){ return c.id === editId })
+                  if(iRev >= 0) campos[iRev] = campoAnterior
+                  _guardarCache()
+                }
+                return
+              }
+            } else {
+              console.error('guardarCampo edit bg error:', re1.error.message)
+              return
+            }
+          }
+          // Re-fetch para reflejar datos reales (IDs generados, timestamps, etc.)
+          var reFull = await sb.from('campos').select('*').eq('id', editId).single()
+          if(reFull.data) {
+            var iUp = campos.findIndex(function(c){ return c.id === editId })
+            if(iUp >= 0) campos[iUp] = reFull.data
+            _guardarCache()
+          }
+        } catch(e) { console.error('guardarCampo edit bg sync error:', e) }
+      })()
+      return  // La UI ya está actualizada; el finally resetea el btn
 
     } else {
       // ── OPTIMISTIC INSERT ─────────────────────────────────────────────────
@@ -3834,12 +4699,6 @@ window.guardarCampo = async function() {
       return  // La UI ya está actualizada, el finally resetea el btn
     }
 
-    closeModalCampo()
-    showToast(isEdit?'✓ Campo actualizado':'✓ Campo "'+nombre+'" guardado','ok')
-    poblarSelectoresCampo()
-    renderDashboard()
-    if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
-
   } catch(e) {
     var msg = e.message||''
     if(msg==='timeout_db') {
@@ -3883,8 +4742,7 @@ window.editarCampoActual = function() {
   if(c.zonas_cultivo) { try { cultivosZonasTemp = JSON.parse(c.zonas_cultivo) } catch(e){} }
   if(c.hectareas_cultivo) { try { cultivosHectareasTemp = JSON.parse(c.hectareas_cultivo) } catch(e){} }
   renderZonasBtns()
-  document.getElementById('c-rend').value = c.rendimiento||''
-  document.getElementById('c-precio-venta').value = c.precio_venta||''
+  var _obsEl=document.getElementById('c-obs'); if(_obsEl) _obsEl.value = c.observaciones||''
   document.getElementById('c-ten').value = c.tenencia||'propio'
   if(document.getElementById('c-localidad'))document.getElementById('c-localidad').value=c.localidad||''
   // Seleccionar país y provincia
@@ -3916,11 +4774,31 @@ window.editarCampoActual = function() {
         var elC=document.getElementById('campo-coords'),txtC=document.getElementById('campo-coords-txt')
         _campoCoordsLat=e.latlng.lat.toFixed(5);_campoCoordsLng=e.latlng.lng.toFixed(5)
         if(elC)elC.style.display='block'
-        if(txtC)txtC.textContent='Polígono: '+_polyPuntos.length+' puntos marcados'
+        if(txtC)txtC.textContent='Polígono: '+_polyPuntos.length+' puntos — doble clic para cerrar'
       })
       window._mapaCampoModal.on('dblclick',function(){
         if(!_polyModo||_polyPuntos.length<3)return
         _cerrarPoligono()
+      })
+      window._mapaCampoModal.on('mousemove',function(e){
+        if(!_polyModo || _polyPuntos.length < 1) {
+          if(window._polyRubberBand){try{window._mapaCampoModal.removeLayer(window._polyRubberBand)}catch(ex){}window._polyRubberBand=null}
+          if(window._polyCursorDot){try{window._mapaCampoModal.removeLayer(window._polyCursorDot)}catch(ex){}window._polyCursorDot=null}
+          return
+        }
+        var last = _polyPuntos[_polyPuntos.length-1]
+        var cur = [e.latlng.lat, e.latlng.lng]
+        var pts = _polyPuntos.length >= 3 ? [last, cur, _polyPuntos[0]] : [last, cur]
+        if(!window._polyRubberBand) {
+          window._polyRubberBand = L.polyline(pts,{color:'#c9a84c',weight:2,dashArray:'7,5',opacity:0.75,interactive:false}).addTo(window._mapaCampoModal)
+        } else { window._polyRubberBand.setLatLngs(pts) }
+        var dotIcon = L.divIcon({
+          className:'', iconSize:[10,10], iconAnchor:[5,5],
+          html:'<div style="width:10px;height:10px;border-radius:50%;background:#c9a84c;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);pointer-events:none"></div>'
+        })
+        if(!window._polyCursorDot) {
+          window._polyCursorDot = L.marker(cur, {icon:dotIcon, interactive:false, zIndexOffset:500}).addTo(window._mapaCampoModal)
+        } else { window._polyCursorDot.setLatLng(cur) }
       })
     }
     var m = window._mapaCampoModal
@@ -3957,32 +4835,77 @@ window.onRubroChange = function() {
   var rubro = document.getElementById('g-rubro').value
   var subDiv = document.getElementById('laboreo-subtipos')
   var riegoDiv = document.getElementById('riego-campos')
-  var camposGrid = document.querySelector('#ov-gasto .fg:has(#g-unidad)')?.parentElement
-  var mainFields = document.getElementById('gasto-campos-principales')
-  if(subDiv) subDiv.style.display = rubro==='laboreo' ? 'block' : 'none'
-  if(riegoDiv) riegoDiv.style.display = rubro==='riego' ? 'block' : 'none'
-  if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
-  // Ocultar campos normales cuando es riego
+  var fleteDiv = document.getElementById('flete-campos')
+  var empDiv = document.getElementById('empleados-campos')
   var normalFields = document.getElementById('gasto-main-fields')
-  if(normalFields) normalFields.style.display = rubro==='riego' ? 'none' : 'block'
-  var unidad = document.getElementById('g-unidad')
+  var colUnidad = document.getElementById('gasto-col-unidad')
+  var colCantidad = document.getElementById('gasto-col-cantidad')
+  var gridCols = document.getElementById('gasto-3col-grid')
+  var descLabel = document.getElementById('g-desc-label')
+  var descInput = document.getElementById('g-desc')
   var cantLabel = document.getElementById('g-cant-label')
   var precLabel = document.getElementById('g-precio-unit-label')
-  if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
-    if(unidad) unidad.value='litros'
-    if(cantLabel) cantLabel.textContent='Cantidad (L/ha)'
-    if(precLabel) precLabel.textContent='Precio (USD/L)'
-  } else if(rubro==='fertilizantes'||rubro==='semillas') {
-    if(unidad) unidad.value='kg'
-    if(cantLabel) cantLabel.textContent='Cantidad (kg/ha)'
-    if(precLabel) precLabel.textContent='Precio (USD/kg)'
-  } else if(rubro==='laboreo') {
-    if(unidad) unidad.value='usd_ha'
-    if(cantLabel) cantLabel.textContent='—'
-    if(precLabel) precLabel.textContent='Precio (USD/ha)'
-  } else if(rubro==='riego') {
-    // Riego usa sus propios campos, limpiar los normales
-    if(unidad) unidad.value='usd_ha'
+  var unidad = document.getElementById('g-unidad')
+
+  // Reset todos a ocultos
+  if(subDiv) subDiv.style.display = 'none'
+  if(riegoDiv) riegoDiv.style.display = 'none'
+  if(fleteDiv) fleteDiv.style.display = 'none'
+  if(empDiv) empDiv.style.display = 'none'
+  var arrDiv2 = document.getElementById('arrendamiento-campos'); if(arrDiv2) arrDiv2.style.display = 'none'
+  if(normalFields) normalFields.style.display = 'block'
+  if(colUnidad) colUnidad.style.display = ''
+  if(colCantidad) colCantidad.style.display = ''
+  if(gridCols) gridCols.style.gridTemplateColumns = '1fr 1fr 1fr'
+  if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
+
+  if(rubro === 'riego') {
+    if(riegoDiv) riegoDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(rubro === 'flete') {
+    if(fleteDiv) fleteDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(rubro === 'empleados') {
+    if(empDiv) empDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+  } else if(rubro === 'arrendamiento') {
+    var arrDiv = document.getElementById('arrendamiento-campos')
+    if(arrDiv) arrDiv.style.display = 'block'
+    if(normalFields) normalFields.style.display = 'none'
+    // Pre-fill precio soja
+    var arrPsEl = document.getElementById('g-arr-precio-soja')
+    if(arrPsEl && !arrPsEl.value) arrPsEl.value = precios.soja || 300
+  } else if(rubro === 'laboreo' || rubro === 'semillas') {
+    if(colUnidad) colUnidad.style.display = 'none'
+    if(colCantidad) colCantidad.style.display = 'none'
+    if(gridCols) gridCols.style.gridTemplateColumns = '1fr'
+    if(unidad) unidad.value = 'usd_ha'
+    if(precLabel) precLabel.textContent = 'Precio (USD/ha)'
+    if(rubro === 'laboreo') {
+      if(subDiv) subDiv.style.display = 'block'
+      if(descLabel) descLabel.textContent = 'Descripción (opcional)'
+      if(descInput) descInput.placeholder = 'Ej: Empresa proveedora, observaciones...'
+    } else if(rubro === 'semillas') {
+      if(descLabel) descLabel.textContent = 'Variedad / Producto'
+      if(descInput) descInput.placeholder = 'Ej: Soja RR1, Pioneer 1050W, NK880...'
+    }
+  } else if(rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
+    if(unidad) unidad.value = 'litros'
+    if(cantLabel) cantLabel.textContent = 'Cantidad (L/ha)'
+    if(precLabel) precLabel.textContent = 'Precio (USD/L)'
+    if(descLabel) descLabel.textContent = 'Insumo / Producto'
+    if(descInput) descInput.placeholder = 'Ej: Glifosato 480, Clorotalonil 72%...'
+  } else if(rubro==='fertilizantes') {
+    if(unidad) unidad.value = 'kg'
+    if(cantLabel) cantLabel.textContent = 'Cantidad (kg/ha)'
+    if(precLabel) precLabel.textContent = 'Precio (USD/kg)'
+    if(descLabel) descLabel.textContent = 'Fertilizante / Producto'
+    if(descInput) descInput.placeholder = 'Ej: Urea 46%, DAP, SPS, Nitrato de amonio...'
+  } else {
+    if(unidad) unidad.value = 'usd_ha'
+    if(precLabel) precLabel.textContent = 'Precio (USD/ha)'
+    if(descLabel) descLabel.textContent = 'Descripción'
+    if(descInput) descInput.placeholder = 'Ingresá una descripción...'
   }
 }
 window.onUnidadChange = function() {
@@ -3993,6 +4916,22 @@ window.onUnidadChange = function() {
   var l = map[unidad]||map.litros
   if(cantLabel) cantLabel.textContent = l[0]
   if(precLabel) precLabel.textContent = l[1]
+}
+window.onFleteMonedaChange = function() {
+  var moneda = document.getElementById('g-flete-moneda')?.value||'usd'
+  var tcRow = document.getElementById('g-flete-tc-row')
+  var prLabel = document.getElementById('g-flete-precio-label')
+  if(tcRow) tcRow.style.display = moneda==='ars' ? '' : 'none'
+  if(prLabel) prLabel.textContent = moneda==='ars' ? 'Precio por tonelada (ARS/tn)' : 'Precio por tonelada (USD/tn)'
+  calcConv()
+}
+window.onEmpMonedaChange = function() {
+  var moneda = document.getElementById('g-emp-moneda')?.value||'usd'
+  var tcRow = document.getElementById('g-emp-tc-row')
+  var montoLabel = document.getElementById('g-emp-monto-label')
+  if(tcRow) tcRow.style.display = moneda==='ars' ? '' : 'none'
+  if(montoLabel) montoLabel.textContent = moneda==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
+  calcConv()
 }
 window.selSubTipo = function(btn, tipo) {
   document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
@@ -4563,14 +5502,14 @@ window.exportarPDF = function() {
 
   var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
   var savedIngr={}; try{savedIngr=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-  var haTotal = cultivosList.reduce(function(a,cu){var d2=savedIngr[cu]||{}; return a+parseFloat(d2.hectareas||ha)},0)||ha
+  var haTotal = cultivosList.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList)},0)||ha
 
   var ingRowsData = cultivosList.map(function(cult){
     var d=savedIngr[cult]||{}
     if(cultivosList.length===1&&!d.rendimiento&&!d.ventas&&(c.rendimiento||c.precio_venta)){
       d={rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||0,hectareas:c.hectareas||ha}
     }
-    var h2=parseFloat(d.hectareas||ha), ingTotal=0, ingHa2=0, ventas2=[]
+    var h2=_haParaCultivo(c,cult,cultivosList), ingTotal=0, ingHa2=0, ventas2=[]
     if(Array.isArray(d.ventas)&&d.ventas.length){
       ventas2=d.ventas
       ingTotal=ventas2.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
@@ -4588,7 +5527,7 @@ window.exportarPDF = function() {
 
   // Gastos por cultivo para PDF
   var gastosByCultivo = cultivosList.map(function(cult){
-    var d2=savedIngr[cult]||{}; var haCult=parseFloat(d2.hectareas||ha)
+    var haCult=_haParaCultivo(c,cult,cultivosList)
     var frac = haTotal>0&&haCult>0 ? haCult/haTotal : 1/cultivosList.length
     var directos = gf.filter(function(g){return g.cultivo_afectado===cult})
     var sinCultivo = gf.filter(function(g){return !g.cultivo_afectado})
@@ -4808,6 +5747,445 @@ window.exportarPDF = function() {
   else showToast('⚠️ Permiti\xe1 ventanas emergentes para generar el PDF','err')
 }
 
+// ── PDF EXPORT RENTABILIDAD TOTAL ──
+window.exportarPDFTotal = function() {
+  if (!campos || !campos.length) { showToast('⚠️ No hay campos cargados','err'); return }
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
+  var COLORES_RUBRO = ['#1a4a2e','#1a5fa8','#c9a84c','#c97a14','#534AB7','#0F6E56','#c0392b','#888780','#2d8c5e','#7b3f9e']
+  var fmtUSD = function(v){ return 'USD ' + Math.abs(Math.round(v)).toLocaleString('es-AR') }
+  var fmtSign = function(v){ return (v >= 0 ? '+' : '−') + fmtUSD(Math.abs(v)) }
+  var today = new Date()
+  var todayStr = today.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+  var todayShort = today.toLocaleDateString('es-AR',{year:'numeric',month:'2-digit',day:'2-digit'})
+
+  // ── Calcular datos por campo ──
+  var totalHa = 0, totalCosto = 0, totalIngreso = 0
+  var porRubroGlobal = {}
+  var datosCampos = campos.map(function(c) {
+    var ha = c.hectareas || 1
+    var cultivosList = (c.cultivo || 'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+    var gf = gastos.filter(function(g){ return g.campo_id === c.id })
+    var costo = gf.reduce(function(a,g){ return a + (g.total_de_usd||0) }, 0)
+    var savedIngr = {}; try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+    var ingTotal = 0
+    cultivosList.forEach(function(cu) {
+      var d = savedIngr[cu] || {}
+      if (d.ventas && d.ventas.length > 0) {
+        ingTotal += d.ventas.reduce(function(a,v){ return a + parseFloat(v.tn||0)*parseFloat(v.precio||0) }, 0)
+      } else if (parseFloat(d.rendimiento||0) > 0 && parseFloat(d.precio_venta||0) > 0) {
+        ingTotal += parseFloat(d.rendimiento) * parseFloat(d.precio_venta) * _haParaCultivo(c, cu, cultivosList)
+      }
+    })
+    if (ingTotal === 0 && parseFloat(c.rendimiento||0) > 0 && parseFloat(c.precio_venta||0) > 0) {
+      ingTotal = parseFloat(c.rendimiento) * parseFloat(c.precio_venta) * ha
+    }
+    var mgTotal = ingTotal - costo
+    var mgHa = ha > 0 ? mgTotal / ha : 0
+    var ingHa = ha > 0 ? ingTotal / ha : 0
+    var costoHa = ha > 0 ? costo / ha : 0
+    totalHa += ha; totalCosto += costo; totalIngreso += ingTotal
+    // Acumular por rubro global
+    var porRubroCampo = {}
+    gf.forEach(function(g) {
+      var rk = RUBS[g.rubro] || g.rubro || 'Otros'
+      porRubroGlobal[rk] = (porRubroGlobal[rk] || 0) + (g.total_de_usd||0)
+      porRubroCampo[rk] = (porRubroCampo[rk] || 0) + (g.total_de_usd||0)
+    })
+    // Ingresos detallados por cultivo
+    var ingDetalle = cultivosList.map(function(cu) {
+      var d = savedIngr[cu] || {}
+      var haCu = _haParaCultivo(c, cu, cultivosList)
+      var ingCu = 0, ventas = []
+      if (d.ventas && d.ventas.length > 0) {
+        ventas = d.ventas
+        ingCu = d.ventas.reduce(function(a,v){ return a + parseFloat(v.tn||0)*parseFloat(v.precio||0) }, 0)
+      } else if (parseFloat(d.rendimiento||0) > 0 && parseFloat(d.precio_venta||0) > 0) {
+        ingCu = parseFloat(d.rendimiento) * parseFloat(d.precio_venta) * haCu
+        ventas = [{concepto:'Rendimiento estimado', tn: parseFloat(d.rendimiento)*haCu, precio: parseFloat(d.precio_venta)}]
+      }
+      return {cult: cu, ha: haCu, ing: ingCu, ventas: ventas}
+    })
+    return {c: c, ha: ha, costo: costo, costoHa: costoHa, ingTotal: ingTotal, ingHa: ingHa, mgTotal: mgTotal, mgHa: mgHa, porRubroCampo: porRubroCampo, ingDetalle: ingDetalle, gf: gf, cultivosList: cultivosList}
+  })
+  var mgGlobal = totalIngreso - totalCosto
+  var mgHaGlobal = totalHa > 0 ? mgGlobal / totalHa : 0
+  var rentPct = totalIngreso > 0 ? Math.round(Math.abs(mgGlobal) / totalIngreso * 100) : 0
+  var mc = mgGlobal >= 0 ? '#0d6e41' : '#c0392b'
+  var mcBg = mgGlobal >= 0 ? '#e8f5ee' : '#fdecea'
+
+  // Rubros ordenados por monto
+  var rubrosArr = Object.entries(porRubroGlobal).sort(function(a,b){ return b[1]-a[1] })
+  var totGastos = rubrosArr.reduce(function(a,e){ return a+e[1] }, 0)
+
+  // Campos ordenados por margen/ha desc
+  var camposSorted = datosCampos.slice().sort(function(a,b){ return b.mgHa - a.mgHa })
+
+  // ── CSS ──
+  var css = '@import url(\'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap\');'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'body{font-family:Inter,system-ui,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:32px 44px;max-width:900px;margin:0 auto}'
+    +'.page-break{page-break-before:always;margin-top:40px}'
+
+    // Header
+    +'.report-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:3px solid #1a4a2e;margin-bottom:28px}'
+    +'.report-header h1{font-size:26px;font-weight:900;color:#1a4a2e;letter-spacing:-.04em;line-height:1}'
+    +'.report-header .brand{font-size:11px;font-weight:700;color:#1a4a2e;opacity:.5;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}'
+    +'.report-header .subtitle{font-size:13px;color:#555;font-weight:400;margin-top:5px}'
+    +'.report-header .meta{text-align:right;font-size:11px;color:#888;line-height:1.8}'
+    +'.report-header .meta strong{font-size:14px;color:#333;font-weight:700}'
+
+    // Section title
+    +'.sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin:0 0 10px;padding-bottom:6px;border-bottom:1.5px solid #e8e8e4}'
+
+    // KPI grid
+    +'.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}'
+    +'.kpi{border-radius:10px;padding:16px;background:#f7f7f5;position:relative;overflow:hidden}'
+    +'.kpi-bar{position:absolute;top:0;left:0;width:4px;height:100%;border-radius:2px 0 0 2px}'
+    +'.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px}'
+    +'.kpi-value{font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1}'
+    +'.kpi-sub{font-size:11px;color:#888;margin-top:5px;font-weight:400}'
+    +'.kpi-mg{background:#f0fef4}'
+
+    // Tabla campos
+    +'.campos-table{width:100%;border-collapse:collapse;margin-bottom:28px;font-size:12px}'
+    +'.campos-table thead tr{background:#1a4a2e}'
+    +'.campos-table thead th{padding:9px 10px;text-align:left;color:rgba(255,255,255,.75);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em}'
+    +'.campos-table thead th.r{text-align:right}'
+    +'.campos-table tbody tr:nth-child(even){background:#f7f7f5}'
+    +'.campos-table tbody tr:hover{background:#f0f0eb}'
+    +'.campos-table td{padding:9px 10px;border-bottom:1px solid #efefeb;vertical-align:middle}'
+    +'.campos-table td.r{text-align:right;font-variant-numeric:tabular-nums}'
+    +'.campos-table td.bold{font-weight:700}'
+    +'.campos-table .total-row td{background:#f0f0eb;font-weight:700;border-top:2px solid #1a4a2e;font-size:13px}'
+    +'.tag-cult{display:inline-block;padding:2px 7px;border-radius:20px;background:#e8f0fe;color:#1a5fa8;font-size:10px;font-weight:600}'
+    +'.badge-mg{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}'
+    +'.badge-pos{background:#e8f5ee;color:#0d6e41}'
+    +'.badge-neg{background:#fdecea;color:#c0392b}'
+    +'.rank-1{background:#fff7e0!important}'
+    +'.rank-1 td:first-child::before{content:"🥇 ";font-size:12px}'
+    +'.rank-2{background:#f5f5f5!important}'
+    +'.rank-2 td:first-child::before{content:"🥈 ";font-size:12px}'
+    +'.rank-3{background:#fdf3ee!important}'
+    +'.rank-3 td:first-child::before{content:"🥉 ";font-size:12px}'
+
+    // Sección 2 columnas
+    +'.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}'
+    +'.box{border:1px solid #e8e8e4;border-radius:10px;overflow:hidden}'
+    +'.box-hdr{padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}'
+    +'.box-body{padding:14px}'
+
+    // Rubro table
+    +'.rubro-table{width:100%;border-collapse:collapse;font-size:12px}'
+    +'.rubro-table td{padding:7px 8px;border-bottom:1px solid #f0f0eb;vertical-align:middle}'
+    +'.rubro-table td.r{text-align:right;font-variant-numeric:tabular-nums}'
+    +'.rubro-table .total-r td{font-weight:700;border-top:2px solid #e0e0d8;background:#f7f7f5}'
+    +'.bar-wrap{height:5px;background:#efefeb;border-radius:3px;margin-top:3px;overflow:hidden}'
+    +'.bar-fill{height:100%;border-radius:3px}'
+
+    // Comparativa
+    +'.comp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0eb}'
+    +'.comp-row:last-child{border-bottom:none}'
+    +'.comp-name{width:130px;font-size:12px;font-weight:500;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    +'.comp-bar-wrap{flex:1;background:#f0f0eb;border-radius:4px;height:20px;overflow:hidden}'
+    +'.comp-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:7px;min-width:30px}'
+    +'.comp-bar-fill span{font-size:10px;font-weight:600;color:#fff;white-space:nowrap}'
+    +'.comp-val{width:85px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;font-weight:600;flex-shrink:0}'
+
+    // Campo detalle
+    +'.campo-det{margin-bottom:20px;break-inside:avoid}'
+    +'.campo-det-hdr{background:#1a4a2e;color:#fff;padding:11px 16px;border-radius:10px 10px 0 0;display:flex;justify-content:space-between;align-items:center}'
+    +'.campo-det-hdr .cn{font-size:15px;font-weight:700}'
+    +'.campo-det-hdr .cm{font-size:11px;opacity:.7}'
+    +'.campo-det-body{border:1px solid #e8e8e4;border-top:none;border-radius:0 0 10px 10px;overflow:hidden}'
+    +'.campo-det-section{padding:12px 14px;border-bottom:1px solid #f0f0eb}'
+    +'.campo-det-section:last-child{border-bottom:none}'
+    +'.det-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px}'
+    +'.det-table{width:100%;border-collapse:collapse;font-size:11px}'
+    +'.det-table th{padding:5px 8px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#888;border-bottom:1px solid #e8e8e4}'
+    +'.det-table th.r{text-align:right}'
+    +'.det-table td{padding:5px 8px;border-bottom:1px solid #f5f5f2}'
+    +'.det-table td.r{text-align:right;font-variant-numeric:tabular-nums}'
+    +'.det-table .sub-row td{font-size:10px;color:#999;padding:3px 8px 3px 20px;background:#fafaf8}'
+    +'.det-result{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-weight:700;font-size:14px}'
+
+    // Footer
+    +'.footer{margin-top:32px;padding-top:14px;border-top:1px solid #e8e8e4;display:flex;justify-content:space-between;align-items:center}'
+    +'.footer-brand{font-size:11px;font-weight:700;color:#1a4a2e;opacity:.5;text-transform:uppercase;letter-spacing:.1em}'
+    +'.footer-date{font-size:10px;color:#bbb}'
+
+    // Print btn
+    +'.no-print{margin-top:28px;text-align:center;padding:18px;background:#f7f7f5;border-radius:10px}'
+    +'.print-btn{padding:12px 32px;background:#1a4a2e;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;letter-spacing:-.01em}'
+    +'@media print{'
+    +'.no-print{display:none!important}'
+    +'body{padding:10px 16px}'
+    +'.kpi-value{font-size:17px}'
+    +'.kpi-grid{gap:8px}'
+    +'.campos-table{font-size:11px}'
+    +'@page{margin:.9cm 1cm;size:A4}'
+    +'}'
+
+  // ── SECCIÓN 1: ENCABEZADO ──
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Rentabilidad General \xb7 Rinde.Agro</title>'
+    +'<style>'+css+'</style></head><body>'
+
+    +'<div class="report-header">'
+    +'<div>'
+    +'<div class="brand">Rinde.Agro</div>'
+    +'<h1>Informe de Rentabilidad General</h1>'
+    +'<div class="subtitle">Consolidado de todos los campos</div>'
+    +'</div>'
+    +'<div class="meta">'
+    +'<strong>'+todayShort+'</strong><br>'
+    +campos.length+' campo'+(campos.length!==1?'s':'')+' &middot; '+totalHa.toLocaleString('es-AR')+' ha totales<br>'
+    +'Generado por Rinde.Agro'
+    +'</div>'
+    +'</div>'
+
+  // ── SECCIÓN 2: KPIs ──
+  html += '<div class="sec-title">Resumen ejecutivo</div>'
+  html += '<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-bar" style="background:#1a5fa8"></div><div class="kpi-label">Ha totales</div><div class="kpi-value" style="color:#1a5fa8">'+totalHa.toLocaleString('es-AR')+'</div><div class="kpi-sub">'+campos.length+' campo'+(campos.length!==1?'s: ':'')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-bar" style="background:#1a7a52"></div><div class="kpi-label">Ingresos brutos</div><div class="kpi-value" style="color:#1a7a52">'+fmtUSD(totalIngreso)+'</div><div class="kpi-sub">'+fmtUSD(totalHa>0?totalIngreso/totalHa:0)+' / ha prom.</div></div>'
+    +'<div class="kpi"><div class="kpi-bar" style="background:#c0392b"></div><div class="kpi-label">Costos totales</div><div class="kpi-value" style="color:#c0392b">'+fmtUSD(totalCosto)+'</div><div class="kpi-sub">'+fmtUSD(totalHa>0?totalCosto/totalHa:0)+' / ha prom.</div></div>'
+    +'<div class="kpi kpi-mg"><div class="kpi-bar" style="background:'+mc+'"></div><div class="kpi-label">Margen neto</div><div class="kpi-value" style="color:'+mc+'">'+(mgGlobal>=0?'+':'−')+fmtUSD(Math.abs(mgGlobal))+'</div><div class="kpi-sub" style="color:'+mc+'">'+(mgHaGlobal>=0?'+':'−')+fmtUSD(Math.abs(mgHaGlobal))+'/ha &middot; '+rentPct+'% del ingreso</div></div>'
+    +'</div>'
+
+  // ── SECCIÓN 3: TABLA COMPARATIVA POR CAMPO ──
+  html += '<div class="sec-title">Resultados por campo</div>'
+  html += '<table class="campos-table">'
+    +'<thead><tr>'
+    +'<th>Campo</th>'
+    +'<th>Provincia</th>'
+    +'<th>Cultivo</th>'
+    +'<th class="r">Ha</th>'
+    +'<th class="r">Ingresos</th>'
+    +'<th class="r">Costos</th>'
+    +'<th class="r">Margen total</th>'
+    +'<th class="r">USD/ha</th>'
+    +'<th class="r">Rent.%</th>'
+    +'</tr></thead><tbody>'
+
+  camposSorted.forEach(function(d, i) {
+    var mgColor = d.mgTotal >= 0 ? '#0d6e41' : '#c0392b'
+    var rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : ''
+    var mgBadge = d.mgTotal >= 0 ? 'badge-pos' : 'badge-neg'
+    var rentC = d.ingTotal > 0 ? Math.round(Math.abs(d.mgTotal) / d.ingTotal * 100) : 0
+    var cultivos = d.cultivosList.join(' / ')
+    html += '<tr class="'+rankClass+'">'
+      +'<td class="bold">'+d.c.nombre+'</td>'
+      +'<td style="color:#888;font-size:11px">'+(d.c.provincia||'—')+'</td>'
+      +'<td><span class="tag-cult">'+cultivos+'</span></td>'
+      +'<td class="r">'+d.ha.toLocaleString('es-AR')+'</td>'
+      +'<td class="r" style="color:#1a7a52;font-weight:600">'+fmtUSD(d.ingTotal)+'</td>'
+      +'<td class="r" style="color:#c0392b">'+fmtUSD(d.costo)+'</td>'
+      +'<td class="r"><span class="badge-mg '+mgBadge+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</span></td>'
+      +'<td class="r bold" style="color:'+mgColor+'">'+(d.mgHa>=0?'+':'−')+Math.abs(Math.round(d.mgHa)).toLocaleString('es-AR')+'</td>'
+      +'<td class="r" style="color:'+mgColor+';font-weight:600">'+rentC+'%</td>'
+      +'</tr>'
+  })
+
+  html += '<tr class="total-row">'
+    +'<td colspan="3">TOTALES</td>'
+    +'<td class="r">'+totalHa.toLocaleString('es-AR')+' ha</td>'
+    +'<td class="r" style="color:#1a7a52">'+fmtUSD(totalIngreso)+'</td>'
+    +'<td class="r" style="color:#c0392b">'+fmtUSD(totalCosto)+'</td>'
+    +'<td class="r" style="color:'+mc+'">'+(mgGlobal>=0?'+':'−')+fmtUSD(Math.abs(mgGlobal))+'</td>'
+    +'<td class="r" style="color:'+mc+'">'+(mgHaGlobal>=0?'+':'−')+Math.abs(Math.round(mgHaGlobal)).toLocaleString('es-AR')+'</td>'
+    +'<td class="r" style="color:'+mc+'">'+rentPct+'%</td>'
+    +'</tr>'
+    +'</tbody></table>'
+
+  // ── SECCIÓN 4: GASTOS POR RUBRO + COMPARATIVA ──
+  html += '<div class="two-col">'
+
+  // Tabla rubros
+  html += '<div class="box">'
+    +'<div class="box-hdr" style="background:#c0392b;color:#fff">📊 Desglose de costos por rubro</div>'
+    +'<div class="box-body">'
+    +'<table class="rubro-table">'
+    +'<thead><tr><th style="text-align:left;font-size:10px;font-weight:600;color:#888;padding:5px 6px;border-bottom:1px solid #e8e8e4;text-transform:uppercase;letter-spacing:.06em">Rubro</th><th style="text-align:right;font-size:10px;font-weight:600;color:#888;padding:5px 6px;border-bottom:1px solid #e8e8e4;text-transform:uppercase;letter-spacing:.06em">Total USD</th><th style="text-align:right;font-size:10px;font-weight:600;color:#888;padding:5px 6px;border-bottom:1px solid #e8e8e4;text-transform:uppercase;letter-spacing:.06em">USD/ha</th><th style="text-align:right;font-size:10px;font-weight:600;color:#888;padding:5px 6px;border-bottom:1px solid #e8e8e4;text-transform:uppercase;letter-spacing:.06em">%</th></tr></thead>'
+    +'<tbody>'
+  rubrosArr.forEach(function(entry, i) {
+    var rNombre = entry[0], rVal = entry[1]
+    var pct = totGastos > 0 ? Math.round(rVal/totGastos*100) : 0
+    var usdHa = totalHa > 0 ? Math.round(rVal/totalHa) : 0
+    var barW = pct
+    var color = COLORES_RUBRO[i % COLORES_RUBRO.length]
+    html += '<tr>'
+      +'<td>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<div style="width:8px;height:8px;border-radius:2px;background:'+color+';flex-shrink:0"></div>'
+      +rNombre+'</div>'
+      +'<div class="bar-wrap"><div class="bar-fill" style="width:'+barW+'%;background:'+color+'"></div></div>'
+      +'</td>'
+      +'<td class="r" style="font-weight:600">'+Math.round(rVal).toLocaleString('es-AR')+'</td>'
+      +'<td class="r" style="color:#888">'+usdHa.toLocaleString('es-AR')+'</td>'
+      +'<td class="r" style="color:#888">'+pct+'%</td>'
+      +'</tr>'
+  })
+  html += '<tr class="total-r">'
+    +'<td><strong>Total</strong></td>'
+    +'<td class="r">'+Math.round(totGastos).toLocaleString('es-AR')+'</td>'
+    +'<td class="r">'+(totalHa>0?Math.round(totGastos/totalHa).toLocaleString('es-AR'):'—')+'</td>'
+    +'<td class="r">100%</td>'
+    +'</tr>'
+    +'</tbody></table></div></div>'
+
+  // Comparativa ranking
+  var maxAbsMg = Math.max.apply(null, camposSorted.map(function(d){ return Math.abs(d.mgHa) })) || 1
+  html += '<div class="box">'
+    +'<div class="box-hdr" style="background:#1a4a2e;color:#fff">🏆 Ranking por margen neto / ha</div>'
+    +'<div class="box-body">'
+  camposSorted.forEach(function(d, i) {
+    var mgColor2 = d.mgHa >= 0 ? '#0d6e41' : '#c0392b'
+    var w = Math.round(Math.abs(d.mgHa) / maxAbsMg * 100)
+    var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.'
+    html += '<div class="comp-row">'
+      +'<div class="comp-name"><span style="margin-right:4px">'+medal+'</span>'+d.c.nombre+'</div>'
+      +'<div class="comp-bar-wrap">'
+      +'<div class="comp-bar-fill" style="width:'+w+'%;background:'+mgColor2+'">'
+      +'<span>'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'/ha</span>'
+      +'</div></div>'
+      +'<div class="comp-val" style="color:'+mgColor2+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</div>'
+      +'</div>'
+  })
+  html += '</div></div>'
+  html += '</div>' // end two-col
+
+  // ── SECCIÓN 5: ANÁLISIS DETALLADO POR CAMPO ──
+  html += '<div class="page-break"></div>'
+  html += '<div class="sec-title">An\xe1lisis detallado por campo</div>'
+
+  datosCampos.forEach(function(d) {
+    var mgColor3 = d.mgTotal >= 0 ? '#0d6e41' : '#c0392b'
+    var mgBg3 = d.mgTotal >= 0 ? '#e8f5ee' : '#fdecea'
+    var rentC3 = d.ingTotal > 0 ? Math.round(Math.abs(d.mgTotal)/d.ingTotal*100) : 0
+
+    html += '<div class="campo-det">'
+    // Header del campo
+    html += '<div class="campo-det-hdr">'
+      +'<div>'
+      +'<div class="cn">'+d.c.nombre+(d.c.provincia?' &mdash; <span style="opacity:.7;font-size:12px">'+d.c.provincia+'</span>':'')+'</div>'
+      +'<div class="cm">'+d.ha.toLocaleString('es-AR')+' ha &middot; '+d.cultivosList.join(' / ')+(d.c.tenencia?' &middot; '+d.c.tenencia:'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:18px;font-weight:800;color:'+(d.mgTotal>=0?'#a3e8c2':'#f5b5b0')+'">'+(d.mgHa>=0?'+':'−')+Math.abs(Math.round(d.mgHa)).toLocaleString('es-AR')+' USD/ha</div>'
+      +'<div style="font-size:10px;opacity:.65;margin-top:2px">Margen neto por hect\xe1rea</div>'
+      +'</div>'
+      +'</div>'
+
+    html += '<div class="campo-det-body">'
+
+    // Mini KPIs del campo
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f0eb">'
+      +'<div style="padding:10px 14px;border-right:1px solid #f0f0eb"><div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ingresos</div><div style="font-size:16px;font-weight:700;color:#1a7a52">'+fmtUSD(d.ingTotal)+'</div><div style="font-size:10px;color:#aaa">'+fmtUSD(d.ingHa)+'/ha</div></div>'
+      +'<div style="padding:10px 14px;border-right:1px solid #f0f0eb"><div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Costos</div><div style="font-size:16px;font-weight:700;color:#c0392b">'+fmtUSD(d.costo)+'</div><div style="font-size:10px;color:#aaa">'+fmtUSD(d.costoHa)+'/ha</div></div>'
+      +'<div style="padding:10px 14px;background:'+mgBg3+'"><div style="font-size:10px;color:'+mgColor3+';font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;opacity:.7">Margen neto</div><div style="font-size:16px;font-weight:800;color:'+mgColor3+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</div><div style="font-size:10px;color:'+mgColor3+';opacity:.7">'+rentC3+'% del ingreso</div></div>'
+      +'</div>'
+
+    // Ingresos detalle
+    if (d.ingDetalle.some(function(r){ return r.ing > 0 })) {
+      html += '<div class="campo-det-section">'
+        +'<div class="det-sec-title" style="color:#1a7a52">&#128176; Ingresos por cultivo</div>'
+        +'<table class="det-table">'
+        +'<thead><tr><th>Cultivo / Venta</th><th class="r">Ha</th><th class="r">Tn</th><th class="r">Precio</th><th class="r">Total</th></tr></thead>'
+        +'<tbody>'
+      d.ingDetalle.forEach(function(r) {
+        if (!r.ing && !r.ventas.length) return
+        html += '<tr style="background:#f7fdf9">'
+          +'<td style="font-weight:600">'+r.cult+'</td>'
+          +'<td class="r" style="color:#888">'+r.ha.toLocaleString('es-AR')+' ha</td>'
+          +'<td class="r" style="color:#888">—</td>'
+          +'<td class="r">—</td>'
+          +'<td class="r" style="font-weight:700;color:#1a7a52">'+fmtUSD(r.ing)+'</td>'
+          +'</tr>'
+        r.ventas.filter(function(v){ return parseFloat(v.tn||0) > 0 }).forEach(function(v) {
+          var tn = parseFloat(v.tn||0), pr = parseFloat(v.precio||0)
+          html += '<tr class="sub-row">'
+            +'<td>'+v.concepto+(v.fecha?' <span style="color:#bbb">('+v.fecha.slice(0,7)+')</span>':'')+'</td>'
+            +'<td class="r"></td>'
+            +'<td class="r">'+tn.toLocaleString('es-AR',{maximumFractionDigits:1})+'</td>'
+            +'<td class="r">USD '+pr+'/t</td>'
+            +'<td class="r">'+fmtUSD(tn*pr)+'</td>'
+            +'</tr>'
+        })
+      })
+      html += '</tbody></table></div>'
+    } else {
+      html += '<div class="campo-det-section"><div class="det-sec-title">&#128176; Ingresos</div><div style="font-size:11px;color:#bbb;font-style:italic">Sin ingresos registrados</div></div>'
+    }
+
+    // Costos detalle
+    html += '<div class="campo-det-section">'
+      +'<div class="det-sec-title" style="color:#c0392b">&#128201; Costos por rubro</div>'
+    if (d.gf.length) {
+      var porRubroCampoArr = Object.entries(d.porRubroCampo).sort(function(a,b){ return b[1]-a[1] })
+      html += '<table class="det-table">'
+        +'<thead><tr><th>Rubro</th><th class="r">Total USD</th><th class="r">USD/ha</th><th class="r">% del campo</th></tr></thead>'
+        +'<tbody>'
+      var totCampo = porRubroCampoArr.reduce(function(a,e){ return a+e[1] }, 0)
+      porRubroCampoArr.forEach(function(entry) {
+        var rN = entry[0], rV = entry[1]
+        var pctC = totCampo > 0 ? Math.round(rV/totCampo*100) : 0
+        var usdHaC = d.ha > 0 ? Math.round(rV/d.ha) : 0
+        // Gastos individuales de ese rubro
+        var gastosRubro = d.gf.filter(function(g){ return (RUBS[g.rubro]||g.rubro||'Otros') === rN })
+        html += '<tr style="background:#fdf7f7">'
+          +'<td style="font-weight:600">'+rN+'</td>'
+          +'<td class="r" style="font-weight:700;color:#c0392b">'+Math.round(rV).toLocaleString('es-AR')+'</td>'
+          +'<td class="r" style="color:#888">'+usdHaC+'</td>'
+          +'<td class="r" style="color:#888">'+pctC+'%</td>'
+          +'</tr>'
+        gastosRubro.forEach(function(g) {
+          html += '<tr class="sub-row">'
+            +'<td>'+(g.descripcion||g.rubro||'Gasto')+(g.fecha?' <span style="color:#bbb">('+g.fecha.slice(0,7)+')</span>':'')+'</td>'
+            +'<td class="r" colspan="3">'+fmtUSD(g.total_de_usd||0)+'</td>'
+            +'</tr>'
+        })
+      })
+      html += '<tr style="background:#fdecea;font-weight:700">'
+        +'<td>Total costos</td>'
+        +'<td class="r" style="color:#c0392b">'+Math.round(d.costo).toLocaleString('es-AR')+'</td>'
+        +'<td class="r" style="color:#c0392b">'+Math.round(d.costoHa)+'</td>'
+        +'<td class="r">100%</td>'
+        +'</tr>'
+        +'</tbody></table>'
+    } else {
+      html += '<div style="font-size:11px;color:#bbb;font-style:italic">Sin costos registrados</div>'
+    }
+    html += '</div>'
+
+    // Resultado final del campo
+    html += '<div class="det-result" style="background:'+mgBg3+'">'
+      +'<span style="color:'+mgColor3+'">Margen neto</span>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:20px;font-weight:800;color:'+mgColor3+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</div>'
+      +'<div style="font-size:11px;color:'+mgColor3+';opacity:.7">'+(d.mgHa>=0?'+':'−')+fmtUSD(Math.abs(d.mgHa))+' / ha &middot; '+rentC3+'% del ingreso</div>'
+      +'</div>'
+      +'</div>'
+
+    html += '</div></div>' // end campo-det-body + campo-det
+  })
+
+  // ── FOOTER ──
+  html += '<div class="footer">'
+    +'<div class="footer-brand">Rinde.Agro &mdash; Sistema de Gesti\xf3n Agropecuaria</div>'
+    +'<div class="footer-date">Generado el '+todayStr+'</div>'
+    +'</div>'
+
+  html += '<div class="no-print">'
+    +'<button class="print-btn" onclick="window.print()">&#128424;&#65039;&nbsp; Imprimir / Guardar como PDF</button>'
+    +'<p style="font-size:11px;color:#999;margin-top:8px">En el di\xe1logo de impresi\xf3n seleccion\xe1 &ldquo;Guardar como PDF&rdquo;</p>'
+    +'</div>'
+
+  html += '</body></html>'
+
+  var w = window.open('', '_blank')
+  if (w) { w.document.write(html); w.document.close() }
+  else showToast('⚠️ Permiti\xe1 ventanas emergentes para generar el PDF', 'err')
+}
+
 // ── LLUVIA RÁPIDA (desde nav) ──
 window.openModalLluviaRapida = function() {
   document.getElementById('ov-lluvia').classList.add('open')
@@ -4833,6 +6211,22 @@ window.openModalGasto = function() {
     b.style.borderColor = 'var(--borde)'
     b.style.color = 'var(--texto-mid)'
   })
+  // Reset campo visibility to defaults
+  var _cu=document.getElementById('gasto-col-unidad'); if(_cu) _cu.style.display=''
+  var _cc=document.getElementById('gasto-col-cantidad'); if(_cc) _cc.style.display=''
+  var _cg=document.getElementById('gasto-3col-grid'); if(_cg) _cg.style.gridTemplateColumns='1fr 1fr 1fr'
+  var _dl=document.getElementById('g-desc-label'); if(_dl) _dl.textContent='Insumo / Producto'
+  var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
+  document.getElementById('laboreo-subtipos').style.display='none'
+  document.getElementById('riego-campos').style.display='none'
+  document.getElementById('flete-campos').style.display='none'
+  document.getElementById('empleados-campos').style.display='none'
+  document.getElementById('gasto-main-fields').style.display='block'
+  ;['g-flete-desc','g-flete-tons','g-flete-precio','g-flete-tc','g-emp-desc','g-emp-monto','g-emp-tc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+  var _flm=document.getElementById('g-flete-moneda'); if(_flm) _flm.value='usd'
+  var _emm=document.getElementById('g-emp-moneda'); if(_emm) _emm.value='usd'
+  var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
+  var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
@@ -4845,6 +6239,23 @@ window.calcConv = function() {
     var kva = parseFloat(document.getElementById('g-riego-kva')?.value)||0
     var costoKva = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
     usdTotal = kva * costoKva
+  } else if(rubro === 'flete') {
+    var _fl_tons = parseFloat(document.getElementById('g-flete-tons')?.value)||0
+    var _fl_pr = parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _fl_mon = document.getElementById('g-flete-moneda')?.value||'usd'
+    var _fl_tc = parseFloat(document.getElementById('g-flete-tc')?.value)||1
+    if(_fl_tons && _fl_pr) usdTotal = _fl_mon==='ars' ? (_fl_tons * _fl_pr) / _fl_tc : _fl_tons * _fl_pr
+  } else if(rubro === 'empleados') {
+    var _emp_monto = parseFloat(document.getElementById('g-emp-monto')?.value)||0
+    var _emp_mon = document.getElementById('g-emp-moneda')?.value||'usd'
+    var _emp_tc = parseFloat(document.getElementById('g-emp-tc')?.value)||1
+    if(_emp_monto) usdTotal = _emp_mon==='ars' ? _emp_monto / _emp_tc : _emp_monto
+  } else if(rubro === 'arrendamiento') {
+    var _arr_qq = parseFloat(document.getElementById('g-arr-qq')?.value)||0
+    var _arr_ps = parseFloat(document.getElementById('g-arr-precio-soja')?.value)||precios.soja||300
+    var _arr_campo = campos.find(function(c){return c.id===(campoDet||campoRent)})
+    ha = (_arr_campo?.hectareas) || ha
+    if(_arr_qq && _arr_ps) usdTotal = _arr_qq * (_arr_ps / 10) * ha
   } else {
     var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
     var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
@@ -4858,7 +6269,12 @@ window.calcConv = function() {
   if(usdTotal > 0) {
     document.getElementById('cv-usd').textContent = 'USD ' + usdTotal.toLocaleString('es-AR', {maximumFractionDigits:2})
     document.getElementById('cv-usdha').textContent = 'USD ' + (usdTotal/ha).toFixed(2) + '/ha'
-    document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
+    if(rubro === 'arrendamiento') {
+      var _arr_qq2 = parseFloat(document.getElementById('g-arr-qq')?.value)||0
+      document.getElementById('cv-qq').textContent = _arr_qq2.toFixed(1) + ' qq/ha'
+    } else {
+      document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
+    }
   }
 }
 window.guardarGasto = async function() {
@@ -4874,11 +6290,30 @@ window.guardarGasto = async function() {
   var costoKvaRiego = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
 
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
-  if(rubro==='laboreo'&&!gastoSubTipo){showToast('⚠️ Seleccioná el tipo de labor','err');return}
+  // sub-tipo de laboreo es opcional
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
   if(rubro==='riego') {
     if(!kvaRiego||kvaRiego<=0){showToast('⚠️ Ingresá el consumo en kVA','err');return}
     if(!costoKvaRiego||costoKvaRiego<=0){showToast('⚠️ Ingresá el costo por kVA','err');return}
+  } else if(rubro==='flete') {
+    var _flTons=parseFloat(document.getElementById('g-flete-tons')?.value)||0
+    var _flPr=parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _flMon=document.getElementById('g-flete-moneda')?.value||'usd'
+    var _flTc=parseFloat(document.getElementById('g-flete-tc')?.value)||0
+    if(!_flTons||_flTons<=0){showToast('⚠️ Ingresá la cantidad de toneladas','err');return}
+    if(!_flPr||_flPr<=0){showToast('⚠️ Ingresá el precio de flete','err');return}
+    if(_flMon==='ars'&&(!_flTc||_flTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
+  } else if(rubro==='empleados') {
+    var _empMon=document.getElementById('g-emp-moneda')?.value||'usd'
+    var _empMonto=parseFloat(document.getElementById('g-emp-monto')?.value)||0
+    var _empTc=parseFloat(document.getElementById('g-emp-tc')?.value)||0
+    if(!_empMonto||_empMonto<=0){showToast('⚠️ Ingresá el monto del gasto','err');return}
+    if(_empMon==='ars'&&(!_empTc||_empTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
+  } else if(rubro==='arrendamiento') {
+    var _arrQq=parseFloat(document.getElementById('g-arr-qq')?.value)||0
+    var _arrPs=parseFloat(document.getElementById('g-arr-precio-soja')?.value)||0
+    if(!_arrQq||_arrQq<=0){showToast('⚠️ Ingresá los quintales de soja/ha','err');return}
+    if(!_arrPs||_arrPs<=0){showToast('⚠️ Ingresá el precio de la soja','err');return}
   } else {
     if(!precioUnit||precioUnit<=0){showToast('⚠️ Ingresá el precio en USD','err');return}
   }
@@ -4893,6 +6328,12 @@ window.guardarGasto = async function() {
   var usdTotal = 0
   if(rubro === 'riego') {
     usdTotal = kvaRiego * costoKvaRiego
+  } else if(rubro === 'flete') {
+    usdTotal = _flMon==='ars' ? (_flTons * _flPr) / _flTc : _flTons * _flPr
+  } else if(rubro === 'empleados') {
+    usdTotal = _empMon==='ars' ? _empMonto / _empTc : _empMonto
+  } else if(rubro === 'arrendamiento') {
+    usdTotal = _arrQq * (_arrPs / 10) * haFinal
   } else if(unidad === 'usd_ha') {
     usdTotal = precioUnit * haFinal
   } else if(cantidad) {
@@ -4925,6 +6366,29 @@ window.guardarGasto = async function() {
     if(precioUnit) _p.precio_unitario = precioUnit
     if(haFinal) _p.ha_aplicadas = haFinal
     if(rubro === 'riego') { _p.kva_consumo = kvaRiego; _p.costo_kva = costoKvaRiego }
+    if(rubro === 'flete') {
+      _p.cantidad = _flTons
+      _p.precio_unitario = _flPr
+      _p.unidad = _flMon==='ars' ? 'ton_ars' : 'toneladas'
+      if(_flMon==='ars') _p.precio_cereal = _flTc
+      var _flDesc=document.getElementById('g-flete-desc')?.value?.trim()||null
+      if(_flDesc) _p.descripcion = _flDesc
+    }
+    if(rubro === 'empleados') {
+      _p.precio_unitario = _empMonto
+      _p.unidad = _empMon==='ars' ? 'total_ars' : 'total_usd'
+      if(_empMon==='ars') _p.precio_cereal = _empTc
+      var _empDesc=document.getElementById('g-emp-desc')?.value?.trim()||null
+      if(_empDesc) _p.descripcion = _empDesc
+    }
+    if(rubro === 'arrendamiento') {
+      _p.cantidad = _arrQq
+      _p.precio_unitario = _arrPs
+      _p.unidad = 'qq_soja'
+      _p.precio_cereal = _arrPs
+      var _arrDesc=document.getElementById('g-arr-desc')?.value?.trim()||null
+      if(_arrDesc) _p.descripcion = _arrDesc
+    }
     if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
@@ -4970,7 +6434,22 @@ window.guardarGasto = async function() {
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
     document.getElementById('riego-campos').style.display='none'
+    document.getElementById('flete-campos').style.display='none'
+    document.getElementById('empleados-campos').style.display='none'
     document.getElementById('gasto-main-fields').style.display='block'
+    var _cu=document.getElementById('gasto-col-unidad'); if(_cu) _cu.style.display=''
+    var _cc=document.getElementById('gasto-col-cantidad'); if(_cc) _cc.style.display=''
+    var _cg=document.getElementById('gasto-3col-grid'); if(_cg) _cg.style.gridTemplateColumns='1fr 1fr 1fr'
+    var _dl=document.getElementById('g-desc-label'); if(_dl) _dl.textContent='Insumo / Producto'
+    var _di=document.getElementById('g-desc'); if(_di) _di.placeholder='Ej: Glifosato 480, Urea 46%, DAP...'
+    var _pu=document.getElementById('g-precio-unit-label'); if(_pu) _pu.textContent='Precio (USD/L)'
+    ;['g-flete-desc','g-flete-tons','g-flete-precio','g-flete-tc','g-emp-desc','g-emp-monto','g-emp-tc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+    var _flm=document.getElementById('g-flete-moneda'); if(_flm) _flm.value='usd'
+    var _emm=document.getElementById('g-emp-moneda'); if(_emm) _emm.value='usd'
+    var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
+    var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
+    var _arrd=document.getElementById('arrendamiento-campos'); if(_arrd) _arrd.style.display='none'
+    ;['g-arr-desc','g-arr-qq','g-arr-precio-soja'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
     document.getElementById('div-nueva-cat').style.display='none'
     gastoSubTipo=null
     document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
@@ -5017,6 +6496,33 @@ window.editarGasto = function(id) {
   if(g.rubro === 'riego') {
     if(g.kva_consumo) document.getElementById('g-riego-kva').value = g.kva_consumo
     if(g.costo_kva) document.getElementById('g-riego-costo-kva').value = g.costo_kva
+  }
+  // Flete: poblar campos específicos
+  if(g.rubro === 'flete') {
+    var _eflMon = (g.unidad==='ton_ars') ? 'ars' : 'usd'
+    var eflMonEl = document.getElementById('g-flete-moneda'); if(eflMonEl) eflMonEl.value = _eflMon
+    var eflTonsEl = document.getElementById('g-flete-tons'); if(eflTonsEl && g.cantidad) eflTonsEl.value = g.cantidad
+    var eflPrEl = document.getElementById('g-flete-precio'); if(eflPrEl && g.precio_unitario) eflPrEl.value = g.precio_unitario
+    if(_eflMon==='ars') { var eflTcEl=document.getElementById('g-flete-tc'); if(eflTcEl && g.precio_cereal) eflTcEl.value = g.precio_cereal }
+    var eflDescEl = document.getElementById('g-flete-desc'); if(eflDescEl && g.descripcion) eflDescEl.value = g.descripcion
+    var eflTcRow = document.getElementById('g-flete-tc-row'); if(eflTcRow) eflTcRow.style.display = _eflMon==='ars' ? '' : 'none'
+    var eflPrLbl = document.getElementById('g-flete-precio-label'); if(eflPrLbl) eflPrLbl.textContent = _eflMon==='ars' ? 'Precio por tonelada (ARS/tn)' : 'Precio por tonelada (USD/tn)'
+  }
+  // Arrendamiento: poblar campos específicos
+  if(g.rubro === 'arrendamiento') {
+    var earrQqEl = document.getElementById('g-arr-qq'); if(earrQqEl && g.cantidad) earrQqEl.value = g.cantidad
+    var earrPsEl = document.getElementById('g-arr-precio-soja'); if(earrPsEl) earrPsEl.value = g.precio_unitario || g.precio_cereal || precios.soja || 300
+    var earrDescEl = document.getElementById('g-arr-desc'); if(earrDescEl && g.descripcion) earrDescEl.value = g.descripcion
+  }
+  // Empleados: poblar campos específicos
+  if(g.rubro === 'empleados') {
+    var _eempMon = (g.unidad==='total_ars') ? 'ars' : 'usd'
+    var eempMonEl = document.getElementById('g-emp-moneda'); if(eempMonEl) eempMonEl.value = _eempMon
+    var eempMontoEl = document.getElementById('g-emp-monto'); if(eempMontoEl && g.precio_unitario) eempMontoEl.value = g.precio_unitario
+    if(_eempMon==='ars') { var eempTcEl=document.getElementById('g-emp-tc'); if(eempTcEl && g.precio_cereal) eempTcEl.value = g.precio_cereal }
+    var eempDescEl = document.getElementById('g-emp-desc'); if(eempDescEl && g.descripcion) eempDescEl.value = g.descripcion
+    var eempTcRow = document.getElementById('g-emp-tc-row'); if(eempTcRow) eempTcRow.style.display = _eempMon==='ars' ? '' : 'none'
+    var eempMontoLbl = document.getElementById('g-emp-monto-label'); if(eempMontoLbl) eempMontoLbl.textContent = _eempMon==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
   }
   onRubroChange()
   calcConv()
@@ -5076,11 +6582,64 @@ window.eliminarLluvia = async function(id) {
 }
 
 // ── CRUD SUELO ──
-window.openModalSuelo = function() {
-  document.getElementById('ov-suelo').classList.add('open')
-  document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
+window._sueloArchivosPendientes = []
+window._sueloAgregarArchivos = async function(input) {
+  var files = Array.from(input.files || [])
+  if (!files.length) return
+  var labelEl = document.getElementById('s-upload-label')
+  if (labelEl) labelEl.textContent = 'Procesando...'
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i]
+    try {
+      var dataUrl = await _archivoABase64(file)
+      window._sueloArchivosPendientes.push({
+        nombre: file.name, url: dataUrl,
+        tipo: file.type || 'application/octet-stream',
+        tamanio: file.size
+      })
+      showToast('✓ ' + file.name + ' adjuntado', 'ok')
+    } catch(e) {
+      showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
+    }
+  }
+  input.value = ''
+  if (labelEl) labelEl.textContent = 'Subir PDF o foto del análisis'
+  _sueloRenderArchivos()
 }
-window.closeModalSuelo = function() { document.getElementById('ov-suelo').classList.remove('open') }
+function _sueloRenderArchivos() {
+  var el = document.getElementById('s-archivos-lista')
+  if (!el) return
+  var lista = window._sueloArchivosPendientes
+  if (!lista.length) { el.innerHTML = ''; return }
+  el.innerHTML = lista.map(function(a, i) {
+    var isImg = (a.tipo||'').startsWith('image/')
+    var ico = isImg ? '🖼️' : '📄'
+    var kb = a.tamanio > 1024*1024 ? (a.tamanio/1024/1024).toFixed(1)+' MB' : Math.round(a.tamanio/1024)+' KB'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--crema);border-radius:7px;margin-bottom:5px;font-size:12px">'
+      +'<span style="font-size:16px">'+ico+'</span>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</div><div style="color:var(--texto-suave);font-size:10px">'+kb+'</div></div>'
+      +'<button onclick="window._sueloQuitarArchivo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;padding:0 3px">×</button>'
+      +'</div>'
+  }).join('')
+}
+window._sueloQuitarArchivo = function(i) {
+  window._sueloArchivosPendientes.splice(i, 1)
+  _sueloRenderArchivos()
+}
+
+window.openModalSuelo = function() {
+  window._sueloArchivosPendientes = []
+  _sueloRenderArchivos()
+  document.getElementById('ov-suelo').classList.add('open')
+  document.getElementById('s-fecha').value = new Date().toISOString().split('T')[0]
+  // Limpiar campos
+  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value=''
+  })
+}
+window.closeModalSuelo = function() {
+  document.getElementById('ov-suelo').classList.remove('open')
+}
 window.guardarSuelo = async function() {
   var campoId=document.getElementById('s-campo').value
   var fecha=document.getElementById('s-fecha').value
@@ -5092,15 +6651,29 @@ window.guardarSuelo = async function() {
   try{
     var _ownerUid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
     const g=id=>parseFloat(document.getElementById(id).value)||null
-    const {data,error}=await sb.from('analisis_suelo').insert({
-      campo_id:campoId,usuario_id:_ownerUid2,fecha,
+    var payloadSuelo = {
+      campo_id:campoId, usuario_id:_ownerUid2, fecha,
       laboratorio:document.getElementById('s-lab').value.trim()||null,
-      n_total:g('s-n'),p_disponible:g('s-p'),k:g('s-k'),s:g('s-s'),
-      materia_org:g('s-mo'),ph:g('s-ph'),zinc:g('s-zn'),boro:g('s-b'),
+      n_total:g('s-n'), p_disponible:g('s-p'), k:g('s-k'), s:g('s-s'),
+      materia_org:g('s-mo'), ph:g('s-ph'), zinc:g('s-zn'), boro:g('s-b'),
       notas:null
-    }).select().single()
-    if(error)throw error
-    analisisS.unshift(data)
+    }
+    // Adjuntar archivos si hay (columna puede no existir en DB vieja → retry sin ella)
+    if (window._sueloArchivosPendientes.length) {
+      payloadSuelo.archivos = window._sueloArchivosPendientes
+    }
+    var ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
+    if (ins.error) {
+      // Reintentar sin archivos si la columna no existe
+      if (/column|archivos|schema|does not exist|PGRST204/i.test(ins.error.message||'')) {
+        delete payloadSuelo.archivos
+        ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
+      }
+      if (ins.error) throw ins.error
+    }
+    analisisS.unshift(ins.data)
+    window._sueloArchivosPendientes = []
+    _sueloRenderArchivos()
     _guardarCache()
     if(campoDet) renderDetSuelo(); else renderSuelo()
     closeModalSuelo()
@@ -5149,13 +6722,10 @@ window.renderCamposLista = function() {
   var camposOrdenados = campos.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"","es") })
   camposOrdenados.forEach(function(c,i) {
     var ha = c.hectareas||0, cult = c.cultivo||'Soja'
-    var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-    var rend = c.rendimiento||rendEst
-    var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-    var pr = c.precio_venta||prEst
     var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-    var cHa = ha>0?gc/ha:190
-    var mg = rend*pr - cHa
+    var cHa = ha>0?gc/ha:0
+    var ingTotal = _ingRealParaCampo(c)
+    var mg = (ha>0?ingTotal/ha:0) - cHa
     var mc = mg>=0?'#1a7a52':'#c0392b'
     var llMm = lluvias.filter(function(l){return l.campo_id===c.id}).reduce(function(a,l){return a+(l.mm||0)},0)
     var nG = gastos.filter(function(g){return g.campo_id===c.id}).length
@@ -5169,9 +6739,9 @@ window.renderCamposLista = function() {
     html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑 Eliminar</button>'
     html += '</div>'
     var tieneGastos=gastos.filter(function(g){return g.campo_id===c.id}).length>0
-    var tieneRend=!!c.rendimiento
-    var estadoColor=tieneGastos&&tieneRend?'#639922':tieneGastos?'#c9a84c':'#c0392b'
-    var estadoTxt=tieneGastos&&tieneRend?'Con datos':tieneGastos?'Sin rendimiento':'Sin gastos'
+    var tieneIngresos=ingTotal>0
+    var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+    var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
     var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
     var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
     html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
@@ -5206,15 +6776,32 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
   document.querySelectorAll('.anl')[1]?.classList.add('active')
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
-  document.querySelectorAll('.campo-tab')[0]?.classList.add('active')
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
-  document.getElementById('sec-ingresos')?.classList.add('active')
-  // Ocultar tabs de rentabilidad para colaboradores
-  var tabRent = document.getElementById('tab-rentabilidad-campo')
-  var tabSens = document.getElementById('tab-sens-campo')
-  if (tabRent) tabRent.style.display = puedeVerRentabilidad() ? '' : 'none'
-  if (tabSens) tabSens.style.display = puedeVerRentabilidad() ? '' : 'none'
-  renderDetGastos()
+  // Aplicar visibilidad de tabs según permisos
+  _aplicarPermisosUI()
+  // Determinar primer tab visible y activarlo
+  var _tabOpts = [
+    {id:'tab-ingresos-campo', sec:'sec-ingresos',  mod:'ingresos', render: function(){renderIngresosTab()}},
+    {id:'tab-gastos-campo',   sec:'sec-gastos',    mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
+    {id:'tab-lluvias-campo',  sec:'sec-lluvias',   mod:'lluvias',  render: function(){renderDetLluvias()}},
+    {id:'tab-suelo-campo',    sec:'sec-suelo',     mod:'suelo',    render: function(){renderDetSuelo()}}
+  ]
+  var _primerTab = null
+  for (var _ti = 0; _ti < _tabOpts.length; _ti++) {
+    if (puedeVer(_tabOpts[_ti].mod)) { _primerTab = _tabOpts[_ti]; break }
+  }
+  if (_primerTab) {
+    var _tBtn = document.getElementById(_primerTab.id)
+    var _tSec = document.getElementById(_primerTab.sec)
+    if (_tBtn) _tBtn.classList.add('active')
+    if (_tSec) _tSec.classList.add('active')
+    _primerTab.render()
+  }
+  // Pre-renderizar gastos y rentabilidad en background
+  setTimeout(function() {
+    if (puedeVer('gastos') && (!_primerTab || _primerTab.mod !== 'gastos')) { gastosCultivoActivo=null; renderDetGastos() }
+    if (puedeVer('rentabilidad_campo')) renderCampoRent()
+  }, 0)
   window.scrollTo(0,0)
 }
 
@@ -5234,7 +6821,7 @@ window.volverACampos = function() {
 async function determinarContextoUsuario(userId) {
   try {
     var { data: equipoData } = await sb.from('equipo')
-      .select('owner_id, rol, nombre_display')
+      .select('owner_id, rol, nombre_display, permisos')
       .eq('miembro_id', userId)
       .eq('activo', true)
       .single()
@@ -5244,7 +6831,8 @@ async function determinarContextoUsuario(userId) {
         ownerIdActivo: equipoData.owner_id,
         rolActivo: equipoData.rol,
         userId: userId,
-        nombreDisplay: equipoData.nombre_display
+        nombreDisplay: equipoData.nombre_display,
+        permisos: equipoData.permisos || {}
       }
     } else {
       window.CONTEXTO = {
@@ -5315,7 +6903,8 @@ async function aceptarInvitacionPendiente(userId) {
       miembro_id: userId,
       rol: rol || 'colaborador',
       nombre_display: nombreMiembro,
-      activo: true
+      activo: true,
+      permisos: inv.permisos || {}
     })
     await sb.from('invitaciones').update({ usado: true }).eq('token', token)
     localStorage.removeItem('rindeagro_inv_token')
@@ -5329,22 +6918,69 @@ async function aceptarInvitacionPendiente(userId) {
 
 function _renderBannerColaborador() {
   var banner = document.getElementById('banner-colaborador')
-  var nomEl = document.getElementById('banner-col-nombre')
-  var rolEl = document.getElementById('banner-col-rol')
-  var navRent = document.getElementById('nav-rentabilidad')
-  var btnEquipo = document.getElementById('btn-mi-equipo')
+  var nomEl  = document.getElementById('banner-col-nombre')
+  var rolEl  = document.getElementById('banner-col-rol')
   if (!banner) return
   if (window.CONTEXTO?.esColaborador) {
     banner.style.display = 'flex'
     if (nomEl) nomEl.textContent = window.CONTEXTO.nombreDisplay || 'el productor'
-    if (rolEl) rolEl.textContent = 'Rol: ' + (window.CONTEXTO.rolActivo || 'colaborador') + ' · El análisis de rentabilidad no está disponible en este modo'
+    if (rolEl) {
+      // Describir los módulos accesibles
+      var p = window.CONTEXTO.permisos || {}
+      var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                  rentabilidad_campo:'Rentabilidad campo',rentabilidad_total:'Rentabilidad total',mapa:'Mapa',tareas:'Tareas'}
+      var accesibles = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
+      rolEl.textContent = accesibles.length
+        ? 'Módulos: ' + accesibles.map(function(k){return LABS[k]}).join(', ')
+        : 'Sin permisos asignados'
+    }
   } else {
     banner.style.display = 'none'
   }
-  // Ocultar Rentabilidad en nav para colaboradores
-  if (navRent) navRent.style.display = puedeVerRentabilidad() ? '' : 'none'
-  // Mostrar "Mi equipo" solo para dueños
-  if (btnEquipo) btnEquipo.style.display = puedeInvitar() ? '' : 'none'
+  _aplicarPermisosUI()
+}
+
+// ── Aplica visibilidad de nav, tabs y botones de acción según CONTEXTO.permisos ──
+function _aplicarPermisosUI() {
+  var esCol = window.CONTEXTO && window.CONTEXTO.esColaborador
+
+  // ── Nav items ──
+  var navCampos   = document.getElementById('nav-campos')
+  var navRent     = document.getElementById('nav-rentabilidad')
+  var navMapa     = document.getElementById('nav-mapa')
+  var navTareas   = document.getElementById('nav-tareas')
+  var btnEquipo   = document.getElementById('btn-mi-equipo')
+  if (navCampos)  navCampos.style.display  = (esCol && !puedeVer('campos'))           ? 'none' : ''
+  if (navRent)    navRent.style.display    = (esCol && !puedeVer('rentabilidad_total')) ? 'none' : ''
+  if (navMapa)    navMapa.style.display    = (esCol && !puedeVer('mapa'))              ? 'none' : ''
+  if (navTareas)  navTareas.style.display  = (esCol && !puedeVer('tareas'))            ? 'none' : ''
+  if (btnEquipo)  btnEquipo.style.display  = puedeInvitar() ? '' : 'none'
+
+  // ── Campo tabs ──
+  var tabIngresos = document.getElementById('tab-ingresos-campo')
+  var tabGastos   = document.getElementById('tab-gastos-campo')
+  var tabRent     = document.getElementById('tab-rentabilidad-campo')
+  var tabSens     = document.getElementById('tab-sens-campo')
+  var tabLluvias  = document.getElementById('tab-lluvias-campo')
+  var tabSuelo    = document.getElementById('tab-suelo-campo')
+  if (tabIngresos) tabIngresos.style.display = (esCol && !puedeVer('ingresos'))           ? 'none' : ''
+  if (tabGastos)   tabGastos.style.display   = (esCol && !puedeVer('gastos'))             ? 'none' : ''
+  if (tabRent)     tabRent.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
+  if (tabSens)     tabSens.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
+  if (tabLluvias)  tabLluvias.style.display  = (esCol && !puedeVer('lluvias'))             ? 'none' : ''
+  if (tabSuelo)    tabSuelo.style.display    = (esCol && !puedeVer('suelo'))               ? 'none' : ''
+
+  // ── Botones de acción ──
+  var btnAddCampoNav  = document.getElementById('btn-add-campo-nav')
+  var btnAddCampoDash = document.getElementById('dash-campos-btn')
+  var btnAddGasto     = document.getElementById('btn-add-gasto-tab')
+  var btnAddLluvia    = document.getElementById('btn-add-lluvia-tab')
+  var btnAddSuelo     = document.getElementById('btn-add-suelo-tab')
+  if (btnAddCampoNav)  btnAddCampoNav.style.display  = puedeEditar('campos')  ? '' : 'none'
+  if (btnAddCampoDash) btnAddCampoDash.style.display = puedeEditar('campos')  ? '' : 'none'
+  if (btnAddGasto)     btnAddGasto.style.display     = puedeEditar('gastos')  ? '' : 'none'
+  if (btnAddLluvia)    btnAddLluvia.style.display    = puedeEditar('lluvias') ? '' : 'none'
+  if (btnAddSuelo)     btnAddSuelo.style.display     = puedeEditar('suelo')   ? '' : 'none'
 }
 
 window.switchToProductor = async function(productorId, nombre, rol) {
@@ -5389,6 +7025,12 @@ window.switchEquipoTab = function(tab, btn) {
     var btnGen = document.getElementById('btn-generar-inv')
     btnGen.disabled = false
     btnGen.innerHTML = '<span>🔗</span> Generar link de invitación'
+    // Inicializar con preset "carga básica" si no hay nada configurado aún
+    if (!window._eqPermisosActuales || Object.keys(window._eqPermisosActuales).length === 0) {
+      window._eqPermisosActuales = Object.assign({}, PERMISOS_PRESETS.carga_basica)
+    }
+    _eqRenderFilas()
+    _eqResaltarPresetActivo()
   }
 }
 
@@ -5418,13 +7060,22 @@ async function _renderListaMiembros() {
     }
     el.innerHTML = data.map(function(m){
       var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+      var mp = m.permisos || {}
+      var MLABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',tareas:'Tareas'}
+      var mAcceso = Object.keys(MLABS).filter(function(k){return mp[k]==='ver'||mp[k]==='editar'})
+      var mResumen, mColor
+      if (!mAcceso.length) { mResumen='Sin permisos'; mColor='var(--rojo)' }
+      else if (mAcceso.length >= Object.keys(MLABS).length) { mResumen='Acceso completo'; mColor='#1a7a52' }
+      else { mResumen=mAcceso.length+' módulo'+(mAcceso.length!==1?'s':''); mColor='var(--verde)' }
+      var mTooltip = mAcceso.length ? mAcceso.map(function(k){return MLABS[k]}).join(', ') : 'Ningún módulo'
       return '<div style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--verde-pale);border-radius:12px;margin-bottom:.5rem">'
         +'<div style="width:38px;height:38px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:13px;font-weight:600;color:var(--verde)">'+m.nombre_display+'</div>'
-          +(m.whatsapp?'<div style="font-size:11px;color:var(--texto-suave)">+54 9 '+m.whatsapp+'</div>':'')
+          +'<div style="font-size:11px;color:var(--texto-suave);margin-top:2px" title="'+mTooltip+'">'+mTooltip+'</div>'
         +'</div>'
-        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.1);color:var(--verde);font-weight:600;white-space:nowrap;text-transform:capitalize">'+m.rol+'</span>'
+        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.08);color:'+mColor+';font-weight:600;white-space:nowrap">'+mResumen+'</span>'
         +'<button onclick="removerMiembro(\''+m.id+'\',\''+m.nombre_display.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0" title="Remover">🗑</button>'
         +'</div>'
     }).join('')
@@ -5443,18 +7094,99 @@ window.removerMiembro = async function(equipoId, nombre, btn) {
   } catch(e) { showToast('⚠️ Error al remover','err'); btn.disabled = false }
 }
 
+
+// ── PERMISOS: estado interno del configurador de invitación ──
+window._eqPermisosActuales = {}
+
+var _EQ_MODULOS = [
+  {k:'campos',             lab:'🌾 Campos'},
+  {k:'gastos',             lab:'💰 Gastos'},
+  {k:'ingresos',           lab:'💵 Ingresos'},
+  {k:'lluvias',            lab:'🌧️ Lluvias'},
+  {k:'suelo',              lab:'🔬 Suelo'},
+  {k:'rentabilidad_campo', lab:'📊 Rentabilidad por campo'},
+  {k:'rentabilidad_total', lab:'📊 Rentabilidad total'},
+  {k:'mapa',               lab:'🗺️ Mapa'},
+  {k:'tareas',             lab:'✅ Tareas'}
+]
+
+function _eqRenderFilas() {
+  var el = document.getElementById('eq-permisos-filas')
+  if (!el) return
+  el.innerHTML = _EQ_MODULOS.map(function(m, i) {
+    var val = window._eqPermisosActuales[m.k] || null
+    var bg = i % 2 === 1 ? 'background:var(--crema-dark);' : ''
+    // Usar data-mod y data-val para evitar problemas de escapado de comillas en onchange
+    function radio(v, color, checked) {
+      return '<input type="radio" name="eq-perm-' + m.k + '" data-mod="' + m.k + '" data-val="' + (v||'') + '" '
+        + (checked ? 'checked ' : '')
+        + 'onchange="_eqSetPermEl(this)" style="accent-color:' + color + ';width:15px;height:15px;cursor:pointer">'
+    }
+    return '<div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:7px 12px;border-bottom:.5px solid var(--borde);' + bg + '">'
+      + '<div style="font-size:12px;font-weight:500;color:var(--texto);display:flex;align-items:center">' + m.lab + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio(null,  'var(--rojo)',  !val) + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio('ver', 'var(--azul)',  val==='ver') + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center">' + radio('editar','var(--verde)',val==='editar') + '</div>'
+    + '</div>'
+  }).join('')
+}
+
+window._eqSetPermEl = function(input) {
+  var mod = input.dataset.mod
+  var val = input.dataset.val || null
+  window._eqPermisosActuales[mod] = val
+  _eqResaltarPresetActivo()
+}
+
+window._eqSetPerm = function(modulo, valor) {
+  window._eqPermisosActuales[modulo] = valor || null
+  _eqResaltarPresetActivo()
+}
+
+function _eqResaltarPresetActivo() {
+  // Detectar qué preset coincide con el estado actual
+  var pActual = JSON.stringify(window._eqPermisosActuales||{})
+  var presetActivo = null
+  var presetMap = {sin_permisos:'sin', carga_basica:'carga', sin_rentabilidad:'sinrent', acceso_completo:'completo'}
+  Object.keys(presetMap).forEach(function(nombre) {
+    if (JSON.stringify(PERMISOS_PRESETS[nombre]) === pActual) presetActivo = presetMap[nombre]
+  })
+  // Resetear todos
+  Object.values(presetMap).forEach(function(pid) {
+    var b = document.getElementById('eq-preset-' + pid)
+    if (!b) return
+    b.style.borderColor = 'var(--borde)'
+    b.style.background  = 'transparent'
+    b.style.color       = 'var(--texto-mid)'
+  })
+  // Resaltar activo
+  if (presetActivo) {
+    var b = document.getElementById('eq-preset-' + presetActivo)
+    if (b) { b.style.borderColor='var(--verde)'; b.style.background='var(--verde-pale)'; b.style.color='var(--verde)' }
+  }
+}
+
+window._eqPreset = function(nombre) {
+  var preset = PERMISOS_PRESETS[nombre]
+  if (!preset) return
+  window._eqPermisosActuales = Object.assign({}, preset)
+  _eqRenderFilas()
+  _eqResaltarPresetActivo()
+}
+
 window.generarInvitacion = async function() {
-  var rolSel = document.querySelector('input[name="eq-rol"]:checked')?.value || 'colaborador'
   var btn = document.getElementById('btn-generar-inv')
   btn.disabled = true; btn.innerHTML = 'Generando...'
   try {
     var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
+    var permisos = window._eqPermisosActuales || {}
     var { error } = await sb.from('invitaciones').insert({
       token: token,
       owner_id: usuario.id,
-      rol: rolSel
+      rol: 'colaborador',
+      permisos: permisos
     })
     if (error) throw error
     var link = 'https://rindeagro.lat/?inv=' + token
@@ -5487,6 +7219,87 @@ window.compartirInvWA = function() {
   window.open('https://wa.me/?text=' + mensaje, '_blank')
 }
 
+// ══════════════════════════════════════════════
+// DEV WIDGET — solo activo con ?dev=1 en la URL
+// ══════════════════════════════════════════════
+;(function() {
+  var _devActive = new URLSearchParams(window.location.search).get('dev') === '1'
+  if (!_devActive) return
+
+  // Mostrar el widget cuando la app esté lista
+  function _devInit() {
+    var w = document.getElementById('dev-widget')
+    if (w) w.style.display = 'block'
+    _devUpdateStatus()
+  }
+
+  function _devUpdateStatus() {
+    var el = document.getElementById('dev-status')
+    if (!el) return
+    var ctx = window.CONTEXTO
+    if (!ctx || !ctx.esColaborador) {
+      el.textContent = '🔑 Admin (vista completa)'
+      el.style.color = '#c9a84c'
+    } else {
+      var p = ctx.permisos || {}
+      var LABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
+                  rentabilidad_campo:'Rent/campo',rentabilidad_total:'Rent/total',mapa:'Mapa',tareas:'Tareas'}
+      var acc = Object.keys(LABS).filter(function(k){return p[k]==='ver'||p[k]==='editar'})
+      el.textContent = acc.length ? '👤 Colaborador · ' + acc.length + ' módulo' + (acc.length!==1?'s':'') : '👤 Colaborador · Sin permisos'
+      el.style.color = '#fff'
+    }
+  }
+
+  window._devToggle = function() {
+    var panel = document.getElementById('dev-panel')
+    if (!panel) return
+    var open = panel.style.display !== 'none'
+    panel.style.display = open ? 'none' : 'block'
+    if (!open) _devUpdateStatus()
+  }
+
+  window._devSimular = function(preset) {
+    if (!window.CONTEXTO) return
+    var p = PERMISOS_PRESETS[preset]
+    if (!p) return
+    var NOMBRES = {sin_permisos:'Sin permisos', carga_basica:'Solo carga', sin_rentabilidad:'Sin rentabilidad', acceso_completo:'Acceso completo'}
+    window.CONTEXTO = {
+      esColaborador: true,
+      ownerIdActivo: window.CONTEXTO.ownerIdActivo || (usuario && usuario.id),
+      rolActivo: 'colaborador',
+      userId: window.CONTEXTO.userId || (usuario && usuario.id),
+      nombreDisplay: 'Dev · ' + (NOMBRES[preset] || preset),
+      permisos: Object.assign({}, p)
+    }
+    _renderBannerColaborador()
+    renderDashboard()
+    _devUpdateStatus()
+    showToast('🛠 Vista: ' + (NOMBRES[preset]||preset), 'info')
+  }
+
+  window._devVolverAdmin = function() {
+    if (!usuario) return
+    window.CONTEXTO = {
+      esColaborador: false,
+      ownerIdActivo: usuario.id,
+      rolActivo: 'dueño',
+      userId: usuario.id
+    }
+    _renderBannerColaborador()
+    renderDashboard()
+    _devUpdateStatus()
+    showToast('🔑 Vista admin restaurada', 'ok')
+  }
+
+  // Inicializar cuando la app esté lista (poll hasta que usuario exista)
+  var _devPoll = setInterval(function() {
+    if (typeof usuario !== 'undefined' && usuario) {
+      clearInterval(_devPoll)
+      _devInit()
+    }
+  }, 400)
+})()
+
 window.eliminarCampo = async function(id, nombre) {
   if(!confirm('¿Eliminar el campo "'+nombre+'"? Se van a borrar también todos sus gastos, lluvias y análisis de suelo. Esta acción no se puede deshacer.')) return
   try {
@@ -5515,17 +7328,9 @@ window.eliminarCampo = async function(id, nombre) {
 
 window.switchCampoTab = function(tab, btn) {
   // Bloquear tabs de rentabilidad para colaboradores
-  if (tab === 'rentabilidad' && !puedeVerRentabilidad()) {
-    document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
-    document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
-    var secEl = document.getElementById('sec-'+tab)
-    if (secEl) {
-      secEl.classList.add('active')
-      secEl.innerHTML = '<div style="text-align:center;padding:40px"><p style="color:var(--verde);font-size:18px;font-weight:600;margin-bottom:.5rem">Acceso restringido</p><p style="color:#888">El análisis de rentabilidad es visible solo para el administrador de la cuenta.</p></div>'
-    }
-    if(btn) btn.classList.add('active')
-    return
-  }
+  // Bloquear acceso a tabs sin permiso
+  var _moduloTab = tab === 'rentabilidad' ? 'rentabilidad_campo' : tab
+  if (!puedeVer(_moduloTab)) return  // tab oculto — no debería ocurrir pero por seguridad
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   document.querySelectorAll('.campo-tab').forEach(function(b){b.classList.remove('active')})
   var sec = document.getElementById('sec-'+tab)
@@ -5541,6 +7346,30 @@ window.switchCampoTab = function(tab, btn) {
 window._ingVentas = {}          // {cult: [{tn,precio,concepto,fecha}]}
 window._ingVentasCampoId = null // sentinel para saber cuándo reiniciar
 
+// ── Fuente de verdad para hectáreas por cultivo ──
+// Prioridad: 1) hectareas_cultivo (del polígono dibujado)
+//            2) ingresos_cultivos[cult].hectareas (guardado en tab Ingresos)
+//            3) campo.hectareas / nCultivos
+
+// Parsea JSON de forma segura — acepta string, objeto ya parseado, o null/undefined
+function _safeJSON(val, fallback) {
+  if (fallback === undefined) fallback = {}
+  if (!val) return fallback
+  if (typeof val === 'object') return val
+  try { return JSON.parse(val) } catch(e) { return fallback }
+}
+
+function _haParaCultivo(c, cult, cultivosList) {
+  var haCultivoMap = {}
+  haCultivoMap = _safeJSON(c.hectareas_cultivo, {})
+  if(haCultivoMap[cult]) return parseFloat(haCultivoMap[cult])
+  var savedIngr = {}
+  try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+  if(savedIngr[cult] && savedIngr[cult].hectareas) return parseFloat(savedIngr[cult].hectareas)
+  var n = (cultivosList||[]).length || 1
+  return (c.hectareas||0) / n
+}
+
 function _ingSafeId(s){ return s.replace(/[^a-zA-Z0-9]/g,'_') }
 
 function _ingInitCult(cult, savedData, c) {
@@ -5548,7 +7377,8 @@ function _ingInitCult(cult, savedData, c) {
   if(Array.isArray(d.ventas) && d.ventas.length) {
     window._ingVentas[cult] = d.ventas.map(function(v){return Object.assign({concepto:'Spot',fecha:''},v)})
   } else if(d.rendimiento || d.precio_venta) {
-    var ha2 = parseFloat(d.hectareas||c.hectareas||0)
+    var _hcm3={}; try{_hcm3=JSON.parse(c.hectareas_cultivo||'{}')}catch(e){}
+  var ha2 = parseFloat(_hcm3[cult]||d.hectareas||c.hectareas||0)
     var rnd = parseFloat(d.rendimiento||0)
     var tn = ha2>0&&rnd>0 ? Math.round(rnd*ha2*10)/10 : ''
     window._ingVentas[cult] = [{tn: tn, precio: d.precio_venta||'', concepto:'Spot', fecha:''}]
@@ -5599,7 +7429,7 @@ window.renderIngresosTab = function() {
     var sid = _ingSafeId(cult)
     var icon = CULT_ICONS[cult]||'🌱'
     var color = CULT_COLORES[cult]||'#16a34a'
-    var haFP = haCultivoMap[cult]||haPerCrop
+    var haFP = _haParaCultivo(c, cult, cultivos)
     var haVal = (window._ingVentas[cult]||[]).length && window._ingVentas[cult][0]._ha != null
       ? window._ingVentas[cult][0]._ha : haFP
     var ventas = window._ingVentas[cult] || [{tn:'',precio:'',concepto:'Spot',fecha:''}]
@@ -5974,8 +7804,8 @@ function renderCampoRent() {
   })
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = ha>0?costoUSD/ha:0
-  var ingHa = rend*pr
-  var mgHa = ingHa-costoHa
+  // ingHa/mgHa preliminares — se recalculan con datos reales más abajo (ingHaReal)
+  var ingHa = 0, mgHa = -costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
 
   // ── Ingresos por cultivo (datos del tab Ingresos) ──
@@ -5987,7 +7817,7 @@ function renderCampoRent() {
     if(cultivosList.length===1&&!d.rendimiento&&!d.ventas&&(c.rendimiento||c.precio_venta)){
       d={rendimiento:c.rendimiento||0,precio_venta:c.precio_venta||pr,hectareas:c.hectareas||ha}
     }
-    var h2=parseFloat(d.hectareas||ha)
+    var h2=_haParaCultivo(c,cult,cultivosList)
     var ingTotal=0, ingHa=0, ventas=[]
     if(Array.isArray(d.ventas)&&d.ventas.length) {
       ventas=d.ventas
@@ -6000,14 +7830,14 @@ function renderCampoRent() {
     return {cult:cult,ha:h2,ingTotal:ingTotal,ingHa:ingHa,ventas:ventas}
   })
   var totalIngUSD=ingRowsData.reduce(function(a,r2){return a+r2.ingTotal},0)
-  var ingHaReal=ha>0?(totalIngUSD>0?totalIngUSD/ha:ingHa):ingHa
+  var ingHaReal=ha>0?totalIngUSD/ha:0  // solo datos reales; 0 si no se cargó ingreso
   var mgHaReal=ingHaReal-costoHa
   var mcReal=mgHaReal>=0?'#1a7a52':'#c0392b'
 
   // ── Métricas ──
   var mEl=document.getElementById('cr-mets')
   if(mEl) mEl.innerHTML=[
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHaReal),s:totalIngUSD>0?'USD '+Math.round(totalIngUSD)+' total':rend+'t \xd7 USD '+Math.round(pr),c:'#1a5fa8'},
+    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHaReal),s:totalIngUSD>0?'USD '+Math.round(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
     {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD)+' total',c:'#c0392b'},
     {l:'Margen neto/ha',v:(mgHaReal>=0?'+':'')+'USD '+Math.round(mgHaReal),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
     {l:'Margen total',v:(mgHaReal*ha>=0?'+':'')+'USD '+Math.round(mgHaReal*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
@@ -6117,8 +7947,8 @@ window.renderCrTortaRubro = function() {
   if(cultivosSel!=='todos') {
     var cultivosList2 = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
     var savedIngr2={}; try{savedIngr2=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-    var haTotal2 = cultivosList2.reduce(function(a,cu){var d2=savedIngr2[cu]||{}; return a+parseFloat(d2.hectareas||c.hectareas||1)},0)||c.hectareas||1
-    var dCult2=savedIngr2[cultivosSel]||{}; var haCult2=parseFloat(dCult2.hectareas||c.hectareas||1)
+    var haTotal2 = cultivosList2.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList2)},0)||c.hectareas||1
+    var haCult2=_haParaCultivo(c,cultivosSel,cultivosList2)
     var frac2 = haTotal2>0 ? haCult2/haTotal2 : 1
     gfFilt2 = gf2.filter(function(g){return !g.cultivo_afectado||g.cultivo_afectado===cultivosSel})
     // We use frac for proportional ones
@@ -6175,7 +8005,7 @@ window.renderCrTortaDetalle = function() {
   var campR = getCampanaRange(campanaActivaId)
   var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
   var savedIngr={}; try{savedIngr=JSON.parse(c.ingresos_cultivos||'{}')}catch(e){}
-  var haTotal = cultivosList.reduce(function(a,cu){var d2=savedIngr[cu]||{}; return a+parseFloat(d2.hectareas||c.hectareas||1)},0)||c.hectareas||1
+  var haTotal = cultivosList.reduce(function(a,cu){return a+_haParaCultivo(c,cu,cultivosList)},0)||c.hectareas||1
 
   var gfAll = gastos.filter(function(g){
     if(g.campo_id!==campoDet) return false
@@ -6190,8 +8020,7 @@ window.renderCrTortaDetalle = function() {
   var gf = gfAll
   var fracCult = 1
   if(cultivoSel !== 'todos') {
-    var dCult = savedIngr[cultivoSel]||{}
-    var haCult = parseFloat(dCult.hectareas||c.hectareas||1)
+    var haCult = _haParaCultivo(c,cultivoSel,cultivosList)
     fracCult = haTotal>0 ? haCult/haTotal : 1
     gf = gfAll.filter(function(g){ return !g.cultivo_afectado || g.cultivo_afectado===cultivoSel })
   }
@@ -6233,16 +8062,31 @@ window.renderRentabilidadTotal = function() {
   var datosCampos = campos.map(function(c){
     var ha = c.hectareas||1
     var cult = c.cultivo||'Soja'
-    var rend = c.rendimiento||(cult==='Maíz'?8:cult==='Trigo'?3:3.2)
-    var pr = c.precio_venta||(cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja)
     var gf = gastos.filter(function(g){return g.campo_id===c.id})
     var costo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var costoHa = ha>0?costo/ha:0
-    var ingHa = rend*pr
+    // Calcular ingresos SOLO desde datos reales guardados (sin defaults)
+    var cultivosList = cult.split(',').map(function(s){return s.trim()}).filter(Boolean)
+    var savedIngr = {}
+    try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+    var ingTotal = 0
+    cultivosList.forEach(function(cu){
+      var d = savedIngr[cu]||{}
+      if(d.ventas && d.ventas.length>0) {
+        ingTotal += d.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+      } else if(parseFloat(d.rendimiento||0)>0 && parseFloat(d.precio_venta||0)>0) {
+        ingTotal += parseFloat(d.rendimiento)*parseFloat(d.precio_venta)*_haParaCultivo(c,cu,cultivosList)
+      }
+    })
+    // Fallback: solo si el campo tiene rendimiento Y precio_venta explícitamente guardados
+    if(ingTotal===0 && parseFloat(c.rendimiento||0)>0 && parseFloat(c.precio_venta||0)>0) {
+      ingTotal = parseFloat(c.rendimiento)*parseFloat(c.precio_venta)*ha
+    }
+    var ingHa = ha>0 ? ingTotal/ha : 0
     var mgHa = ingHa-costoHa
-    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingHa*ha
+    totalHa+=ha; totalCosto+=costo; totalIngreso+=ingTotal
     gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubroGlobal[r]=(porRubroGlobal[r]||0)+(g.total_de_usd||0)})
-    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa, rend:rend, pr:pr}
+    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa}
   })
   var mgTotal = totalIngreso-totalCosto
   var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
@@ -6252,9 +8096,9 @@ window.renderRentabilidadTotal = function() {
   var mEl = document.getElementById('rt-mets')
   if(mEl) mEl.innerHTML = [
     {l:'Hectáreas totales',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
-    {l:'Costo total',v:'USD '+Math.round(totalCosto/1000)+'k',s:'USD '+Math.round(totalHa>0?totalCosto/totalHa:0)+'/ha promedio',c:'#c0392b'},
-    {l:'Ingreso bruto',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a5fa8'},
-    {l:'Margen neto total',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
+    {l:'Ingresos totales',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a7a52'},
+    {l:'Costos totales',v:'USD '+Math.round(totalCosto/1000)+'k',s:'USD '+Math.round(totalHa>0?totalCosto/totalHa:0)+'/ha promedio',c:'#c0392b'},
+    {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // Cards por campo
@@ -6264,20 +8108,25 @@ window.renderRentabilidadTotal = function() {
     var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
     cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
       var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
-      var pct=d.ingHa>0?Math.round(d.mgHa/d.ingHa*100):0
-      return '<div class="card" style="cursor:pointer;margin-bottom:0" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
-        '<div><div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
-        '<div style="font-size:11px;color:var(--texto-suave)">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
-        '<div style="text-align:right"><div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:'+mc2+'">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div>'+
-        '<div style="font-size:10px;color:var(--texto-suave)">USD/ha</div></div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
-        '<span style="color:var(--texto-suave)">Costo/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.costoHa)+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:.5px solid var(--borde)">'+
-        '<span style="color:var(--texto-suave)">Ingreso/ha</span><span style="font-family:DM Mono,monospace">USD '+Math.round(d.ingHa)+'</span></div>'+
-        '<div style="margin-top:8px;background:var(--crema);border-radius:6px;height:6px;overflow:hidden">'+
-        '<div style="height:100%;width:'+Math.min(100,Math.max(0,50+pct/2))+'%;background:'+mc2+';border-radius:6px;transition:width .4s"></div></div>'+
-        '<div style="font-size:10px;color:'+mc2+';text-align:right;margin-top:3px">'+pct+'% del ingreso</div></div>'
+      var ingTot=Math.round(d.ingHa*d.ha)
+      var cosTot=Math.round(d.costo)
+      var mgTot=ingTot-cosTot
+      var mgHaRound=Math.round(d.mgHa)
+      var mgBg=mgTot>=0?'#f0fef4':'#fff5f5'
+      return '<div class="card" style="cursor:pointer;margin-bottom:0;padding:0;overflow:hidden" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
+        '<div style="padding:14px 14px 10px">'+
+        '<div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
+        '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 14px;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Ingresos</span><span style="font-family:DM Mono,monospace;color:#1a7a52;font-weight:600">USD '+ingTot.toLocaleString('es-AR')+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 14px;border-top:.5px solid var(--borde)">'+
+        '<span style="color:var(--texto-suave)">Costos</span><span style="font-family:DM Mono,monospace;color:#c0392b;font-weight:600">USD '+cosTot.toLocaleString('es-AR')+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:.5px solid var(--borde);background:'+mgBg+'">'+
+        '<span style="font-size:12px;font-weight:700;color:'+mc2+'">Margen neto</span>'+
+        '<div style="text-align:right">'+
+        '<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:'+mc2+'">'+(mgTot>=0?'+':'')+mgTot.toLocaleString('es-AR')+'</div>'+
+        '<div style="font-size:10px;color:var(--texto-suave)">'+(mgHaRound>=0?'+':'')+mgHaRound+' USD/ha</div>'+
+        '</div></div></div>'
     }).join('')+'</div>'
   }
 
@@ -6295,6 +8144,44 @@ window.renderRentabilidadTotal = function() {
     if(selR) selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
   }
   renderRtTortaDetalle()
+
+  // Resumen gastos por rubro (tabla)
+  var resEl = document.getElementById('rt-resumen-rubro')
+  if(resEl) {
+    if(!Object.keys(porRubroGlobal).length) { resEl.innerHTML='<div style="font-size:13px;color:var(--texto-suave);padding:8px 0">Sin gastos registrados</div>'; }
+    else {
+      var _totG = Object.values(porRubroGlobal).reduce(function(a,v){return a+v},0)
+      var _rubros = Object.keys(porRubroGlobal).sort(function(a,b){return porRubroGlobal[b]-porRubroGlobal[a]})
+      resEl.innerHTML = '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr>'+
+        '<th style="text-align:left;font-size:11px;font-weight:600;color:var(--texto-suave);padding:6px 0;border-bottom:.5px solid var(--borde);text-transform:uppercase;letter-spacing:.05em">Rubro</th>'+
+        '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--texto-suave);padding:6px 0;border-bottom:.5px solid var(--borde);text-transform:uppercase;letter-spacing:.05em">Total USD</th>'+
+        '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--texto-suave);padding:6px 0;border-bottom:.5px solid var(--borde);text-transform:uppercase;letter-spacing:.05em">USD/ha</th>'+
+        '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--texto-suave);padding:6px 0;border-bottom:.5px solid var(--borde);text-transform:uppercase;letter-spacing:.05em">%</th>'+
+        '</tr></thead><tbody>'+
+        _rubros.map(function(r){
+          var v=porRubroGlobal[r]
+          var pctR=_totG>0?Math.round(v/_totG*100):0
+          var usdHaR=totalHa>0?Math.round(v/totalHa):0
+          var barW=Math.round(v/_totG*100)
+          return '<tr>'+
+            '<td style="padding:8px 0;border-bottom:.5px solid var(--borde)">'+
+            '<div style="font-size:13px">'+r+'</div>'+
+            '<div style="margin-top:4px;background:var(--crema);border-radius:3px;height:4px;width:100%;overflow:hidden">'+
+            '<div style="height:100%;width:'+barW+'%;background:#1a5fa8;border-radius:3px"></div></div></td>'+
+            '<td style="padding:8px 0;border-bottom:.5px solid var(--borde);text-align:right;font-size:13px;font-family:DM Mono,monospace;font-weight:600">'+Math.round(v).toLocaleString("es-AR")+'</td>'+
+            '<td style="padding:8px 0;border-bottom:.5px solid var(--borde);text-align:right;font-size:12px;color:var(--texto-suave)">'+usdHaR+'</td>'+
+            '<td style="padding:8px 0;border-bottom:.5px solid var(--borde);text-align:right;font-size:12px;color:var(--texto-suave)">'+pctR+'%</td>'+
+            '</tr>'
+        }).join('')+
+        '<tr style="background:var(--crema)">'+
+        '<td style="padding:9px 0;font-size:13px;font-weight:700">Total</td>'+
+        '<td style="padding:9px 0;text-align:right;font-size:14px;font-weight:700;font-family:DM Mono,monospace">'+Math.round(_totG).toLocaleString("es-AR")+'</td>'+
+        '<td style="padding:9px 0;text-align:right;font-size:12px;font-weight:600">'+(totalHa>0?Math.round(_totG/totalHa):0)+'</td>'+
+        '<td style="padding:9px 0;text-align:right;font-size:12px;font-weight:600">100%</td>'+
+        '</tr></tbody></table>'
+    }
+  }
 
   // Comparativa
   var compEl = document.getElementById('rt-comparativa')
@@ -6334,8 +8221,11 @@ window.renderRtTortaDetalle = function() {
 }
 
 window.verCampoDesdeRent = function(id) {
-  showModulo('campos')
-  setTimeout(function(){ verCampo(id) }, 100)
+  abrirCampo(id)
+  setTimeout(function(){
+    var rentBtn = document.getElementById('tab-rentabilidad-campo')
+    if(rentBtn) switchCampoTab('rentabilidad', rentBtn)
+  }, 60)
 }
 
 window.guardarRendCampo = function() {
@@ -6380,12 +8270,20 @@ window.guardarRendCampo = function() {
       if(ingrData[primer].precio_venta) campos[idx].precio_venta = ingrData[primer].precio_venta
     }
   }
+  // Sync hectareas_cultivo so polygon-derived ha stays as source of truth
+  var haCultivoNew = {}
+  cultivos.forEach(function(cult2){ var sid2=_ingSafeId(cult2); var haEl2=document.getElementById('cr-ha-'+sid2); if(haEl2&&parseFloat(haEl2.value||0)>0) haCultivoNew[cult2]=parseFloat(haEl2.value) })
+  if(Object.keys(haCultivoNew).length) {
+    var idx2=campos.findIndex(function(x){return x.id===campoDet})
+    if(idx2>=0) campos[idx2].hectareas_cultivo=JSON.stringify(haCultivoNew)
+  }
   _guardarCache()
   calcIngresosLive(); renderRentabilidad(); renderDashboard()
   showToast('\u2713 Ingresos guardados','ok')
   var primer0 = cultivos[0]
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}
-  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson})).eq('id',campoDet).then(function(r){
+  var extraObj = Object.keys(haCultivoNew).length ? {hectareas_cultivo: JSON.stringify(haCultivoNew)} : {}
+  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson}, extraObj)).eq('id',campoDet).then(function(r){
     if(r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
       sb.from('campos').update(updateObj).eq('id',campoDet).catch(function(){})
     }
@@ -6557,12 +8455,8 @@ function renderDetGastos() {
   var ha = c.hectareas||1
   var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
   var costoHa = costoUSD/ha
-  var cult = c.cultivo||'Soja'
-  var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
-  var rend = c.rendimiento||rendEst
-  var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
-  var pr = c.precio_venta||prEst
-  var ingHa = rend*pr, mgHa = ingHa-costoHa
+  var ingTotalReal = _ingRealParaCampo(c)
+  var ingHa = ha>0?ingTotalReal/ha:0, mgHa = ingHa-costoHa
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
@@ -6818,8 +8712,13 @@ window.openModalLluviaCampo = function() {
 }
 
 window.openModalSueloCampo = function() {
+  window._sueloArchivosPendientes = []
+  _sueloRenderArchivos()
   document.getElementById('ov-suelo').classList.add('open')
   document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
+  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value=''
+  })
   setTimeout(function(){if(campoDet)document.getElementById('s-campo').value=campoDet},50)
 }
 

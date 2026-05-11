@@ -7591,17 +7591,13 @@ window.generarInvitacion = async function() {
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
     var permisos = window._eqPermisosActuales || {}
-    var rol = window._eqRolActual || 'operario'
-    var camposInv = (rol === 'operario') ? null : (window._eqCamposSeleccionados && window._eqCamposSeleccionados.length ? window._eqCamposSeleccionados : null)
-    var payload = { token: token, owner_id: usuario.id, rol: 'colaborador', permisos: permisos }
-    // Intentar con campos_acceso; si la columna no existe en DB se reintenta sin ella
-    var { error } = await sb.from('invitaciones').insert(Object.assign({}, payload, { campos_acceso: camposInv }))
-    if (error && error.message && error.message.includes('campos_acceso')) {
-      var res2 = await sb.from('invitaciones').insert(payload)
-      if (res2.error) throw new Error(res2.error.message || JSON.stringify(res2.error))
-    } else if (error) {
-      throw new Error(error.message || JSON.stringify(error))
-    }
+    var { error } = await sb.from('invitaciones').insert({
+      token: token,
+      owner_id: usuario.id,
+      rol: 'colaborador',
+      permisos: permisos
+    })
+    if (error) throw new Error(error.message || JSON.stringify(error))
     var link = 'https://rindeagro.lat/?inv=' + token
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''

@@ -7066,9 +7066,16 @@ window.salirModoColaborador = async function() {
 }
 
 // ── MODAL MI EQUIPO ──
-window.openModalMiEquipo = function() {
-  switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+window.openModalMiEquipo = async function() {
   document.getElementById('ov-mi-equipo').classList.add('open')
+  try {
+    var { data } = await sb.from('equipo').select('id').eq('owner_id', usuario.id).eq('activo', true).limit(1)
+    var hayMiembros = data && data.length > 0
+    switchEquipoTab(hayMiembros ? 'miembros' : 'invitar',
+      document.getElementById(hayMiembros ? 'eq-tab-miembros' : 'eq-tab-invitar'))
+  } catch(e) {
+    switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+  }
 }
 
 window.switchEquipoTab = function(tab, btn) {

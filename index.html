@@ -3756,9 +3756,14 @@ window.guardarTarea = async function() {
 
     } else {
       // ── NUEVA ─────────────────────────────────────────────────
-      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
+      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', completada: false, id: newId })
+      console.log('[guardarTarea] INSERT payload:', JSON.stringify(payloadIns))
       var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
-      if (resIns.error) throw new Error(resIns.error.message || JSON.stringify(resIns.error))
+      console.log('[guardarTarea] INSERT respuesta:', JSON.stringify({ data: resIns.data, error: resIns.error }))
+      if (resIns.error) {
+        console.error('[guardarTarea] INSERT error Supabase:', JSON.stringify(resIns.error))
+        throw new Error(resIns.error.message || resIns.error.details || resIns.error.hint || JSON.stringify(resIns.error))
+      }
       tareas.unshift(Object.assign({}, payloadIns, { created_at: new Date().toISOString(), completada_at: null }))
       showToast('✓ Tarea creada', 'ok')
     }
@@ -3805,7 +3810,7 @@ window.guardarTarea = async function() {
     _renderDashTareas()
 
   } catch(e) {
-    console.error('guardarTarea error:', e)
+    console.error('[guardarTarea] error:', e.message || String(e))
     showToast('⚠️ Error: ' + (e.message || String(e)), 'err')
   } finally {
     btn.disabled = false

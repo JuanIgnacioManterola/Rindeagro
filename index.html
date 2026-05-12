@@ -7801,26 +7801,51 @@ window.generarInvitacion = async function() {
   var btn = document.getElementById('btn-generar-inv')
   btn.disabled = true; btn.innerHTML = 'Generando...'
   try {
+    // Guardia: usuario debe estar logueado
+    if (!usuario || !usuario.id) throw new Error('Sesión no válida. Recargá la página.')
+
     var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
     var permisos = window._eqPermisosActuales || {}
-    var { error } = await sb.from('invitaciones').insert({
+    var rol = window._eqRolActual || 'operario'
+
+    console.log('[generarInvitacion] iniciando', {
+      usuario_id: usuario.id,
+      rol: rol,
+      permisos: permisos,
+      token: token
+    })
+
+    var { data, error } = await sb.from('invitaciones').insert({
       token: token,
       owner_id: usuario.id,
       rol: 'colaborador',
       permisos: permisos
     })
-    if (error) throw new Error(error.message || JSON.stringify(error))
+
+    console.log('[generarInvitacion] respuesta Supabase', { data: data, error: error })
+
+    if (error) {
+      // Loguear objeto completo para diagnóstico
+      console.error('[generarInvitacion] error Supabase:', JSON.stringify(error))
+      var msg = error.message || error.details || error.hint || JSON.stringify(error)
+      throw new Error(msg)
+    }
+
     var link = 'https://rindeagro.lat/?inv=' + token
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''
     window._invLinkActual = link
-    btn.textContent = '↻ Generar nuevo link'
+    btn.innerHTML = '<span>↻</span> Generar nuevo link'
     btn.disabled = false
+    console.log('[generarInvitacion] éxito — link:', link)
   } catch(e) {
-    showToast('⚠️ Error al generar invitación: '+(e.message||'Intentá de nuevo'),'err')
-    btn.disabled = false; btn.textContent = 'Generar link de invitación'
+    console.error('[generarInvitacion] catch:', e)
+    var msg = e.message || 'Intentá de nuevo'
+    showToast('⚠️ Error al generar invitación: ' + msg, 'err')
+    btn.disabled = false
+    btn.innerHTML = '<span>🔗</span> Generar link de invitación'
   }
 }
 

@@ -7818,26 +7818,35 @@ window.generarInvitacion = async function() {
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
     var permisos = window._eqPermisosActuales || {}
-    var rol = window._eqRolActual || 'operario'
+    var rolUI = window._eqRolActual || 'operario'
+
+    // Mapear rol de UI al valor permitido por el CHECK constraint de la DB
+    // ('colaborador' | 'administrador'). Los permisos finos van en la columna JSONB.
+    var ROL_DB = { administrador: 'administrador', admin_sin_finanzas: 'administrador', operario: 'colaborador' }
+    var rolDB = ROL_DB[rolUI] || 'colaborador'
 
     console.log('[generarInvitacion] iniciando', {
-      usuario_id: usuario.id,
-      rol: rol,
-      permisos: permisos,
-      token: token
+      usuario_id: usuario.id, rolUI: rolUI, rolDB: rolDB, permisos: permisos, token: token
     })
 
-    var { data, error } = await sb.from('invitaciones').insert({
-      token: token,
+    // Timeout de 8s: si Supabase no responde (proyecto pausado, red caída)
+    // la promesa colgaría para siempre sin timeout explícito
+    var insertPromise = sb.from('invitaciones').insert({
+      token:    token,
       owner_id: usuario.id,
-      rol: 'colaborador',
+      rol:      rolDB,
       permisos: permisos
     })
+    var timeoutPromise = new Promise(function(_, rj) {
+      setTimeout(function() {
+        rj(new Error('Sin respuesta de Supabase (8s). Verificá que tu proyecto no esté pausado en app.supabase.com'))
+      }, 8000)
+    })
+    var { data, error } = await Promise.race([insertPromise, timeoutPromise])
 
     console.log('[generarInvitacion] respuesta Supabase', { data: data, error: error })
 
     if (error) {
-      // Loguear objeto completo para diagnóstico
       console.error('[generarInvitacion] error Supabase:', JSON.stringify(error))
       var msg = error.message || error.details || error.hint || JSON.stringify(error)
       throw new Error(msg)
@@ -7848,14 +7857,18 @@ window.generarInvitacion = async function() {
     document.getElementById('eq-link-generado').style.display = ''
     window._invLinkActual = link
     btn.innerHTML = '<span>↻</span> Generar nuevo link'
-    btn.disabled = false
     console.log('[generarInvitacion] éxito — link:', link)
   } catch(e) {
     console.error('[generarInvitacion] catch:', e)
-    var msg = e.message || 'Intentá de nuevo'
-    showToast('⚠️ Error al generar invitación: ' + msg, 'err')
-    btn.disabled = false
-    btn.innerHTML = '<span>🔗</span> Generar link de invitación'
+    showToast('⚠️ Error al generar invitación: ' + (e.message || 'Intentá de nuevo'), 'err')
+  } finally {
+    // Siempre re-habilitar el botón, incluso si catch mismo tira error
+    if (btn.innerHTML !== '<span>↻</span> Generar nuevo link') {
+      btn.disabled = false
+      btn.innerHTML = '<span>🔗</span> Generar link de invitación'
+    } else {
+      btn.disabled = false
+    }
   }
 }
 

@@ -155,9 +155,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .anl{font-size:15px;padding:9px 16px;border-radius:9px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:6px;font-weight:500}
 .anl:hover{background:var(--crema);color:var(--verde)}
 .anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
-.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde)}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde);cursor:pointer;position:relative;user-select:none}
+.user-chip:hover{background:#e8ede3}
 .u-av{width:26px;height:26px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
 .u-nm{font-size:12px;font-weight:500;color:var(--texto-mid)}
+.user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:12px;border:.5px solid var(--borde);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;overflow:hidden;z-index:9999;display:none;flex-direction:column}
+.user-dropdown.open{display:flex}
+.user-dropdown-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:500;color:var(--texto-mid);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;transition:background .12s}
+.user-dropdown-item:hover{background:#f4f7f0}
+.user-dropdown-item.danger{color:var(--rojo)}
+.user-dropdown-item.danger:hover{background:#fff0f0}
+.user-dropdown-sep{height:.5px;background:var(--borde);margin:4px 0}
 .btn-salir{font-size:12px;padding:6px 12px;border-radius:8px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-salir:hover{border-color:var(--rojo);color:var(--rojo)}
 .modulo{display:none;max-width:1400px;margin:0 auto;padding:2rem 1.25rem}
@@ -284,8 +292,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 /* MODALES */
 .overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--blanco);border-radius:22px;padding:2.25rem;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;overflow-y:auto}
+.modal{background:var(--blanco);border-radius:22px;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 .overlay.open .modal{transform:translateY(0)}
+.modal-header{flex-shrink:0;padding:2.25rem 2.25rem 0;position:relative}
+.modal-body{flex:1;overflow-y:auto;padding:1.25rem 2.25rem}
+.modal-footer{flex-shrink:0;padding:1rem 2.25rem 2.25rem}
 .m-close{position:absolute;top:1rem;right:1rem;width:28px;height:28px;border-radius:50%;background:var(--crema);border:none;cursor:pointer;font-size:14px;color:var(--texto-mid);display:flex;align-items:center;justify-content:center}
 .m-close:hover{background:var(--crema-dark)}
 .m-tit{font-size:18px;font-weight:600;color:var(--verde);margin-bottom:.3rem;font-family:'Playfair Display',serif}
@@ -485,10 +496,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
-<button id="btn-mi-equipo" onclick="openModalMiEquipo()" style="background:var(--verde);border:1.5px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;display:none;box-shadow:0 2px 8px rgba(26,74,46,.18)">👥 Mi equipo</button>
-      <button onclick="showModulo('mi-plan')" style="background:var(--dorado);border:none;border-radius:8px;color:var(--verde);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">⭐ Mi plan</button>
-      <div class="user-chip"><div class="u-av" id="d-av">?</div><span class="u-nm" id="d-nm">...</span></div>
-      <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
+      <div class="user-chip" id="user-chip-btn" onclick="_toggleUserDropdown()">
+        <div class="u-av" id="d-av">?</div>
+        <span class="u-nm" id="d-nm">...</span>
+        <span style="font-size:10px;color:var(--texto-suave);margin-left:2px">▾</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <button class="user-dropdown-item" id="btn-mi-equipo" onclick="event.stopPropagation();_closeUserDropdown();openModalMiEquipo()">👥 Mi equipo</button>
+          <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();showModulo('mi-plan')">⭐ Mi plan</button>
+          <div class="user-dropdown-sep"></div>
+          <button class="user-dropdown-item danger" onclick="event.stopPropagation();_closeUserDropdown();cerrarSesion()">🚪 Cerrar sesión</button>
+        </div>
+      </div>
     </div>
   </nav>
   <!-- Banner colaborador -->
@@ -525,15 +543,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit" id="dash-campos-tit">Mis campos</span><button class="btn-vs" id="dash-campos-btn" onclick="openModalCampo()">+ Nuevo campo</button></div>
           <div id="dash-campos"></div>
         </div>
-
       </div>
       <div>
         <div class="card">
           <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
           <div id="dash-tareas"></div>
         </div>
-
       </div>
+    </div>
+
+    <!-- Widget Mi equipo -->
+    <div class="card" id="dash-equipo-card">
+      <div class="card-hdr">
+        <span class="card-tit">👥 Mi equipo</span>
+        <button class="btn-vs" onclick="openModalMiEquipo()">+ Invitar</button>
+      </div>
+      <div id="dash-equipo"></div>
     </div>
   </div>
 
@@ -928,6 +953,20 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- Planes disponibles -->
     <div style="font-size:13px;font-weight:600;color:var(--texto-mid);margin-bottom:1rem">Cambiar de plan</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="mp-planes-lista"></div>
+
+    <!-- Notificaciones WhatsApp -->
+    <div class="card" id="wa-prefs-card" style="margin-top:2rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
+        <span style="font-size:22px">📱</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--texto)">Notificaciones por WhatsApp</div>
+          <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">Solo se envían si tenés un número vinculado</div>
+        </div>
+      </div>
+      <div id="wa-prefs-body">
+        <div style="color:var(--texto-suave);font-size:13px">Cargando preferencias...</div>
+      </div>
+    </div>
   </div>
 
   <div class="modulo" id="mod-tareas">
@@ -946,72 +985,75 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <!-- MODAL TAREA -->
 <div class="overlay" id="ov-tarea">
   <div class="modal" style="max-width:500px">
-    <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
-    <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:1.2rem">Nueva tarea</div>
-
-    <div class="fg">
-      <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
-      <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
+    <div class="modal-header">
+      <button class="m-close" onclick="document.getElementById('ov-tarea').classList.remove('open')">✕</button>
+      <div class="m-tit" id="tarea-modal-tit" style="font-size:17px;margin-bottom:.25rem">Nueva tarea</div>
     </div>
-
-    <div class="fg">
-      <label class="fl">Descripción</label>
-      <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Campo (opcional)</label>
-        <select class="fi" id="t-campo" style="cursor:pointer">
-          <option value="">Todos los campos</option>
-        </select>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Título <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="text" id="t-titulo" placeholder="Ej: Aplicar fungicida en lote norte"/>
       </div>
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Prioridad</label>
-        <select class="fi" id="t-prioridad" style="cursor:pointer">
-          <option value="media">🟡 Media</option>
-          <option value="alta">🔴 Alta</option>
-          <option value="baja">🟢 Baja</option>
-        </select>
+      <div class="fg">
+        <label class="fl">Descripción</label>
+        <textarea class="fi" id="t-desc" rows="2" placeholder="Detalles opcionales de la tarea..." style="resize:vertical;min-height:60px"></textarea>
       </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Asignar a</label>
-        <select class="fi" id="t-asignado" style="cursor:pointer">
-          <option value="">Sin asignar</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Campo (opcional)</label>
+          <select class="fi" id="t-campo" style="cursor:pointer">
+            <option value="">Todos los campos</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Prioridad</label>
+          <select class="fi" id="t-prioridad" style="cursor:pointer">
+            <option value="media">🟡 Media</option>
+            <option value="alta">🔴 Alta</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
+        </div>
       </div>
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Fecha límite</label>
-        <input class="fi" type="date" id="t-fecha"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Asignar a</label>
+          <select class="fi" id="t-asignado" style="cursor:pointer">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Fecha límite</label>
+          <input class="fi" type="date" id="t-fecha"/>
+        </div>
       </div>
+      <!-- Archivos adjuntos -->
+      <div style="margin-top:12px">
+        <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
+        <div id="t-archivos-lista" style="margin-bottom:8px"></div>
+        <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+          <span style="font-size:16px">📁</span>
+          <span id="t-upload-label">Subir foto o documento</span>
+          <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
+        </label>
+        <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+      </div>
+      <input type="hidden" id="t-id"/>
     </div>
-
-    <!-- Archivos adjuntos -->
-    <div style="margin-top:12px">
-      <label class="fl" style="margin-bottom:6px;display:block">📎 Archivos adjuntos</label>
-      <div id="t-archivos-lista" style="margin-bottom:8px"></div>
-      <label id="t-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
-        <span style="font-size:16px">📁</span>
-        <span id="t-upload-label">Subir foto o documento</span>
-        <input type="file" id="t-archivo-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="window._tareasAgregarArchivos(this)"/>
-      </label>
-      <div style="font-size:10px;color:var(--texto-suave);margin-top:5px">Imágenes, PDF, Word, Excel · máx. 10 MB por archivo</div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()">Guardar tarea</button>
     </div>
-
-    <input type="hidden" id="t-id"/>
-    <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()" style="margin-top:1.2rem">Guardar tarea</button>
   </div>
 </div>
 
 <!-- MODALES AUTH -->
 <div class="overlay" id="ov-auth">
   <div class="modal">
-    <button class="m-close" onclick="closeModal()">✕</button>
-    <div class="m-tit" style="font-size:18px;margin-bottom:1.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
-    <div class="tabs"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModal()">✕</button>
+      <div class="m-tit" style="font-size:18px;margin-bottom:.75rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+      <div class="tabs" style="margin-bottom:0"><button class="tab on" id="tab-reg" onclick="switchTab('registro')">Crear cuenta</button><button class="tab" id="tab-log" onclick="switchTab('login')">Ingresar</button></div>
+    </div>
+    <div class="modal-body">
     <div id="f-reg">
       <!-- Formulario de registro: solo 1 paso, sin "primer campo" -->
       <div id="rs2">
@@ -1048,25 +1090,35 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="font-size:11px;color:var(--texto-suave);text-align:center;margin-top:6px">Te mandamos un link a tu email para entrar sin contraseña</div>
       <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--texto-suave)">¿No tenés cuenta? <strong style="color:var(--verde);cursor:pointer" onclick="switchTab('registro')">Creá una gratis →</strong></div>
     </div>
+    </div>
   </div>
 </div>
 
 <!-- MODAL NUEVA CONTRASEÑA (recovery) -->
 <div class="overlay" id="ov-nueva-pass">
   <div class="modal">
-    <div class="m-tit" style="font-size:18px;margin-bottom:.5rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
-    <div class="m-sub2" style="margin-bottom:1.5rem">Ingresá tu nueva contraseña</div>
-    <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-    <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
-    <button class="fb" id="btn-nueva-pass" onclick="guardarNuevaPass()">Guardar contraseña</button>
+    <div class="modal-header">
+      <div class="m-tit" style="font-size:18px;margin-bottom:.25rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
+      <div class="m-sub2" style="margin-bottom:0">Ingresá tu nueva contraseña</div>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-nueva-pass" onclick="guardarNuevaPass()">Guardar contraseña</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL CAMPO -->
 <div class="overlay" id="ov-campo">
   <div class="modal" style="max-width:540px">
-    <button class="m-close" onclick="closeModalCampo()">✕</button>
-    <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub">Completá los datos de tu campo</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCampo()">✕</button>
+      <div class="m-tit" id="campo-modal-tit">Agregar campo</div><div class="m-sub" id="campo-modal-sub" style="margin-bottom:0">Completá los datos de tu campo</div>
+    </div>
+    <div class="modal-body">
     <div class="fg"><label class="fl">Nombre del campo *</label><input class="fi" type="text" id="c-nombre" placeholder="Ej: Juan Pérez, La Escondida..."/></div>
     <div class="fg" style="margin-bottom:.9rem"><label class="fl">Hectáreas</label><input class="fi" type="number" id="c-ha" placeholder="480" min="1"/></div>
     <div class="fg" style="margin-bottom:.9rem">
@@ -1185,17 +1237,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
-    <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
-    <input type="hidden" id="c-edit-id" value=""/>
+      <input type="hidden" id="c-edit-id" value=""/>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL GASTO -->
 <div class="overlay" id="ov-gasto">
   <div class="modal" style="max-width:520px">
-    <button class="m-close" onclick="closeModalGasto()">✕</button>
-    <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
-    <div class="m-sub">El sistema convierte automáticamente a USD y quintales por hectárea</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalGasto()">✕</button>
+      <div class="m-tit" id="gasto-modal-tit">Agregar gasto</div>
+      <div class="m-sub" style="margin-bottom:0">El sistema convierte automáticamente a USD y quintales por hectárea</div>
+    </div>
+    <div class="modal-body">
     <input type="hidden" id="g-edit-id" value=""/>
 
     <div class="fg" style="margin-bottom:.9rem">
@@ -1373,106 +1431,121 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
     </div>
 
-    <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL LLUVIA -->
 <div class="overlay" id="ov-lluvia">
   <div class="modal">
-    <button class="m-close" onclick="closeModalLluvia()">✕</button>
-    <div class="m-tit">Registrar lluvia</div><div class="m-sub">Ingresá los datos de la lluvia</div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
-      <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalLluvia()">✕</button>
+      <div class="m-tit">Registrar lluvia</div><div class="m-sub" style="margin-bottom:0">Ingresá los datos de la lluvia</div>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Milímetros *</label><input class="fi" type="number" id="ll-mm" placeholder="Ej: 25" min="0" step="0.1"/></div>
-      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ll-tipo" style="cursor:pointer"><option value="pareja">Lluvia pareja</option><option value="tormenta">Tormenta</option><option value="garua">Garúa</option><option value="granizo">Granizo</option></select></div>
+    <div class="modal-body">
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+        <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
+      </div>
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Milímetros *</label><input class="fi" type="number" id="ll-mm" placeholder="Ej: 25" min="0" step="0.1"/></div>
+        <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ll-tipo" style="cursor:pointer"><option value="pareja">Lluvia pareja</option><option value="tormenta">Tormenta</option><option value="garua">Garúa</option><option value="granizo">Granizo</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Etapa del cultivo</label><select class="fi" id="ll-etapa" style="cursor:pointer"><option value="barbecho">Barbecho</option><option value="siembra">Siembra</option><option value="vegetativo">Vegetativo</option><option value="floracion">Floración (crítica)</option><option value="llenado">Llenado de grano</option><option value="maduracion">Maduración</option></select></div>
+      <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
     </div>
-    <div class="fg"><label class="fl">Etapa del cultivo</label><select class="fi" id="ll-etapa" style="cursor:pointer"><option value="barbecho">Barbecho</option><option value="siembra">Siembra</option><option value="vegetativo">Vegetativo</option><option value="floracion">Floración (crítica)</option><option value="llenado">Llenado de grano</option><option value="maduracion">Maduración</option></select></div>
-    <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
-    <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+    <div class="modal-footer">
+      <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+    </div>
   </div>
 </div>
 
 <!-- MODAL SUELO -->
 <div class="overlay" id="ov-suelo">
   <div class="modal">
-    <button class="m-close" onclick="closeModalSuelo()">✕</button>
-    <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub">Ingresá los valores del laboratorio</div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
-      <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalSuelo()">✕</button>
+      <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub" style="margin-bottom:0">Ingresá los valores del laboratorio</div>
     </div>
-    <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
-    <div class="form-row3" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
-      <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
-      <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+    <div class="modal-body">
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+        <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+      </div>
+      <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
+      <div class="form-row3" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
+        <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
+        <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+      </div>
+      <div class="form-row3" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
+        <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
+        <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+      </div>
+      <div class="form-row2" style="margin-bottom:.9rem">
+        <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
+        <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
+      </div>
+      <div class="fg" style="margin-bottom:.9rem">
+        <label class="fl">Adjuntar informe (opcional)</label>
+        <div id="s-archivos-lista" style="margin-bottom:6px"></div>
+        <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+          📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
+          <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
+        </label>
+      </div>
     </div>
-    <div class="form-row3" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
-      <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
-      <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
     </div>
-    <div class="form-row2" style="margin-bottom:.9rem">
-      <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
-      <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
-    </div>
-    <!-- Adjuntar PDF / foto del análisis -->
-    <div class="fg" style="margin-bottom:.9rem">
-      <label class="fl">Adjuntar informe (opcional)</label>
-      <div id="s-archivos-lista" style="margin-bottom:6px"></div>
-      <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
-        📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
-        <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
-      </label>
-    </div>
-    <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
   </div>
 </div>
 
 <!-- MODAL CERRAR CAMPAÑA -->
 <div class="overlay" id="ov-campana">
   <div class="modal" style="max-width:480px">
-    <button class="m-close" onclick="closeModalCampana()">✕</button>
-    <div class="m-tit">Cerrar campaña agrícola</div>
-    <div class="m-sub" id="camp-modal-sub">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
-
-    <div class="fg" style="margin-bottom:.9rem">
-      <label class="fl">Nombre de la campaña *</label>
-      <input class="fi" type="text" id="camp-nombre" placeholder="Ej: 25/26, Campaña Soja 2025..." maxlength="40"/>
-      <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Podés usar cualquier nombre, por ejemplo el año agrícola: 25/26</div>
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCampana()">✕</button>
+      <div class="m-tit">Cerrar campaña agrícola</div>
+      <div class="m-sub" id="camp-modal-sub" style="margin-bottom:0">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
     </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
-      <div class="fg">
-        <label class="fl">Inicio de campaña</label>
-        <input class="fi" type="date" id="camp-inicio"/>
+    <div class="modal-body">
+      <div class="fg" style="margin-bottom:.9rem">
+        <label class="fl">Nombre de la campaña *</label>
+        <input class="fi" type="text" id="camp-nombre" placeholder="Ej: 25/26, Campaña Soja 2025..." maxlength="40"/>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Podés usar cualquier nombre, por ejemplo el año agrícola: 25/26</div>
       </div>
-      <div class="fg">
-        <label class="fl">Fin de campaña</label>
-        <input class="fi" type="date" id="camp-fin"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg">
+          <label class="fl">Inicio de campaña</label>
+          <input class="fi" type="date" id="camp-inicio"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Fin de campaña</label>
+          <input class="fi" type="date" id="camp-fin"/>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:1.25rem">
+        <label class="fl">Notas (opcional)</label>
+        <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
+      </div>
+      <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;font-size:13px;color:var(--verde)">
+        ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
       </div>
     </div>
-
-    <div class="fg" style="margin-bottom:1.25rem">
-      <label class="fl">Notas (opcional)</label>
-      <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
+    <div class="modal-footer">
+      <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
     </div>
-
-    <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--verde)">
-      ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
-    </div>
-
-    <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
   </div>
 </div>
 
 <!-- MODAL MI EQUIPO -->
 <div class="overlay" id="ov-mi-equipo">
-  <div class="modal" style="max-width:620px;padding:0;overflow:hidden">
+  <div class="modal" style="max-width:620px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column">
     <button class="m-close" onclick="closeModal()" style="top:1rem;right:1rem;z-index:2;background:rgba(255,255,255,.2);color:#fff">✕</button>
     <!-- Header con gradiente -->
     <div style="background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);padding:2rem 2rem 1.5rem;position:relative;overflow:hidden">
@@ -1491,66 +1564,98 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <!-- Contenido -->
-    <div style="padding:1.75rem 2rem">
+    <div style="padding:1.75rem 2rem;overflow-y:auto;flex:1">
       <!-- TAB MIEMBROS -->
       <div id="eq-sec-miembros">
-        <div id="eq-miembros-lista" style="margin-bottom:1.25rem;min-height:60px"></div>
-        <button onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))" style="width:100%;padding:12px;border-radius:10px;border:2px dashed var(--borde);background:transparent;color:var(--verde);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.borderColor='var(--verde)';this.style.background='var(--verde-pale)'" onmouseout="this.style.borderColor='var(--borde)';this.style.background='transparent'">
-          <span style="font-size:18px">+</span> Invitar nuevo miembro
-        </button>
+        <!-- Toolbar: toggle vista + botón invitar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:10px">
+          <div style="display:flex;background:var(--crema-dark);border-radius:9px;padding:3px;gap:2px">
+            <button id="eq-toggle-persona" onclick="_eqSetVista('persona')" style="padding:5px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:var(--verde);color:#fff;transition:all .2s">👤 Por persona</button>
+            <button id="eq-toggle-campo" onclick="_eqSetVista('campo')" style="padding:5px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:var(--texto-suave);transition:all .2s">🌾 Por campo</button>
+          </div>
+          <button onclick="switchEquipoTab('invitar',document.getElementById('eq-tab-invitar'))" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1.5px solid var(--verde);background:transparent;color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s" onmouseover="this.style.background='var(--verde-pale)'" onmouseout="this.style.background='transparent'">
+            + Invitar
+          </button>
+        </div>
+        <div id="eq-miembros-lista" style="min-height:60px;max-height:290px;overflow-y:auto;padding-right:2px"></div>
       </div>
 
       <!-- TAB INVITAR -->
       <div id="eq-sec-invitar" style="display:none">
-        <!-- Presets rápidos -->
-        <div style="margin-bottom:1.1rem">
-          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Acceso rápido</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-            <button onclick="_eqPreset('sin_permisos')" id="eq-preset-sin" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
-              <div>🚫 Sin permisos</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">No ve ningún módulo</div>
+
+        <!-- Paso 1: Elegir rol -->
+        <div style="margin-bottom:1.2rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">1. ¿Qué rol va a tener?</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+
+            <button onclick="_eqSelRol('administrador')" id="eq-rol-administrador" style="padding:12px 14px;border-radius:11px;border:1.5px solid var(--borde);background:transparent;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s;display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">👔</span>
+              <div>
+                <div>Administrador</div>
+                <div style="font-size:11px;font-weight:400;color:var(--texto-suave);margin-top:1px">Ve y edita todo, incluyendo datos financieros</div>
+              </div>
             </button>
-            <button onclick="_eqPreset('carga_basica')" id="eq-preset-carga" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--verde);background:var(--verde-pale);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--verde);text-align:left;transition:all .18s">
-              <div>📝 Solo carga</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Gastos + Lluvias</div>
+
+            <button onclick="_eqSelRol('admin_sin_finanzas')" id="eq-rol-admin_sin_finanzas" style="padding:12px 14px;border-radius:11px;border:1.5px solid var(--borde);background:transparent;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s;display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">👁</span>
+              <div>
+                <div>Admin sin finanzas</div>
+                <div style="font-size:11px;font-weight:400;color:var(--texto-suave);margin-top:1px">Ve todo excepto rentabilidad y datos económicos</div>
+              </div>
             </button>
-            <button onclick="_eqPreset('sin_rentabilidad')" id="eq-preset-sinrent" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
-              <div>👁 Todo sin rentabilidad</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Sin módulos financieros</div>
+
+            <button onclick="_eqSelRol('operario')" id="eq-rol-operario" style="padding:12px 14px;border-radius:11px;border:1.5px solid var(--borde);background:transparent;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s;display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">📲</span>
+              <div>
+                <div>Operario</div>
+                <div style="font-size:11px;font-weight:400;color:var(--texto-suave);margin-top:1px">Solo carga datos por WhatsApp (gastos, lluvias y tareas)</div>
+              </div>
             </button>
-            <button onclick="_eqPreset('acceso_completo')" id="eq-preset-completo" style="padding:9px 11px;border-radius:10px;border:1.5px solid var(--borde);background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--texto-mid);text-align:left;transition:all .18s">
-              <div>✅ Acceso completo</div><div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Igual que el administrador</div>
-            </button>
+
           </div>
         </div>
 
-        <!-- Grid de módulos con permisos -->
-        <div style="margin-bottom:1.1rem">
-          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem">Permisos por módulo</div>
-          <div style="border:.5px solid var(--borde);border-radius:11px;overflow:hidden">
-            <div style="display:grid;grid-template-columns:1fr 48px 48px 56px;padding:6px 12px;background:var(--crema-dark);border-bottom:.5px solid var(--borde)">
-              <div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em">Módulo</div>
-              <div style="font-size:10px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:.05em;text-align:center">Nada</div>
-              <div style="font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.05em;text-align:center">Ver</div>
-              <div style="font-size:10px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.05em;text-align:center">Editar</div>
-            </div>
-            <div id="eq-permisos-filas"></div>
-          </div>
+        <!-- Paso 2: Elegir campos (solo para Admin y Admin sin finanzas) -->
+        <div id="eq-sec-campos" style="display:none;margin-bottom:1.2rem">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">2. ¿A qué campos tiene acceso?</div>
+          <div id="eq-campos-lista" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
 
-        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.1rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <button class="fb" id="btn-generar-inv" onclick="generarInvitacion()" style="margin-bottom:1.1rem;font-size:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;opacity:.5;pointer-events:none">
           <span>🔗</span> Generar link de invitación
         </button>
 
         <div id="eq-link-generado" style="display:none">
-          <div style="background:var(--verde-pale);border:1.5px solid rgba(26,74,46,.15);border-radius:14px;padding:1.25rem">
-            <div style="font-size:11px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">✓ Link listo para compartir</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:.85rem">
-              <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:#fff;border-color:rgba(26,74,46,.2)"/>
-              <button onclick="copiarLinkInvitacion()" id="btn-copiar-inv" style="padding:10px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s">Copiar</button>
+          <div style="background:#fff;border:1px solid var(--borde);border-radius:16px;padding:1.4rem;display:flex;flex-direction:column;gap:1.1rem">
+
+            <!-- Paso 1 -->
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:28px;height:28px;border-radius:50%;background:#1a4a2e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+              <div style="flex:1">
+                <div style="font-size:13px;color:var(--texto);font-weight:500;margin-bottom:.6rem">Aquí tenés el link para compartir con tu equipo</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:var(--crema);border-color:var(--borde)"/>
+                  <button onclick="copiarLinkInvitacion()" id="btn-copiar-inv" style="padding:9px 14px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s">Copiar</button>
+                </div>
+              </div>
             </div>
-            <button onclick="compartirInvWA()" style="width:100%;padding:13px;border-radius:11px;border:none;background:#25D366;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 16px rgba(37,211,102,.3)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              Compartir por WhatsApp
-            </button>
-            <p style="font-size:11px;color:var(--texto-suave);margin-top:.75rem;text-align:center;line-height:1.5">⏱ Este link expira en 7 días. Podés generar uno nuevo cuando quieras.</p>
+
+            <!-- Paso 2 -->
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:28px;height:28px;border-radius:50%;background:#1a4a2e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+              <div style="font-size:13px;color:var(--texto);font-weight:500;padding-top:4px">Compartí ese link con los usuarios que querés agregar</div>
+            </div>
+
+            <!-- Paso 3 -->
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:28px;height:28px;border-radius:50%;background:#1a4a2e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
+              <div style="font-size:13px;color:var(--texto);font-weight:500;padding-top:4px">Una vez que abran el link, serán agregados a tu equipo automáticamente</div>
+            </div>
+
+            <!-- Botón listo -->
+            <button onclick="document.getElementById('ov-mi-equipo').classList.remove('open')" style="width:100%;padding:14px;border-radius:11px;border:none;background:#1a4a2e;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.2rem">Listo</button>
+
+            <p style="font-size:11px;color:var(--texto-suave);text-align:center;line-height:1.5;margin:0">⏱ Este link expira en 7 días. Podés generar uno nuevo cuando quieras.</p>
           </div>
         </div>
       </div>
@@ -1616,13 +1721,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="toast" id="toast"></div>
 
 <script>
-// Safety timeout — si el módulo no carga en 8s, muestra la landing igual
-// 8s es necesario para redes lentas que tardan en cargar el CDN de supabase-js
-window._loadingTimeout = setTimeout(function() {
+// Safety timeout — si el módulo no carga en el tiempo esperado, muestra landing
+// IMPORTANTE: si hay sesión guardada esperamos más (el módulo todavía está bajando del CDN)
+// Si NO hay sesión (usuario nuevo o cerró sesión), esperamos solo 8s
+function _mostrarLandingPorTimeout() {
   try {
     var l = document.getElementById('screen-loading')
-    if (!l) return
-    if (l.style.display === 'none') return  // ya se ocultó correctamente
+    if (!l || l.style.display === 'none') return  // ya se resolvió, ignorar
     l.classList.add('fade')
     setTimeout(function(){ l.style.display = 'none' }, 400)
     document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active') })
@@ -1630,6 +1735,17 @@ window._loadingTimeout = setTimeout(function() {
     if (land) land.classList.add('active')
     window.scrollTo(0, 0)
   } catch(ex) {}
+}
+window._loadingTimeout = setTimeout(function() {
+  try {
+    // Si hay sesión guardada, el CDN puede estar tardando (hard refresh / red lenta).
+    // Esperamos 15s más antes de rendirse — nunca cerrar sesión por un timeout de red.
+    if (localStorage.getItem('rindeagro-auth')) {
+      window._loadingTimeout = setTimeout(_mostrarLandingPorTimeout, 15000)
+      return
+    }
+    _mostrarLandingPorTimeout()
+  } catch(ex) { _mostrarLandingPorTimeout() }
 }, 8000)
 </script>
 <script type="module">
@@ -1724,6 +1840,26 @@ async function init() {
     hideLoading()
     closeModal()
     showScreen('app')
+
+    // ── Carga inmediata desde caché local (<100ms) ─────────────────────────
+    // Mostrar datos al instante antes de cualquier query de red.
+    // Usa usuario.id directamente porque CONTEXTO todavía no está disponible.
+    try {
+      var _snapKey = 'rinde_cache_v2_' + user.id
+      var _snap = JSON.parse(localStorage.getItem(_snapKey) || 'null')
+      if (_snap && Array.isArray(_snap.campos)) {
+        campos    = _snap.campos
+        gastos    = _snap.gastos    || []
+        lluvias   = _snap.lluvias   || []
+        analisisS = _snap.analisisS || []
+        if (_snap.tareas) tareas = _snap.tareas
+        if (campos.length > 0) campoRent = campos[0].id
+        renderDashboard()
+        poblarSelectoresCampo()
+      }
+    } catch(_e) {}
+    // ──────────────────────────────────────────────────────────────────────
+
     // determinarContexto con timeout de 4s para no bloquear si Supabase tarda
     try {
       await Promise.race([
@@ -1736,6 +1872,9 @@ async function init() {
     }
     try { await cargarTodo() } catch(e) { console.error('cargarTodo error:', e) }
   }
+
+  // Marca el momento de inicio para detectar SIGNED_OUT prematuros
+  var _initTs = Date.now()
 
   // onAuthStateChange: maneja INITIAL_SESSION (sesión guardada al recargar)
   // + SIGNED_IN (login nuevo) + SIGNED_OUT
@@ -1770,6 +1909,15 @@ async function init() {
         document.getElementById('ov-nueva-pass').classList.add('open')
       }, 100)
     } else if (event === 'SIGNED_OUT') {
+      // Guard: ignorar SIGNED_OUT que llega en los primeros 5s de carga —
+      // puede ser un falso positivo mientras Supabase valida el token contra
+      // el servidor (común en conexiones lentas o hard refresh en Chrome).
+      // Solo reaccionar si el usuario ya estaba en la app o si pasaron >5s.
+      var appEl = document.getElementById('screen-app')
+      var enApp = appEl && appEl.classList.contains('active')
+      var tiempoDesdeInit = Date.now() - _initTs
+      if (!enApp && tiempoDesdeInit < 5000) return  // falso positivo al cargar — ignorar
+
       // Limpiar cache del usuario que salió
       try { var _ck = _cacheKey(); if(_ck) localStorage.removeItem(_ck) } catch(e) {}
       // Resetear todo el estado de la app
@@ -1779,8 +1927,7 @@ async function init() {
       // Cerrar cualquier overlay abierto
       try { document.querySelectorAll('.overlay').forEach(function(o){ o.classList.remove('open') }) } catch(e) {}
       // Ir a landing solo si estábamos en la app
-      var appEl = document.getElementById('screen-app')
-      if (appEl && appEl.classList.contains('active')) {
+      if (enApp) {
         showScreen('landing')
         showToast('⚠️ Sesión cerrada. Ingresá de nuevo.', 'err')
       }
@@ -1841,7 +1988,8 @@ function _guardarCache() {
   var k = _cacheKey(); if(!k) return
   try {
     localStorage.setItem(k, JSON.stringify({
-      campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS, ts: Date.now()
+      campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS,
+      tareas: tareas, ts: Date.now()
     }))
   } catch(e) {}
 }
@@ -2146,8 +2294,61 @@ function renderDashboard() {
   try { _renderBannerColaborador() } catch(e) {}
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
-  // Tareas en dashboard
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
+  try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
+}
+
+async function _renderDashEquipo() {
+  var el = document.getElementById('dash-equipo')
+  var card = document.getElementById('dash-equipo-card')
+  if (!el || !usuario) return
+
+  // Colaboradores no ven el widget de equipo
+  if (window.CONTEXTO && window.CONTEXTO.esColaborador) {
+    if (card) card.style.display = 'none'
+    return
+  }
+  if (card) card.style.display = ''
+
+  try {
+    var { data } = await sb.from('equipo').select('id,nombre_display,permisos,creado_en')
+      .eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false })
+
+    if (!data || !data.length) {
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;gap:16px;flex-wrap:wrap">'
+        + '<div>'
+          + '<div style="font-size:13px;font-weight:500;color:var(--texto-mid);margin-bottom:2px">Todavía no invitaste a nadie</div>'
+          + '<div style="font-size:12px;color:var(--texto-suave)">¿Todavía no invitaste a nadie a cargar gastos, registrar lluvias o completar tareas?</div>'
+        + '</div>'
+        + '<button onclick="openModalMiEquipo()" style="white-space:nowrap;padding:8px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s">+ Invitar miembro</button>'
+      + '</div>'
+      return
+    }
+
+    // Avatares en fila + resumen
+    var avatares = data.slice(0, 5).map(function(m) {
+      var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+      var rol = _eqDetectarRol ? _eqDetectarRol(m) : 'colaborador'
+      var info = (typeof _EQ_ROL_INFO !== 'undefined' && _EQ_ROL_INFO[rol]) || { bg:'#e8ede3', color:'var(--verde)' }
+      return '<div title="'+m.nombre_display+'" style="width:36px;height:36px;border-radius:50%;background:var(--verde);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;margin-left:-8px;flex-shrink:0">'+iniciales+'</div>'
+    }).join('')
+
+    var extras = data.length > 5 ? '<div style="width:36px;height:36px;border-radius:50%;background:var(--crema-dark);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--texto-suave);margin-left:-8px">+' + (data.length - 5) + '</div>' : ''
+
+    var nombres = data.slice(0, 3).map(function(m){ return m.nombre_display.split(' ')[0] }).join(', ')
+    if (data.length > 3) nombres += ' y ' + (data.length - 3) + ' más'
+
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:.5rem 0;flex-wrap:wrap">'
+      + '<div style="display:flex;align-items:center;padding-left:8px">' + avatares + extras + '</div>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:600;color:var(--texto)">' + nombres + '</div>'
+        + '<div style="font-size:12px;color:var(--texto-suave);margin-top:1px">' + data.length + ' miembro' + (data.length !== 1 ? 's' : '') + ' activo' + (data.length !== 1 ? 's' : '') + '</div>'
+      + '</div>'
+      + '<button onclick="openModalMiEquipo()" style="white-space:nowrap;padding:7px 14px;border-radius:9px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-mid)\'">Ver equipo →</button>'
+    + '</div>'
+  } catch(e) {
+    el.innerHTML = ''
+  }
 }
 
 // ── Helper: ingresos reales de un campo (solo datos guardados, nunca defaults) ──
@@ -2236,7 +2437,7 @@ async function _renderAccesosColaborador() {
   // Buscar en equipo donde este user es miembro
   try {
     var { data: accesos } = await sb.from('equipo')
-      .select('*, owner:owner_id(id)')
+      .select('*')
       .eq('miembro_id', usuario.id)
       .eq('activo', true)
     if (!accesos || !accesos.length) return
@@ -3261,15 +3462,16 @@ function _renderDashTareas() {
 }
 
 window.abrirModalTarea = async function(id) {
+  try {
   var ov = document.getElementById('ov-tarea')
   // Limpiar archivos pendientes de apertura anterior
   window._tareasArchivosPendientes = []
   _tareasRenderArchivosPendientes()
   var selCampo = document.getElementById('t-campo')
-  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + campos.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
+  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + (campos||[]).map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
   var selAsig = document.getElementById('t-asignado')
   if (selAsig) {
-    var miembros = window._equipoCache || []
+    var miembros = (window._equipoCache || []).filter(function(m){ return m && m.nombre_display })
     selAsig.innerHTML = '<option value="">Sin asignar</option>'
       + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
   }
@@ -3311,6 +3513,10 @@ window.abrirModalTarea = async function(id) {
   }
   ov.classList.add('open')
   setTimeout(function(){ document.getElementById('t-titulo').focus() }, 100)
+  } catch(e) {
+    console.error('[abrirModalTarea] error al abrir el modal de tarea:', e)
+    showToast('⚠️ Error al abrir el formulario: ' + (e.message || String(e)), 'err')
+  }
 }
 
 // ── Archivos adjuntos en tareas ──
@@ -3584,7 +3790,7 @@ window.guardarTarea = async function() {
     var _dbRun = function(promise) {
       return Promise.race([
         promise,
-        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (15s). Verificá que el proyecto Supabase esté activo en app.supabase.com')) }, 15000) })
+        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (8s). Verificá en app.supabase.com que tu proyecto no esté pausado, o que la tabla "tareas" tenga política RLS de INSERT habilitada.')) }, 8000) })
       ])
     }
 
@@ -3598,9 +3804,14 @@ window.guardarTarea = async function() {
 
     } else {
       // ── NUEVA ─────────────────────────────────────────────────
-      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
+      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', completada: false, id: newId })
+      console.log('[guardarTarea] INSERT payload:', JSON.stringify(payloadIns))
       var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
-      if (resIns.error) throw new Error(resIns.error.message || JSON.stringify(resIns.error))
+      console.log('[guardarTarea] INSERT respuesta:', JSON.stringify({ data: resIns.data, error: resIns.error }))
+      if (resIns.error) {
+        console.error('[guardarTarea] INSERT error Supabase:', JSON.stringify(resIns.error))
+        throw new Error(resIns.error.message || resIns.error.details || resIns.error.hint || JSON.stringify(resIns.error))
+      }
       tareas.unshift(Object.assign({}, payloadIns, { created_at: new Date().toISOString(), completada_at: null }))
       showToast('✓ Tarea creada', 'ok')
     }
@@ -3647,7 +3858,7 @@ window.guardarTarea = async function() {
     _renderDashTareas()
 
   } catch(e) {
-    console.error('guardarTarea error:', e)
+    console.error('[guardarTarea] error:', e.message || String(e))
     showToast('⚠️ Error: ' + (e.message || String(e)), 'err')
   } finally {
     btn.disabled = false
@@ -4062,6 +4273,8 @@ window.renderMiPlan = async function() {
   } catch(e) {
     lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No se pudieron cargar los planes. Intentá de nuevo.</div>'
   }
+  // Cargar preferencias de WhatsApp en paralelo
+  try { _waCargarPrefs() } catch(e) {}
 }
 
 function renderTarjetasPlanes() {
@@ -4154,6 +4367,120 @@ window.suscribirse = async function(planId) {
   } catch(e) { showToast('⚠️ Error de conexión', 'err') }
 }
 
+// ══════════════════════════════════════════════
+// WHATSAPP — Preferencias de notificaciones
+// ══════════════════════════════════════════════
+
+var _waPrefsDef = {
+  resumen_semanal:        { label: 'Resumen semanal',             desc: 'Sábados a las 9hs — lluvias, gastos, precios' },
+  alerta_precio:          { label: 'Alertas de precio',           desc: 'Cuando el precio de soja cambia significativamente' },
+  recordatorio_admin:     { label: 'Recordatorio semanal (admin)',desc: 'Viernes 12:30hs — recordatorio para cargar datos' },
+  recordatorio_operario:  { label: 'Recordatorio de carga',       desc: 'L/M/V 17:30hs — aviso a operarios para registrar el día' },
+}
+
+async function _waCargarPrefs() {
+  var card = document.getElementById('wa-prefs-card')
+  var body = document.getElementById('wa-prefs-body')
+  if (!card || !body || !usuario) return
+
+  // Ocultar para colaboradores
+  if (window.CONTEXTO && window.CONTEXTO.esColaborador) {
+    card.style.display = 'none'
+    return
+  }
+  card.style.display = ''
+
+  try {
+    var { data, error } = await sb.from('wa_preferencias_notificaciones')
+      .select('*').eq('user_id', usuario.id).maybeSingle()
+
+    // Si no hay registro, crearlo con defaults
+    if (!data || error) {
+      var defaults = { user_id: usuario.id, resumen_semanal: true, alerta_precio: true, recordatorio_admin: true, recordatorio_operario: true, activo: true }
+      var { data: nuevo } = await sb.from('wa_preferencias_notificaciones').upsert(defaults, { onConflict: 'user_id' }).select().maybeSingle()
+      data = nuevo || defaults
+    }
+
+    _waRenderToggles(data)
+  } catch(e) {
+    body.innerHTML = '<div style="font-size:13px;color:var(--texto-suave)">No se pudieron cargar las preferencias.</div>'
+  }
+}
+
+function _waRenderToggles(prefs) {
+  var body = document.getElementById('wa-prefs-body')
+  if (!body) return
+
+  var activo = prefs.activo !== false  // true por defecto
+
+  var rows = Object.entries(_waPrefsDef).map(function(entry) {
+    var key = entry[0], info = entry[1]
+    var val = prefs[key] !== false  // true por defecto
+    return (
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:.5px solid var(--borde)">' +
+        '<div style="flex:1;min-width:0;padding-right:16px">' +
+          '<div style="font-size:13px;font-weight:600;color:var(--texto)">' + info.label + '</div>' +
+          '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">' + info.desc + '</div>' +
+        '</div>' +
+        _waToggleHtml(key, val, !activo) +
+      '</div>'
+    )
+  }).join('')
+
+  // Switch global activo/inactivo
+  var globalRow = (
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1.5px solid var(--borde);margin-bottom:6px">' +
+      '<div style="flex:1;padding-right:16px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--texto)">Activar todas las notificaciones</div>' +
+        '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Desactivar apaga todos los mensajes automáticos</div>' +
+      '</div>' +
+      _waToggleHtml('activo', activo, false) +
+    '</div>'
+  )
+
+  body.innerHTML = globalRow + rows +
+    '<div style="font-size:11px;color:var(--texto-suave);margin-top:12px">También podés escribir <strong>STOP</strong> por WhatsApp para desactivar todo, o <strong>ACTIVAR</strong> para reactivar.</div>'
+}
+
+function _waToggleHtml(key, val, disabled) {
+  var color  = val ? 'var(--verde)' : 'rgba(26,74,46,.15)'
+  var left   = val ? '22px' : '3px'
+  var opac   = disabled ? '.4' : '1'
+  return (
+    '<div onclick="' + (disabled ? '' : '_waToggle(\'' + key + '\')') + '" ' +
+    'style="width:44px;height:26px;border-radius:13px;background:' + color + ';cursor:' + (disabled?'default':'pointer') + ';position:relative;transition:all .25s;flex-shrink:0;opacity:' + opac + '">' +
+      '<div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:' + left + ';transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.18)"></div>' +
+    '</div>'
+  )
+}
+
+window._waToggle = async function(key) {
+  if (!usuario) return
+  try {
+    var { data: cur } = await sb.from('wa_preferencias_notificaciones').select('*').eq('user_id', usuario.id).maybeSingle()
+    var prefs = cur || { user_id: usuario.id, resumen_semanal: true, alerta_precio: true, recordatorio_admin: true, recordatorio_operario: true, activo: true }
+    prefs[key] = !prefs[key]
+    // Si se desactiva 'activo', no cambiar los otros
+    await sb.from('wa_preferencias_notificaciones').upsert({ ...prefs, user_id: usuario.id }, { onConflict: 'user_id' })
+    _waRenderToggles(prefs)
+  } catch(e) {
+    showToast('⚠️ No se pudo guardar la preferencia', 'err')
+  }
+}
+
+window._toggleUserDropdown = function() {
+  var dd = document.getElementById('user-dropdown')
+  if (!dd) return
+  dd.classList.toggle('open')
+}
+window._closeUserDropdown = function() {
+  var dd = document.getElementById('user-dropdown')
+  if (dd) dd.classList.remove('open')
+}
+document.addEventListener('click', function(e) {
+  var chip = document.getElementById('user-chip-btn')
+  if (chip && !chip.contains(e.target)) window._closeUserDropdown()
+})
 window.cerrarSesion = function() {
   // Limpiar estado local PRIMERO sin esperar red
   usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[];window.CONTEXTO=null
@@ -7006,9 +7333,16 @@ window.salirModoColaborador = async function() {
 }
 
 // ── MODAL MI EQUIPO ──
-window.openModalMiEquipo = function() {
-  switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+window.openModalMiEquipo = async function() {
   document.getElementById('ov-mi-equipo').classList.add('open')
+  try {
+    var { data } = await sb.from('equipo').select('id').eq('owner_id', usuario.id).eq('activo', true).limit(1)
+    var hayMiembros = data && data.length > 0
+    switchEquipoTab(hayMiembros ? 'miembros' : 'invitar',
+      document.getElementById(hayMiembros ? 'eq-tab-miembros' : 'eq-tab-invitar'))
+  } catch(e) {
+    switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+  }
 }
 
 window.switchEquipoTab = function(tab, btn) {
@@ -7025,12 +7359,18 @@ window.switchEquipoTab = function(tab, btn) {
     var btnGen = document.getElementById('btn-generar-inv')
     btnGen.disabled = false
     btnGen.innerHTML = '<span>🔗</span> Generar link de invitación'
-    // Inicializar con preset "carga básica" si no hay nada configurado aún
-    if (!window._eqPermisosActuales || Object.keys(window._eqPermisosActuales).length === 0) {
-      window._eqPermisosActuales = Object.assign({}, PERMISOS_PRESETS.carga_basica)
-    }
-    _eqRenderFilas()
-    _eqResaltarPresetActivo()
+    // Resetear selección de rol
+    window._eqRolActual = null
+    window._eqPermisosActuales = {}
+    window._eqCamposSeleccionados = []
+    ;['administrador','admin_sin_finanzas','operario'].forEach(function(r) {
+      var b = document.getElementById('eq-rol-' + r)
+      if (b) { b.style.borderColor='var(--borde)'; b.style.background='transparent'; b.style.color='var(--texto-mid)' }
+    })
+    var secCampos = document.getElementById('eq-sec-campos')
+    if (secCampos) secCampos.style.display = 'none'
+    btnGen.style.opacity = '.5'
+    btnGen.style.pointerEvents = 'none'
   }
 }
 
@@ -7044,10 +7384,69 @@ window.resaltarRolLabel = function(cual) {
   lA.style.background   = cual==='adm' ? 'var(--verde-pale)' : 'transparent'
 }
 
+// ── EQUIPO: vista actual (persona | campo) ──
+window._eqVista = 'persona'
+window._eqMiembrosData = []
+
+window._eqSetVista = function(v) {
+  window._eqVista = v
+  var btnP = document.getElementById('eq-toggle-persona')
+  var btnC = document.getElementById('eq-toggle-campo')
+  if (btnP) { btnP.style.background = v==='persona' ? 'var(--verde)' : 'transparent'; btnP.style.color = v==='persona' ? '#fff' : 'var(--texto-suave)' }
+  if (btnC) { btnC.style.background = v==='campo'   ? 'var(--verde)' : 'transparent'; btnC.style.color = v==='campo'   ? '#fff' : 'var(--texto-suave)' }
+  _renderListaMiembros()
+}
+
+var _EQ_ROL_INFO = {
+  administrador:      { label:'Administrador',        color:'#1a5c38', bg:'#d4edda' },
+  admin_sin_finanzas: { label:'Admin sin finanzas',   color:'#1a4a8a', bg:'#dce8fb' },
+  operario:           { label:'Operario',             color:'#7a5c00', bg:'#fff3cd' },
+  colaborador:        { label:'Colaborador',          color:'#555',    bg:'#f0f0f0' }
+}
+
+function _eqDetectarRol(m) {
+  var p = m.permisos || {}
+  var tieneRent = p.rentabilidad_campo || p.rentabilidad_total
+  var tieneEdicion = Object.values(p).some(function(v){ return v === 'editar' })
+  var modulos = Object.values(p).filter(function(v){ return v })
+  if (!modulos.length) return 'operario'
+  if (tieneRent && tieneEdicion) return 'administrador'
+  if (!tieneRent && tieneEdicion) return 'admin_sin_finanzas'
+  return 'operario'
+}
+
+function _eqAvatar(nombre, size) {
+  size = size || 36
+  var iniciales = (nombre||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:'+(size*0.36)+'px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
+}
+
+function _eqRolBadge(rolKey) {
+  var info = _EQ_ROL_INFO[rolKey] || _EQ_ROL_INFO.colaborador
+  return '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+info.bg+';color:'+info.color+';white-space:nowrap">'+info.label+'</span>'
+}
+
+function _eqCamposChips(m) {
+  var acc = m.campos_acceso
+  if (!acc || !acc.length) return '<span style="font-size:11px;color:var(--texto-suave)">Todos los campos</span>'
+  return acc.map(function(cid){
+    var c = campos.find(function(x){ return x.id === cid })
+    return c ? '<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--crema-dark);color:var(--texto-mid)">'+c.nombre+'</span>' : ''
+  }).join(' ')
+}
+
+// Semana actual: lunes a hoy
+function _eqInicioSemana() {
+  var d = new Date(); d.setHours(0,0,0,0)
+  var day = d.getDay() || 7
+  d.setDate(d.getDate() - day + 1)
+  return d.toISOString()
+}
+
 async function _renderListaMiembros() {
   var el = document.getElementById('eq-miembros-lista')
   if (!el) return
-  el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:.5rem 0">Cargando...</div>'
+  el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Cargando...</div>'
   try {
     var { data } = await sb.from('equipo')
       .select('*')
@@ -7055,48 +7454,325 @@ async function _renderListaMiembros() {
       .eq('activo', true)
       .order('creado_en', { ascending: false })
     if (!data || !data.length) {
-      el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Todavía no tenés miembros en tu equipo.</div>'
+      el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:2rem 0">Todavía no tenés miembros en tu equipo.<br><span style="font-size:12px">Usá el botón + Invitar para sumar a alguien.</span></div>'
       return
     }
-    el.innerHTML = data.map(function(m){
-      var iniciales = (m.nombre_display||'?').split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase()
-      var mp = m.permisos || {}
-      var MLABS = {campos:'Campos',gastos:'Gastos',ingresos:'Ingresos',lluvias:'Lluvias',suelo:'Suelo',
-                   rentabilidad_campo:'Rent. campo',rentabilidad_total:'Rent. total',mapa:'Mapa',tareas:'Tareas'}
-      var mAcceso = Object.keys(MLABS).filter(function(k){return mp[k]==='ver'||mp[k]==='editar'})
-      var mResumen, mColor
-      if (!mAcceso.length) { mResumen='Sin permisos'; mColor='var(--rojo)' }
-      else if (mAcceso.length >= Object.keys(MLABS).length) { mResumen='Acceso completo'; mColor='#1a7a52' }
-      else { mResumen=mAcceso.length+' módulo'+(mAcceso.length!==1?'s':''); mColor='var(--verde)' }
-      var mTooltip = mAcceso.length ? mAcceso.map(function(k){return MLABS[k]}).join(', ') : 'Ningún módulo'
-      return '<div style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--verde-pale);border-radius:12px;margin-bottom:.5rem">'
-        +'<div style="width:38px;height:38px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+iniciales+'</div>'
-        +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:13px;font-weight:600;color:var(--verde)">'+m.nombre_display+'</div>'
-          +'<div style="font-size:11px;color:var(--texto-suave);margin-top:2px" title="'+mTooltip+'">'+mTooltip+'</div>'
-        +'</div>'
-        +'<span style="font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,46,.08);color:'+mColor+';font-weight:600;white-space:nowrap">'+mResumen+'</span>'
-        +'<button onclick="removerMiembro(\''+m.id+'\',\''+m.nombre_display.replace(/'/g,'')+'\',this)" style="background:transparent;border:none;color:#c0392b;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0" title="Remover">🗑</button>'
-        +'</div>'
-    }).join('')
+    window._eqMiembrosData = data
+
+    // Contar actividad semanal por miembro
+    var semana = _eqInicioSemana()
+    var miembroIds = data.map(function(m){ return m.miembro_id })
+    var ownerId = usuario.id
+
+    // Gastos, lluvias y tareas de esta semana por miembro
+    var [rG, rL, rT] = await Promise.all([
+      sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+      sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+      sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
+    ])
+
+    function contarPor(rows, campo, uid) {
+      return (rows && rows.data || []).filter(function(r){ return r[campo] === uid }).length
+    }
+
+    if (window._eqVista === 'persona') {
+      _renderVistaPorPersona(data, contarPor, rG, rL, rT)
+    } else {
+      _renderVistaPorCampo(data, contarPor, rG, rL, rT)
+    }
   } catch(e) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Error al cargar</div>'
+    el.innerHTML = '<div style="font-size:12px;color:var(--rojo)">Error al cargar: '+(e.message||'')+'</div>'
   }
 }
 
+function _renderVistaPorPersona(data, contarPor, rG, rL, rT) {
+  var el = document.getElementById('eq-miembros-lista')
+
+  // Cabecera tabla
+  var html = '<div style="display:grid;grid-template-columns:1fr 130px 72px 72px 72px 36px;gap:8px;padding:6px 12px;border-bottom:1.5px solid var(--borde);margin-bottom:4px">'
+    + ['Usuario','Rol','Gastos','Lluvias','Tareas',''].map(function(h,i){
+        return '<div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;'+(i>1?'text-align:center':'')+'">'+h+'</div>'
+      }).join('')
+    + '</div>'
+
+  html += data.map(function(m) {
+    var rol = _eqDetectarRol(m)
+    var g = contarPor(rG, 'creado_por', m.miembro_id)
+    var l = contarPor(rL, 'creado_por', m.miembro_id)
+    var t = contarPor(rT, 'asignado_a', m.miembro_id)
+    var chips = _eqCamposChips(m)
+    var safeNom = (m.nombre_display||'').replace(/'/g, '')
+    var safeRol = rol
+
+    return '<div style="display:grid;grid-template-columns:1fr 130px 72px 72px 72px 36px;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;transition:background .15s" onmouseover="this.style.background=\'var(--crema-dark)\'" onmouseout="this.style.background=\'transparent\'">'
+      // Avatar + nombre + campos
+      + '<div style="display:flex;align-items:center;gap:10px;min-width:0">'
+        + _eqAvatar(m.nombre_display, 34)
+        + '<div style="min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m.nombre_display+'</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">'+chips+'</div>'
+        + '</div>'
+      + '</div>'
+      // Rol (clickeable para cambiar)
+      + '<div><button onclick="_eqCambiarRol(\''+m.id+'\',\''+safeNom+'\',\''+safeRol+'\')" style="all:unset;cursor:pointer;display:inline-block">'+_eqRolBadge(rol)+'<span style="font-size:9px;color:var(--texto-suave);margin-left:3px">▾</span></button></div>'
+      // Contadores semana
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(g?'var(--verde)':'var(--texto-suave)')+'">'+g+'</div>'
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(l?'var(--verde)':'var(--texto-suave)')+'">'+l+'</div>'
+      + '<div style="text-align:center;font-size:13px;font-weight:600;color:'+(t?'var(--verde)':'var(--texto-suave)')+'">'+t+'</div>'
+      // Eliminar
+      + '<div style="text-align:center"><button onclick="removerMiembro(\''+m.id+'\',\''+safeNom+'\',this)" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:15px;padding:4px;border-radius:6px;transition:all .15s" onmouseover="this.style.color=\'var(--rojo)\'" onmouseout="this.style.color=\'var(--texto-suave)\'">🗑</button></div>'
+    + '</div>'
+  }).join('')
+
+  html += '<div style="font-size:10px;color:var(--texto-suave);text-align:right;margin-top:.5rem;padding-right:4px">Gastos / Lluvias / Tareas = esta semana</div>'
+  el.innerHTML = html
+}
+
+function _renderVistaPorCampo(data, contarPor, rG, rL, rT) {
+  var el = document.getElementById('eq-miembros-lista')
+  if (!campos.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:1.5rem">No hay campos cargados.</div>'
+    return
+  }
+
+  var html = ''
+  campos.forEach(function(c) {
+    var miembrosDelCampo = data.filter(function(m) {
+      if (!m.campos_acceso || !m.campos_acceso.length) return true // acceso a todos
+      return m.campos_acceso.includes(c.id)
+    })
+
+    html += '<div style="margin-bottom:1.2rem">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;padding:6px 0;border-bottom:1.5px solid var(--borde);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
+        + '<span>🌾 '+c.nombre+'</span>'
+        + '<span style="font-size:10px;font-weight:400;color:var(--texto-suave)">'+miembrosDelCampo.length+' miembro'+(miembrosDelCampo.length!==1?'s':'')+'</span>'
+      + '</div>'
+
+    if (!miembrosDelCampo.length) {
+      html += '<div style="font-size:12px;color:var(--texto-suave);padding:.5rem 0">Sin miembros asignados a este campo</div>'
+    } else {
+      miembrosDelCampo.forEach(function(m) {
+        var rol = _eqDetectarRol(m)
+        var info = _EQ_ROL_INFO[rol] || _EQ_ROL_INFO.colaborador
+        var safeNom = (m.nombre_display||'').replace(/'/g,'')
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:4px;transition:background .15s" onmouseover="this.style.background=\'var(--crema-dark)\'" onmouseout="this.style.background=\'transparent\'">'
+          + _eqAvatar(m.nombre_display, 32)
+          + '<div style="flex:1;font-size:13px;font-weight:600;color:var(--texto)">'+m.nombre_display+'</div>'
+          + '<button onclick="_eqCambiarRol(\''+m.id+'\',\''+safeNom+'\',\''+rol+'\')" style="all:unset;cursor:pointer">'+_eqRolBadge(rol)+'<span style="font-size:9px;margin-left:2px">▾</span></button>'
+          + '<button onclick="_eqQuitarCampo(\''+m.id+'\',\''+safeNom+'\',\''+c.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;padding:4px 6px;border-radius:6px;white-space:nowrap" title="Quitar acceso a este campo" onmouseover="this.style.color=\'var(--rojo)\'" onmouseout="this.style.color=\'var(--texto-suave)\'">✕ quitar</button>'
+        + '</div>'
+      })
+    }
+    html += '</div>'
+  })
+
+  el.innerHTML = html
+}
+
+window._eqCambiarRol = function(equipoId, nombre, rolActual) {
+  // Modal de advertencia para cambio de rol
+  var roles = [
+    { key:'administrador',      label:'👔 Administrador',       desc:'Acceso completo incluyendo finanzas' },
+    { key:'admin_sin_finanzas', label:'👁 Admin sin finanzas',  desc:'Todo excepto rentabilidad' },
+    { key:'operario',           label:'📲 Operario',            desc:'Solo carga de datos' }
+  ]
+
+  var existente = document.getElementById('_modal-cambiar-rol')
+  if (existente) existente.remove()
+
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-cambiar-rol'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.3rem">Cambiar rol</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.2rem">Estás cambiando el rol de <strong>'+nombre+'</strong>. Esto modifica qué puede ver y hacer en la app.</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem">'
+    + roles.map(function(r) {
+        var activo = r.key === rolActual
+        var info = _EQ_ROL_INFO[r.key]
+        return '<button onclick="_eqConfirmarCambioRol(\''+equipoId+'\',\''+nombre+'\',\''+r.key+'\')" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;border:2px solid '+(activo?'var(--verde)':'var(--borde)')+';background:'+(activo?'var(--verde-pale)':'#fff')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;text-align:left;transition:all .15s" onmouseover="if(!'+activo+')this.style.borderColor=\'var(--verde)\';this.style.background=\'var(--verde-pale)\'" onmouseout="if(!'+activo+')this.style.borderColor=\'var(--borde)\';this.style.background=\''+( activo ? 'var(--verde-pale)' : '#fff')+ '\'">'
+          + '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+info.bg+';color:'+info.color+'">'+r.label.split(' ').slice(1).join(' ')+'</span>'
+          + '<div><div style="font-size:13px;font-weight:600;color:var(--texto)">'+r.label+'</div><div style="font-size:11px;color:var(--texto-suave)">'+r.desc+'</div></div>'
+          + (activo ? '<span style="margin-left:auto;font-size:11px;color:var(--verde)">✓ actual</span>' : '')
+        + '</button>'
+      }).join('')
+    + '</div>'
+    + '<button onclick="document.getElementById(\'_modal-cambiar-rol\').remove()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+  + '</div>'
+
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarCambioRol = async function(equipoId, nombre, nuevoRol) {
+  var modal = document.getElementById('_modal-cambiar-rol')
+  if (modal) modal.remove()
+  try {
+    var nuevosPermisos = Object.assign({}, PERMISOS_PRESETS[_EQ_ROL_PRESETS[nuevoRol]])
+    await sb.from('equipo').update({ permisos: nuevosPermisos }).eq('id', equipoId)
+    showToast('✓ Rol de '+nombre+' actualizado','ok')
+    _renderListaMiembros()
+  } catch(e) { showToast('⚠️ Error al cambiar rol','err') }
+}
+
+window._eqQuitarCampo = async function(equipoId, nombre, campoId) {
+  var m = (window._eqMiembrosData||[]).find(function(x){ return x.id === equipoId })
+  if (!m) return
+  var acc = (m.campos_acceso||[]).filter(function(id){ return id !== campoId })
+  var campo = campos.find(function(c){ return c.id === campoId })
+  var nomCampo = campo ? campo.nombre : 'este campo'
+
+  var existente = document.getElementById('_modal-quitar-campo')
+  if (existente) existente.remove()
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-quitar-campo'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.5rem">Quitar acceso al campo</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem"><strong>'+nombre+'</strong> ya no va a poder ver ni cargar datos en <strong>'+nomCampo+'</strong>.</div>'
+    + '<div style="display:flex;gap:10px">'
+      + '<button onclick="document.getElementById(\'_modal-quitar-campo\').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+      + '<button onclick="_eqConfirmarQuitarCampo(\''+equipoId+'\',\''+nombre+'\',\''+JSON.stringify(acc).replace(/'/g,'')+'\')" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--rojo);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Quitar acceso</button>'
+    + '</div>'
+  + '</div>'
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarQuitarCampo = async function(equipoId, nombre, accJson) {
+  var modal = document.getElementById('_modal-quitar-campo')
+  if (modal) modal.remove()
+  try {
+    var acc = JSON.parse(accJson)
+    await sb.from('equipo').update({ campos_acceso: acc.length ? acc : null }).eq('id', equipoId)
+    showToast('✓ Acceso quitado','ok')
+    _renderListaMiembros()
+  } catch(e) { showToast('⚠️ Error al quitar acceso','err') }
+}
+
 window.removerMiembro = async function(equipoId, nombre, btn) {
-  if (!confirm('¿Seguro que querés remover a ' + nombre + ' del equipo?')) return
-  btn.disabled = true
+  var existente = document.getElementById('_modal-remover-miembro')
+  if (existente) existente.remove()
+  var overlay = document.createElement('div')
+  overlay.id = '_modal-remover-miembro'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem'
+  overlay.innerHTML = '<div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--texto);margin-bottom:.5rem">Remover miembro</div>'
+    + '<div style="font-size:13px;color:var(--texto-suave);margin-bottom:1.5rem"><strong>'+nombre+'</strong> perderá todo el acceso a tu cuenta. Esta acción se puede revertir invitándolo de nuevo.</div>'
+    + '<div style="display:flex;gap:10px">'
+      + '<button onclick="document.getElementById(\'_modal-remover-miembro\').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'
+      + '<button id="_btn-conf-remover" onclick="_eqConfirmarRemover(\''+equipoId+'\',\''+nombre+'\')" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--rojo);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Remover</button>'
+    + '</div>'
+  + '</div>'
+  document.body.appendChild(overlay)
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove() })
+}
+
+window._eqConfirmarRemover = async function(equipoId, nombre) {
+  var modal = document.getElementById('_modal-remover-miembro')
+  var btn = document.getElementById('_btn-conf-remover')
+  if (btn) { btn.disabled = true; btn.textContent = 'Removiendo...' }
   try {
     await sb.from('equipo').update({ activo: false }).eq('id', equipoId)
+    if (modal) modal.remove()
     _renderListaMiembros()
-    showToast('✓ ' + nombre + ' fue removido del equipo','ok')
-  } catch(e) { showToast('⚠️ Error al remover','err'); btn.disabled = false }
+    showToast('✓ '+nombre+' fue removido del equipo','ok')
+  } catch(e) { showToast('⚠️ Error al remover','err'); if(btn){ btn.disabled=false; btn.textContent='Remover' } }
 }
 
 
 // ── PERMISOS: estado interno del configurador de invitación ──
 window._eqPermisosActuales = {}
+window._eqRolActual = null
+window._eqCamposSeleccionados = [] // [] = todos
+
+var _EQ_ROL_PRESETS = {
+  administrador:    'acceso_completo',
+  admin_sin_finanzas: 'sin_rentabilidad',
+  operario:         'carga_basica'
+}
+
+window._eqSelRol = function(rol) {
+  window._eqRolActual = rol
+  // Aplicar preset de permisos
+  var presetKey = _EQ_ROL_PRESETS[rol]
+  window._eqPermisosActuales = Object.assign({}, PERMISOS_PRESETS[presetKey])
+
+  // Resaltar botón seleccionado
+  ;['administrador','admin_sin_finanzas','operario'].forEach(function(r) {
+    var btn = document.getElementById('eq-rol-' + r)
+    if (!btn) return
+    var activo = r === rol
+    btn.style.borderColor  = activo ? 'var(--verde)' : 'var(--borde)'
+    btn.style.background   = activo ? 'var(--verde-pale)' : 'transparent'
+    btn.style.color        = activo ? 'var(--verde)' : 'var(--texto-mid)'
+  })
+
+  // Mostrar selector de campos solo para admin
+  var secCampos = document.getElementById('eq-sec-campos')
+  if (rol === 'operario') {
+    if (secCampos) secCampos.style.display = 'none'
+    _eqHabilitarGenerar()
+  } else {
+    if (secCampos) secCampos.style.display = ''
+    _eqRenderCampos()
+  }
+}
+
+function _eqRenderCampos() {
+  var lista = document.getElementById('eq-campos-lista')
+  if (!lista) return
+  window._eqCamposSeleccionados = campos.map(function(c){ return c.id }) // todos por defecto
+
+  var html = '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde-pale);cursor:pointer;font-size:13px;font-weight:600;color:var(--verde)">'
+    + '<input type="checkbox" id="eq-campo-todos" checked onchange="_eqToggleTodosCampos(this)" style="accent-color:var(--verde);width:15px;height:15px"> Todos los campos</label>'
+
+  campos.forEach(function(c) {
+    html += '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--borde);background:transparent;cursor:pointer;font-size:13px;color:var(--texto-mid)" id="eq-campo-label-' + c.id + '">'
+      + '<input type="checkbox" class="eq-campo-cb" data-id="' + c.id + '" checked onchange="_eqToggleCampo(this)" style="accent-color:var(--verde);width:15px;height:15px"> '
+      + (c.nombre || 'Campo sin nombre') + '</label>'
+  })
+
+  lista.innerHTML = html
+  _eqHabilitarGenerar()
+}
+
+window._eqToggleTodosCampos = function(chk) {
+  var todos = chk.checked
+  document.querySelectorAll('.eq-campo-cb').forEach(function(cb) {
+    cb.checked = todos
+    var lbl = document.getElementById('eq-campo-label-' + cb.dataset.id)
+    if (lbl) { lbl.style.borderColor = todos ? 'var(--verde)' : 'var(--borde)'; lbl.style.background = todos ? 'var(--verde-pale)' : 'transparent'; lbl.style.color = todos ? 'var(--verde)' : 'var(--texto-mid)' }
+  })
+  window._eqCamposSeleccionados = todos ? campos.map(function(c){ return c.id }) : []
+  _eqHabilitarGenerar()
+}
+
+window._eqToggleCampo = function(chk) {
+  var id = chk.dataset.id
+  var lbl = document.getElementById('eq-campo-label-' + id)
+  if (chk.checked) {
+    if (!window._eqCamposSeleccionados.includes(id)) window._eqCamposSeleccionados.push(id)
+    if (lbl) { lbl.style.borderColor='var(--verde)'; lbl.style.background='var(--verde-pale)'; lbl.style.color='var(--verde)' }
+  } else {
+    window._eqCamposSeleccionados = window._eqCamposSeleccionados.filter(function(x){ return x !== id })
+    if (lbl) { lbl.style.borderColor='var(--borde)'; lbl.style.background='transparent'; lbl.style.color='var(--texto-mid)' }
+  }
+  // Actualizar checkbox "todos"
+  var todos = document.getElementById('eq-campo-todos')
+  if (todos) todos.checked = window._eqCamposSeleccionados.length === campos.length
+  _eqHabilitarGenerar()
+}
+
+function _eqHabilitarGenerar() {
+  var btn = document.getElementById('btn-generar-inv')
+  if (!btn) return
+  // Habilitado si hay un rol seleccionado (los campos son opcionales — sin selección = todos)
+  var ok = !!window._eqRolActual
+  btn.style.opacity = ok ? '1' : '.5'
+  btn.style.pointerEvents = ok ? '' : 'none'
+}
 
 var _EQ_MODULOS = [
   {k:'campos',             lab:'🌾 Campos'},
@@ -7178,26 +7854,64 @@ window.generarInvitacion = async function() {
   var btn = document.getElementById('btn-generar-inv')
   btn.disabled = true; btn.innerHTML = 'Generando...'
   try {
+    // Guardia: usuario debe estar logueado
+    if (!usuario || !usuario.id) throw new Error('Sesión no válida. Recargá la página.')
+
     var token = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g,'').substring(0,16)
       : Math.random().toString(36).substring(2,18)
     var permisos = window._eqPermisosActuales || {}
-    var { error } = await sb.from('invitaciones').insert({
-      token: token,
+    var rolUI = window._eqRolActual || 'operario'
+
+    // Mapear rol de UI al valor permitido por el CHECK constraint de la DB
+    // ('colaborador' | 'administrador'). Los permisos finos van en la columna JSONB.
+    var ROL_DB = { administrador: 'administrador', admin_sin_finanzas: 'administrador', operario: 'colaborador' }
+    var rolDB = ROL_DB[rolUI] || 'colaborador'
+
+    console.log('[generarInvitacion] iniciando', {
+      usuario_id: usuario.id, rolUI: rolUI, rolDB: rolDB, permisos: permisos, token: token
+    })
+
+    // Timeout de 8s: si Supabase no responde (proyecto pausado, red caída)
+    // la promesa colgaría para siempre sin timeout explícito
+    var insertPromise = sb.from('invitaciones').insert({
+      token:    token,
       owner_id: usuario.id,
-      rol: 'colaborador',
+      rol:      rolDB,
       permisos: permisos
     })
-    if (error) throw error
+    var timeoutPromise = new Promise(function(_, rj) {
+      setTimeout(function() {
+        rj(new Error('Sin respuesta de Supabase (8s). Verificá que tu proyecto no esté pausado en app.supabase.com'))
+      }, 8000)
+    })
+    var { data, error } = await Promise.race([insertPromise, timeoutPromise])
+
+    console.log('[generarInvitacion] respuesta Supabase', { data: data, error: error })
+
+    if (error) {
+      console.error('[generarInvitacion] error Supabase:', JSON.stringify(error))
+      var msg = error.message || error.details || error.hint || JSON.stringify(error)
+      throw new Error(msg)
+    }
+
     var link = 'https://rindeagro.lat/?inv=' + token
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''
     window._invLinkActual = link
-    btn.textContent = '↻ Generar nuevo link'
-    btn.disabled = false
+    btn.innerHTML = '<span>↻</span> Generar nuevo link'
+    console.log('[generarInvitacion] éxito — link:', link)
   } catch(e) {
-    showToast('⚠️ Error al generar invitación: '+(e.message||'Intentá de nuevo'),'err')
-    btn.disabled = false; btn.textContent = 'Generar link de invitación'
+    console.error('[generarInvitacion] catch:', e)
+    showToast('⚠️ Error al generar invitación: ' + (e.message || 'Intentá de nuevo'), 'err')
+  } finally {
+    // Siempre re-habilitar el botón, incluso si catch mismo tira error
+    if (btn.innerHTML !== '<span>↻</span> Generar nuevo link') {
+      btn.disabled = false
+      btn.innerHTML = '<span>🔗</span> Generar link de invitación'
+    } else {
+      btn.disabled = false
+    }
   }
 }
 

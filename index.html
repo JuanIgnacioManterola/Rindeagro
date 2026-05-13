@@ -1840,6 +1840,26 @@ async function init() {
     hideLoading()
     closeModal()
     showScreen('app')
+
+    // ── Carga inmediata desde caché local (<100ms) ─────────────────────────
+    // Mostrar datos al instante antes de cualquier query de red.
+    // Usa usuario.id directamente porque CONTEXTO todavía no está disponible.
+    try {
+      var _snapKey = 'rinde_cache_v2_' + user.id
+      var _snap = JSON.parse(localStorage.getItem(_snapKey) || 'null')
+      if (_snap && Array.isArray(_snap.campos)) {
+        campos    = _snap.campos
+        gastos    = _snap.gastos    || []
+        lluvias   = _snap.lluvias   || []
+        analisisS = _snap.analisisS || []
+        if (_snap.tareas) tareas = _snap.tareas
+        if (campos.length > 0) campoRent = campos[0].id
+        renderDashboard()
+        poblarSelectoresCampo()
+      }
+    } catch(_e) {}
+    // ──────────────────────────────────────────────────────────────────────
+
     // determinarContexto con timeout de 4s para no bloquear si Supabase tarda
     try {
       await Promise.race([
@@ -1968,7 +1988,8 @@ function _guardarCache() {
   var k = _cacheKey(); if(!k) return
   try {
     localStorage.setItem(k, JSON.stringify({
-      campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS, ts: Date.now()
+      campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS,
+      tareas: tareas, ts: Date.now()
     }))
   } catch(e) {}
 }

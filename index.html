@@ -1721,13 +1721,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <div class="toast" id="toast"></div>
 
 <script>
-// Safety timeout — si el módulo no carga en 8s, muestra la landing igual
-// 8s es necesario para redes lentas que tardan en cargar el CDN de supabase-js
-window._loadingTimeout = setTimeout(function() {
+// Safety timeout — si el módulo no carga en el tiempo esperado, muestra landing
+// IMPORTANTE: si hay sesión guardada esperamos más (el módulo todavía está bajando del CDN)
+// Si NO hay sesión (usuario nuevo o cerró sesión), esperamos solo 8s
+function _mostrarLandingPorTimeout() {
   try {
     var l = document.getElementById('screen-loading')
-    if (!l) return
-    if (l.style.display === 'none') return  // ya se ocultó correctamente
+    if (!l || l.style.display === 'none') return  // ya se resolvió, ignorar
     l.classList.add('fade')
     setTimeout(function(){ l.style.display = 'none' }, 400)
     document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active') })
@@ -1735,6 +1735,17 @@ window._loadingTimeout = setTimeout(function() {
     if (land) land.classList.add('active')
     window.scrollTo(0, 0)
   } catch(ex) {}
+}
+window._loadingTimeout = setTimeout(function() {
+  try {
+    // Si hay sesión guardada, el CDN puede estar tardando (hard refresh / red lenta).
+    // Esperamos 15s más antes de rendirse — nunca cerrar sesión por un timeout de red.
+    if (localStorage.getItem('rindeagro-auth')) {
+      window._loadingTimeout = setTimeout(_mostrarLandingPorTimeout, 15000)
+      return
+    }
+    _mostrarLandingPorTimeout()
+  } catch(ex) { _mostrarLandingPorTimeout() }
 }, 8000)
 </script>
 <script type="module">
@@ -1842,6 +1853,9 @@ async function init() {
     try { await cargarTodo() } catch(e) { console.error('cargarTodo error:', e) }
   }
 
+  // Marca el momento de inicio para detectar SIGNED_OUT prematuros
+  var _initTs = Date.now()
+
   // onAuthStateChange: maneja INITIAL_SESSION (sesión guardada al recargar)
   // + SIGNED_IN (login nuevo) + SIGNED_OUT
   sb.auth.onAuthStateChange(async function(event, session) {
@@ -1875,6 +1889,15 @@ async function init() {
         document.getElementById('ov-nueva-pass').classList.add('open')
       }, 100)
     } else if (event === 'SIGNED_OUT') {
+      // Guard: ignorar SIGNED_OUT que llega en los primeros 5s de carga —
+      // puede ser un falso positivo mientras Supabase valida el token contra
+      // el servidor (común en conexiones lentas o hard refresh en Chrome).
+      // Solo reaccionar si el usuario ya estaba en la app o si pasaron >5s.
+      var appEl = document.getElementById('screen-app')
+      var enApp = appEl && appEl.classList.contains('active')
+      var tiempoDesdeInit = Date.now() - _initTs
+      if (!enApp && tiempoDesdeInit < 5000) return  // falso positivo al cargar — ignorar
+
       // Limpiar cache del usuario que salió
       try { var _ck = _cacheKey(); if(_ck) localStorage.removeItem(_ck) } catch(e) {}
       // Resetear todo el estado de la app
@@ -1884,8 +1907,7 @@ async function init() {
       // Cerrar cualquier overlay abierto
       try { document.querySelectorAll('.overlay').forEach(function(o){ o.classList.remove('open') }) } catch(e) {}
       // Ir a landing solo si estábamos en la app
-      var appEl = document.getElementById('screen-app')
-      if (appEl && appEl.classList.contains('active')) {
+      if (enApp) {
         showScreen('landing')
         showToast('⚠️ Sesión cerrada. Ingresá de nuevo.', 'err')
       }

@@ -1633,9 +1633,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
               <div style="min-width:28px;height:28px;border-radius:50%;background:#1a4a2e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
               <div style="flex:1">
                 <div style="font-size:13px;color:var(--texto);font-weight:500;margin-bottom:.6rem">Aquí tenés el link para compartir con tu equipo</div>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:var(--crema);border-color:var(--borde)"/>
-                  <button onclick="copiarLinkInvitacion()" id="btn-copiar-inv" style="padding:9px 14px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s">Copiar</button>
+                <input class="fi" id="eq-inv-link" readonly style="font-size:11px;color:var(--texto-mid);background:var(--crema);border-color:var(--borde);margin-bottom:.6rem"/>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button onclick="generarInvitacion()" id="btn-generar-nuevo-inv" style="flex:1;min-width:140px;padding:9px 14px;border-radius:9px;border:1.5px solid var(--verde);background:#fff;color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .2s"><span>↻</span> Generar nuevo link</button>
+                  <button onclick="copiarLinkInvitacion()" id="btn-copiar-inv" style="flex:1;min-width:140px;padding:9px 14px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s">Copiar</button>
                 </div>
               </div>
             </div>
@@ -1651,9 +1652,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
               <div style="min-width:28px;height:28px;border-radius:50%;background:#1a4a2e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
               <div style="font-size:13px;color:var(--texto);font-weight:500;padding-top:4px">Una vez que abran el link, serán agregados a tu equipo automáticamente</div>
             </div>
-
-            <!-- Botón listo -->
-            <button onclick="document.getElementById('ov-mi-equipo').classList.remove('open')" style="width:100%;padding:14px;border-radius:11px;border:none;background:#1a4a2e;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.2rem">Listo</button>
 
             <p style="font-size:11px;color:var(--texto-suave);text-align:center;line-height:1.5;margin:0">⏱ Este link expira en 7 días. Podés generar uno nuevo cuando quieras.</p>
           </div>
@@ -7358,6 +7356,7 @@ window.switchEquipoTab = function(tab, btn) {
     document.getElementById('eq-link-generado').style.display = 'none'
     var btnGen = document.getElementById('btn-generar-inv')
     btnGen.disabled = false
+    btnGen.style.display = ''
     btnGen.innerHTML = '<span>🔗</span> Generar link de invitación'
     // Resetear selección de rol
     window._eqRolActual = null
@@ -7899,18 +7898,15 @@ window.generarInvitacion = async function() {
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''
     window._invLinkActual = link
-    btn.innerHTML = '<span>↻</span> Generar nuevo link'
+    btn.style.display = 'none'
     console.log('[generarInvitacion] éxito — link:', link)
   } catch(e) {
     console.error('[generarInvitacion] catch:', e)
     showToast('⚠️ Error al generar invitación: ' + (e.message || 'Intentá de nuevo'), 'err')
   } finally {
-    // Siempre re-habilitar el botón, incluso si catch mismo tira error
-    if (btn.innerHTML !== '<span>↻</span> Generar nuevo link') {
-      btn.disabled = false
+    btn.disabled = false
+    if (btn.style.display !== 'none') {
       btn.innerHTML = '<span>🔗</span> Generar link de invitación'
-    } else {
-      btn.disabled = false
     }
   }
 }

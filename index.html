@@ -2394,7 +2394,7 @@ async function _renderAccesosColaborador() {
   // Buscar en equipo donde este user es miembro
   try {
     var { data: accesos } = await sb.from('equipo')
-      .select('*, owner:owner_id(id)')
+      .select('*')
       .eq('miembro_id', usuario.id)
       .eq('activo', true)
     if (!accesos || !accesos.length) return
@@ -3419,15 +3419,16 @@ function _renderDashTareas() {
 }
 
 window.abrirModalTarea = async function(id) {
+  try {
   var ov = document.getElementById('ov-tarea')
   // Limpiar archivos pendientes de apertura anterior
   window._tareasArchivosPendientes = []
   _tareasRenderArchivosPendientes()
   var selCampo = document.getElementById('t-campo')
-  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + campos.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
+  if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + (campos||[]).map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
   var selAsig = document.getElementById('t-asignado')
   if (selAsig) {
-    var miembros = window._equipoCache || []
+    var miembros = (window._equipoCache || []).filter(function(m){ return m && m.nombre_display })
     selAsig.innerHTML = '<option value="">Sin asignar</option>'
       + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
   }
@@ -3469,6 +3470,10 @@ window.abrirModalTarea = async function(id) {
   }
   ov.classList.add('open')
   setTimeout(function(){ document.getElementById('t-titulo').focus() }, 100)
+  } catch(e) {
+    console.error('[abrirModalTarea] error al abrir el modal de tarea:', e)
+    showToast('⚠️ Error al abrir el formulario: ' + (e.message || String(e)), 'err')
+  }
 }
 
 // ── Archivos adjuntos en tareas ──
@@ -3742,7 +3747,7 @@ window.guardarTarea = async function() {
     var _dbRun = function(promise) {
       return Promise.race([
         promise,
-        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (15s). Verificá que el proyecto Supabase esté activo en app.supabase.com')) }, 15000) })
+        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (8s). Verificá en app.supabase.com que tu proyecto no esté pausado, o que la tabla "tareas" tenga política RLS de INSERT habilitada.')) }, 8000) })
       ])
     }
 

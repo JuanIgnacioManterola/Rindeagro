@@ -7894,7 +7894,7 @@ window.generarInvitacion = async function() {
       throw new Error(msg)
     }
 
-    var link = 'https://rindeagro.lat/?inv=' + token
+    var link = window.location.origin + window.location.pathname + '?inv=' + token
     document.getElementById('eq-inv-link').value = link
     document.getElementById('eq-link-generado').style.display = ''
     window._invLinkActual = link

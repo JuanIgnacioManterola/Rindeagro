@@ -7164,8 +7164,14 @@ async function determinarContextoUsuario(userId) {
         rolActivo: equipoData.rol,
         userId: userId,
         nombreDisplay: equipoData.nombre_display,
+        nombreOwner: '',
         permisos: equipoData.permisos || {}
       }
+      // Best-effort: traer nombre del owner para mostrar en el banner
+      try {
+        var pOwnerRes = await sb.from('perfiles').select('nombre').eq('id', equipoData.owner_id).maybeSingle()
+        if (pOwnerRes.data && pOwnerRes.data.nombre) window.CONTEXTO.nombreOwner = pOwnerRes.data.nombre
+      } catch(e) {}
     } else {
       window.CONTEXTO = {
         esColaborador: false,
@@ -7346,7 +7352,7 @@ function _renderBannerColaborador() {
   if (!banner) return
   if (window.CONTEXTO?.esColaborador) {
     banner.style.display = 'flex'
-    if (nomEl) nomEl.textContent = window.CONTEXTO.nombreDisplay || 'el productor'
+    if (nomEl) nomEl.textContent = window.CONTEXTO.nombreOwner || 'el productor'
     if (rolEl) {
       // Describir los módulos accesibles
       var p = window.CONTEXTO.permisos || {}

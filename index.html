@@ -7267,12 +7267,16 @@ async function aceptarInvitacionPendiente(userId) {
     }
 
     // 3. Obtener nombre del owner para los toasts (best effort)
-    var nomOwner = 'el equipo'
+    var nomOwner = ''
+    var tieneNombreOwner = false
     try {
       var pOwnerRes = await _withTimeout(
         sb.from('perfiles').select('nombre').eq('id', inv.owner_id).maybeSingle()
       )
-      if (pOwnerRes.data && pOwnerRes.data.nombre) nomOwner = pOwnerRes.data.nombre
+      if (pOwnerRes.data && pOwnerRes.data.nombre) {
+        nomOwner = pOwnerRes.data.nombre
+        tieneNombreOwner = true
+      }
     } catch(e) {}
 
     // 4. ¿Ya es miembro activo?
@@ -7282,7 +7286,7 @@ async function aceptarInvitacionPendiente(userId) {
     if (existRes.error) throw existRes.error
     if (existRes.data) {
       _clearPendingInv()
-      showToast('Ya sos parte del equipo de ' + nomOwner + '.', 'info')
+      showToast(tieneNombreOwner ? 'Ya sos parte del equipo de ' + nomOwner + '.' : 'Ya sos parte del equipo.', 'info')
       return
     }
 
@@ -7310,7 +7314,7 @@ async function aceptarInvitacionPendiente(userId) {
       var em = insRes.error.message || ''
       if (insRes.error.code === '23505' || /duplicate/i.test(em)) {
         _clearPendingInv()
-        showToast('Ya sos parte del equipo de ' + nomOwner + '.', 'info')
+        showToast(tieneNombreOwner ? 'Ya sos parte del equipo de ' + nomOwner + '.' : 'Ya sos parte del equipo.', 'info')
         return
       }
       throw insRes.error
@@ -7323,7 +7327,7 @@ async function aceptarInvitacionPendiente(userId) {
 
     // 8. Cleanup + UI refresh
     _clearPendingInv()
-    showToast('¡Te uniste al equipo de ' + nomOwner + '!', 'ok')
+    showToast(tieneNombreOwner ? '¡Te uniste al equipo de ' + nomOwner + '!' : '¡Te uniste al equipo!', 'ok')
     try { await determinarContextoUsuario(userId) } catch(e) {}
     try { await cargarTodo() } catch(e) {}
   } catch(e) {

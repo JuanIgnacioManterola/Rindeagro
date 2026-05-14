@@ -1663,11 +1663,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
 <!-- PANTALLA INVITACION PENDIENTE -->
 <div class="overlay" id="ov-invitacion">
-  <div class="modal" style="max-width:440px;text-align:center">
-    <div style="font-size:36px;margin-bottom:1rem">🤝</div>
-    <div class="m-tit" id="inv-titulo">Te invitaron a colaborar</div>
-    <div class="m-sub" id="inv-subtitulo">Alguien te invitó a colaborar en su cuenta de RindeAgro.</div>
-    <div style="background:var(--verde-pale);border-radius:12px;padding:1rem;margin-bottom:1.5rem;text-align:left">
+  <div class="modal" style="max-width:440px;text-align:center;padding:1.5rem">
+    <div style="font-size:42px;margin-bottom:.8rem">🌾</div>
+    <div class="m-tit" id="inv-titulo" style="font-size:20px;line-height:1.3">Has sido invitado a Rinde.Agro</div>
+    <div class="m-sub" id="inv-subtitulo" style="font-size:14px;margin-bottom:1.2rem">Iniciá sesión o creá una cuenta para aceptar la invitación.</div>
+    <div style="background:var(--verde-pale);border-radius:12px;padding:1rem;margin-bottom:1.2rem;text-align:left">
       <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:.5rem">Como colaborador podrás:</div>
       <div style="font-size:12px;color:var(--texto-mid);display:flex;flex-direction:column;gap:6px">
         <div>✓ Cargar gastos e ingresos</div>
@@ -1675,9 +1675,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div>✓ Ver los campos del establecimiento</div>
       </div>
     </div>
-    <div style="display:flex;gap:10px">
-      <button class="fb" style="background:var(--crema);color:var(--texto-mid);border:.5px solid var(--borde)" onclick="openModal('login')">Ya tengo cuenta</button>
-      <button class="fb" onclick="openModal('registro')">Registrarme</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="fb" style="flex:1;min-width:140px;background:var(--crema);color:var(--texto-mid);border:.5px solid var(--borde)" onclick="document.getElementById('ov-invitacion').classList.remove('open');openModal('login')">Ya tengo cuenta</button>
+      <button class="fb" style="flex:1;min-width:140px" onclick="document.getElementById('ov-invitacion').classList.remove('open');openModal('registro')">Registrarme</button>
     </div>
   </div>
 </div>
@@ -1824,6 +1824,8 @@ async function init() {
   window._entrarApp = async function(user) {
     if (usuario) return
     usuario = user
+    // Cerrar modal de bienvenida de invitación si llegó a abrirse por race
+    try { document.getElementById('ov-invitacion').classList.remove('open') } catch(e) {}
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
     // Mostrar nombre del email inmediatamente (antes de queries a DB)
     var emailNom = (user.email||'').split('@')[0]
@@ -1857,6 +1859,11 @@ async function init() {
       }
     } catch(_e) {}
     // ──────────────────────────────────────────────────────────────────────
+
+    // Procesar invitación pendiente antes de determinar contexto:
+    // si entró vía link de invitación (incluyendo el redirect post-email-confirmation),
+    // queremos sumarlo al equipo antes de que CONTEXTO se calcule.
+    try { await aceptarInvitacionPendiente(user.id) } catch(e) { console.error('aceptarInvitacionPendiente:', e) }
 
     // determinarContexto con timeout de 4s para no bloquear si Supabase tarda
     try {
@@ -7172,73 +7179,160 @@ async function determinarContextoUsuario(userId) {
   }
 }
 
+function _clearPendingInv() {
+  try { localStorage.removeItem('rindeagro_pending_inv') } catch(e) {}
+  // Limpiar también las claves del esquema viejo por si quedaron de versiones anteriores
+  try {
+    localStorage.removeItem('rindeagro_inv_token')
+    localStorage.removeItem('rindeagro_inv_owner')
+    localStorage.removeItem('rindeagro_inv_rol')
+  } catch(e) {}
+}
+
+function _withTimeout(p, ms) {
+  return Promise.race([
+    p,
+    new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Timeout: la solicitud tardó demasiado')) }, ms || 8000) })
+  ])
+}
+
 async function verificarInvitacion() {
   try {
     var urlParams = new URLSearchParams(window.location.search)
     var token = urlParams.get('inv')
-    if (!token) return null
-    var { data: inv } = await sb.from('invitaciones')
-      .select('*')
-      .eq('token', token)
-      .eq('usado', false)
-      .gte('expira_en', new Date().toISOString())
-      .single()
-    if (!inv) {
-      // Token inválido o expirado — mostrar mensaje después de que cargue
-      setTimeout(function(){ showToast('Este link de invitación ya fue usado o expiró.','err') }, 2000)
+    // Migrar tokens guardados con el esquema viejo (no perder invitaciones pendientes)
+    if (!token) {
+      var legacyTok = null
+      try { legacyTok = localStorage.getItem('rindeagro_inv_token') } catch(e) {}
+      if (legacyTok) {
+        try { localStorage.setItem('rindeagro_pending_inv', JSON.stringify({ token: legacyTok })) } catch(e) {}
+        try {
+          localStorage.removeItem('rindeagro_inv_token')
+          localStorage.removeItem('rindeagro_inv_owner')
+          localStorage.removeItem('rindeagro_inv_rol')
+        } catch(e) {}
+      }
       return null
     }
-    localStorage.setItem('rindeagro_inv_token', token)
-    localStorage.setItem('rindeagro_inv_owner', inv.owner_id)
-    localStorage.setItem('rindeagro_inv_rol', inv.rol)
-    // Buscar nombre del dueño para mostrarlo en la pantalla
+    // Persistir el token apenas lo detectamos (sobrevive a redirects de auth de Supabase)
+    try { localStorage.setItem('rindeagro_pending_inv', JSON.stringify({ token: token })) } catch(e) {}
+    // Limpiar la URL para que el token no quede expuesto en la barra
+    try { history.replaceState(null, '', window.location.pathname) } catch(e) {}
+
+    // Si ya hay sesión activa, no abrir el modal de bienvenida — _entrarApp
+    // dispara aceptarInvitacionPendiente y procesa directo
+    var session = null
     try {
-      var { data: pDueno } = await sb.from('perfiles').select('nombre').eq('id', inv.owner_id).single()
-      var nomDueno = pDueno?.nombre || 'alguien'
-      document.getElementById('inv-titulo').textContent = nomDueno + ' te invitó a colaborar'
-      document.getElementById('inv-subtitulo').textContent = 'Unirte a la cuenta de ' + nomDueno + ' en RindeAgro para cargar datos del campo.'
+      var sessRes = await _withTimeout(sb.auth.getSession(), 3000)
+      session = sessRes && sessRes.data && sessRes.data.session
     } catch(e) {}
+    if (session && session.user) return token
+    // Guard race: si _entrarApp ya corrió (INITIAL_SESSION llegó primero), no abrir modal
+    if (typeof usuario !== 'undefined' && usuario) return token
+
+    // Sin sesión: la policy RLS impide leer la invitación, así que mostramos
+    // el modal con texto genérico. El nombre del owner se revela tras autenticarse.
     document.getElementById('ov-invitacion').classList.add('open')
-    return inv
-  } catch(e) { return null }
+    return token
+  } catch(e) {
+    console.error('[verificarInvitacion]', e)
+    return null
+  }
 }
 
 async function aceptarInvitacionPendiente(userId) {
+  var pending = null
+  try { pending = JSON.parse(localStorage.getItem('rindeagro_pending_inv') || 'null') } catch(e) {}
+  if (!pending || !pending.token || !userId) return
+  var token = pending.token
+
   try {
-    var token = localStorage.getItem('rindeagro_inv_token')
-    var ownerId = localStorage.getItem('rindeagro_inv_owner')
-    var rol = localStorage.getItem('rindeagro_inv_rol')
-    if (!token || !ownerId) return
-    var { data: inv } = await sb.from('invitaciones')
-      .select('*')
-      .eq('token', token)
-      .eq('usado', false)
-      .single()
+    // 1. Validar invitación contra la DB
+    var invRes = await _withTimeout(
+      sb.from('invitaciones').select('*').eq('token', token).eq('usado', false).gte('expira_en', new Date().toISOString()).maybeSingle()
+    )
+    if (invRes.error) throw invRes.error
+    var inv = invRes.data
     if (!inv) {
-      localStorage.removeItem('rindeagro_inv_token')
-      localStorage.removeItem('rindeagro_inv_owner')
-      localStorage.removeItem('rindeagro_inv_rol')
+      _clearPendingInv()
+      showToast('Esta invitación es inválida, ya fue usada o expiró.', 'err')
       return
     }
-    // Buscar nombre del perfil del nuevo miembro
-    var { data: pMiembro } = await sb.from('perfiles').select('nombre').eq('id', userId).single()
-    var nombreMiembro = pMiembro?.nombre || usuario?.email?.split('@')[0] || 'Colaborador'
-    await sb.from('equipo').upsert({
-      owner_id: ownerId,
-      miembro_id: userId,
-      rol: rol || 'colaborador',
-      nombre_display: nombreMiembro,
-      activo: true,
-      permisos: inv.permisos || {}
-    })
-    await sb.from('invitaciones').update({ usado: true }).eq('token', token)
-    localStorage.removeItem('rindeagro_inv_token')
-    localStorage.removeItem('rindeagro_inv_owner')
-    localStorage.removeItem('rindeagro_inv_rol')
-    showToast('✓ Te uniste al equipo exitosamente.','ok')
-    // Re-determinar contexto (ahora es colaborador)
-    await determinarContextoUsuario(userId)
-  } catch(e) { console.error('Error aceptar invitación:', e) }
+
+    // 2. Guard auto-invitación
+    if (inv.owner_id === userId) {
+      _clearPendingInv()
+      showToast('No podés aceptar tu propia invitación.', 'err')
+      return
+    }
+
+    // 3. Obtener nombre del owner para los toasts (best effort)
+    var nomOwner = 'el equipo'
+    try {
+      var pOwnerRes = await _withTimeout(
+        sb.from('perfiles').select('nombre').eq('id', inv.owner_id).maybeSingle()
+      )
+      if (pOwnerRes.data && pOwnerRes.data.nombre) nomOwner = pOwnerRes.data.nombre
+    } catch(e) {}
+
+    // 4. ¿Ya es miembro activo?
+    var existRes = await _withTimeout(
+      sb.from('equipo').select('id').eq('owner_id', inv.owner_id).eq('miembro_id', userId).eq('activo', true).maybeSingle()
+    )
+    if (existRes.error) throw existRes.error
+    if (existRes.data) {
+      _clearPendingInv()
+      showToast('Ya sos parte del equipo de ' + nomOwner + '.', 'info')
+      return
+    }
+
+    // 5. Nombre propio para nombre_display
+    var nombreMiembro = (usuario && usuario.email && usuario.email.split('@')[0]) || 'Colaborador'
+    try {
+      var pMeRes = await _withTimeout(
+        sb.from('perfiles').select('nombre').eq('id', userId).maybeSingle()
+      )
+      if (pMeRes.data && pMeRes.data.nombre) nombreMiembro = pMeRes.data.nombre
+    } catch(e) {}
+
+    // 6. INSERT en equipo (manejar UNIQUE(owner_id, miembro_id) por race condition)
+    var insRes = await _withTimeout(
+      sb.from('equipo').insert({
+        owner_id: inv.owner_id,
+        miembro_id: userId,
+        rol: inv.rol || 'colaborador',
+        nombre_display: nombreMiembro,
+        permisos: inv.permisos || {},
+        activo: true
+      })
+    )
+    if (insRes.error) {
+      var em = insRes.error.message || ''
+      if (insRes.error.code === '23505' || /duplicate/i.test(em)) {
+        _clearPendingInv()
+        showToast('Ya sos parte del equipo de ' + nomOwner + '.', 'info')
+        return
+      }
+      throw insRes.error
+    }
+
+    // 7. Marcar invitación como usada (no bloquea el éxito si falla)
+    try {
+      await _withTimeout(sb.from('invitaciones').update({ usado: true }).eq('token', token))
+    } catch(e) { console.warn('[aceptarInvitacion] no se pudo marcar usada:', e) }
+
+    // 8. Cleanup + UI refresh
+    _clearPendingInv()
+    showToast('¡Te uniste al equipo de ' + nomOwner + '!', 'ok')
+    try { await determinarContextoUsuario(userId) } catch(e) {}
+    try { await cargarTodo() } catch(e) {}
+  } catch(e) {
+    console.error('[aceptarInvitacionPendiente]', e)
+    // Limpiar también en error genérico — evita que un token zombi se reintente
+    // en el próximo login con basura. El usuario puede re-abrir el link.
+    _clearPendingInv()
+    showToast('Error al procesar la invitación. Volvé a abrir el link.', 'err')
+  }
 }
 
 function _renderBannerColaborador() {

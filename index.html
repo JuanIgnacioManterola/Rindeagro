@@ -7567,12 +7567,19 @@ async function _renderListaMiembros() {
     var miembroIds = data.map(function(m){ return m.miembro_id })
     var ownerId = usuario.id
 
-    // Gastos, lluvias y tareas de esta semana por miembro
-    var [rG, rL, rT] = await Promise.all([
+    // Gastos, lluvias y tareas de esta semana por miembro.
+    // Promise.allSettled: si alguna query rebota (p.ej. la columna creado_por
+    // todavía no existe en gastos/lluvias — pendiente del WhatsApp bot),
+    // no tumbamos toda la vista. Las cuentas afectadas quedan en 0.
+    var _settled = await Promise.allSettled([
       sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
       sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
       sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
     ])
+    function _okOrEmpty(r) { return r.status === 'fulfilled' ? r.value : { data: [] } }
+    var rG = _okOrEmpty(_settled[0])
+    var rL = _okOrEmpty(_settled[1])
+    var rT = _okOrEmpty(_settled[2])
 
     function contarPor(rows, campo, uid) {
       return (rows && rows.data || []).filter(function(r){ return r[campo] === uid }).length

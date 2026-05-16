@@ -8772,21 +8772,21 @@ async function _renderListaMiembros() {
   try {
     var data
     try {
-      // Camino normal: cliente Supabase JS
+      // Primero: REST directo (rápido, no depende del cliente JS que está roto)
+      var path = '/equipo?owner_id=eq.'+encodeURIComponent(usuario.id)+'&activo=is.true&order=creado_en.desc&select=*'
+      data = await _withTimeout(_restGet(path), 6000, 'equipo REST')
+      console.log('[Mi equipo] (rest) Recibí', data.length, 'miembro(s)')
+    } catch (eRest) {
+      // Fallback: cliente Supabase JS si el REST falla (ej. sin token en storage)
+      console.warn('[Mi equipo] REST falló, intento SDK:', eRest.message)
       var res = await _withTimeout(
         sb.from('equipo').select('*').eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false }),
-        5000,
+        8000,
         'equipo SELECT (sdk)'
       )
       if (res.error) throw res.error
       data = res.data || []
       console.log('[Mi equipo] (sdk) Recibí', data.length, 'miembro(s)')
-    } catch (eSdk) {
-      // Fallback: el cliente Supabase está colgado, vamos directo a REST
-      console.warn('[Mi equipo] SDK falló, intento fetch directo:', eSdk.message)
-      var path = '/equipo?owner_id=eq.'+encodeURIComponent(usuario.id)+'&activo=is.true&order=creado_en.desc&select=*'
-      data = await _withTimeout(_restGet(path), 8000, 'equipo REST')
-      console.log('[Mi equipo] (rest) Recibí', data.length, 'miembro(s)')
     }
     console.log('[Mi equipo] miembros:', data.map(function(m){return m.nombre_display}))
 
@@ -8802,15 +8802,18 @@ async function _renderListaMiembros() {
 
     var _settled
     try {
-      _settled = await _withTimeout(
-        Promise.allSettled([
-          sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
-          sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
-          sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
+      // REST directo (rápido, no se cuelga). Si una columna no existe en DB, ese query rebota y queda en 0.
+      var semISO = encodeURIComponent(semana)
+      var rests = await _withTimeout(
+        Promise.all([
+          _restGet('/gastos?owner_id=eq.'+encodeURIComponent(ownerId)+'&created_at=gte.'+semISO+'&select=creado_por,created_at').then(function(d){return {data:d}}).catch(function(e){return {error:e,data:[]}}),
+          _restGet('/lluvias?owner_id=eq.'+encodeURIComponent(ownerId)+'&created_at=gte.'+semISO+'&select=creado_por,created_at').then(function(d){return {data:d}}).catch(function(e){return {error:e,data:[]}}),
+          _restGet('/tareas?owner_id=eq.'+encodeURIComponent(ownerId)+'&created_at=gte.'+semISO+'&select=asignado_a,created_at').then(function(d){return {data:d}}).catch(function(e){return {error:e,data:[]}})
         ]),
-        8000,
-        'actividad semanal'
+        4000,
+        'actividad semanal (REST)'
       )
+      _settled = rests.map(function(r){ return {status: r.error ? 'rejected' : 'fulfilled', value: r} })
     } catch(eAct) {
       console.warn('[Mi equipo] Actividad semanal timeout, sigo con 0:', eAct.message)
       _settled = [{status:'rejected'},{status:'rejected'},{status:'rejected'}]

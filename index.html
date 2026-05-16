@@ -494,6 +494,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
+      <button class="anl" id="nav-insumos" onclick="showModulo('stock-insumos')"><span>🧪</span><span>Insumos</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
       <div class="user-chip" id="user-chip-btn" onclick="_toggleUserDropdown()">
@@ -979,6 +980,29 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- Lista de tareas -->
     <div id="tareas-lista"></div>
   </div>
+
+  <!-- ══════ STOCK DE INSUMOS ══════ -->
+  <div class="modulo" id="mod-stock-insumos">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🧪 Stock de Insumos</div><div class="mod-sub">Cargá tus herbicidas, fungicidas, fertilizantes y demás. Se descuenta automáticamente cuando registrás un gasto vinculado.</div></div>
+      <button onclick="openModalInsumo()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Cargar insumo</button>
+    </div>
+
+    <!-- Filtro por tipo -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="insumos-filtros">
+      <button class="ins-filtro-btn active" data-tipo="" onclick="filtrarInsumos('')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
+      <button class="ins-filtro-btn" data-tipo="herbicidas" onclick="filtrarInsumos('herbicidas')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🧪 Herbicidas</button>
+      <button class="ins-filtro-btn" data-tipo="fungicidas" onclick="filtrarInsumos('fungicidas')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🍄 Fungicidas</button>
+      <button class="ins-filtro-btn" data-tipo="insecticidas" onclick="filtrarInsumos('insecticidas')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🐛 Insecticidas</button>
+      <button class="ins-filtro-btn" data-tipo="fertilizantes" onclick="filtrarInsumos('fertilizantes')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⚗️ Fertilizantes</button>
+      <button class="ins-filtro-btn" data-tipo="semillas" onclick="filtrarInsumos('semillas')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🌱 Semillas</button>
+      <button class="ins-filtro-btn" data-tipo="otros" onclick="filtrarInsumos('otros')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">📦 Otros</button>
+    </div>
+
+    <!-- Lista de insumos -->
+    <div id="insumos-lista"></div>
+  </div>
+
   </div>
 </div>
 
@@ -1041,6 +1065,74 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer">
       <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()">Guardar tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR/EDITAR INSUMO -->
+<div class="overlay" id="ov-insumo">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalInsumo()">✕</button>
+      <div class="m-tit" id="insumo-modal-tit">Cargar insumo</div>
+      <div class="m-sub" style="margin-bottom:0">Sumalo al stock para descontarlo automáticamente cuando lo uses en un gasto.</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="i-edit-id" value=""/>
+
+      <div class="fg">
+        <label class="fl">Nombre <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="text" id="i-nombre" placeholder="Ej: Glifosato 48%, Urea 46%, Cipermetrina..."/>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Tipo <span style="color:var(--rojo)">*</span></label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px" id="insumo-tipo-chips">
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('herbicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🧪</div>Herbicidas</button>
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('fungicidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🍄</div>Fungicidas</button>
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('insecticidas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🐛</div>Insecticidas</button>
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('fertilizantes',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">⚗️</div>Fertilizantes</button>
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('semillas',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">🌱</div>Semillas</button>
+          <button type="button" class="ins-tipo-chip" onclick="selInsTipo('otros',this)" style="border:1.5px solid var(--borde);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:11px;color:var(--texto-mid);background:var(--crema);font-family:'DM Sans',sans-serif;font-weight:500"><div style="font-size:18px;margin-bottom:3px">📦</div>Otros</button>
+        </div>
+        <input type="hidden" id="i-tipo" value=""/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Cantidad inicial <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="number" id="i-stock" placeholder="Ej: 100" min="0" step="0.01"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Unidad <span style="color:var(--rojo)">*</span></label>
+          <select class="fi" id="i-unidad" style="cursor:pointer">
+            <option value="litros">Litros (L)</option>
+            <option value="kg">Kilos (kg)</option>
+            <option value="dosis">Dosis</option>
+            <option value="bolsas">Bolsas</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Costo unitario (USD)</label>
+        <input class="fi" type="number" id="i-costo" placeholder="Ej: 3.20 (por litro/kg)" min="0" step="0.01"/>
+        <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Opcional. Si lo cargás, se autocompleta al registrar un gasto con este insumo.</div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Ubicación / Depósito</label>
+        <input class="fi" type="text" id="i-ubicacion" placeholder="Ej: Galpón La Escondida, Cerealera X..."/>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Notas</label>
+        <textarea class="fi" id="i-notas" rows="2" placeholder="Marca, vencimiento, lote..." style="resize:vertical;min-height:50px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
+      <button id="btn-eliminar-insumo" onclick="eliminarInsumo()" style="display:none;background:transparent;color:var(--rojo);border:1px solid var(--rojo);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Eliminar</button>
+      <button class="fb" id="btn-guardar-insumo" onclick="guardarInsumo()" style="flex:1">Guardar insumo</button>
     </div>
   </div>
 </div>
@@ -1393,6 +1485,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <div id="gasto-main-fields">
+    <!-- Vincular con stock de insumos (solo para rubros de insumo) -->
+    <div class="fg" id="g-insumo-row" style="display:none">
+      <label class="fl">Descontar de stock (opcional)</label>
+      <select class="fi" id="g-insumo-sel" style="cursor:pointer" onchange="onInsumoSelChange()">
+        <option value="">— Sin vincular a stock —</option>
+      </select>
+      <div id="g-insumo-info" style="display:none;margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--azul-pale);font-size:12px;color:var(--azul);line-height:1.4"></div>
+    </div>
     <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
 
     <div id="gasto-3col-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.9rem">
@@ -1764,6 +1864,8 @@ var campos = []
 var gastos = []
 var lluvias = []
 var analisisS = []
+var insumos = []
+var insumosFiltroTipo = ''
 var paso = 1
 var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app'
@@ -1992,7 +2094,7 @@ function _guardarCache() {
   try {
     localStorage.setItem(k, JSON.stringify({
       campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS,
-      tareas: tareas, ts: Date.now()
+      tareas: tareas, insumos: insumos, ts: Date.now()
     }))
   } catch(e) {}
 }
@@ -2022,6 +2124,7 @@ async function cargarTodo() {
         gastos = _snap.gastos || []
         lluvias = _snap.lluvias || []
         analisisS = _snap.analisisS || []
+        insumos = _snap.insumos || []
         _mergePendingCampos()
         if(campos.length > 0) campoRent = campos[0].id
         renderDashboard()
@@ -2039,14 +2142,15 @@ async function cargarTodo() {
     }
     return r
   }
-  var [resP, resC, resG, resL, resS, resT, resEq] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false}),
-    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true)
+    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true),
+    sb.from('stock_insumos').select('*').eq('owner_id', uid).order('created_at',{ascending:false})
   ])
 
   // Perfil → nombre/saludo
@@ -2078,6 +2182,13 @@ async function cargarTodo() {
     // Si el módulo tareas está visible, refrescar
     var modT = document.getElementById('mod-tareas')
     if (modT && modT.classList.contains('active')) renderTareas()
+  }
+  // Insumos (stock)
+  var freshInsumos = (resI && resI.status==='fulfilled' && resI.value && Array.isArray(resI.value.data)) ? resI.value.data : null
+  if(freshInsumos !== null) {
+    insumos = freshInsumos
+    var modI = document.getElementById('mod-stock-insumos')
+    if (modI && modI.classList.contains('active')) renderInsumos()
   }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
@@ -2113,7 +2224,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','mapa','tareas']
+  var mods = ['dashboard','campos','rentabilidad-total','mapa','tareas','stock-insumos']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -2130,6 +2241,7 @@ window.showModulo = function(mod) {
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
   if (mod === 'tareas') renderTareas()
+  if (mod === 'stock-insumos') renderInsumos()
 }
 
 window.openModalPrecios = function() {
@@ -5237,7 +5349,90 @@ window.onRubroChange = function() {
     if(descLabel) descLabel.textContent = 'Descripción'
     if(descInput) descInput.placeholder = 'Ingresá una descripción...'
   }
+  _actualizarInsumoSel(rubro)
 }
+
+// Muestra/oculta y puebla el selector de insumos según rubro
+function _actualizarInsumoSel(rubro) {
+  var row = document.getElementById('g-insumo-row')
+  var sel = document.getElementById('g-insumo-sel')
+  if(!row || !sel) return
+  var rubrosConInsumo = ['herbicidas','fungicidas','insecticidas','fertilizantes']
+  if(rubrosConInsumo.indexOf(rubro) === -1) {
+    row.style.display = 'none'
+    sel.value = ''
+    var info = document.getElementById('g-insumo-info'); if(info) info.style.display='none'
+    return
+  }
+  row.style.display = ''
+  var disp = (insumos||[]).filter(function(i){ return i.tipo === rubro })
+  var prev = sel.value
+  var opts = '<option value="">— Sin vincular a stock —</option>'
+  disp.forEach(function(i){
+    var stk = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2})
+    var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
+    opts += '<option value="'+i.id+'">'+ (i.nombre||'(sin nombre)') +' — stock: '+ stk +' '+ u +'</option>'
+  })
+  sel.innerHTML = opts
+  if(prev && disp.find(function(i){return i.id===prev})) sel.value = prev
+  onInsumoSelChange()
+}
+
+window.onInsumoSelChange = function() {
+  var sel = document.getElementById('g-insumo-sel')
+  var info = document.getElementById('g-insumo-info')
+  if(!sel || !info) return
+  var id = sel.value
+  if(!id) { info.style.display='none'; return }
+  var i = insumos.find(function(x){return x.id===id})
+  if(!i) { info.style.display='none'; return }
+  // Autocompletar descripción y precio si están vacíos
+  var descEl = document.getElementById('g-desc')
+  if(descEl && !descEl.value.trim()) descEl.value = i.nombre||''
+  var prEl = document.getElementById('g-precio-unit')
+  if(prEl && !prEl.value && i.costo_unitario) { prEl.value = i.costo_unitario; if(typeof calcConv === 'function') calcConv() }
+  var uEl = document.getElementById('g-unidad')
+  if(uEl && i.unidad && ['litros','kg','dosis'].indexOf(i.unidad)>=0) { uEl.value = i.unidad; if(typeof onUnidadChange==='function') onUnidadChange() }
+  _refrescarInfoInsumo()
+}
+
+// Calcula y muestra cuánto se va a consumir vs stock actual
+function _refrescarInfoInsumo() {
+  var sel = document.getElementById('g-insumo-sel')
+  var info = document.getElementById('g-insumo-info')
+  if(!sel || !info) return
+  var id = sel.value
+  if(!id) { info.style.display='none'; return }
+  var i = insumos.find(function(x){return x.id===id})
+  if(!i) { info.style.display='none'; return }
+  var stockActual = parseFloat(i.stock_actual)||0
+  var cant = parseFloat(document.getElementById('g-cantidad')?.value)||0
+  var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||0
+  var consumo = cant * ha
+  var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
+  // Si estamos editando, sumar lo que ya estaba descontado por ese gasto
+  var editId = document.getElementById('g-edit-id')?.value||''
+  var prevConsumo = 0
+  if(editId) {
+    var gPrev = gastos.find(function(g){return g.id===editId})
+    if(gPrev && gPrev.insumo_id === id) prevConsumo = _gastoConsumoInsumo(gPrev)
+  }
+  var stockEfectivo = stockActual + prevConsumo
+  var restante = stockEfectivo - consumo
+  var color = 'var(--azul)'; var bg = 'var(--azul-pale)'; var icon = 'ℹ️'
+  if(consumo > 0 && restante < 0) { color = 'var(--rojo)'; bg = '#fee2e2'; icon = '⛔' }
+  else if(consumo > 0) { color = 'var(--verde)'; bg = '#dcfce7'; icon = '✓' }
+  info.style.background = bg; info.style.color = color
+  var msg = icon + ' Stock actual: <strong>'+ stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
+  if(consumo > 0) {
+    msg += ' · Consumo: <strong>'+ consumo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
+    msg += ' · Restante: <strong>'+ restante.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
+    if(restante < 0) msg += '<br/>El gasto excede el stock disponible. No se va a poder guardar.'
+  }
+  info.innerHTML = msg
+  info.style.display = ''
+}
+
 window.onUnidadChange = function() {
   var unidad = document.getElementById('g-unidad').value
   var cantLabel = document.getElementById('g-cant-label')
@@ -6560,6 +6755,8 @@ window.openModalGasto = function() {
 }
 window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
+  // Refrescar info de insumo (stock vs consumo)
+  try { _refrescarInfoInsumo() } catch(e){}
   var rubro = document.getElementById('g-rubro')?.value||''
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||1
   var prCereal = parseFloat(document.getElementById('g-precio')?.value)||precios.soja
@@ -6675,6 +6872,30 @@ window.guardarGasto = async function() {
   var usdHa = usdTotal / haFinal
   var qqHa = usdHa / prCereal * 10
 
+  // ── Validación de stock de insumos ───────────────────────────────────────
+  var insumoId = document.getElementById('g-insumo-sel')?.value || null
+  var rubrosConInsumo = ['herbicidas','fungicidas','insecticidas','fertilizantes']
+  if(rubrosConInsumo.indexOf(rubro) === -1) insumoId = null
+  var consumoNuevo = 0
+  if(insumoId) {
+    consumoNuevo = (cantidad||0) * haFinal
+    var ins = insumos.find(function(x){return x.id===insumoId})
+    if(!ins) {
+      showToast('⚠️ El insumo seleccionado no existe — actualizá la página','err'); return
+    }
+    var editIdPrev = document.getElementById('g-edit-id')?.value||''
+    var prevConsumo = 0
+    if(editIdPrev) {
+      var gPrev = gastos.find(function(g){return g.id===editIdPrev})
+      if(gPrev && gPrev.insumo_id === insumoId) prevConsumo = _gastoConsumoInsumo(gPrev)
+    }
+    var stockEfectivo = (parseFloat(ins.stock_actual)||0) + prevConsumo
+    if(consumoNuevo > stockEfectivo + 0.0001) {
+      showToast('⛔ Stock insuficiente: hay ' + stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) + ' ' + (INS_UNI_LABEL[ins.unidad]||ins.unidad) + ', necesitás ' + consumoNuevo.toLocaleString('es-AR',{maximumFractionDigits:2}),'err')
+      return
+    }
+  }
+
   var btn = document.getElementById('btn-gasto')
   btn.disabled=true; btn.textContent='Guardando...'
   try{
@@ -6688,7 +6909,8 @@ window.guardarGasto = async function() {
       usd_ha: usdHa,
       qq_ha: qqHa,
       precio_cereal: prCereal,
-      descripcion: descVal
+      descripcion: descVal,
+      insumo_id: insumoId
     }
     if(gastoSubTipo) { _p.sub_tipo = gastoSubTipo; _p.subtipo = gastoSubTipo } // ambos nombres por compatibilidad
     if(cantidad) _p.cantidad = cantidad
@@ -6723,6 +6945,13 @@ window.guardarGasto = async function() {
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
 
+    // Snapshot del gasto anterior (para revertir descuento al stock si era un insumo)
+    var prevSnap = null
+    if(isEdit) {
+      var gPrev2 = gastos.find(function(g){return g.id===editId})
+      if(gPrev2) prevSnap = {insumo_id: gPrev2.insumo_id||null, consumo: _gastoConsumoInsumo(gPrev2)}
+    }
+
     if(isEdit) {
       // EDIT: espera respuesta para actualizar localmente
       var rE = await sb.from('gastos').update(_p).eq('id',editId).select().single()
@@ -6731,7 +6960,23 @@ window.guardarGasto = async function() {
         rE = await sb.from('gastos').update(_pMin).eq('id',editId).select().single()
       }
       if(rE.error) throw rE.error
-      if(rE.data) { var idx=gastos.findIndex(function(g){return g.id===editId}); if(idx>=0) gastos[idx]=rE.data }
+      if(rE.data) {
+        var idx=gastos.findIndex(function(g){return g.id===editId})
+        if(idx>=0) {
+          gastos[idx]=rE.data
+          // Preservar insumo_id local aunque el retry sin la columna lo haya perdido
+          gastos[idx].insumo_id = insumoId
+          if(cantidad) gastos[idx].cantidad = cantidad
+          if(haFinal) gastos[idx].ha_aplicadas = haFinal
+        }
+      }
+      // ── Ajustar stock: revertir consumo previo + aplicar nuevo ──
+      if(prevSnap && prevSnap.insumo_id) {
+        await _ajustarStockInsumo(prevSnap.insumo_id, +prevSnap.consumo)
+      }
+      if(insumoId && consumoNuevo > 0) {
+        await _ajustarStockInsumo(insumoId, -consumoNuevo)
+      }
       _guardarCache()
       if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
       closeModalGasto()
@@ -6743,6 +6988,10 @@ window.guardarGasto = async function() {
         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
       var gastoLocal = Object.assign({}, _p, {id: gId, campo_id: campoId, usuario_id: uid2})
       gastos.unshift(gastoLocal)
+      // ── Descontar stock del insumo (si hay) ──
+      if(insumoId && consumoNuevo > 0) {
+        await _ajustarStockInsumo(insumoId, -consumoNuevo)
+      }
       _guardarCache()
       if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
       closeModalGasto()
@@ -6760,7 +7009,9 @@ window.guardarGasto = async function() {
         } catch(e) { console.error('bg gasto insert:', e) }
       })()
     }
-    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva','g-insumo-sel'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    var _giRow=document.getElementById('g-insumo-row'); if(_giRow) _giRow.style.display='none'
+    var _giInfo=document.getElementById('g-insumo-info'); if(_giInfo) _giInfo.style.display='none'
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
     document.getElementById('laboreo-subtipos').style.display='none'
     document.getElementById('riego-campos').style.display='none'
@@ -6855,16 +7106,256 @@ window.editarGasto = function(id) {
     var eempMontoLbl = document.getElementById('g-emp-monto-label'); if(eempMontoLbl) eempMontoLbl.textContent = _eempMon==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
   }
   onRubroChange()
+  // Si el gasto tenía insumo vinculado, precargar el selector
+  if(g.insumo_id) {
+    var insSel = document.getElementById('g-insumo-sel')
+    if(insSel) {
+      // _actualizarInsumoSel ya fue llamado por onRubroChange — fijar el valor
+      insSel.value = g.insumo_id
+      _refrescarInfoInsumo()
+    }
+  }
   calcConv()
 }
 window.eliminarGasto = async function(id) {
   if(!confirm('¿Eliminás este gasto?'))return
+  var g = gastos.find(function(x){return x.id===id})
   try{
     await sb.from('gastos').delete().eq('id',id)
+    // Si tenía insumo vinculado, reponer el stock
+    if(g && g.insumo_id) {
+      var consumido = _gastoConsumoInsumo(g)
+      if(consumido > 0) await _ajustarStockInsumo(g.insumo_id, consumido) // +
+    }
     gastos=gastos.filter(g=>g.id!==id)
+    _guardarCache()
     if(campoDet) renderDetGastos(); renderRentabilidad();renderDashboard()
     showToast('Gasto eliminado','ok')
   }catch(e){showToast('⚠️ Error al eliminar','err')}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── CRUD STOCK DE INSUMOS ──
+// ═══════════════════════════════════════════════════════════════════════════
+var INS_TIPO_EMOJI = {herbicidas:'🧪',fungicidas:'🍄',insecticidas:'🐛',fertilizantes:'⚗️',semillas:'🌱',otros:'📦'}
+var INS_TIPO_LABEL = {herbicidas:'Herbicida',fungicidas:'Fungicida',insecticidas:'Insecticida',fertilizantes:'Fertilizante',semillas:'Semilla',otros:'Otro'}
+var INS_UNI_LABEL = {litros:'L', kg:'kg', dosis:'dosis', bolsas:'bolsas'}
+
+// Cantidad consumida (en unidad base) por un gasto = cantidad/ha × ha
+function _gastoConsumoInsumo(g) {
+  if(!g) return 0
+  var c = parseFloat(g.cantidad)||0
+  var ha = parseFloat(g.ha_aplicadas)||0
+  return c * ha
+}
+
+// Ajusta el stock_actual de un insumo en +/- delta (delta puede ser negativo)
+// y persiste en DB. Devuelve true si tuvo éxito, false si quedaría negativo.
+async function _ajustarStockInsumo(insumoId, delta) {
+  if(!insumoId || !delta) return true
+  var ins = insumos.find(function(x){return x.id===insumoId})
+  if(!ins) return true
+  var nuevo = parseFloat(ins.stock_actual||0) + parseFloat(delta)
+  if(nuevo < 0) return false
+  ins.stock_actual = nuevo
+  _guardarCache()
+  if(document.getElementById('mod-stock-insumos')?.classList.contains('active')) renderInsumos()
+  ;(async function(){
+    try { await sb.from('stock_insumos').update({stock_actual: nuevo}).eq('id', insumoId) }
+    catch(e){ console.error('bg stock adjust:', e) }
+  })()
+  return true
+}
+
+window.openModalInsumo = function() {
+  document.getElementById('i-edit-id').value = ''
+  document.getElementById('i-nombre').value = ''
+  document.getElementById('i-tipo').value = ''
+  document.getElementById('i-stock').value = ''
+  document.getElementById('i-unidad').value = 'litros'
+  document.getElementById('i-costo').value = ''
+  document.getElementById('i-ubicacion').value = ''
+  document.getElementById('i-notas').value = ''
+  document.getElementById('insumo-modal-tit').textContent = 'Cargar insumo'
+  document.getElementById('btn-guardar-insumo').textContent = 'Guardar insumo'
+  document.getElementById('btn-eliminar-insumo').style.display = 'none'
+  document.querySelectorAll('.ins-tipo-chip').forEach(function(b){
+    b.style.background='var(--crema)'; b.style.borderColor='var(--borde)'; b.style.color='var(--texto-mid)'
+  })
+  document.getElementById('ov-insumo').classList.add('open')
+}
+
+window.closeModalInsumo = function() {
+  document.getElementById('ov-insumo').classList.remove('open')
+}
+
+window.selInsTipo = function(tipo, btn) {
+  document.getElementById('i-tipo').value = tipo
+  document.querySelectorAll('.ins-tipo-chip').forEach(function(b){
+    b.style.background='var(--crema)'; b.style.borderColor='var(--borde)'; b.style.color='var(--texto-mid)'
+  })
+  if(btn){ btn.style.background='var(--verde)'; btn.style.borderColor='var(--verde)'; btn.style.color='#fff' }
+}
+
+window.guardarInsumo = async function() {
+  var nombre = document.getElementById('i-nombre').value.trim()
+  var tipo = document.getElementById('i-tipo').value
+  var stock = parseFloat(document.getElementById('i-stock').value)
+  var unidad = document.getElementById('i-unidad').value
+  var costo = parseFloat(document.getElementById('i-costo').value)||null
+  var ubicacion = document.getElementById('i-ubicacion').value.trim()||null
+  var notas = document.getElementById('i-notas').value.trim()||null
+  var editId = document.getElementById('i-edit-id').value||''
+
+  if(!nombre){showToast('⚠️ Ingresá el nombre del insumo','err');return}
+  if(!tipo){showToast('⚠️ Seleccioná el tipo','err');return}
+  if(isNaN(stock) || stock < 0){showToast('⚠️ Ingresá una cantidad válida','err');return}
+  if(!unidad){showToast('⚠️ Seleccioná la unidad','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada — volvé a ingresar','err');return}
+
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var btn = document.getElementById('btn-guardar-insumo')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+
+  var _p = {nombre:nombre, tipo:tipo, stock_actual:stock, unidad:unidad, costo_unitario:costo, ubicacion:ubicacion, notas:notas}
+
+  try{
+    if(editId){
+      var rE = await sb.from('stock_insumos').update(_p).eq('id', editId).select().single()
+      if(rE.error) throw rE.error
+      var idx = insumos.findIndex(function(x){return x.id===editId})
+      if(idx>=0 && rE.data) insumos[idx] = rE.data
+      _guardarCache()
+      renderInsumos()
+      closeModalInsumo()
+      showToast('✓ Insumo actualizado','ok')
+    } else {
+      // Optimistic insert
+      var iId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      var local = Object.assign({}, _p, {id:iId, owner_id:uid, created_at:new Date().toISOString()})
+      insumos.unshift(local)
+      _guardarCache()
+      renderInsumos()
+      closeModalInsumo()
+      showToast('✓ Insumo cargado al stock','ok')
+      ;(async function(){
+        try {
+          _p.id = iId; _p.owner_id = uid
+          var rI = await sb.from('stock_insumos').insert(_p)
+          if(rI.error) console.error('insumo insert:', rI.error)
+        } catch(e){ console.error('bg insumo insert:', e) }
+      })()
+    }
+  } catch(e) {
+    console.error('Error guardando insumo:', e)
+    showToast('⚠️ Error: ' + (e.message||'Intentá de nuevo'),'err')
+  } finally {
+    btn.disabled = false; btn.textContent = editId ? 'Guardar cambios' : 'Guardar insumo'
+  }
+}
+
+window.editarInsumo = function(id) {
+  var i = insumos.find(function(x){return x.id===id})
+  if(!i) return
+  document.getElementById('ov-insumo').classList.add('open')
+  document.getElementById('insumo-modal-tit').textContent = 'Editar insumo'
+  document.getElementById('btn-guardar-insumo').textContent = 'Guardar cambios'
+  document.getElementById('btn-eliminar-insumo').style.display = 'inline-block'
+  document.getElementById('i-edit-id').value = i.id
+  document.getElementById('i-nombre').value = i.nombre||''
+  document.getElementById('i-tipo').value = i.tipo||''
+  document.getElementById('i-stock').value = i.stock_actual||0
+  document.getElementById('i-unidad').value = i.unidad||'litros'
+  document.getElementById('i-costo').value = i.costo_unitario||''
+  document.getElementById('i-ubicacion').value = i.ubicacion||''
+  document.getElementById('i-notas').value = i.notas||''
+  // Sync chip
+  document.querySelectorAll('.ins-tipo-chip').forEach(function(b){
+    var oc = b.getAttribute('onclick')||''
+    var active = oc.includes("'"+i.tipo+"'") || oc.includes('"'+i.tipo+'"')
+    b.style.background = active ? 'var(--verde)' : 'var(--crema)'
+    b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = active ? '#fff' : 'var(--texto-mid)'
+  })
+}
+
+window.eliminarInsumo = async function() {
+  var id = document.getElementById('i-edit-id').value
+  if(!id) return
+  // Chequear que no haya gastos vinculados
+  var usado = gastos.some(function(g){return g.insumo_id===id})
+  var msg = usado
+    ? '⚠️ Este insumo está vinculado a uno o más gastos. Si lo eliminás, esos gastos quedarán sin referencia (pero NO se borran). ¿Continuás?'
+    : '¿Eliminás este insumo del stock?'
+  if(!confirm(msg)) return
+  try{
+    await sb.from('stock_insumos').delete().eq('id', id)
+    insumos = insumos.filter(function(x){return x.id!==id})
+    _guardarCache()
+    renderInsumos()
+    closeModalInsumo()
+    showToast('Insumo eliminado','ok')
+  }catch(e){
+    console.error(e); showToast('⚠️ Error al eliminar','err')
+  }
+}
+
+window.filtrarInsumos = function(tipo) {
+  insumosFiltroTipo = tipo || ''
+  document.querySelectorAll('.ins-filtro-btn').forEach(function(b){
+    var t = b.getAttribute('data-tipo')||''
+    var active = t === insumosFiltroTipo
+    b.style.background = active ? 'var(--verde)' : 'var(--crema)'
+    b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = active ? '#fff' : 'var(--texto-mid)'
+  })
+  renderInsumos()
+}
+
+window.renderInsumos = function() {
+  var cont = document.getElementById('insumos-lista')
+  if(!cont) return
+  var lista = (insumosFiltroTipo ? insumos.filter(function(i){return i.tipo===insumosFiltroTipo}) : insumos).slice()
+  if(!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--texto-suave)"><div style="font-size:42px;margin-bottom:10px">🧪</div><div style="font-size:15px;font-weight:600;color:var(--texto-mid);margin-bottom:6px">No tenés insumos cargados todavía</div><div style="font-size:13px">Tocá <strong>+ Cargar insumo</strong> para empezar. Al registrar un gasto vinculado, el stock se descuenta solo.</div></div>'
+    return
+  }
+  // Agrupar por tipo
+  var grupos = {}
+  lista.forEach(function(i){
+    var t = i.tipo||'otros'
+    if(!grupos[t]) grupos[t] = []
+    grupos[t].push(i)
+  })
+  var orden = ['herbicidas','fungicidas','insecticidas','fertilizantes','semillas','otros']
+  var html = ''
+  orden.forEach(function(tipo){
+    if(!grupos[tipo]) return
+    html += '<div style="margin-bottom:18px">'
+    html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);margin-bottom:8px;padding-left:2px">' + INS_TIPO_EMOJI[tipo] + ' ' + INS_TIPO_LABEL[tipo] + 's</div>'
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">'
+    grupos[tipo].forEach(function(i){
+      var stockTxt = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2}) + ' ' + (INS_UNI_LABEL[i.unidad]||i.unidad)
+      var lowStock = (parseFloat(i.stock_actual)||0) <= 0
+      var sColor = lowStock ? 'var(--rojo)' : 'var(--verde)'
+      var costoTxt = i.costo_unitario ? ('USD ' + parseFloat(i.costo_unitario).toFixed(2) + '/' + (INS_UNI_LABEL[i.unidad]||i.unidad)) : ''
+      html += '<div onclick="editarInsumo(\''+i.id+'\')" style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:14px;cursor:pointer;transition:border-color .15s,transform .15s" onmouseover="this.style.borderColor=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\'">'
+      html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
+      html +=     '<div style="font-weight:600;color:var(--texto);font-size:14px;line-height:1.2">' + (i.nombre||'(sin nombre)') + '</div>'
+      html +=     '<div style="font-size:11px;color:var(--texto-suave);white-space:nowrap">'+ (i.ubicacion ? '📍 '+i.ubicacion : '') +'</div>'
+      html +=   '</div>'
+      html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px">'
+      html +=     '<div style="font-size:22px;font-weight:700;color:'+sColor+';font-family:\'Playfair Display\',serif">'+stockTxt+'</div>'
+      if(costoTxt) html += '<div style="font-size:11px;color:var(--texto-suave)">'+costoTxt+'</div>'
+      html +=   '</div>'
+      if(lowStock) html += '<div style="margin-top:6px;font-size:11px;color:var(--rojo);font-weight:600">⚠️ Sin stock</div>'
+      html += '</div>'
+    })
+    html += '</div></div>'
+  })
+  cont.innerHTML = html
 }
 
 // ── CRUD LLUVIAS ──

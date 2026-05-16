@@ -4272,7 +4272,7 @@ window.guardarTarea = async function() {
 
     } else {
       // ── NUEVA ─────────────────────────────────────────────────
-      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', completada: false, id: newId })
+      var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
       console.log('[guardarTarea] INSERT payload:', JSON.stringify(payloadIns))
       var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
       console.log('[guardarTarea] INSERT respuesta:', JSON.stringify({ data: resIns.data, error: resIns.error }))

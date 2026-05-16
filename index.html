@@ -10,6 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{
@@ -490,11 +492,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="app-nav-links">
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
       <button class="anl" id="nav-campos" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
-
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
-      <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
-      <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
       <button class="anl" id="nav-insumos" onclick="showModulo('stock-insumos')"><span>🧪</span><span>Insumos</span></button>
+      <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
+      <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
       <div class="user-chip" id="user-chip-btn" onclick="_toggleUserDropdown()">
@@ -877,6 +878,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
       <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
     </div>
+    <!-- Cascada Ingresos → Costos → Margen -->
+    <div id="rt-cascada" style="margin-bottom:14px"></div>
     <!-- Métricas globales -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
     <!-- Cards por campo -->
@@ -976,7 +979,40 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button id="btn-nueva-tarea" onclick="abrirModalTarea()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Nueva tarea</button>
     </div>
     <!-- Filtros por estado -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="tareas-filtros"></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="tareas-filtros"></div>
+    <!-- Filtros avanzados (usuario, campo, prioridad, fecha) -->
+    <div id="tareas-filtros-avz" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px;padding:10px 12px;background:var(--crema);border:1px solid var(--borde);border-radius:10px">
+      <div>
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:3px">Usuario</label>
+        <select class="fi" id="tf-usuario" onchange="window._aplicarFiltrosTareas()" style="cursor:pointer;font-size:12px;padding:6px 8px"><option value="">Todos</option></select>
+      </div>
+      <div>
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:3px">Campo</label>
+        <select class="fi" id="tf-campo" onchange="window._aplicarFiltrosTareas()" style="cursor:pointer;font-size:12px;padding:6px 8px"><option value="">Todos</option></select>
+      </div>
+      <div>
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:3px">Prioridad</label>
+        <select class="fi" id="tf-prioridad" onchange="window._aplicarFiltrosTareas()" style="cursor:pointer;font-size:12px;padding:6px 8px">
+          <option value="">Todas</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="media">🟡 Media</option>
+          <option value="baja">🟢 Baja</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:3px">Fecha</label>
+        <select class="fi" id="tf-fecha" onchange="window._aplicarFiltrosTareas()" style="cursor:pointer;font-size:12px;padding:6px 8px">
+          <option value="">Cualquiera</option>
+          <option value="hoy">Hoy</option>
+          <option value="semana">Esta semana</option>
+          <option value="mes">Este mes</option>
+          <option value="vencidas">Vencidas</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:end">
+        <button onclick="window._limpiarFiltrosTareas()" style="font-size:11px;padding:7px 10px;border-radius:7px;border:1px solid var(--borde);background:#fff;color:var(--texto-suave);cursor:pointer;font-family:'DM Sans',sans-serif;width:100%">Limpiar</button>
+      </div>
+    </div>
     <!-- Lista de tareas -->
     <div id="tareas-lista"></div>
   </div>
@@ -985,7 +1021,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-stock-insumos">
     <div class="mod-header">
       <div><div class="mod-titulo">🧪 Stock de Insumos</div><div class="mod-sub">Cargá tus herbicidas, fungicidas, fertilizantes y demás. Se descuenta automáticamente cuando registrás un gasto vinculado.</div></div>
-      <button onclick="openModalInsumo()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Cargar insumo</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="openModalFactura()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Desde factura</button>
+        <button onclick="openModalInsumo()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">+ Cargar insumo</button>
+      </div>
     </div>
 
     <!-- Filtro por tipo -->
@@ -1040,9 +1079,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl">Asignar a</label>
+          <label class="fl">Asignar a (quién la va a realizar)</label>
           <select class="fi" id="t-asignado" style="cursor:pointer">
-            <option value="">Sin asignar</option>
+            <option value="">— Sin asignar —</option>
           </select>
         </div>
         <div class="fg" style="margin-bottom:0">
@@ -1069,6 +1108,99 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   </div>
 </div>
 
+<!-- MODAL COMPLETAR TAREA (comentario) -->
+<div class="overlay" id="ov-completar-tarea">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <button class="m-close" onclick="document.getElementById('ov-completar-tarea').classList.remove('open')">✕</button>
+      <div class="m-tit" style="font-size:17px;margin-bottom:.25rem">✓ Completar tarea</div>
+      <div class="m-sub" style="margin-bottom:0">Dejá un comentario sobre cómo quedó. Lo va a ver el que la creó.</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ct-id"/>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Comentario (opcional)</label>
+        <textarea class="fi" id="ct-comentario" rows="4" placeholder="Ej: Apliqué 30 L de glifosato, el campo quedó limpio. Faltó pasar en la franja sur por barro." style="resize:vertical;min-height:100px;line-height:1.5"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
+      <button onclick="document.getElementById('ov-completar-tarea').classList.remove('open')" style="background:transparent;color:var(--texto-suave);border:1px solid var(--borde);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+      <button class="fb" id="btn-confirmar-completar" onclick="confirmarCompletarTarea()" style="flex:1">✓ Marcar como completada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR INSUMOS DESDE FACTURA / REMITO -->
+<div class="overlay" id="ov-factura">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalFactura()">✕</button>
+      <div class="m-tit">📄 Cargar insumos desde factura / remito</div>
+      <div class="m-sub" style="margin-bottom:0">Subí una foto o PDF. El sistema lee los renglones y los carga al stock automáticamente.</div>
+    </div>
+    <div class="modal-body">
+
+      <!-- Paso 1: tipo + upload -->
+      <div id="fac-step-1">
+        <div class="fg">
+          <label class="fl">¿Qué documento estás subiendo?</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button type="button" class="fac-tipo-btn" data-tipo="factura" onclick="window._selFacTipo('factura',this)" style="flex:1;border:1.5px solid var(--verde);border-radius:10px;padding:14px 10px;cursor:pointer;background:var(--verde-pale);color:var(--verde);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:22px;margin-bottom:4px">🧾</div>Factura<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Lee nombres + cantidades + precios</div></button>
+            <button type="button" class="fac-tipo-btn" data-tipo="remito" onclick="window._selFacTipo('remito',this)" style="flex:1;border:1.5px solid var(--borde);border-radius:10px;padding:14px 10px;cursor:pointer;background:var(--crema);color:var(--texto-mid);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:22px;margin-bottom:4px">📃</div>Remito<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Lee nombres + cantidades · vos cargás precios</div></button>
+          </div>
+          <input type="hidden" id="fac-tipo" value="factura"/>
+        </div>
+
+        <div class="fg">
+          <label class="fl">Archivo</label>
+          <label id="fac-upload-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;border-radius:12px;border:2px dashed var(--borde);cursor:pointer;background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+            <span style="font-size:28px">📁</span>
+            <div>
+              <div id="fac-upload-label" style="font-size:14px;font-weight:600;color:var(--texto)">Tocá para elegir foto o PDF</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">JPG, PNG, WEBP o PDF · máx. 10 MB</div>
+            </div>
+            <input type="file" id="fac-file-input" accept="image/*,.pdf" style="display:none" onchange="window._facProcesarSeleccion(this)"/>
+          </label>
+        </div>
+
+        <div id="fac-preview" style="display:none;margin-top:10px"></div>
+
+        <button class="fb" id="btn-fac-procesar" onclick="window._facProcesarOCR()" style="margin-top:10px;display:none">🔍 Leer e identificar insumos</button>
+      </div>
+
+      <!-- Paso 2: loading -->
+      <div id="fac-step-2" style="display:none;text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:14px">🔍</div>
+        <div style="font-size:15px;font-weight:600;color:var(--texto)">Leyendo la factura...</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:6px">Esto puede tardar 5-15 segundos.</div>
+        <div style="margin-top:18px;height:4px;background:var(--crema);border-radius:2px;overflow:hidden"><div style="height:100%;background:var(--verde);width:30%;animation:facBar 1.6s ease-in-out infinite"></div></div>
+      </div>
+
+      <!-- Paso 3: revisar items -->
+      <div id="fac-step-3" style="display:none">
+        <div style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--verde)">
+          <strong id="fac-resumen">Encontré X insumos.</strong> Revisalos, ajustá lo que haga falta y cargá al stock.
+        </div>
+        <div id="fac-items-lista" style="max-height:380px;overflow-y:auto"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button onclick="window._facReset()" style="background:transparent;color:var(--texto-suave);border:1px solid var(--borde);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif">↩ Cargar otra</button>
+          <button class="fb" id="btn-fac-guardar" onclick="window._facGuardarTodos()" style="flex:1">✓ Cargar al stock</button>
+        </div>
+      </div>
+
+      <!-- Paso 4: error / sin OCR configurado -->
+      <div id="fac-step-err" style="display:none;text-align:center;padding:30px 20px">
+        <div style="font-size:40px;margin-bottom:14px">⚠️</div>
+        <div id="fac-err-msg" style="font-size:14px;color:var(--texto);line-height:1.5"></div>
+        <button onclick="window._facReset()" style="margin-top:18px;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Volver a intentar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>@keyframes facBar { 0%{transform:translateX(-100%)} 50%{transform:translateX(50%)} 100%{transform:translateX(200%)} }</style>
+
 <!-- MODAL CARGAR/EDITAR INSUMO -->
 <div class="overlay" id="ov-insumo">
   <div class="modal" style="max-width:500px">
@@ -1079,6 +1211,21 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-body">
       <input type="hidden" id="i-edit-id" value=""/>
+      <input type="hidden" id="i-factura-url" value=""/>
+      <input type="hidden" id="i-factura-path" value=""/>
+      <input type="hidden" id="i-factura-tipo" value=""/>
+
+      <!-- Adjuntar factura/remito (opcional) -->
+      <div style="background:var(--crema);border:1px dashed var(--borde);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600;margin-bottom:6px">📎 Factura o remito (opcional)</div>
+        <div id="i-factura-preview" style="display:none;margin-bottom:8px"></div>
+        <label id="i-factura-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:7px;border:1px solid var(--borde);cursor:pointer;font-size:12px;color:var(--texto-mid);background:#fff;font-family:'DM Sans',sans-serif">
+          <span style="font-size:14px">📁</span>
+          <span id="i-factura-label">Adjuntar foto / PDF</span>
+          <input type="file" id="i-factura-input" accept="image/*,.pdf" style="display:none" onchange="window._insumoSubirFactura(this)"/>
+        </label>
+        <span style="font-size:11px;color:var(--texto-suave);margin-left:8px">Queda asociado al insumo para tu registro.</span>
+      </div>
 
       <div class="fg">
         <label class="fl">Nombre <span style="color:var(--rojo)">*</span></label>
@@ -2224,7 +2371,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','mapa','tareas','stock-insumos']
+  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','tareas','mapa']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -3212,13 +3359,15 @@ function renderPoligonosMapa() {
           var cult = c.cultivo || 'Sin cultivo'
           var mg = c.rendimiento && c.precio_venta ? Math.round(c.rendimiento * c.precio_venta) : null
           poly.bindPopup(
-            '<div style="font-family:DM Sans,sans-serif;min-width:160px">' +
+            '<div style="font-family:DM Sans,sans-serif;min-width:180px">' +
             '<div style="font-weight:700;font-size:13px;color:#1a4a2e;margin-bottom:6px">' + c.nombre + '</div>' +
             '<div style="font-size:12px;color:#555;line-height:1.8">' +
             '📐 ' + ha + ' ha · ' + cult + '<br>' +
             (c.provincia ? '📍 ' + c.provincia + (c.localidad?', '+c.localidad:'') + '<br>' : '') +
             (mg ? '💰 Margen est: <strong style="color:#1a4a2e">USD ' + mg + '/ha</strong>' : '') +
-            '</div></div>'
+            '</div>' +
+            '<button onclick="window._editarPoligonoCampo(\'' + c.id + '\')" style="margin-top:8px;width:100%;background:#1a4a2e;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">✏️ Editar polígono</button>' +
+            '</div>'
           )
 
           // Label centrado en el polígono
@@ -3283,6 +3432,112 @@ window.cambiarCapa = function(capa) {
     document.getElementById('btn-'+b)?.classList.remove('active')
   })
   document.getElementById('btn-'+{'satellite':'sat','topo':'topo','streets':'streets'}[capa])?.classList.add('active')
+}
+
+// ── EDICIÓN DE POLÍGONO DESDE EL MAPA ──
+var _editandoPoly = null
+var _editandoCampoId = null
+
+window._editarPoligonoCampo = function(campoId) {
+  var poly = _mapaPolyByCampo[campoId]
+  if (!poly) { showToast('⚠️ No se encontró el polígono', 'err'); return }
+  if (_editandoPoly) _cancelarEdicionPoligono()
+  mapInstance.closePopup()
+  _editandoPoly = poly
+  _editandoCampoId = campoId
+  try { poly.editing.enable() } catch(e) {
+    // fallback: leaflet.draw debería haber inyectado .editing — si no, usar Edit toolbar
+    console.error('editing.enable() falló:', e)
+    showToast('⚠️ No se pudo activar edición', 'err'); return
+  }
+  // Resaltar el polígono en edición
+  poly.setStyle({ weight: 5, dashArray: '8, 6', fillOpacity: 0.45 })
+  // Toolbar flotante
+  var c = campos.find(function(x){return x.id===campoId})
+  var nombre = (c && c.nombre) || 'campo'
+  var bar = document.createElement('div')
+  bar.id = '_edit-poly-bar'
+  bar.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:1000;background:#fff;border:1.5px solid var(--verde);border-radius:12px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.22);display:flex;align-items:center;gap:10px;font-family:DM Sans,sans-serif;font-size:13px;max-width:92vw'
+  bar.innerHTML = ''
+    + '<span style="color:var(--texto);font-weight:600">✏️ Editando: '+nombre+'</span>'
+    + '<span style="color:var(--texto-suave);font-size:11px;display:none" id="_edit-poly-hint">Arrastrá los puntos para ajustar</span>'
+    + '<button id="_btn-cancel-poly" style="font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>'
+    + '<button id="_btn-save-poly" style="font-size:12px;padding:6px 14px;border-radius:7px;border:none;background:var(--verde);color:#fff;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600">Guardar cambios</button>'
+  var mapEl = document.getElementById('mapa-lotes')
+  if (mapEl && mapEl.parentElement) {
+    mapEl.parentElement.style.position = 'relative'
+    mapEl.parentElement.appendChild(bar)
+  }
+  document.getElementById('_btn-cancel-poly').onclick = _cancelarEdicionPoligono
+  document.getElementById('_btn-save-poly').onclick = _guardarPoligonoEditado
+  // Mostrar el hint después de 800ms
+  setTimeout(function(){ var h=document.getElementById('_edit-poly-hint'); if(h) h.style.display='' }, 800)
+  showToast('✏️ Arrastrá los puntos del polígono para ajustarlo','ok')
+}
+
+function _cancelarEdicionPoligono() {
+  if (!_editandoPoly) return
+  try { _editandoPoly.editing.disable() } catch(e){}
+  _editandoPoly = null
+  _editandoCampoId = null
+  var bar = document.getElementById('_edit-poly-bar')
+  if (bar) bar.remove()
+  // Re-render para volver al estilo original
+  renderPoligonosMapa()
+}
+
+async function _guardarPoligonoEditado() {
+  if (!_editandoPoly || !_editandoCampoId) return
+  var btn = document.getElementById('_btn-save-poly')
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...' }
+  try {
+    var latlngs = _editandoPoly.getLatLngs()
+    // Leaflet devuelve [[ {lat,lng}, ... ]] para polígonos simples
+    var arr = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs
+    var pts = arr.map(function(p){ return [p.lat, p.lng] })
+    if (pts.length < 3) { showToast('⚠️ El polígono necesita al menos 3 puntos','err'); return }
+    // Calcular hectáreas con shoelace (aprox planar — válido para áreas chicas)
+    var ha = _calcHaPoligono(pts)
+    var poligonoJson = JSON.stringify(pts)
+    var update = { poligono: poligonoJson }
+    if (ha && isFinite(ha) && ha > 0) update.hectareas = Math.round(ha * 100) / 100
+    var r = await sb.from('campos').update(update).eq('id', _editandoCampoId)
+    if (r.error) throw r.error
+    // Actualizar estado local
+    var c = campos.find(function(x){return x.id===_editandoCampoId})
+    if (c) {
+      c.poligono = poligonoJson
+      if (update.hectareas) c.hectareas = update.hectareas
+    }
+    _guardarCache()
+    _cancelarEdicionPoligono()
+    renderPoligonosMapa()
+    renderMapaCamposInfo()
+    showToast('✓ Polígono actualizado'+(update.hectareas?' · '+update.hectareas+' ha':''),'ok')
+  } catch(e) {
+    console.error('guardar polígono:', e)
+    showToast('⚠️ Error: '+(e.message||'no se pudo guardar'),'err')
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar cambios' }
+  }
+}
+
+// Cálculo aproximado de hectáreas a partir de puntos [lat,lng] (proyección equirectangular)
+function _calcHaPoligono(pts) {
+  if (!pts || pts.length < 3) return 0
+  var lat0 = pts.reduce(function(a,p){return a+p[0]},0) / pts.length
+  var R = 6371000 // m
+  var rad = Math.PI/180
+  var coords = pts.map(function(p){
+    return [ (p[1]) * rad * R * Math.cos(lat0*rad), (p[0]) * rad * R ]
+  })
+  var area = 0
+  for (var i=0; i<coords.length; i++) {
+    var j = (i+1) % coords.length
+    area += coords[i][0] * coords[j][1]
+    area -= coords[j][0] * coords[i][1]
+  }
+  area = Math.abs(area) / 2
+  return area / 10000 // m² → ha
 }
 
 function renderMapaCamposInfo() {
@@ -3440,13 +3695,13 @@ function _tarjArchivos(t) {
   var imgs = archivos.filter(function(a){ return (a.tipo||'').startsWith('image/') })
   var docs = archivos.filter(function(a){ return !(a.tipo||'').startsWith('image/') })
   var html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
-  imgs.slice(0,3).forEach(function(a, ai) {
+  imgs.slice(0,4).forEach(function(a, ai) {
     var tId = t.id || ''
-    html += '<a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="'+a.nombre+'" style="display:block;width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;border:.5px solid var(--borde);cursor:zoom-in">'
-      +'<img src="'+a.url+'" style="width:100%;height:100%;object-fit:cover"></a>'
+    html += '<a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="'+a.nombre+'" style="display:block;width:72px;height:72px;border-radius:7px;overflow:hidden;flex-shrink:0;border:1px solid var(--borde);cursor:zoom-in;box-shadow:0 1px 3px rgba(0,0,0,.06)">'
+      +'<img src="'+a.url+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;image-rendering:auto"></a>'
   })
-  if (imgs.length > 3) {
-    html += '<div style="width:36px;height:36px;border-radius:5px;background:var(--crema);border:.5px solid var(--borde);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--verde)">+'+( imgs.length-3)+'</div>'
+  if (imgs.length > 4) {
+    html += '<div style="width:72px;height:72px;border-radius:7px;background:var(--crema);border:1px solid var(--borde);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--verde)">+'+( imgs.length-4)+'</div>'
   }
   if (docs.length) {
     html += '<span style="font-size:11px;color:var(--texto-suave);display:flex;align-items:center;gap:3px;background:var(--crema);padding:3px 7px;border-radius:5px;border:.5px solid var(--borde)">📎 '+docs.length+' archivo'+(docs.length>1?'s':'')+'</span>'
@@ -3455,11 +3710,31 @@ function _tarjArchivos(t) {
   return html
 }
 
+function _nombreUsuario(uid) {
+  if (!uid) return null
+  // Si es el admin/owner de la sesión
+  if (window.CONTEXTO && window.CONTEXTO.ownerIdActivo === uid && window.CONTEXTO.nombreOwner) return window.CONTEXTO.nombreOwner
+  if (usuario && usuario.id === uid) {
+    var nm = (usuario.user_metadata && (usuario.user_metadata.nombre || usuario.user_metadata.full_name)) || (usuario.email || '').split('@')[0]
+    return nm
+  }
+  var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
+  if (miembro && miembro.nombre) return miembro.nombre
+  return null
+}
+
 function _tarjAsignado(uid) {
   if (!uid) return '<span style="font-size:11px;color:var(--texto-suave)">Sin asignar</span>'
-  var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
-  if (miembro && miembro.nombre) return '<span style="font-size:11px;color:var(--texto-suave)">👤 '+miembro.nombre+'</span>'
-  return '<span style="font-size:11px;color:var(--texto-suave)">👤 Usuario</span>'
+  var nm = _nombreUsuario(uid) || 'Usuario'
+  return '<span style="font-size:11px;color:var(--texto-suave)" title="Asignada a">👤 '+nm+'</span>'
+}
+
+function _tarjRealizadaPor(t) {
+  // Quién la realizó: completado_por > asignado_a > owner (admin)
+  var uid = t.completado_por || t.asignado_a || t.owner_id
+  var nm = _nombreUsuario(uid)
+  if (!nm) nm = (t.asignado_a ? 'Usuario' : 'Admin')
+  return '<span style="font-size:11px;color:var(--verde);font-weight:600" title="Realizada por">✓ '+nm+'</span>'
 }
 
 function renderTareas() {
@@ -3472,16 +3747,49 @@ function renderTareas() {
   ]
   var hoy = new Date(); hoy.setHours(0,0,0,0)
 
+  // Poblar selects de filtros avanzados (idempotente)
+  _poblarFiltrosTareas()
+
+  var fUsuario   = (document.getElementById('tf-usuario')?.value)||''
+  var fCampo     = (document.getElementById('tf-campo')?.value)||''
+  var fPrioridad = (document.getElementById('tf-prioridad')?.value)||''
+  var fFecha     = (document.getElementById('tf-fecha')?.value)||''
+
+  function _matchFecha(t) {
+    if (!fFecha) return true
+    var fv = t.fecha_vencimiento
+    if (!fv) return fFecha === 'vencidas' ? false : false
+    var d = new Date(fv+'T00:00:00')
+    if (fFecha === 'hoy') return d.getTime() === hoy.getTime()
+    if (fFecha === 'vencidas') return d < hoy && t.estado !== 'completada'
+    if (fFecha === 'semana') {
+      var fin = new Date(hoy); fin.setDate(fin.getDate()+7)
+      return d >= hoy && d <= fin
+    }
+    if (fFecha === 'mes') {
+      return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
+    }
+    return true
+  }
+  function _matchUsuario(t) {
+    if (!fUsuario) return true
+    if (t.estado === 'completada') return (t.completado_por || t.asignado_a) === fUsuario
+    return t.asignado_a === fUsuario
+  }
+
   var lista = tareas.filter(function(t) {
-    if (filtroTareas === 'programada') {
-      return t.estado === 'pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy
-    }
-    if (filtroTareas === 'pendiente') {
-      if (t.estado !== 'pendiente') return false
-      if (t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy) return false
-      return true
-    }
-    return t.estado === filtroTareas
+    // estado base
+    var pasaEstado
+    if (filtroTareas === 'programada') pasaEstado = (t.estado === 'pendiente' && t.fecha_vencimiento && new Date(t.fecha_vencimiento + 'T00:00:00') > hoy)
+    else if (filtroTareas === 'pendiente') {
+      pasaEstado = (t.estado === 'pendiente') && (!t.fecha_vencimiento || new Date(t.fecha_vencimiento + 'T00:00:00') <= hoy)
+    } else pasaEstado = (t.estado === filtroTareas)
+    if (!pasaEstado) return false
+    if (!_matchUsuario(t)) return false
+    if (fCampo && t.campo_id !== fCampo) return false
+    if (fPrioridad && t.prioridad !== fPrioridad) return false
+    if (!_matchFecha(t)) return false
+    return true
   })
 
   var counts = {
@@ -3532,9 +3840,10 @@ function renderTareas() {
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center">'
       +_tarjPrioridad(t.prioridad)
       +_tarjCampo(t.campo_id)
-      +_tarjAsignado(t.asignado_a)
+      +(esCompletada ? _tarjRealizadaPor(t) : _tarjAsignado(t.asignado_a))
       +(t.fecha_vencimiento ? _tarjFecha(t.fecha_vencimiento) : '')
       +(esCompletada ? '<span style="font-size:11px;color:var(--texto-suave)">Completada'+completadaAt+'</span>' : '')
+      +(esCompletada && t.comentario_completado ? '<div style="flex:1 1 100%;margin-top:4px;padding:8px 11px;background:var(--verde-pale);border-left:3px solid var(--verde);border-radius:6px;font-size:12px;color:var(--texto-mid);line-height:1.45"><strong style="color:var(--verde);font-size:11px;text-transform:uppercase;letter-spacing:.3px">Comentario:</strong><br/>'+t.comentario_completado+'</div>' : '')
       +(_tarjArchivos(t))
       +'</div>'
       +'</div>'
@@ -3550,6 +3859,47 @@ function renderTareas() {
 }
 
 window._setFiltroTareas = function(f) { filtroTareas = f; renderTareas() }
+
+window._aplicarFiltrosTareas = function() { renderTareas() }
+window._limpiarFiltrosTareas = function() {
+  ['tf-usuario','tf-campo','tf-prioridad','tf-fecha'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = ''
+  })
+  renderTareas()
+}
+
+function _poblarFiltrosTareas() {
+  // Usuarios: equipo + admin + colaboradores que aparezcan como asignados/completadores
+  var selU = document.getElementById('tf-usuario')
+  if (selU) {
+    var prev = selU.value
+    var uids = new Set()
+    tareas.forEach(function(t){
+      if (t.asignado_a) uids.add(t.asignado_a)
+      if (t.completado_por) uids.add(t.completado_por)
+    })
+    if (window.CONTEXTO && window.CONTEXTO.ownerIdActivo) uids.add(window.CONTEXTO.ownerIdActivo)
+    if (usuario && usuario.id) uids.add(usuario.id)
+    var opts = '<option value="">Todos</option>'
+    Array.from(uids).forEach(function(uid){
+      var nm = _nombreUsuario(uid) || 'Usuario'
+      opts += '<option value="'+uid+'">'+nm+'</option>'
+    })
+    selU.innerHTML = opts
+    selU.value = prev
+  }
+  // Campos
+  var selC = document.getElementById('tf-campo')
+  if (selC) {
+    var prevC = selC.value
+    var opts2 = '<option value="">Todos</option>'
+    ;(campos||[]).forEach(function(c){
+      opts2 += '<option value="'+c.id+'">'+(c.nombre||'(sin nombre)')+'</option>'
+    })
+    selC.innerHTML = opts2
+    selC.value = prevC
+  }
+}
 
 function _renderDashTareas() {
   var hoy = new Date(); hoy.setHours(0,0,0,0)
@@ -3789,11 +4139,14 @@ function _generarPreview(file) {
     var ou = URL.createObjectURL(file)
     img.onload = function() {
       URL.revokeObjectURL(ou)
-      var MAX = 120, w = img.width, h = img.height
+      var MAX = 800, w = img.width, h = img.height
       if (w > MAX || h > MAX) { var r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r) }
       var cv = document.createElement('canvas'); cv.width = w; cv.height = h
-      cv.getContext('2d').drawImage(img, 0, 0, w, h)
-      resolve(cv.toDataURL('image/jpeg', 0.7))
+      var ctx = cv.getContext('2d')
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, 0, 0, w, h)
+      resolve(cv.toDataURL('image/jpeg', 0.92))
     }
     img.onerror = function() { URL.revokeObjectURL(ou); resolve(null) }
     img.src = ou
@@ -3981,16 +4334,37 @@ window.guardarTarea = async function() {
   }
 }
 
-window.completarTarea = async function(id) {
+window.completarTarea = function(id) {
+  // Abrir modal para pedir comentario
+  document.getElementById('ct-id').value = id
+  document.getElementById('ct-comentario').value = ''
+  document.getElementById('ov-completar-tarea').classList.add('open')
+  setTimeout(function(){ var ta = document.getElementById('ct-comentario'); if(ta) ta.focus() }, 80)
+}
+
+window.confirmarCompletarTarea = async function() {
+  var id = document.getElementById('ct-id').value
+  if (!id) return
+  var comentario = (document.getElementById('ct-comentario').value || '').trim()
+  var btn = document.getElementById('btn-confirmar-completar')
+  btn.disabled = true; btn.textContent = 'Guardando...'
   try {
     var now = new Date().toISOString()
-    var { error } = await sb.from('tareas').update({estado:'completada', completada_at: now}).eq('id', id)
-    if (error) throw error
+    var quien = window.CONTEXTO && window.CONTEXTO.colaboradorActivo ? window.CONTEXTO.colaboradorActivo : (usuario ? usuario.id : null)
+    var payload = {estado:'completada', completada_at: now, completado_por: quien, comentario_completado: comentario || null}
+    var r = await sb.from('tareas').update(payload).eq('id', id)
+    if (r.error && /column|does not exist/i.test(r.error.message||'')) {
+      // Retry sin columnas nuevas por compatibilidad (si la migración no se aplicó aún)
+      r = await sb.from('tareas').update({estado:'completada', completada_at: now}).eq('id', id)
+    }
+    if (r.error) throw r.error
     var t = tareas.find(function(x){ return x.id === id })
-    if (t) { t.estado = 'completada'; t.completada_at = now }
+    if (t) { t.estado = 'completada'; t.completada_at = now; t.completado_por = quien; t.comentario_completado = comentario || null }
+    document.getElementById('ov-completar-tarea').classList.remove('open')
     showToast('🎉 Tarea completada', 'ok')
     renderTareas(); _renderDashTareas()
   } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+  finally { btn.disabled = false; btn.textContent = '✓ Marcar como completada' }
 }
 
 window.iniciarTarea = async function(id) {
@@ -7167,22 +7541,319 @@ async function _ajustarStockInsumo(insumoId, delta) {
   return true
 }
 
-window.openModalInsumo = function() {
+window.openModalInsumo = function(preset) {
+  preset = preset || {}
   document.getElementById('i-edit-id').value = ''
-  document.getElementById('i-nombre').value = ''
-  document.getElementById('i-tipo').value = ''
-  document.getElementById('i-stock').value = ''
-  document.getElementById('i-unidad').value = 'litros'
-  document.getElementById('i-costo').value = ''
-  document.getElementById('i-ubicacion').value = ''
-  document.getElementById('i-notas').value = ''
+  document.getElementById('i-nombre').value = preset.nombre || ''
+  document.getElementById('i-tipo').value = preset.tipo || ''
+  document.getElementById('i-stock').value = preset.stock_actual != null ? preset.stock_actual : ''
+  document.getElementById('i-unidad').value = preset.unidad || 'litros'
+  document.getElementById('i-costo').value = preset.costo_unitario != null ? preset.costo_unitario : ''
+  document.getElementById('i-ubicacion').value = preset.ubicacion || ''
+  document.getElementById('i-notas').value = preset.notas || ''
+  document.getElementById('i-factura-url').value = preset.factura_url || ''
+  document.getElementById('i-factura-path').value = preset.factura_path || ''
+  document.getElementById('i-factura-tipo').value = preset.factura_tipo || ''
+  _refrescarPreviewFactura()
   document.getElementById('insumo-modal-tit').textContent = 'Cargar insumo'
   document.getElementById('btn-guardar-insumo').textContent = 'Guardar insumo'
   document.getElementById('btn-eliminar-insumo').style.display = 'none'
   document.querySelectorAll('.ins-tipo-chip').forEach(function(b){
-    b.style.background='var(--crema)'; b.style.borderColor='var(--borde)'; b.style.color='var(--texto-mid)'
+    var oc = b.getAttribute('onclick')||''
+    var active = preset.tipo && (oc.includes("'"+preset.tipo+"'") || oc.includes('"'+preset.tipo+'"'))
+    b.style.background = active ? 'var(--verde)' : 'var(--crema)'
+    b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = active ? '#fff' : 'var(--texto-mid)'
   })
   document.getElementById('ov-insumo').classList.add('open')
+}
+
+function _refrescarPreviewFactura() {
+  var url = document.getElementById('i-factura-url').value
+  var prev = document.getElementById('i-factura-preview')
+  var lbl = document.getElementById('i-factura-label')
+  if (!prev) return
+  if (url) {
+    var isImg = /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url)
+    prev.style.display = ''
+    prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--borde);border-radius:7px">'
+      + (isImg ? '<img src="'+url+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;cursor:zoom-in" onclick="window._abrirArchivo(\''+url+'\',\'factura\',\'image/jpeg\')">' : '<span style="font-size:24px">📄</span>')
+      + '<div style="flex:1;min-width:0;font-size:12px"><a href="'+url+'" target="_blank" style="color:var(--verde);font-weight:500">Ver archivo</a></div>'
+      + '<button type="button" onclick="window._insumoQuitarFactura()" style="background:transparent;color:var(--rojo);border:1px solid var(--borde);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">Quitar</button>'
+      + '</div>'
+    if (lbl) lbl.textContent = 'Cambiar archivo'
+  } else {
+    prev.style.display = 'none'
+    prev.innerHTML = ''
+    if (lbl) lbl.textContent = 'Adjuntar foto / PDF'
+  }
+}
+
+window._insumoQuitarFactura = function() {
+  document.getElementById('i-factura-url').value = ''
+  document.getElementById('i-factura-path').value = ''
+  document.getElementById('i-factura-tipo').value = ''
+  _refrescarPreviewFactura()
+}
+
+window._insumoSubirFactura = async function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB', 'err'); input.value = ''; return }
+  var lbl = document.getElementById('i-factura-label')
+  if (lbl) lbl.textContent = 'Subiendo...'
+  try {
+    var up = await _subirArchivoStorageBucket(f, 'insumos-facturas')
+    document.getElementById('i-factura-url').value = up.url
+    document.getElementById('i-factura-path').value = up.path
+    if (!document.getElementById('i-factura-tipo').value) document.getElementById('i-factura-tipo').value = 'factura'
+    _refrescarPreviewFactura()
+    showToast('✓ Factura adjuntada','ok')
+  } catch(e) {
+    console.error(e); showToast('⚠️ Error: '+(e.message||'no se pudo subir'),'err')
+    if (lbl) lbl.textContent = 'Adjuntar foto / PDF'
+  } finally { input.value = '' }
+}
+
+// Versión genérica de _subirArchivoStorage que acepta el bucket como parámetro
+async function _subirArchivoStorageBucket(file, bucket) {
+  if (!usuario) throw new Error('Sesión expirada')
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var ts = Date.now()
+  var safeName = (file.name||'archivo').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,80)
+  var path = uid + '/' + ts + '_' + safeName
+  var up = await sb.storage.from(bucket).upload(path, file, {cacheControl:'3600', upsert:false, contentType: file.type||undefined})
+  if (up.error) throw up.error
+  var pub = sb.storage.from(bucket).getPublicUrl(path)
+  return { url: pub.data.publicUrl, path: path }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODAL: CARGAR INSUMOS DESDE FACTURA / REMITO (multi-item con OCR)
+// ═══════════════════════════════════════════════════════════════════════════
+var _facFile = null
+var _facItems = []
+var _facFacturaUrl = null
+var _facFacturaPath = null
+
+window.openModalFactura = function() {
+  _facReset()
+  document.getElementById('ov-factura').classList.add('open')
+}
+
+window.closeModalFactura = function() {
+  document.getElementById('ov-factura').classList.remove('open')
+  _facReset()
+}
+
+window._selFacTipo = function(tipo, btn) {
+  document.getElementById('fac-tipo').value = tipo
+  document.querySelectorAll('.fac-tipo-btn').forEach(function(b){
+    var sel = b.getAttribute('data-tipo') === tipo
+    b.style.background = sel ? 'var(--verde-pale)' : 'var(--crema)'
+    b.style.borderColor = sel ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = sel ? 'var(--verde)' : 'var(--texto-mid)'
+  })
+}
+
+window._facReset = function() {
+  _facFile = null
+  _facItems = []
+  _facFacturaUrl = null
+  _facFacturaPath = null
+  document.getElementById('fac-step-1').style.display = ''
+  document.getElementById('fac-step-2').style.display = 'none'
+  document.getElementById('fac-step-3').style.display = 'none'
+  document.getElementById('fac-step-err').style.display = 'none'
+  document.getElementById('fac-preview').style.display = 'none'
+  document.getElementById('fac-preview').innerHTML = ''
+  document.getElementById('btn-fac-procesar').style.display = 'none'
+  document.getElementById('fac-upload-label').textContent = 'Tocá para elegir foto o PDF'
+  var fi = document.getElementById('fac-file-input'); if (fi) fi.value = ''
+  _selFacTipo('factura', null)
+  var faBtn = document.querySelector('.fac-tipo-btn[data-tipo="factura"]'); if (faBtn) _selFacTipo('factura', faBtn)
+}
+
+window._facProcesarSeleccion = function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB', 'err'); input.value = ''; return }
+  _facFile = f
+  var prev = document.getElementById('fac-preview')
+  var isImg = (f.type || '').startsWith('image/')
+  if (isImg) {
+    var url = URL.createObjectURL(f)
+    prev.innerHTML = '<img src="'+url+'" style="max-width:100%;max-height:280px;border-radius:8px;border:1px solid var(--borde);display:block;margin:0 auto"/>'
+  } else {
+    prev.innerHTML = '<div style="padding:14px;background:var(--crema);border:1px solid var(--borde);border-radius:8px;display:flex;align-items:center;gap:10px;font-size:13px"><span style="font-size:30px">📄</span><div><div style="font-weight:600">'+f.name+'</div><div style="font-size:11px;color:var(--texto-suave)">'+Math.round(f.size/1024)+' KB · PDF</div></div></div>'
+  }
+  prev.style.display = ''
+  document.getElementById('fac-upload-label').textContent = 'Cambiar archivo'
+  document.getElementById('btn-fac-procesar').style.display = ''
+}
+
+window._facProcesarOCR = async function() {
+  if (!_facFile) { showToast('⚠️ Subí un archivo primero','err'); return }
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+  var tipo = document.getElementById('fac-tipo').value || 'factura'
+
+  document.getElementById('fac-step-1').style.display = 'none'
+  document.getElementById('fac-step-2').style.display = ''
+
+  try {
+    // 1) Subir el archivo a Storage para tener URL persistente
+    var up = await _subirArchivoStorageBucket(_facFile, 'insumos-facturas')
+    _facFacturaUrl = up.url
+    _facFacturaPath = up.path
+
+    // 2) Convertir a base64 para mandar al OCR (más confiable que URL pública por CDN cache)
+    var b64 = await _fileToBase64(_facFile)
+
+    // 3) Llamar al endpoint de OCR (Supabase Edge Function)
+    var sbUrl = (window.SUPABASE_URL || '') || (sb && sb.supabaseUrl) || ''
+    var endpoint = (sbUrl || '').replace(/\/$/,'') + '/functions/v1/ocr-factura'
+    var sess = (await sb.auth.getSession()).data.session
+    var token = sess && sess.access_token
+    var r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+(token||'') },
+      body: JSON.stringify({ image_base64: b64, mime_type: _facFile.type || 'image/jpeg', tipo: tipo })
+    })
+    if (!r.ok) {
+      var txt = await r.text().catch(function(){return ''})
+      if (r.status === 404) throw new Error('OCR no configurado todavía. El admin tiene que desplegar la función ocr-factura.')
+      if (r.status === 401) throw new Error('Sesión inválida. Volvé a entrar.')
+      throw new Error('OCR error '+r.status+': '+(txt||'sin detalle'))
+    }
+    var data = await r.json()
+    var items = (data && Array.isArray(data.items)) ? data.items : []
+    if (!items.length) throw new Error('No pude identificar insumos en este archivo. Probá con una foto más clara.')
+
+    // 4) Normalizar y mostrar lista editable
+    _facItems = items.map(function(x){
+      return {
+        nombre: String(x.nombre||'').trim(),
+        tipo: _facMapTipo(x.tipo),
+        cantidad: parseFloat(x.cantidad)||0,
+        unidad: _facMapUnidad(x.unidad),
+        costo_unitario: tipo === 'remito' ? null : (parseFloat(x.precio_unitario)||null),
+        seleccionado: true
+      }
+    }).filter(function(it){ return it.nombre })
+    document.getElementById('fac-resumen').textContent = 'Encontré ' + _facItems.length + ' insumo' + (_facItems.length!==1?'s':'') + (tipo==='remito'?' (cargá los precios).':'.')
+    _facRenderItems()
+    document.getElementById('fac-step-2').style.display = 'none'
+    document.getElementById('fac-step-3').style.display = ''
+  } catch(e) {
+    console.error('OCR error:', e)
+    document.getElementById('fac-step-2').style.display = 'none'
+    document.getElementById('fac-step-err').style.display = ''
+    document.getElementById('fac-err-msg').innerHTML = (e.message || 'No se pudo leer la factura.') + '<br/><br/><span style="color:var(--texto-suave);font-size:12px">Mientras tanto podés cargar el insumo manualmente con el botón <strong>+ Cargar insumo</strong>.</span>'
+  }
+}
+
+function _facMapTipo(t) {
+  if (!t) return 'otros'
+  var s = String(t).toLowerCase()
+  if (s.indexOf('herb') >= 0) return 'herbicidas'
+  if (s.indexOf('fung') >= 0) return 'fungicidas'
+  if (s.indexOf('insect') >= 0) return 'insecticidas'
+  if (s.indexOf('fert') >= 0 || s.indexOf('urea') >= 0) return 'fertilizantes'
+  if (s.indexOf('sem') >= 0) return 'semillas'
+  return 'otros'
+}
+function _facMapUnidad(u) {
+  if (!u) return 'litros'
+  var s = String(u).toLowerCase()
+  if (s.indexOf('l') >= 0 && s.indexOf('kg') < 0) return 'litros'
+  if (s.indexOf('kg') >= 0 || s === 'kilos' || s === 'kilo') return 'kg'
+  if (s.indexOf('bols') >= 0) return 'bolsas'
+  if (s.indexOf('dos') >= 0) return 'dosis'
+  return 'litros'
+}
+
+function _fileToBase64(file) {
+  return new Promise(function(res, rej){
+    var fr = new FileReader()
+    fr.onload = function(){ var d = fr.result || ''; var idx = String(d).indexOf(',')+1; res(String(d).slice(idx)) }
+    fr.onerror = function(){ rej(new Error('No se pudo leer el archivo')) }
+    fr.readAsDataURL(file)
+  })
+}
+
+function _facRenderItems() {
+  var c = document.getElementById('fac-items-lista')
+  var tipoDoc = document.getElementById('fac-tipo').value || 'factura'
+  c.innerHTML = _facItems.map(function(it, i){
+    var emoji = (typeof INS_TIPO_EMOJI !== 'undefined' && INS_TIPO_EMOJI[it.tipo]) || '📦'
+    return ''
+      + '<div style="display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;padding:10px;border:1px solid var(--borde);border-radius:9px;margin-bottom:8px;background:'+(it.seleccionado?'#fff':'#fafafa')+'">'
+      +   '<input type="checkbox" '+(it.seleccionado?'checked':'')+' onchange="window._facToggle('+i+',this.checked)" style="width:18px;height:18px;cursor:pointer">'
+      +   '<div style="display:grid;grid-template-columns:1.6fr 0.8fr 0.6fr 0.8fr 0.8fr;gap:6px;align-items:center">'
+      +     '<input class="fi" type="text" value="'+(it.nombre||'').replace(/"/g,'&quot;')+'" onchange="window._facEdit('+i+',\'nombre\',this.value)" placeholder="Nombre" style="font-size:12px;padding:6px 8px">'
+      +     '<select class="fi" onchange="window._facEdit('+i+',\'tipo\',this.value)" style="font-size:12px;padding:6px 8px;cursor:pointer">'
+      +       '<option value="herbicidas"'+(it.tipo==='herbicidas'?' selected':'')+'>🧪 Herbicida</option>'
+      +       '<option value="fungicidas"'+(it.tipo==='fungicidas'?' selected':'')+'>🍄 Fungicida</option>'
+      +       '<option value="insecticidas"'+(it.tipo==='insecticidas'?' selected':'')+'>🐛 Insecticida</option>'
+      +       '<option value="fertilizantes"'+(it.tipo==='fertilizantes'?' selected':'')+'>⚗️ Fertilizante</option>'
+      +       '<option value="semillas"'+(it.tipo==='semillas'?' selected':'')+'>🌱 Semilla</option>'
+      +       '<option value="otros"'+(it.tipo==='otros'?' selected':'')+'>📦 Otros</option>'
+      +     '</select>'
+      +     '<input class="fi" type="number" value="'+it.cantidad+'" min="0" step="0.01" onchange="window._facEdit('+i+',\'cantidad\',parseFloat(this.value)||0)" placeholder="Cant." style="font-size:12px;padding:6px 8px">'
+      +     '<select class="fi" onchange="window._facEdit('+i+',\'unidad\',this.value)" style="font-size:12px;padding:6px 8px;cursor:pointer">'
+      +       '<option value="litros"'+(it.unidad==='litros'?' selected':'')+'>L</option>'
+      +       '<option value="kg"'+(it.unidad==='kg'?' selected':'')+'>kg</option>'
+      +       '<option value="dosis"'+(it.unidad==='dosis'?' selected':'')+'>dosis</option>'
+      +       '<option value="bolsas"'+(it.unidad==='bolsas'?' selected':'')+'>bolsas</option>'
+      +     '</select>'
+      +     '<input class="fi" type="number" value="'+(it.costo_unitario||'')+'" min="0" step="0.01" onchange="window._facEdit('+i+',\'costo_unitario\',parseFloat(this.value)||null)" placeholder="'+(tipoDoc==='remito'?'Precio (cargá)':'Precio')+'" style="font-size:12px;padding:6px 8px;'+(tipoDoc==='remito'&&!it.costo_unitario?'background:#fef3c7':'')+'">'
+      +   '</div>'
+      + '</div>'
+  }).join('')
+}
+
+window._facToggle = function(i, sel) { if (_facItems[i]) _facItems[i].seleccionado = sel; _facRenderItems() }
+window._facEdit = function(i, key, val) { if (_facItems[i]) _facItems[i][key] = val }
+
+window._facGuardarTodos = async function() {
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+  var seleccionados = _facItems.filter(function(it){ return it.seleccionado && it.nombre && it.cantidad > 0 })
+  if (!seleccionados.length) { showToast('⚠️ Marcá al menos un insumo','err'); return }
+  var btn = document.getElementById('btn-fac-guardar')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var tipoDoc = document.getElementById('fac-tipo').value || 'factura'
+  var nuevos = []
+  try {
+    for (var i = 0; i < seleccionados.length; i++) {
+      var it = seleccionados[i]
+      var iId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      var row = {
+        id: iId, owner_id: uid,
+        nombre: it.nombre, tipo: it.tipo, stock_actual: it.cantidad, unidad: it.unidad,
+        costo_unitario: it.costo_unitario || null,
+        factura_url: _facFacturaUrl, factura_path: _facFacturaPath, factura_tipo: tipoDoc,
+        created_at: new Date().toISOString()
+      }
+      nuevos.push(row)
+    }
+    // Optimistic local
+    nuevos.forEach(function(n){ insumos.unshift(n) })
+    _guardarCache()
+    renderInsumos()
+    showToast('✓ '+nuevos.length+' insumo'+(nuevos.length!==1?'s':'')+' cargado'+(nuevos.length!==1?'s':'')+' al stock','ok')
+    closeModalFactura()
+    // DB en background
+    ;(async function(){
+      try {
+        var rIns = await sb.from('stock_insumos').insert(nuevos.map(function(n){ var copy=Object.assign({},n); delete copy.created_at; return copy }))
+        if (rIns.error) console.error('bulk insert insumos:', rIns.error)
+      } catch(e) { console.error('bg bulk insumo insert:', e) }
+    })()
+  } catch(e) {
+    console.error(e); showToast('⚠️ Error: '+(e.message||'no se pudo guardar'),'err')
+  } finally { btn.disabled = false; btn.textContent = '✓ Cargar al stock' }
 }
 
 window.closeModalInsumo = function() {
@@ -7217,7 +7888,10 @@ window.guardarInsumo = async function() {
   var btn = document.getElementById('btn-guardar-insumo')
   btn.disabled = true; btn.textContent = 'Guardando...'
 
-  var _p = {nombre:nombre, tipo:tipo, stock_actual:stock, unidad:unidad, costo_unitario:costo, ubicacion:ubicacion, notas:notas}
+  var facUrl = document.getElementById('i-factura-url').value || null
+  var facPath = document.getElementById('i-factura-path').value || null
+  var facTipo = document.getElementById('i-factura-tipo').value || null
+  var _p = {nombre:nombre, tipo:tipo, stock_actual:stock, unidad:unidad, costo_unitario:costo, ubicacion:ubicacion, notas:notas, factura_url:facUrl, factura_path:facPath, factura_tipo:facTipo}
 
   try{
     if(editId){
@@ -7271,6 +7945,10 @@ window.editarInsumo = function(id) {
   document.getElementById('i-costo').value = i.costo_unitario||''
   document.getElementById('i-ubicacion').value = i.ubicacion||''
   document.getElementById('i-notas').value = i.notas||''
+  document.getElementById('i-factura-url').value = i.factura_url || ''
+  document.getElementById('i-factura-path').value = i.factura_path || ''
+  document.getElementById('i-factura-tipo').value = i.factura_tipo || ''
+  _refrescarPreviewFactura()
   // Sync chip
   document.querySelectorAll('.ins-tipo-chip').forEach(function(b){
     var oc = b.getAttribute('onclick')||''
@@ -9401,6 +10079,54 @@ window.renderRentabilidadTotal = function() {
   var mgTotal = totalIngreso-totalCosto
   var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
   var mc = mgHaGlobal>=0?'#1a7a52':'#c0392b'
+
+  // ── CASCADA Ingresos → Costos → Margen ──
+  var casEl = document.getElementById('rt-cascada')
+  if(casEl) {
+    // Anchos relativos respecto al mayor de los tres (en valor absoluto)
+    var max3 = Math.max(Math.abs(totalIngreso), Math.abs(totalCosto), Math.abs(mgTotal), 1)
+    var pctIng = Math.max(8, Math.round(Math.abs(totalIngreso)/max3*100))
+    var pctCos = Math.max(8, Math.round(Math.abs(totalCosto)/max3*100))
+    var pctMg  = Math.max(8, Math.round(Math.abs(mgTotal)/max3*100))
+    var ingPerHa = totalHa>0 ? Math.round(totalIngreso/totalHa) : 0
+    var cosPerHa = totalHa>0 ? Math.round(totalCosto/totalHa) : 0
+    var mgPerHa  = Math.round(mgHaGlobal)
+    function _fmt(v){return (v>=0?'+':'')+'USD '+Math.round(v).toLocaleString('es-AR')}
+    casEl.innerHTML = ''
+      + '<div class="card" style="padding:18px 20px;margin-bottom:0">'
+      +   '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);font-weight:600;margin-bottom:12px">Flujo de la campaña</div>'
+
+      // 1) Ingresos
+      +   '<div style="display:grid;grid-template-columns:140px 1fr 200px;gap:12px;align-items:center;margin-bottom:10px">'
+      +     '<div style="font-size:13px;font-weight:600;color:#1a7a52">📈 Ingresos</div>'
+      +     '<div style="height:34px;border-radius:8px;background:linear-gradient(90deg,#dcfce7,#86efac);position:relative;overflow:hidden">'
+      +       '<div style="height:100%;width:'+pctIng+'%;background:linear-gradient(90deg,#16a34a,#15803d);border-radius:8px;transition:width .6s ease"></div>'
+      +     '</div>'
+      +     '<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:#1a7a52;font-family:DM Mono,monospace">USD '+Math.round(totalIngreso).toLocaleString('es-AR')+'</div><div style="font-size:11px;color:var(--texto-suave)">USD '+ingPerHa+'/ha</div></div>'
+      +   '</div>'
+
+      // 2) Costos (con signo negativo)
+      +   '<div style="display:grid;grid-template-columns:140px 1fr 200px;gap:12px;align-items:center;margin-bottom:10px">'
+      +     '<div style="font-size:13px;font-weight:600;color:#c0392b">📉 Costos</div>'
+      +     '<div style="height:34px;border-radius:8px;background:linear-gradient(90deg,#fee2e2,#fca5a5);position:relative;overflow:hidden">'
+      +       '<div style="height:100%;width:'+pctCos+'%;background:linear-gradient(90deg,#dc2626,#991b1b);border-radius:8px;transition:width .6s ease"></div>'
+      +     '</div>'
+      +     '<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:#c0392b;font-family:DM Mono,monospace">− USD '+Math.round(totalCosto).toLocaleString('es-AR')+'</div><div style="font-size:11px;color:var(--texto-suave)">USD '+cosPerHa+'/ha</div></div>'
+      +   '</div>'
+
+      // Separador visual
+      +   '<div style="height:1px;background:linear-gradient(90deg,transparent,var(--borde),transparent);margin:14px 0 14px 152px"></div>'
+
+      // 3) Margen (resaltado)
+      +   '<div style="display:grid;grid-template-columns:140px 1fr 200px;gap:12px;align-items:center;padding:14px 16px;background:'+(mgTotal>=0?'#f0fef4':'#fff5f5')+';border-radius:10px;border:1.5px solid '+(mgTotal>=0?'#16a34a':'#dc2626')+';margin-left:0">'
+      +     '<div style="font-size:14px;font-weight:700;color:'+mc+'">💰 Margen neto</div>'
+      +     '<div style="height:38px;border-radius:8px;background:'+(mgTotal>=0?'#dcfce7':'#fee2e2')+';position:relative;overflow:hidden">'
+      +       '<div style="height:100%;width:'+pctMg+'%;background:linear-gradient(90deg,'+mc+',#0d6e41);border-radius:8px;transition:width .6s ease"></div>'
+      +     '</div>'
+      +     '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:'+mc+';font-family:DM Mono,monospace">'+_fmt(mgTotal)+'</div><div style="font-size:11px;color:var(--texto-suave);font-weight:600">'+(mgPerHa>=0?'+':'')+mgPerHa+' USD/ha · '+totalHa.toLocaleString('es-AR')+' ha</div></div>'
+      +   '</div>'
+      + '</div>'
+  }
 
   // Métricas globales
   var mEl = document.getElementById('rt-mets')

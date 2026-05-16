@@ -8713,6 +8713,40 @@ function _eqInicioSemana() {
   return d.toISOString()
 }
 
+// Lee el access token directo del localStorage. Evita depender del
+// cliente Supabase cuando este queda colgado en un auth refresh roto.
+function _getAccessTokenFromStorage() {
+  try {
+    var raw = localStorage.getItem('rindeagro-auth')
+    if (!raw) return null
+    var p = JSON.parse(raw)
+    return p.access_token
+        || (p.currentSession && p.currentSession.access_token)
+        || (p.session && p.session.access_token)
+        || null
+  } catch(e) { return null }
+}
+
+// Fetch directo a la REST API de Supabase, salteándose el cliente JS.
+// Lo usamos como fallback cuando supabase-js queda colgado.
+async function _restGet(path) {
+  var token = _getAccessTokenFromStorage()
+  if (!token) throw new Error('No hay token de sesión local. Cerrá sesión y volvé a entrar.')
+  var url = SB_URL + '/rest/v1' + path
+  var r = await fetch(url, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json'
+    }
+  })
+  if (!r.ok) {
+    var t = await r.text().catch(function(){return ''})
+    throw new Error('REST '+r.status+': '+(t||'sin detalle'))
+  }
+  return r.json()
+}
+
 async function _renderListaMiembros() {
   var el = document.getElementById('eq-miembros-lista')
   if (!el) return
@@ -8736,18 +8770,25 @@ async function _renderListaMiembros() {
   }
 
   try {
-    var res = await _withTimeout(
-      sb.from('equipo').select('*').eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false }),
-      10000,
-      'equipo SELECT'
-    )
-    if (res.error) {
-      console.error('[Mi equipo] Error SELECT equipo:', res.error)
-      el.innerHTML = '<div style="font-size:13px;color:var(--rojo);text-align:center;padding:1.5rem 0">⚠️ Error: '+(res.error.message||'desconocido')+'</div>'
-      return
+    var data
+    try {
+      // Camino normal: cliente Supabase JS
+      var res = await _withTimeout(
+        sb.from('equipo').select('*').eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false }),
+        5000,
+        'equipo SELECT (sdk)'
+      )
+      if (res.error) throw res.error
+      data = res.data || []
+      console.log('[Mi equipo] (sdk) Recibí', data.length, 'miembro(s)')
+    } catch (eSdk) {
+      // Fallback: el cliente Supabase está colgado, vamos directo a REST
+      console.warn('[Mi equipo] SDK falló, intento fetch directo:', eSdk.message)
+      var path = '/equipo?owner_id=eq.'+encodeURIComponent(usuario.id)+'&activo=is.true&order=creado_en.desc&select=*'
+      data = await _withTimeout(_restGet(path), 8000, 'equipo REST')
+      console.log('[Mi equipo] (rest) Recibí', data.length, 'miembro(s)')
     }
-    var data = res.data || []
-    console.log('[Mi equipo] Recibí', data.length, 'miembro(s):', data.map(function(m){return m.nombre_display}))
+    console.log('[Mi equipo] miembros:', data.map(function(m){return m.nombre_display}))
 
     if (!data.length) {
       el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:2rem 0">Todavía no tenés miembros en tu equipo.<br><span style="font-size:12px">Usá el botón + Invitar para sumar a alguien.</span></div>'

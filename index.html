@@ -4273,18 +4273,23 @@ window.guardarTarea = async function() {
       owner_id:          ownerId
     }
 
-    // Helper: INSERT/UPDATE con timeout de 15s
-    var _dbRun = function(promise) {
+    // Helper: SDK call con timeout más corto (4s) — si demora más, vamos a REST
+    var _dbRunSDK = function(promise) {
       return Promise.race([
         promise,
-        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Sin respuesta de la base de datos (8s). Verificá en app.supabase.com que tu proyecto no esté pausado, o que la tabla "tareas" tenga política RLS de INSERT habilitada.')) }, 8000) })
+        new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('SDK timeout 4s')) }, 4000) })
       ])
     }
 
     if (id) {
       // ── EDICIÓN ───────────────────────────────────────────────
-      var resUpd = await _dbRun(sb.from('tareas').update(payload).eq('id', id))
-      if (resUpd.error) throw new Error(resUpd.error.message || JSON.stringify(resUpd.error))
+      try {
+        var resUpd = await _dbRunSDK(sb.from('tareas').update(payload).eq('id', id))
+        if (resUpd.error) throw resUpd.error
+      } catch (eSdk) {
+        console.warn('[guardarTarea] SDK update falló, intento REST:', eSdk.message)
+        await _restPatch('/tareas?id=eq.'+encodeURIComponent(id), payload)
+      }
       var idx = tareas.findIndex(function(t){ return t.id === id })
       if (idx >= 0) tareas[idx] = Object.assign({}, tareas[idx], payload)
       showToast('✓ Tarea actualizada', 'ok')
@@ -4293,11 +4298,14 @@ window.guardarTarea = async function() {
       // ── NUEVA ─────────────────────────────────────────────────
       var payloadIns = Object.assign({}, payload, { estado: 'pendiente', id: newId })
       console.log('[guardarTarea] INSERT payload:', JSON.stringify(payloadIns))
-      var resIns = await _dbRun(sb.from('tareas').insert([payloadIns]))
-      console.log('[guardarTarea] INSERT respuesta:', JSON.stringify({ data: resIns.data, error: resIns.error }))
-      if (resIns.error) {
-        console.error('[guardarTarea] INSERT error Supabase:', JSON.stringify(resIns.error))
-        throw new Error(resIns.error.message || resIns.error.details || resIns.error.hint || JSON.stringify(resIns.error))
+      try {
+        var resIns = await _dbRunSDK(sb.from('tareas').insert([payloadIns]))
+        if (resIns.error) throw resIns.error
+        console.log('[guardarTarea] (sdk) OK')
+      } catch (eSdk2) {
+        console.warn('[guardarTarea] SDK insert falló, intento REST:', eSdk2.message)
+        await _restPost('/tareas', payloadIns)
+        console.log('[guardarTarea] (rest) OK')
       }
       tareas.unshift(Object.assign({}, payloadIns, { created_at: new Date().toISOString(), completada_at: null }))
       showToast('✓ Tarea creada', 'ok')
@@ -8748,22 +8756,38 @@ function _getAccessTokenFromStorage() {
 
 // Fetch directo a la REST API de Supabase, salteándose el cliente JS.
 // Lo usamos como fallback cuando supabase-js queda colgado.
-async function _restGet(path) {
+async function _restGet(path) { return _restRequest('GET', path) }
+async function _restPost(path, body) { return _restRequest('POST', path, body) }
+async function _restPatch(path, body) { return _restRequest('PATCH', path, body) }
+async function _restDelete(path) { return _restRequest('DELETE', path) }
+
+async function _restRequest(method, path, body) {
   var token = _getAccessTokenFromStorage()
   if (!token) throw new Error('No hay token de sesión local. Cerrá sesión y volvé a entrar.')
   var url = SB_URL + '/rest/v1' + path
-  var r = await fetch(url, {
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/json'
-    }
-  })
+  var headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+  var init = { method: method, headers: headers }
+  if (body !== undefined && body !== null) {
+    headers['Content-Type'] = 'application/json'
+    headers['Prefer'] = 'return=representation'
+    init.body = JSON.stringify(body)
+  }
+  var r = await fetch(url, init)
   if (!r.ok) {
     var t = await r.text().catch(function(){return ''})
-    throw new Error('REST '+r.status+': '+(t||'sin detalle'))
+    var err = new Error('REST '+r.status+': '+(t||'sin detalle'))
+    err.status = r.status
+    err.body = t
+    throw err
   }
-  return r.json()
+  if (r.status === 204) return null
+  var txt = await r.text()
+  if (!txt) return null
+  try { return JSON.parse(txt) } catch(e) { return txt }
 }
 
 async function _renderListaMiembros() {

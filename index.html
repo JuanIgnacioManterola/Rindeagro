@@ -3935,10 +3935,29 @@ window.abrirModalTarea = async function(id) {
   var selCampo = document.getElementById('t-campo')
   if (selCampo) selCampo.innerHTML = '<option value="">Todos los campos</option>' + (campos||[]).map(function(c){ return '<option value="'+c.id+'">'+c.nombre+'</option>' }).join('')
   var selAsig = document.getElementById('t-asignado')
+  function _pintarSelAsignado(miembros) {
+    if (!selAsig) return
+    selAsig.innerHTML = '<option value="">Sin asignar</option>'
+      + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros||[]).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
+  }
   if (selAsig) {
     var miembros = (window._equipoCache || []).filter(function(m){ return m && m.nombre_display })
-    selAsig.innerHTML = '<option value="">Sin asignar</option>'
-      + (usuario ? [{miembro_id: usuario.id, nombre_display: 'Yo (administrador)'}] : []).concat(miembros).map(function(m){ return '<option value="'+(m.miembro_id||'')+'">'+m.nombre_display+'</option>' }).join('')
+    _pintarSelAsignado(miembros)
+    // Si el cache está vacío y hay sesión activa, refrescar via REST (caso: SDK colgado en cargarTodo)
+    if (!miembros.length && usuario && usuario.id && typeof _restGet === 'function') {
+      ;(async function(){
+        try {
+          var freshMiembros = await _restGet('/equipo?owner_id=eq.'+encodeURIComponent(usuario.id)+'&activo=is.true&select=*')
+          if (Array.isArray(freshMiembros) && freshMiembros.length) {
+            window._equipoCache = freshMiembros
+            var prevVal = selAsig.value
+            _pintarSelAsignado(freshMiembros.filter(function(m){return m && m.nombre_display}))
+            if (prevVal) selAsig.value = prevVal
+            console.log('[Tarea] Equipo refrescado via REST:', freshMiembros.length, 'miembros')
+          }
+        } catch(e) { console.warn('[Tarea] No pude refrescar equipo:', e.message) }
+      })()
+    }
   }
   if (id) {
     var t = tareas.find(function(x){ return x.id === id })

@@ -8717,13 +8717,39 @@ async function _renderListaMiembros() {
   var el = document.getElementById('eq-miembros-lista')
   if (!el) return
   el.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:1rem 0">Cargando...</div>'
+
+  // Validar sesión antes de empezar
+  if (!usuario || !usuario.id) {
+    console.error('[Mi equipo] No hay sesión activa (usuario null)')
+    el.innerHTML = '<div style="font-size:13px;color:var(--rojo);text-align:center;padding:1.5rem 0">⚠️ Sesión expirada. Cerrá y volvé a entrar.</div>'
+    return
+  }
+
+  console.log('[Mi equipo] Consultando equipo para owner_id=', usuario.id)
+
+  // Helper: timeout para promesas que pueden colgarse
+  function _withTimeout(p, ms, label) {
+    return Promise.race([
+      p,
+      new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Timeout '+label+' tras '+ms+'ms')) }, ms) })
+    ])
+  }
+
   try {
-    var { data } = await sb.from('equipo')
-      .select('*')
-      .eq('owner_id', usuario.id)
-      .eq('activo', true)
-      .order('creado_en', { ascending: false })
-    if (!data || !data.length) {
+    var res = await _withTimeout(
+      sb.from('equipo').select('*').eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false }),
+      10000,
+      'equipo SELECT'
+    )
+    if (res.error) {
+      console.error('[Mi equipo] Error SELECT equipo:', res.error)
+      el.innerHTML = '<div style="font-size:13px;color:var(--rojo);text-align:center;padding:1.5rem 0">⚠️ Error: '+(res.error.message||'desconocido')+'</div>'
+      return
+    }
+    var data = res.data || []
+    console.log('[Mi equipo] Recibí', data.length, 'miembro(s):', data.map(function(m){return m.nombre_display}))
+
+    if (!data.length) {
       el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);text-align:center;padding:2rem 0">Todavía no tenés miembros en tu equipo.<br><span style="font-size:12px">Usá el botón + Invitar para sumar a alguien.</span></div>'
       return
     }
@@ -8731,19 +8757,24 @@ async function _renderListaMiembros() {
 
     // Contar actividad semanal por miembro
     var semana = _eqInicioSemana()
-    var miembroIds = data.map(function(m){ return m.miembro_id })
     var ownerId = usuario.id
 
-    // Gastos, lluvias y tareas de esta semana por miembro.
-    // Promise.allSettled: si alguna query rebota (p.ej. la columna creado_por
-    // todavía no existe en gastos/lluvias — pendiente del WhatsApp bot),
-    // no tumbamos toda la vista. Las cuentas afectadas quedan en 0.
-    var _settled = await Promise.allSettled([
-      sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
-      sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
-      sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
-    ])
-    function _okOrEmpty(r) { return r.status === 'fulfilled' ? r.value : { data: [] } }
+    var _settled
+    try {
+      _settled = await _withTimeout(
+        Promise.allSettled([
+          sb.from('gastos').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+          sb.from('lluvias').select('creado_por,created_at').eq('owner_id', ownerId).gte('created_at', semana),
+          sb.from('tareas').select('asignado_a,created_at').eq('owner_id', ownerId).gte('created_at', semana)
+        ]),
+        8000,
+        'actividad semanal'
+      )
+    } catch(eAct) {
+      console.warn('[Mi equipo] Actividad semanal timeout, sigo con 0:', eAct.message)
+      _settled = [{status:'rejected'},{status:'rejected'},{status:'rejected'}]
+    }
+    function _okOrEmpty(r) { return r && r.status === 'fulfilled' ? r.value : { data: [] } }
     var rG = _okOrEmpty(_settled[0])
     var rL = _okOrEmpty(_settled[1])
     var rT = _okOrEmpty(_settled[2])
@@ -8757,8 +8788,10 @@ async function _renderListaMiembros() {
     } else {
       _renderVistaPorCampo(data, contarPor, rG, rL, rT)
     }
+    console.log('[Mi equipo] Render completado')
   } catch(e) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--rojo)">Error al cargar: '+(e.message||'')+'</div>'
+    console.error('[Mi equipo] Excepción:', e)
+    el.innerHTML = '<div style="font-size:13px;color:var(--rojo);text-align:center;padding:1.5rem 0">⚠️ '+(e.message||'Error al cargar')+'</div>'
   }
 }
 

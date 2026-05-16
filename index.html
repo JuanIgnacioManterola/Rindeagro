@@ -3718,8 +3718,8 @@ function _nombreUsuario(uid) {
     var nm = (usuario.user_metadata && (usuario.user_metadata.nombre || usuario.user_metadata.full_name)) || (usuario.email || '').split('@')[0]
     return nm
   }
-  var miembro = (window._equipoCache||[]).find(function(m){ return m.colaborador_id === uid })
-  if (miembro && miembro.nombre) return miembro.nombre
+  var miembro = (window._equipoCache||[]).find(function(m){ return m.miembro_id === uid })
+  if (miembro && (miembro.nombre_display || miembro.nombre)) return (miembro.nombre_display || miembro.nombre)
   return null
 }
 

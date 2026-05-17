@@ -4380,12 +4380,13 @@ window._tareasEliminarArchivoGuardado = async function(tareaId, idx) {
   var archivos = _safeJSON(t.archivos, [])
   if (!archivos[idx]) return
   archivos.splice(idx, 1)
+  // Optimistic: actualizar local YA
+  t.archivos = archivos
+  renderTareas()
+  showToast('✓ Archivo eliminado', 'ok')
   try {
-    await sb.from('tareas').update({archivos: archivos}).eq('id', tareaId)
-    t.archivos = archivos
-    renderTareas()
-    showToast('✓ Archivo eliminado', 'ok')
-  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+    await _dbMutate({method:'update', table:'tareas', filter:{col:'id', val:tareaId}, payload:{archivos: archivos}})
+  } catch(e) { console.error('eliminar archivo:', e); showToast('⚠️ No se pudo sincronizar: '+e.message, 'err') }
 }
 
 // Extrae mensaje legible de un error de Supabase o JS
@@ -4546,25 +4547,31 @@ window.confirmarCompletarTarea = async function() {
 }
 
 window.iniciarTarea = async function(id) {
+  // Optimistic: cambiar estado local + renderizar, sync en background
+  var t = tareas.find(function(x){ return x.id === id })
+  if (t) { t.estado = 'en_progreso'; renderTareas() }
+  showToast('▶ Tarea iniciada', 'ok')
   try {
-    var { error } = await sb.from('tareas').update({estado:'en_progreso'}).eq('id', id)
-    if (error) throw error
-    var t = tareas.find(function(x){ return x.id === id })
-    if (t) t.estado = 'en_progreso'
-    showToast('▶ Tarea iniciada', 'ok')
-    renderTareas()
-  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+    await _dbMutate({method:'update', table:'tareas', filter:{col:'id', val:id}, payload:{estado:'en_progreso'}})
+  } catch(e) {
+    if (t) t.estado = 'pendiente'; renderTareas()
+    showToast('⚠️ No se pudo sincronizar: '+e.message, 'err')
+  }
 }
 
 window.eliminarTarea = async function(id) {
   if (!confirm('¿Eliminar esta tarea?')) return
+  // Optimistic delete
+  var prev = tareas.slice()
+  tareas = tareas.filter(function(t){ return t.id !== id })
+  renderTareas()
+  showToast('✓ Eliminada', 'ok')
   try {
-    var { error } = await sb.from('tareas').delete().eq('id', id)
-    if (error) throw error
-    tareas = tareas.filter(function(t){ return t.id !== id })
-    showToast('✓ Eliminada', 'ok')
-    renderTareas()
-  } catch(e) { showToast('⚠️ Error: '+e.message, 'err') }
+    await _dbMutate({method:'delete', table:'tareas', filter:{col:'id', val:id}})
+  } catch(e) {
+    tareas = prev; renderTareas()
+    showToast('⚠️ No se pudo eliminar en la nube — restaurado: '+e.message, 'err')
+  }
 }
 
 // ── CRUD CAMPOS ──
@@ -7672,18 +7679,25 @@ window.editarGasto = function(id) {
 window.eliminarGasto = async function(id) {
   if(!confirm('¿Eliminás este gasto?'))return
   var g = gastos.find(function(x){return x.id===id})
-  try{
-    await sb.from('gastos').delete().eq('id',id)
-    // Si tenía insumo vinculado, reponer el stock
-    if(g && g.insumo_id) {
-      var consumido = _gastoConsumoInsumo(g)
-      if(consumido > 0) await _ajustarStockInsumo(g.insumo_id, consumido) // +
+  // Optimistic: borrar local YA + reponer stock si tenía insumo
+  var prev = gastos.slice()
+  gastos = gastos.filter(function(x){return x.id!==id})
+  _guardarCache()
+  if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
+  showToast('Gasto eliminado','ok')
+  ;(async function(){
+    try {
+      await _dbMutate({method:'delete', table:'gastos', filter:{col:'id', val:id}})
+      if(g && g.insumo_id) {
+        var consumido = _gastoConsumoInsumo(g)
+        if(consumido > 0) await _ajustarStockInsumo(g.insumo_id, consumido)
+      }
+    } catch(e) {
+      console.error('eliminar gasto (bg):', e)
+      gastos = prev; _guardarCache(); renderRentabilidad(); renderDashboard()
+      showToast('⚠️ No se pudo borrar — restaurado: '+e.message,'err')
     }
-    gastos=gastos.filter(g=>g.id!==id)
-    _guardarCache()
-    if(campoDet) renderDetGastos(); renderRentabilidad();renderDashboard()
-    showToast('Gasto eliminado','ok')
-  }catch(e){showToast('⚠️ Error al eliminar','err')}
+  })()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8177,29 +8191,33 @@ window.guardarInsumo = async function() {
 
   try{
     if(editId){
-      // UPDATE con timeout 4s al SDK, fallback REST si cuelga
-      var dataActualizada = null
-      try {
-        var rE = await Promise.race([
-          sb.from('stock_insumos').update(_p).eq('id', editId).select().single(),
-          new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
-        ])
-        if(rE && rE.error) throw rE.error
-        dataActualizada = rE && rE.data
-      } catch (eSdk) {
-        console.warn('SDK update insumo falló, REST:', eSdk.message)
-        var rRest = await _restPatch('/stock_insumos?id=eq.'+encodeURIComponent(editId), _p)
-        dataActualizada = Array.isArray(rRest) ? rRest[0] : rRest
-      }
-      var idx = insumos.findIndex(function(x){return x.id===editId})
-      if(idx>=0) {
-        // Aplicamos los campos del payload local. Si DB devolvió datos, los usamos.
-        insumos[idx] = Object.assign({}, insumos[idx], _p, dataActualizada||{})
-      }
+      // ── OPTIMISTIC UPDATE: cerrar modal YA, sincronizar DB en background ──
+      var idxLocal = insumos.findIndex(function(x){return x.id===editId})
+      var prev = idxLocal>=0 ? Object.assign({}, insumos[idxLocal]) : null
+      if(idxLocal>=0) insumos[idxLocal] = Object.assign({}, insumos[idxLocal], _p)
       _guardarCache()
       renderInsumos()
       closeModalInsumo()
       showToast('✓ Insumo actualizado','ok')
+      ;(async function(){
+        try {
+          try {
+            var rE = await Promise.race([
+              sb.from('stock_insumos').update(_p).eq('id', editId),
+              new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},3000)})
+            ])
+            if(rE && rE.error) throw rE.error
+          } catch (eSdk) {
+            await _restPatch('/stock_insumos?id=eq.'+encodeURIComponent(editId), _p)
+          }
+        } catch(eBg) {
+          console.error('insumo update (bg):', eBg)
+          if(prev && idxLocal>=0) insumos[idxLocal] = prev
+          _guardarCache()
+          renderInsumos()
+          showToast('⚠️ No se pudo guardar en la nube — restaurado','err')
+        }
+      })()
     } else {
       // INSERT optimista (local) + DB en background con fallback REST
       var iId = (typeof crypto !== 'undefined' && crypto.randomUUID)
@@ -8270,33 +8288,38 @@ window.editarInsumo = function(id) {
 window.eliminarInsumo = async function() {
   var id = document.getElementById('i-edit-id').value
   if(!id) return
-  // Chequear que no haya gastos vinculados
   var usado = gastos.some(function(g){return g.insumo_id===id})
   var msg = usado
     ? '⚠️ Este insumo está vinculado a uno o más gastos. Si lo eliminás, esos gastos quedarán sin referencia (pero NO se borran). ¿Continuás?'
     : '¿Eliminás este insumo del stock?'
   if(!confirm(msg)) return
-  try{
-    // SDK con timeout 4s, fallback REST
+  // ── OPTIMISTIC: borrar local YA, sincronizar DB en background ──
+  var prev = insumos.slice()
+  insumos = insumos.filter(function(x){return x.id!==id})
+  _guardarCache()
+  renderInsumos()
+  closeModalInsumo()
+  showToast('Insumo eliminado','ok')
+  ;(async function(){
     try {
-      var r = await Promise.race([
-        sb.from('stock_insumos').delete().eq('id', id),
-        new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
-      ])
-      if(r && r.error) throw r.error
-    } catch (eSdk) {
-      console.warn('SDK delete insumo falló, REST:', eSdk.message)
-      await _restDelete('/stock_insumos?id=eq.'+encodeURIComponent(id))
+      try {
+        var r = await Promise.race([
+          sb.from('stock_insumos').delete().eq('id', id),
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},3000)})
+        ])
+        if(r && r.error) throw r.error
+      } catch (eSdk) {
+        await _restDelete('/stock_insumos?id=eq.'+encodeURIComponent(id))
+      }
+    } catch(e) {
+      console.error('eliminar insumo (bg):', e)
+      // Restaurar si falló todo
+      insumos = prev
+      _guardarCache()
+      renderInsumos()
+      showToast('⚠️ No se pudo borrar en la nube — restaurado','err')
     }
-    insumos = insumos.filter(function(x){return x.id!==id})
-    _guardarCache()
-    renderInsumos()
-    closeModalInsumo()
-    showToast('Insumo eliminado','ok')
-  }catch(e){
-    console.error('eliminar insumo:', e)
-    showToast('⚠️ Error al eliminar: '+(e.message||''),'err')
-  }
+  })()
 }
 
 window.filtrarInsumos = function(tipo) {
@@ -8342,7 +8365,14 @@ window.renderInsumos = function() {
       var nombreSafe = (i.nombre||'(sin nombre)').replace(/"/g,'&quot;')
       var ubicSafe = (i.ubicacion||'').replace(/"/g,'&quot;')
 
-      html += '<div data-insumo-id="'+i.id+'" style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:14px 18px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:18px;align-items:center;transition:border-color .15s;width:100%;box-sizing:border-box" onmouseover="this.style.borderColor=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\'">'
+      var borderColor = lowStock ? '#c0392b' : 'var(--borde)'
+      var bgRow = lowStock ? '#fff6f6' : '#fff'
+      html += '<div data-insumo-id="'+i.id+'" style="background:'+bgRow+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:18px;align-items:center;transition:border-color .15s;width:100%;box-sizing:border-box;position:relative" onmouseover="if(!this.dataset.low){this.style.borderColor=\'var(--verde)\'}" onmouseout="if(!this.dataset.low){this.style.borderColor=\'var(--borde)\'}"' + (lowStock ? ' data-low="1"' : '') + '>'
+
+      // Badge "Sin stock" arriba a la derecha (DENTRO de la fila)
+      if (lowStock) {
+        html += '<div style="position:absolute;top:8px;right:90px;background:#c0392b;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;text-transform:uppercase;letter-spacing:.6px;box-shadow:0 1px 3px rgba(192,57,43,.3)">⚠️ Sin stock</div>'
+      }
 
       // Col 1: Nombre + tipo
       html +=   '<div style="min-width:0">'
@@ -8379,10 +8409,6 @@ window.renderInsumos = function() {
       html +=   '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
 
       html += '</div>'
-
-      if (lowStock) {
-        html += '<div style="margin-top:-6px;margin-left:18px;font-size:11px;color:#c0392b;font-weight:600">⚠️ Sin stock</div>'
-      }
     })
     html += '</div></div>'
   })
@@ -9134,6 +9160,38 @@ async function _restGet(path) { return _restRequest('GET', path) }
 async function _restPost(path, body) { return _restRequest('POST', path, body) }
 async function _restPatch(path, body) { return _restRequest('PATCH', path, body) }
 async function _restDelete(path) { return _restRequest('DELETE', path) }
+
+// Helper genérico: intenta SDK con timeout y cae a REST. Para mutaciones.
+// table: nombre de tabla. method: 'update'|'delete'. filter: {col,val} de match.
+// payload: objeto para update/insert (omitido en delete).
+async function _dbMutate(opts) {
+  var method = opts.method
+  var table = opts.table
+  var filter = opts.filter   // {col, val} for update/delete
+  var payload = opts.payload
+  var timeoutMs = opts.timeout || 3000
+  try {
+    var sdkPromise
+    if (method === 'update') sdkPromise = sb.from(table).update(payload).eq(filter.col, filter.val)
+    else if (method === 'insert') sdkPromise = sb.from(table).insert(payload)
+    else if (method === 'delete') sdkPromise = sb.from(table).delete().eq(filter.col, filter.val)
+    else throw new Error('método inválido: '+method)
+    var r = await Promise.race([
+      sdkPromise,
+      new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('SDK timeout')) }, timeoutMs) })
+    ])
+    if (r && r.error) throw r.error
+    return r
+  } catch (eSdk) {
+    console.warn('SDK '+method+' '+table+' falló, REST:', eSdk.message)
+    var path
+    if (method === 'update') path = '/'+table+'?'+filter.col+'=eq.'+encodeURIComponent(filter.val)
+    else if (method === 'insert') path = '/'+table
+    else if (method === 'delete') path = '/'+table+'?'+filter.col+'=eq.'+encodeURIComponent(filter.val)
+    var restMethod = method === 'update' ? 'PATCH' : method === 'insert' ? 'POST' : 'DELETE'
+    return _restRequest(restMethod, path, payload)
+  }
+}
 
 async function _restRequest(method, path, body) {
   var token = _getAccessTokenFromStorage()

@@ -8238,14 +8238,25 @@ window.eliminarInsumo = async function() {
     : '¿Eliminás este insumo del stock?'
   if(!confirm(msg)) return
   try{
-    await sb.from('stock_insumos').delete().eq('id', id)
+    // SDK con timeout 4s, fallback REST
+    try {
+      var r = await Promise.race([
+        sb.from('stock_insumos').delete().eq('id', id),
+        new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
+      ])
+      if(r && r.error) throw r.error
+    } catch (eSdk) {
+      console.warn('SDK delete insumo falló, REST:', eSdk.message)
+      await _restDelete('/stock_insumos?id=eq.'+encodeURIComponent(id))
+    }
     insumos = insumos.filter(function(x){return x.id!==id})
     _guardarCache()
     renderInsumos()
     closeModalInsumo()
     showToast('Insumo eliminado','ok')
   }catch(e){
-    console.error(e); showToast('⚠️ Error al eliminar','err')
+    console.error('eliminar insumo:', e)
+    showToast('⚠️ Error al eliminar: '+(e.message||''),'err')
   }
 }
 

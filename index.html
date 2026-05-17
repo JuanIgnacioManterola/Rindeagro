@@ -1229,7 +1229,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
       <div class="fg">
         <label class="fl">Nombre <span style="color:var(--rojo)">*</span></label>
-        <input class="fi" type="text" id="i-nombre" placeholder="Ej: Glifosato 48%, Urea 46%, Cipermetrina..."/>
+        <input class="fi" type="text" id="i-nombre" list="i-nombre-list" placeholder="Elegí del listado o escribí uno nuevo" autocomplete="off"/>
+        <datalist id="i-nombre-list"></datalist>
+        <div id="i-nombre-hint" style="font-size:11px;color:var(--texto-suave);margin-top:4px;display:none">💡 Elegí el tipo de insumo primero para ver el listado predefinido. También podés escribir cualquier nombre manualmente.</div>
       </div>
 
       <div class="fg">
@@ -3396,12 +3398,14 @@ function renderPoligonosMapa() {
       })
       var mk = L.marker([c.lat, c.lng], {icon}).addTo(mapInstance)
       mk.bindPopup(
-        '<div style="font-family:DM Sans,sans-serif;min-width:140px">' +
+        '<div style="font-family:DM Sans,sans-serif;min-width:180px">' +
         '<div style="font-weight:700;font-size:13px;color:#1a4a2e;margin-bottom:5px">' + c.nombre + '</div>' +
         '<div style="font-size:12px;color:#555;line-height:1.8">' +
         '📐 ' + (c.hectareas||'?') + ' ha · ' + (c.cultivo||'Sin cultivo') + '<br>' +
         '<span style="color:#aaa;font-size:11px">Sin polígono dibujado</span>' +
-        '</div></div>'
+        '</div>' +
+        '<button onclick="window._dibujarPoligonoCampo(\'' + c.id + '\')" style="margin-top:8px;width:100%;background:#1a4a2e;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">✏️ Dibujar polígono</button>' +
+        '</div>'
       )
       _mapaLayers.push(mk)
       bounds.push([c.lat, c.lng])
@@ -3521,6 +3525,115 @@ async function _guardarPoligonoEditado() {
   }
 }
 
+// ── DIBUJAR POLÍGONO NUEVO ──
+var _dibujandoHandler = null
+var _dibujandoCampoId = null
+
+window._dibujarPoligonoCampo = function(campoId) {
+  var c = campos.find(function(x){return x.id===campoId})
+  if (!c) { showToast('⚠️ Campo no encontrado','err'); return }
+  // Cancelar si ya hay otra edición/dibujo activo
+  if (_editandoPoly) _cancelarEdicionPoligono()
+  if (_dibujandoHandler) _cancelarDibujoPoligono()
+
+  // Asegurarse que estamos en el módulo mapa
+  if (!mapInstance) {
+    showModulo('mapa')
+    setTimeout(function(){ window._dibujarPoligonoCampo(campoId) }, 400)
+    return
+  }
+  mapInstance.closePopup()
+
+  // Centrar mapa: si el campo tiene lat/lng usamos eso, si no dejamos donde está
+  if (c.lat && c.lng) mapInstance.setView([c.lat, c.lng], 15)
+
+  _dibujandoCampoId = campoId
+  try {
+    _dibujandoHandler = new L.Draw.Polygon(mapInstance, {
+      shapeOptions: { color: '#1a4a2e', weight: 4, fillOpacity: 0.35, fillColor: '#1a4a2e' },
+      showArea: false,
+      allowIntersection: false,
+      guidelineDistance: 10,
+      metric: true
+    })
+    _dibujandoHandler.enable()
+  } catch(e) {
+    console.error('Draw.Polygon error:', e)
+    showToast('⚠️ No se pudo activar el dibujo','err')
+    return
+  }
+
+  // Toolbar flotante con instrucciones
+  var bar = document.createElement('div')
+  bar.id = '_draw-poly-bar'
+  bar.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:1000;background:#fff;border:1.5px solid var(--verde);border-radius:12px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.22);display:flex;align-items:center;gap:10px;font-family:DM Sans,sans-serif;font-size:13px;max-width:92vw;flex-wrap:wrap'
+  bar.innerHTML = ''
+    + '<span style="color:var(--texto);font-weight:600">✏️ Dibujando: '+ (c.nombre||'campo') +'</span>'
+    + '<span style="color:var(--texto-suave);font-size:11px">Tocá en el mapa para marcar los vértices. Cerrá tocando el primer punto.</span>'
+    + '<button id="_btn-cancel-draw" style="font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>'
+  var mapEl = document.getElementById('mapa-lotes')
+  if (mapEl && mapEl.parentElement) {
+    mapEl.parentElement.style.position = 'relative'
+    mapEl.parentElement.appendChild(bar)
+  }
+  document.getElementById('_btn-cancel-draw').onclick = _cancelarDibujoPoligono
+
+  // Cuando el usuario termina de dibujar
+  mapInstance.once('draw:created', async function(e) {
+    var layer = e.layer
+    var latlngs = layer.getLatLngs ? layer.getLatLngs() : []
+    var arr = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs
+    var pts = arr.map(function(p){ return [p.lat, p.lng] })
+    if (pts.length < 3) { showToast('⚠️ Necesitás al menos 3 puntos','err'); return _cancelarDibujoPoligono() }
+    var ha = _calcHaPoligono(pts)
+    var update = { poligono: JSON.stringify(pts) }
+    if (ha && isFinite(ha) && ha > 0) update.hectareas = Math.round(ha*100)/100
+    // Si no había lat/lng, guardar el centro como referencia
+    if (!c.lat || !c.lng) {
+      var sumLat = pts.reduce(function(a,p){return a+p[0]},0)/pts.length
+      var sumLng = pts.reduce(function(a,p){return a+p[1]},0)/pts.length
+      update.lat = sumLat; update.lng = sumLng
+    }
+    try {
+      // Intento SDK con timeout, fallback REST
+      var r
+      try {
+        r = await Promise.race([
+          sb.from('campos').update(update).eq('id', campoId),
+          new Promise(function(_,rj){ setTimeout(function(){rj(new Error('SDK timeout'))},4000) })
+        ])
+        if (r && r.error) throw r.error
+      } catch (eSdk) {
+        console.warn('SDK update campo falló, REST:', eSdk.message)
+        await _restPatch('/campos?id=eq.'+encodeURIComponent(campoId), update)
+      }
+      var cRef = campos.find(function(x){return x.id===campoId})
+      if (cRef) Object.assign(cRef, update)
+      _guardarCache()
+      _cancelarDibujoPoligono()
+      renderPoligonosMapa()
+      renderMapaCamposInfo()
+      showToast('✓ Polígono creado'+(update.hectareas?' · '+update.hectareas+' ha':''),'ok')
+    } catch(eSave) {
+      console.error('guardar polígono nuevo:', eSave)
+      showToast('⚠️ Error: '+(eSave.message||'no se pudo guardar'),'err')
+      _cancelarDibujoPoligono()
+    }
+  })
+
+  showToast('✏️ Tocá los vértices del campo. Cerrá tocando el primer punto.','ok')
+}
+
+function _cancelarDibujoPoligono() {
+  if (_dibujandoHandler) {
+    try { _dibujandoHandler.disable() } catch(e){}
+    _dibujandoHandler = null
+  }
+  _dibujandoCampoId = null
+  var bar = document.getElementById('_draw-poly-bar')
+  if (bar) bar.remove()
+}
+
 // Cálculo aproximado de hectáreas a partir de puntos [lat,lng] (proyección equirectangular)
 function _calcHaPoligono(pts) {
   if (!pts || pts.length < 3) return 0
@@ -3570,7 +3683,10 @@ function renderMapaCamposInfo() {
       '<div style="color:var(--texto-suave)">Cultivo</div><div style="font-weight:500">'+(c.cultivo||'—')+'</div>' +
       '<div style="color:var(--texto-suave)">Lluvia acum.</div><div style="font-weight:500">'+llCampo.toFixed(0)+' mm</div>' +
       '</div>' +
-      '<div style="font-size:10px;color:'+(puedeIr?col:'var(--texto-suave)')+';font-weight:'+(puedeIr?'600':'400')+'">'+ubicacion+'</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">' +
+        '<div style="font-size:10px;color:'+(puedeIr?col:'var(--texto-suave)')+';font-weight:'+(puedeIr?'600':'400')+'">'+ubicacion+'</div>' +
+        (!tienePoly ? '<button onclick="event.stopPropagation();window._dibujarPoligonoCampo(\''+c.id+'\')" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--verde);background:#fff;color:var(--verde);font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">✏️ Dibujar polígono</button>' : '') +
+      '</div>' +
       '</div>'
   }).join('')
 }
@@ -7540,6 +7656,69 @@ window.eliminarGasto = async function(id) {
 // ═══════════════════════════════════════════════════════════════════════════
 var INS_TIPO_EMOJI = {herbicidas:'🧪',fungicidas:'🍄',insecticidas:'🐛',fertilizantes:'⚗️',semillas:'🌱',otros:'📦'}
 var INS_TIPO_LABEL = {herbicidas:'Herbicida',fungicidas:'Fungicida',insecticidas:'Insecticida',fertilizantes:'Fertilizante',semillas:'Semilla',otros:'Otro'}
+
+// Catálogo curado de insumos más usados en la agricultura argentina
+// (basado en datos de INTA, CASAFE, Aapresid). El usuario puede elegir uno
+// del autocompletado o tipear cualquier otro nombre manualmente.
+var INSUMOS_PREDEFINIDOS = {
+  herbicidas: [
+    'Glifosato 48%','Glifosato 66.2%','Glifosato 74.7%','Glifosato sal potásica 54%','Glifosato premium 75.7%',
+    '2,4-D 100%','2,4-D amina 60%','2,4-D éster 100%',
+    'Dicamba 57.7%','Dicamba 48%',
+    'Atrazina 50%','Atrazina 90%',
+    'Acetoclor 90%','S-Metolaclor 96%','Metolaclor 96%',
+    'Sulfentrazone 50%','Flumioxazin 48%','Diclosulam 84%',
+    'Imazetapir 10.59%','Imazapir + Imazapic 52.5%',
+    'Cletodim 24%','Haloxifop 54%','Quizalofop 12%','Quizalofop 20%',
+    'Bentazon 60%','Fomesafen 25%','Lactofen 24%','Saflufenacil 70%',
+    'Picloram 24%','Metsulfurón metil 60%','Clorimuron etil 25%',
+    'Glufosinato de amonio 20%','Paraquat 27.6%','Tembotrione 42%'
+  ],
+  fungicidas: [
+    'Mancozeb 80%','Carbendazim 50%','Clorotalonil 72%',
+    'Tebuconazole 43%','Tebuconazole 25%','Epoxiconazole 12.5%',
+    'Cyproconazole 10%','Propiconazole 25%','Difenoconazole 25%','Metconazole 9%',
+    'Azoxistrobina 25%','Piraclostrobina 25%','Trifloxistrobina 50%',
+    'Azoxistrobina + Ciproconazole 20/8%','Picoxistrobina + Ciproconazole 20/8%',
+    'Trifloxistrobina + Ciproconazole 37.5/16%','Trifloxistrobina + Tebuconazole 10/20%',
+    'Piraclostrobina + Epoxiconazole 13.3/5%','Azoxistrobina + Benzovindiflupir 12/6%',
+    'Bixafén + Protioconazole + Trifloxistrobina 12.5/17.5/15%',
+    'Fluxapyroxad + Piraclostrobina 16.7/33.3%','Benzovindiflupir + Difenoconazole 7.5/12.5%',
+    'Carbendazim + Tebuconazole 15/20%',
+    'Oxicloruro de cobre 84%','Hidróxido de cobre 53.8%','Sulfato de cobre 24%','Azufre 80%',
+    'Carboxin + Thiram 20/20% (curasemillas)','Difenoconazole + Metalaxil (curasemillas) 9.2/2.3%',
+    'Tiofanato metil + Fludioxonil + Metalaxil (curasemillas)','Fludioxonil 2.5% (curasemillas)'
+  ],
+  insecticidas: [
+    'Cipermetrina 25%','Cipermetrina 20%','Lambdacialotrina 25%','Lambdacialotrina 5%',
+    'Deltametrina 5%','Bifentrin 10%','Zeta-cipermetrina 15%','Gamma-cialotrina 15%','Permetrina 38%',
+    'Imidacloprid 35%','Imidacloprid 60% (curasemillas)','Tiametoxam 25%','Tiametoxam 35% (curasemillas)',
+    'Acetamiprid 20%','Clotianidina 60% (curasemillas)',
+    'Tiametoxam + Lambdacialotrina 14.1/10.6%','Imidacloprid + Bifentrin 10/10%',
+    'Clorantraniliprole 20% (Coragen)','Flubendiamide 48% (Belt)','Ciantraniliprole 10%',
+    'Clorantraniliprole + Lambdacialotrina 4.5/5%',
+    'Spinosad 48%','Spinetoram 12%',
+    'Metoxifenocide 24%','Lufenuron 5%','Lufenuron + Profenofos 4/40%',
+    'Clorpirifos 48%','Dimetoato 40%','Tiodicarb 35%','Metomil 90%',
+    'Abamectina 1.8%','Indoxacarb 30%'
+  ],
+  fertilizantes: [
+    'Urea 46%','Urea granulada 46-0-0','Urea con inhibidor (NBPT) 46%',
+    'UAN 32','UAN 30','Solmix (UAN+ATS)','Tiosulfato de amonio (ATS) 12-0-0-26S',
+    'Sulfato de amonio 21-0-0-24S','Nitrato de amonio 33%','Nitrato de amonio calcáreo (CAN) 27%',
+    'MAP 11-52-0','DAP 18-46-0','MAP azufrado 10-50-0-1S','Fosfato monoamónico azufrado 12-40-0-5S',
+    'Superfosfato simple (SFS) 0-21-0-12S','Superfosfato triple (SFT) 0-46-0',
+    'Cloruro de potasio (KCl) 0-0-60','Sulfato de potasio 0-0-50-18S','Sulpomag 0-0-22-22S-11Mg',
+    'Cloruro de potasio + azufre 0-0-45-12S',
+    'Yeso agrícola (sulfato de calcio) 18S-23Ca','Azufre elemental 90%','Nitrato de calcio 15.5-0-0-19Ca',
+    'Sulfato de magnesio 16Mg-13S',
+    'Mezcla física NPS 20-20-0-14S','Mezcla física NPS 12-40-0-5S','Mezcla física NPK 15-15-15','Mezcla física NPS 18-18-0-7S',
+    'Boro 10% (ácido bórico/borax)','Zinc quelatado EDTA 14%','Microelementos foliares (Zn-Mn-B)',
+    'Fertilizante starter líquido 7-30-0'
+  ],
+  semillas: [], // semillas: solamente manual (cada productor compra variedades específicas)
+  otros: []
+}
 var INS_UNI_LABEL = {litros:'L', kg:'kg', dosis:'dosis', bolsas:'bolsas'}
 
 // Cantidad consumida (en unidad base) por un gasto = cantidad/ha × ha
@@ -7592,6 +7771,8 @@ window.openModalInsumo = function(preset) {
     b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
     b.style.color = active ? '#fff' : 'var(--texto-mid)'
   })
+  // Inicializar el datalist y hint según el tipo (si hay)
+  _actualizarDatalistInsumos(preset.tipo || '')
   document.getElementById('ov-insumo').classList.add('open')
 }
 
@@ -7893,6 +8074,36 @@ window.selInsTipo = function(tipo, btn) {
     b.style.background='var(--crema)'; b.style.borderColor='var(--borde)'; b.style.color='var(--texto-mid)'
   })
   if(btn){ btn.style.background='var(--verde)'; btn.style.borderColor='var(--verde)'; btn.style.color='#fff' }
+  // Refrescar el autocompletado según el tipo elegido
+  _actualizarDatalistInsumos(tipo)
+  // Auto-elegir unidad sugerida según tipo
+  var uniSel = document.getElementById('i-unidad')
+  if (uniSel && !uniSel.dataset.touched) {
+    var sugerida = {herbicidas:'litros',fungicidas:'litros',insecticidas:'litros',fertilizantes:'kg',semillas:'kg',otros:'litros'}[tipo]
+    if (sugerida) uniSel.value = sugerida
+  }
+}
+
+function _actualizarDatalistInsumos(tipo) {
+  var dl = document.getElementById('i-nombre-list')
+  var hint = document.getElementById('i-nombre-hint')
+  var inp = document.getElementById('i-nombre')
+  if (!dl) return
+  var lista = (typeof INSUMOS_PREDEFINIDOS !== 'undefined' && INSUMOS_PREDEFINIDOS[tipo]) || []
+  if (!lista.length) {
+    dl.innerHTML = ''
+    if (hint) {
+      hint.style.display = ''
+      hint.textContent = tipo === 'semillas'
+        ? '🌱 Para semillas escribí el nombre completo (variedad, marca, GR).'
+        : (tipo ? '✏️ Carga manual: escribí el nombre del insumo.' : '💡 Elegí el tipo de insumo primero para ver el listado predefinido.')
+    }
+    if (inp) inp.placeholder = tipo==='semillas' ? 'Ej: Soja DM 4612 STS, Maíz P1815VYHR...' : 'Ej: nombre del insumo'
+  } else {
+    dl.innerHTML = lista.map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>' }).join('')
+    if (hint) { hint.style.display = ''; hint.textContent = '💡 ' + lista.length + ' opciones disponibles. Tocá el campo para ver el listado o escribí para filtrar. Si tu insumo no está, escribí el nombre manualmente.' }
+    if (inp) inp.placeholder = 'Elegí del listado o escribí uno nuevo'
+  }
 }
 
 window.guardarInsumo = async function() {

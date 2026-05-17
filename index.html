@@ -892,13 +892,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- 3) Tortas globales (gastos por rubro) -->
     <div class="grid2" style="margin-bottom:14px">
       <div class="card">
-        <div class="card-hdr"><span class="card-tit">Gastos por rubro · todos los campos</span></div>
+        <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
+          <span class="card-tit" id="rt-rubro-titulo">Gastos por rubro · todos los campos</span>
+          <select id="rt-campo-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="window._onRtCampoChange()">
+            <option value="todos">Todos los campos</option>
+          </select>
+        </div>
         <div style="position:relative;height:260px"><canvas id="chart-rt-rubro"></canvas></div>
         <div id="rt-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
       </div>
       <div class="card">
-        <div class="card-hdr">
-          <span class="card-tit">Detalle por producto</span>
+        <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
+          <span class="card-tit" id="rt-detalle-titulo">Detalle por producto</span>
           <select id="rt-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderRtTortaDetalle()">
             <option value="todos">Todos los rubros</option>
           </select>
@@ -10608,20 +10613,16 @@ window.renderRentabilidadTotal = function() {
     }).join('')+'</div>'
   }
 
-  // Torta por rubro global
-  var ctxR = document.getElementById('chart-rt-rubro')
-  if(ctxR && Object.keys(porRubroGlobal).length) {
-    if(charts['rt-rubro']) charts['rt-rubro'].destroy()
-    var lblR = Object.keys(porRubroGlobal).sort(function(a,b){return porRubroGlobal[b]-porRubroGlobal[a]})
-    var valR = lblR.map(function(l){return porRubroGlobal[l]})
-    var tot = valR.reduce(function(a,v){return a+v},0)
-    charts['rt-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:COLORES.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/tot*100)+'%)'}}}}}})
-    var legEl = document.getElementById('rt-rubro-leyenda')
-    if(legEl) legEl.innerHTML = lblR.map(function(l,i){var pct=Math.round(valR[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i]+'"></div><strong>'+pct+'%</strong> '+l+'</div>'}).join('')
-    var selR = document.getElementById('rt-rubro-sel')
-    if(selR) selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
+  // Poblar el select de campos (Todos + cada uno)
+  var selCampoRt = document.getElementById('rt-campo-sel')
+  if(selCampoRt) {
+    var prevCampo = selCampoRt.value
+    selCampoRt.innerHTML = '<option value="todos">Todos los campos</option>' +
+      campos.map(function(c){ return '<option value="'+c.id+'">'+(c.nombre||'(sin nombre)')+'</option>' }).join('')
+    if(prevCampo) selCampoRt.value = prevCampo
   }
-  renderRtTortaDetalle()
+  // Render inicial de ambas tortas (respeta selección actual)
+  renderRtTortaRubro()
 
   // Resumen gastos por rubro (tabla)
   var resEl = document.getElementById('rt-resumen-rubro')
@@ -10679,23 +10680,95 @@ window.renderRentabilidadTotal = function() {
   }
 }
 
+var _RT_COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
+var _RT_RUBS_LBL = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
+
+// Devuelve { gastosFiltrados, nombreCampo, todosLosCampos }
+function _rtGetCampoFiltro() {
+  var sel = document.getElementById('rt-campo-sel')
+  var campoId = sel ? sel.value : 'todos'
+  if (campoId === 'todos' || !campoId) {
+    return { gastos: gastos.slice(), nombre: 'todos los campos', todos: true }
+  }
+  var c = campos.find(function(x){return x.id===campoId})
+  return {
+    gastos: gastos.filter(function(g){return g.campo_id===campoId}),
+    nombre: c ? c.nombre : 'campo',
+    todos: false
+  }
+}
+
+// Disparado al cambiar el select de campo en la primera torta
+window._onRtCampoChange = function() {
+  renderRtTortaRubro()
+}
+
+window.renderRtTortaRubro = function() {
+  var f = _rtGetCampoFiltro()
+  // Título
+  var tit = document.getElementById('rt-rubro-titulo')
+  if(tit) tit.textContent = 'Gastos por rubro · ' + f.nombre
+  // Agrupar gastos filtrados por rubro
+  var porRubro = {}
+  f.gastos.forEach(function(g){
+    var lbl = _RT_RUBS_LBL[g.rubro] || g.rubro || 'Otros'
+    porRubro[lbl] = (porRubro[lbl]||0) + (g.total_de_usd||0)
+  })
+  var ctxR = document.getElementById('chart-rt-rubro')
+  if(!ctxR) return
+  if(charts['rt-rubro']) charts['rt-rubro'].destroy()
+  var legEl = document.getElementById('rt-rubro-leyenda')
+  if(!Object.keys(porRubro).length) {
+    if(legEl) legEl.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Sin gastos en este campo</div>'
+    // Actualizar también el select de rubros (vacío)
+    var sR0 = document.getElementById('rt-rubro-sel')
+    if(sR0) sR0.innerHTML = '<option value="todos">Todos los rubros</option>'
+    renderRtTortaDetalle()
+    return
+  }
+  var lblR = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
+  var valR = lblR.map(function(l){return porRubro[l]})
+  var tot = valR.reduce(function(a,v){return a+v},0)
+  charts['rt-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:_RT_COLORES.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/tot*100)+'%)'}}}}}})
+  if(legEl) legEl.innerHTML = lblR.map(function(l,i){var pct=Math.round(valR[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+_RT_COLORES[i]+'"></div><strong>'+pct+'%</strong> '+l+'</div>'}).join('')
+  // Repoblar select de rubros (sólo los rubros que existen en el filtro)
+  var selR = document.getElementById('rt-rubro-sel')
+  if(selR) {
+    var prev = selR.value
+    selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
+    if(prev && lblR.indexOf(prev)>=0) selR.value = prev
+  }
+  // Re-render del detalle con el mismo filtro
+  renderRtTortaDetalle()
+}
+
 window.renderRtTortaDetalle = function() {
-  var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
-  var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
-  var rubroSel = document.getElementById('rt-rubro-sel')?.value||'todos'
-  var gAll = gastos
-  var gFilt = rubroSel==='todos' ? gAll : gAll.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===rubroSel})
-  var porDesc={}
-  gFilt.forEach(function(g){var k=(g.descripcion||'').trim()||(g.rubro||'Sin nombre'); porDesc[k]=(porDesc[k]||0)+(g.total_de_usd||0)})
+  var f = _rtGetCampoFiltro()
+  var rubroSel = document.getElementById('rt-rubro-sel')?.value || 'todos'
+  var gFilt = rubroSel==='todos'
+    ? f.gastos.slice()
+    : f.gastos.filter(function(g){ return (_RT_RUBS_LBL[g.rubro]||g.rubro||'Otros')===rubroSel })
+  // Título contextual: "Detalle por producto · herbicidas · La Escondida"
+  var tit = document.getElementById('rt-detalle-titulo')
+  if(tit) tit.textContent = 'Detalle · ' + (rubroSel==='todos' ? 'todos los rubros' : rubroSel) + ' · ' + f.nombre
+  // Agrupar por descripción (insumo)
+  var porDesc = {}
+  gFilt.forEach(function(g){
+    var k = (g.descripcion||'').trim() || (_RT_RUBS_LBL[g.rubro]||g.rubro||'Sin nombre')
+    porDesc[k] = (porDesc[k]||0) + (g.total_de_usd||0)
+  })
   var ctxD = document.getElementById('chart-rt-detalle'); if(!ctxD) return
   if(charts['rt-detalle']) charts['rt-detalle'].destroy()
   var legEl = document.getElementById('rt-detalle-leyenda')
-  if(!Object.keys(porDesc).length){if(legEl)legEl.innerHTML='<div style="font-size:12px;color:var(--texto-suave)">Sin gastos</div>';return}
-  var lblD=Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
-  var valD=lblD.map(function(l){return porDesc[l]})
-  var tot=valD.reduce(function(a,v){return a+v},0)
-  charts['rt-detalle']=new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:COLORES.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}}  )
-  if(legEl) legEl.innerHTML=lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+COLORES[i%COLORES.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
+  if(!Object.keys(porDesc).length){
+    if(legEl) legEl.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Sin gastos para esta combinación</div>'
+    return
+  }
+  var lblD = Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
+  var valD = lblD.map(function(l){return porDesc[l]})
+  var tot = valD.reduce(function(a,v){return a+v},0)
+  charts['rt-detalle'] = new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:_RT_COLORES.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}})
+  if(legEl) legEl.innerHTML = lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+_RT_COLORES[i%_RT_COLORES.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
 }
 
 window.verCampoDesdeRent = function(id) {

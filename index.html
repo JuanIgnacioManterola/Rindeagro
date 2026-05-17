@@ -4254,6 +4254,7 @@ window._abrirArchivo = function(url, nombre, tipo) {
 }
 
 // ── Sube un archivo a Supabase Storage y devuelve la URL pública ─────────────
+// Intenta el SDK con timeout de 12s, cae a REST directo si se cuelga.
 async function _subirArchivoStorage(file) {
   if (!usuario) throw new Error('No autenticado')
   if (!file) throw new Error('Archivo inválido')
@@ -4262,13 +4263,42 @@ async function _subirArchivoStorage(file) {
   var baseName = (file.name || 'archivo').replace(/\.[^/.]+$/, '')
     .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'archivo'
   var path = usuario.id + '/' + ts + '_' + baseName + '.' + ext
-  var { error } = await sb.storage.from('tareas-archivos').upload(path, file, {
-    cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream'
+  var contentType = file.type || 'application/octet-stream'
+  try {
+    var res = await Promise.race([
+      sb.storage.from('tareas-archivos').upload(path, file, { cacheControl:'3600', upsert:false, contentType:contentType }),
+      new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('SDK timeout 12s')) }, 12000) })
+    ])
+    if (res && res.error) throw res.error
+  } catch (eSdk) {
+    console.warn('Storage SDK falló, REST:', eSdk.message)
+    await _restStorageUpload('tareas-archivos', path, file, contentType)
+  }
+  var pubUrl = SB_URL + '/storage/v1/object/public/tareas-archivos/' + encodeURI(path)
+  return { url: pubUrl, path: path }
+}
+
+// Upload directo a Storage REST API (sin pasar por el SDK)
+async function _restStorageUpload(bucket, path, file, contentType) {
+  var token = _getAccessTokenFromStorage()
+  if (!token) throw new Error('No hay token de sesión local')
+  var url = SB_URL + '/storage/v1/object/' + encodeURI(bucket) + '/' + encodeURI(path)
+  var r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + token,
+      'x-upsert': 'false',
+      'Content-Type': contentType || 'application/octet-stream',
+      'Cache-Control': '3600'
+    },
+    body: file
   })
-  if (error) throw new Error('Storage: ' + (error.message || JSON.stringify(error)))
-  var { data: ud } = sb.storage.from('tareas-archivos').getPublicUrl(path)
-  if (!ud || !ud.publicUrl) throw new Error('No se obtuvo URL pública del archivo')
-  return { url: ud.publicUrl, path: path }
+  if (!r.ok) {
+    var t = await r.text().catch(function(){return ''})
+    throw new Error('Storage REST '+r.status+': '+(t||'sin detalle'))
+  }
+  return null
 }
 
 // ── Genera preview base64 para thumbnail (solo para mostrar en UI) ────────────
@@ -7835,10 +7865,19 @@ async function _subirArchivoStorageBucket(file, bucket) {
   var ts = Date.now()
   var safeName = (file.name||'archivo').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,80)
   var path = uid + '/' + ts + '_' + safeName
-  var up = await sb.storage.from(bucket).upload(path, file, {cacheControl:'3600', upsert:false, contentType: file.type||undefined})
-  if (up.error) throw up.error
-  var pub = sb.storage.from(bucket).getPublicUrl(path)
-  return { url: pub.data.publicUrl, path: path }
+  var contentType = file.type || 'application/octet-stream'
+  try {
+    var up = await Promise.race([
+      sb.storage.from(bucket).upload(path, file, {cacheControl:'3600', upsert:false, contentType:contentType}),
+      new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('SDK timeout 12s')) }, 12000) })
+    ])
+    if (up && up.error) throw up.error
+  } catch(eSdk) {
+    console.warn('Storage SDK ('+bucket+') falló, REST:', eSdk.message)
+    await _restStorageUpload(bucket, path, file, contentType)
+  }
+  var pubUrl = SB_URL + '/storage/v1/object/public/' + encodeURI(bucket) + '/' + encodeURI(path)
+  return { url: pubUrl, path: path }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

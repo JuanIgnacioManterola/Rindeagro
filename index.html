@@ -878,10 +878,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
       <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
     </div>
-    <!-- Cascada Ingresos → Costos → Margen -->
-    <div id="rt-cascada" style="margin-bottom:14px"></div>
-    <!-- Métricas globales -->
+    <!-- Métricas globales (Hectáreas · Ingresos · Costos · Margen) -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
+    <!-- Cascada Ingresos → Costos → Margen (estado de resultados) -->
+    <div id="rt-cascada" style="margin-bottom:14px"></div>
     <!-- 1) Rentabilidad de cada campo -->
     <div id="rt-campos" style="margin-bottom:14px"></div>
     <!-- 2) Comparativa entre campos -->
@@ -8138,16 +8138,31 @@ window.guardarInsumo = async function() {
 
   try{
     if(editId){
-      var rE = await sb.from('stock_insumos').update(_p).eq('id', editId).select().single()
-      if(rE.error) throw rE.error
+      // UPDATE con timeout 4s al SDK, fallback REST si cuelga
+      var dataActualizada = null
+      try {
+        var rE = await Promise.race([
+          sb.from('stock_insumos').update(_p).eq('id', editId).select().single(),
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
+        ])
+        if(rE && rE.error) throw rE.error
+        dataActualizada = rE && rE.data
+      } catch (eSdk) {
+        console.warn('SDK update insumo falló, REST:', eSdk.message)
+        var rRest = await _restPatch('/stock_insumos?id=eq.'+encodeURIComponent(editId), _p)
+        dataActualizada = Array.isArray(rRest) ? rRest[0] : rRest
+      }
       var idx = insumos.findIndex(function(x){return x.id===editId})
-      if(idx>=0 && rE.data) insumos[idx] = rE.data
+      if(idx>=0) {
+        // Aplicamos los campos del payload local. Si DB devolvió datos, los usamos.
+        insumos[idx] = Object.assign({}, insumos[idx], _p, dataActualizada||{})
+      }
       _guardarCache()
       renderInsumos()
       closeModalInsumo()
       showToast('✓ Insumo actualizado','ok')
     } else {
-      // Optimistic insert
+      // INSERT optimista (local) + DB en background con fallback REST
       var iId = (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
@@ -8158,11 +8173,22 @@ window.guardarInsumo = async function() {
       closeModalInsumo()
       showToast('✓ Insumo cargado al stock','ok')
       ;(async function(){
+        var payload = Object.assign({}, _p, {id:iId, owner_id:uid})
         try {
-          _p.id = iId; _p.owner_id = uid
-          var rI = await sb.from('stock_insumos').insert(_p)
-          if(rI.error) console.error('insumo insert:', rI.error)
-        } catch(e){ console.error('bg insumo insert:', e) }
+          try {
+            var rI = await Promise.race([
+              sb.from('stock_insumos').insert(payload),
+              new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
+            ])
+            if(rI && rI.error) throw rI.error
+          } catch (eSdk2) {
+            console.warn('SDK insert insumo falló, REST:', eSdk2.message)
+            await _restPost('/stock_insumos', payload)
+          }
+        } catch(eAll){
+          console.error('insumo insert (ambas vías):', eAll)
+          showToast('⚠️ Se guardó local pero falló en la nube: '+(eAll.message||''),'err')
+        }
       })()
     }
   } catch(e) {

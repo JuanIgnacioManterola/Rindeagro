@@ -8251,27 +8251,109 @@ window.renderInsumos = function() {
     if(!grupos[tipo]) return
     html += '<div style="margin-bottom:18px">'
     html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);margin-bottom:8px;padding-left:2px">' + INS_TIPO_EMOJI[tipo] + ' ' + INS_TIPO_LABEL[tipo] + 's</div>'
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">'
+    html += '<div style="display:flex;flex-direction:column;gap:10px">'
     grupos[tipo].forEach(function(i){
-      var stockTxt = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2}) + ' ' + (INS_UNI_LABEL[i.unidad]||i.unidad)
-      var lowStock = (parseFloat(i.stock_actual)||0) <= 0
-      var sColor = lowStock ? 'var(--rojo)' : 'var(--verde)'
-      var costoTxt = i.costo_unitario ? ('USD ' + parseFloat(i.costo_unitario).toFixed(2) + '/' + (INS_UNI_LABEL[i.unidad]||i.unidad)) : ''
-      html += '<div onclick="editarInsumo(\''+i.id+'\')" style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:14px;cursor:pointer;transition:border-color .15s,transform .15s" onmouseover="this.style.borderColor=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\'">'
-      html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
-      html +=     '<div style="font-weight:600;color:var(--texto);font-size:14px;line-height:1.2">' + (i.nombre||'(sin nombre)') + '</div>'
-      html +=     '<div style="font-size:11px;color:var(--texto-suave);white-space:nowrap">'+ (i.ubicacion ? '📍 '+i.ubicacion : '') +'</div>'
+      var u = INS_UNI_LABEL[i.unidad] || i.unidad
+      var stockNum = parseFloat(i.stock_actual)||0
+      var costoNum = i.costo_unitario != null ? parseFloat(i.costo_unitario) : ''
+      var lowStock = stockNum <= 0
+      var sColor = lowStock ? '#c0392b' : '#15803d'
+      var nombreSafe = (i.nombre||'(sin nombre)').replace(/"/g,'&quot;')
+      var ubicSafe = (i.ubicacion||'').replace(/"/g,'&quot;')
+
+      html += '<div data-insumo-id="'+i.id+'" style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:14px 18px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:18px;align-items:center;transition:border-color .15s;width:100%;box-sizing:border-box" onmouseover="this.style.borderColor=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\'">'
+
+      // Col 1: Nombre + tipo
+      html +=   '<div style="min-width:0">'
+      html +=     '<div style="font-weight:700;color:var(--texto);font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis">' + (i.nombre||'(sin nombre)') + '</div>'
+      html +=     '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">' + (INS_TIPO_EMOJI[tipo]||'') + ' ' + (INS_TIPO_LABEL[tipo]||tipo) + '</div>'
       html +=   '</div>'
-      html +=   '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px">'
-      html +=     '<div style="font-size:22px;font-weight:700;color:'+sColor+';font-family:\'Playfair Display\',serif">'+stockTxt+'</div>'
-      if(costoTxt) html += '<div style="font-size:11px;color:var(--texto-suave)">'+costoTxt+'</div>'
+
+      // Col 2: Ubicación (editable inline)
+      html +=   '<div style="display:flex;flex-direction:column;gap:2px">'
+      html +=     '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600">📍 Ubicación</div>'
+      html +=     '<input type="text" value="'+ubicSafe+'" placeholder="Ej: Galpón La Escondida" class="ins-inline" data-field="ubicacion" data-id="'+i.id+'" onchange="window._insumoInlineUpdate(this)" style="border:none;background:transparent;font-size:13px;color:var(--texto);padding:2px 4px;width:100%;font-family:DM Sans,sans-serif;border-bottom:1px dashed transparent" onfocus="this.style.borderBottomColor=\'var(--verde)\'" onblur="this.style.borderBottomColor=\'transparent\'"/>'
       html +=   '</div>'
-      if(lowStock) html += '<div style="margin-top:6px;font-size:11px;color:var(--rojo);font-weight:600">⚠️ Sin stock</div>'
+
+      // Col 3: Cantidad (editable inline)
+      html +=   '<div style="display:flex;flex-direction:column;gap:2px">'
+      html +=     '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600">Cantidad</div>'
+      html +=     '<div style="display:flex;align-items:baseline;gap:6px">'
+      html +=       '<input type="number" min="0" step="0.01" value="'+stockNum+'" class="ins-inline" data-field="stock_actual" data-id="'+i.id+'" onchange="window._insumoInlineUpdate(this)" style="border:none;background:transparent;font-size:18px;color:'+sColor+';font-weight:700;font-family:DM Mono,monospace;padding:2px 0;width:80px;border-bottom:1px dashed transparent" onfocus="this.style.borderBottomColor=\'var(--verde)\'" onblur="this.style.borderBottomColor=\'transparent\'"/>'
+      html +=       '<span style="font-size:12px;color:var(--texto-suave);font-weight:600">'+u+'</span>'
+      html +=     '</div>'
+      html +=   '</div>'
+
+      // Col 4: Precio (editable inline)
+      html +=   '<div style="display:flex;flex-direction:column;gap:2px">'
+      html +=     '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--texto-suave);font-weight:600">Precio</div>'
+      html +=     '<div style="display:flex;align-items:baseline;gap:6px">'
+      html +=       '<span style="font-size:12px;color:var(--texto-suave);font-weight:600">USD</span>'
+      html +=       '<input type="number" min="0" step="0.01" value="'+costoNum+'" placeholder="—" class="ins-inline" data-field="costo_unitario" data-id="'+i.id+'" onchange="window._insumoInlineUpdate(this)" style="border:none;background:transparent;font-size:18px;color:var(--texto);font-weight:600;font-family:DM Mono,monospace;padding:2px 0;width:80px;border-bottom:1px dashed transparent" onfocus="this.style.borderBottomColor=\'var(--verde)\'" onblur="this.style.borderBottomColor=\'transparent\'"/>'
+      html +=       '<span style="font-size:11px;color:var(--texto-suave)">/ '+u+'</span>'
+      html +=     '</div>'
+      html +=   '</div>'
+
+      // Col 5: Botón editar (modal completo)
+      html +=   '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
+
       html += '</div>'
+
+      if (lowStock) {
+        html += '<div style="margin-top:-6px;margin-left:18px;font-size:11px;color:#c0392b;font-weight:600">⚠️ Sin stock</div>'
+      }
     })
     html += '</div></div>'
   })
   cont.innerHTML = html
+}
+
+// Actualiza un campo inline del insumo (cantidad, precio, ubicación)
+window._insumoInlineUpdate = async function(input) {
+  var id = input.getAttribute('data-id')
+  var field = input.getAttribute('data-field')
+  if (!id || !field) return
+  var ins = insumos.find(function(x){return x.id===id})
+  if (!ins) return
+  var raw = input.value
+  var val
+  if (field === 'stock_actual' || field === 'costo_unitario') {
+    val = raw === '' ? null : parseFloat(raw)
+    if (val !== null && (isNaN(val) || val < 0)) { showToast('⚠️ Valor inválido','err'); input.value = ins[field]||''; return }
+  } else {
+    val = (raw||'').trim() || null
+  }
+  if (ins[field] == val) return
+  var prevVal = ins[field]
+  // Update optimistic
+  ins[field] = val
+  _guardarCache()
+  // Visual feedback breve
+  input.style.background = '#dcfce7'
+  setTimeout(function(){ input.style.background = 'transparent' }, 600)
+  try {
+    var patch = {}
+    patch[field] = val
+    try {
+      var r = await Promise.race([
+        sb.from('stock_insumos').update(patch).eq('id', id),
+        new Promise(function(_,rj){setTimeout(function(){rj(new Error('SDK timeout'))},4000)})
+      ])
+      if (r && r.error) throw r.error
+    } catch (eSdk) {
+      console.warn('insumo inline update SDK falló, intento REST:', eSdk.message)
+      await _restPatch('/stock_insumos?id=eq.'+encodeURIComponent(id), patch)
+    }
+    // Actualizar color del stock si cambió
+    if (field === 'stock_actual') renderInsumos()
+  } catch(e) {
+    console.error('insumo inline update:', e)
+    ins[field] = prevVal
+    input.value = prevVal == null ? '' : prevVal
+    input.style.background = '#fee2e2'
+    setTimeout(function(){ input.style.background = 'transparent' }, 1500)
+    showToast('⚠️ No se pudo guardar: '+(e.message||''),'err')
+  }
 }
 
 // ── CRUD LLUVIAS ──

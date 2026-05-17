@@ -882,9 +882,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div id="rt-cascada" style="margin-bottom:14px"></div>
     <!-- Métricas globales -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
-    <!-- Cards por campo -->
+    <!-- 1) Rentabilidad de cada campo -->
     <div id="rt-campos" style="margin-bottom:14px"></div>
-    <!-- Tortas globales -->
+    <!-- 2) Comparativa entre campos -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
+      <div id="rt-comparativa"></div>
+    </div>
+    <!-- 3) Tortas globales (gastos por rubro) -->
     <div class="grid2" style="margin-bottom:14px">
       <div class="card">
         <div class="card-hdr"><span class="card-tit">Gastos por rubro · todos los campos</span></div>
@@ -902,13 +907,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div id="rt-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
       </div>
     </div>
-    <!-- Comparativa entre campos -->
+    <!-- 4) Tabla gasto total por rubro · campaña -->
     <div class="card">
-      <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
-      <div id="rt-comparativa"></div>
-    </div>
-    <!-- Resumen de gastos por rubro -->
-    <div class="card" style="margin-top:14px">
       <div class="card-hdr"><span class="card-tit">Gasto total por rubro · campaña</span></div>
       <div id="rt-resumen-rubro"></div>
     </div>
@@ -10428,7 +10428,10 @@ window.renderRentabilidadTotal = function() {
     function _money(v) { var s = (v<0?'(':''); return s + 'USD ' + _miles(Math.abs(v)) + (v<0?')':'') }
     function _pct(v) { return (v>=0?'+':'')+v.toFixed(1)+'%' }
     function _perHa(v) { return _miles(v) + ' USD/ha' }
-    var posColor = '#059669', negColor = '#dc2626', muted = '#64748b', text = '#0f172a', border = '#e5e7eb'
+    var bgIngresos = '#15803d'   // verde oscuro
+    var bgCostos   = '#dc2626'   // rojo
+    var bgMargen   = mgPositivo ? '#86efac' : '#fca5a5'   // verde más claro / rojo claro si negativo
+    var muted = '#475569', text = '#000', border = '#e5e7eb'
 
     casEl.innerHTML = ''
       + '<div class="card" style="padding:0;margin-bottom:0;overflow:hidden;background:#fff;border:1px solid '+border+';box-shadow:0 1px 2px rgba(15,23,42,.04)">'
@@ -10445,38 +10448,38 @@ window.renderRentabilidadTotal = function() {
       +     '</div>'
       +   '</div>'
 
-      // ── TABLA P&L ──
-      +   '<div style="padding:8px 0">'
+      // ── TABLA P&L (filas pintadas, texto negro) ──
+      +   '<div>'
 
-      //   Ingresos
-      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:14px 26px;align-items:baseline">'
-      +       '<div><div style="font-size:14px;color:'+text+';font-weight:500">Ingresos por ventas</div><div style="font-size:11px;color:'+muted+';margin-top:2px">Soja · maíz · trigo · otros</div></div>'
-      +       '<div style="text-align:right;font-size:11px;color:'+muted+';font-variant-numeric:tabular-nums">'+_perHa(ingPerHa)+'</div>'
-      +       '<div style="text-align:right;font-size:16px;color:'+text+';font-weight:600;font-variant-numeric:tabular-nums">'+_money(totalIngreso)+'</div>'
-      +       '<div style="text-align:right;font-size:11px;color:'+muted+';font-variant-numeric:tabular-nums">100.0%</div>'
+      //   Ingresos (fondo verde oscuro · texto NEGRO)
+      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:16px 26px;align-items:baseline;background:'+bgIngresos+'">'
+      +       '<div><div style="font-size:14px;color:'+text+';font-weight:800">Ingresos por ventas</div><div style="font-size:11px;color:rgba(0,0,0,.78);margin-top:2px;font-weight:600">Soja · maíz · trigo · otros</div></div>'
+      +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">'+_perHa(ingPerHa)+'</div>'
+      +       '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">'+_money(totalIngreso)+'</div>'
+      +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">100.0%</div>'
       +     '</div>'
 
-      //   Costos
-      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:14px 26px;align-items:baseline;border-top:1px solid '+border+'">'
-      +       '<div><div style="font-size:14px;color:'+text+';font-weight:500">(−) Costos operativos</div><div style="font-size:11px;color:'+muted+';margin-top:2px">Insumos · labores · arriendo · flete</div></div>'
-      +       '<div style="text-align:right;font-size:11px;color:'+muted+';font-variant-numeric:tabular-nums">'+_perHa(cosPerHa)+'</div>'
-      +       '<div style="text-align:right;font-size:16px;color:'+negColor+';font-weight:600;font-variant-numeric:tabular-nums">('+_miles(totalCosto)+')</div>'
-      +       '<div style="text-align:right;font-size:11px;color:'+muted+';font-variant-numeric:tabular-nums">'+cosPctIng.toFixed(1)+'%</div>'
+      //   Costos (fondo rojo · texto NEGRO)
+      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:16px 26px;align-items:baseline;background:'+bgCostos+'">'
+      +       '<div><div style="font-size:14px;color:'+text+';font-weight:800">(−) Costos operativos</div><div style="font-size:11px;color:rgba(0,0,0,.78);margin-top:2px;font-weight:600">Insumos · labores · arriendo · flete</div></div>'
+      +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">'+_perHa(cosPerHa)+'</div>'
+      +       '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_miles(totalCosto)+')</div>'
+      +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">'+cosPctIng.toFixed(1)+'%</div>'
       +     '</div>'
 
-      //   Margen Bruto (subtotal con doble underline financiero)
-      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:18px 26px;align-items:baseline;background:#f8fafc;border-top:2px solid '+text+';border-bottom:2px solid '+text+'">'
-      +       '<div><div style="font-size:14px;color:'+text+';font-weight:700;text-transform:uppercase;letter-spacing:.05em">Margen neto</div><div style="font-size:11px;color:'+muted+';margin-top:2px">Resultado de la campaña</div></div>'
-      +       '<div style="text-align:right;font-size:13px;color:'+(mgPositivo?posColor:negColor)+';font-weight:600;font-variant-numeric:tabular-nums">'+(mgPositivo?'+':'')+_miles(mgPerHa)+' USD/ha</div>'
-      +       '<div style="text-align:right;font-size:20px;color:'+(mgPositivo?posColor:negColor)+';font-weight:700;font-variant-numeric:tabular-nums;font-family:\'DM Sans\',sans-serif">'+(mgPositivo?'+':'')+_money(mgTotal).replace('(','-').replace(')','')+'</div>'
-      +       '<div style="text-align:right;font-size:13px;color:'+(mgPositivo?posColor:negColor)+';font-weight:600;font-variant-numeric:tabular-nums">'+_pct(mgPctIng)+'</div>'
+      //   Margen Neto (fondo verde más claro · texto NEGRO)
+      +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:18px 26px;align-items:baseline;background:'+bgMargen+'">'
+      +       '<div><div style="font-size:14px;color:'+text+';font-weight:800;text-transform:uppercase;letter-spacing:.05em">Margen neto</div><div style="font-size:11px;color:rgba(0,0,0,.65);margin-top:2px;font-weight:600">Resultado de la campaña</div></div>'
+      +       '<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+(mgPositivo?'+':'')+_miles(mgPerHa)+' USD/ha</div>'
+      +       '<div style="text-align:right;font-size:20px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums;font-family:\'DM Sans\',sans-serif">'+(mgPositivo?'+':'')+_money(mgTotal).replace('(','-').replace(')','')+'</div>'
+      +       '<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+_pct(mgPctIng)+'</div>'
       +     '</div>'
 
-      //   Indicadores secundarios
-      +     '<div style="display:flex;gap:30px;padding:14px 26px;font-size:12px;color:'+muted+';flex-wrap:wrap">'
-      +       '<div><span style="color:'+text+';font-weight:600;font-variant-numeric:tabular-nums">'+_pct(roiPct)+'</span> ROI sobre costos</div>'
-      +       '<div><span style="color:'+text+';font-weight:600;font-variant-numeric:tabular-nums">'+(cosPctIng/100).toFixed(2)+'</span> Costo/Ingreso ratio</div>'
-      +       '<div><span style="color:'+text+';font-weight:600;font-variant-numeric:tabular-nums">'+_miles(totalIngreso>0?totalIngreso/totalHa:0)+'</span> Productividad USD/ha</div>'
+      //   Indicadores secundarios (footer blanco)
+      +     '<div style="display:flex;gap:30px;padding:14px 26px;font-size:12px;color:'+muted+';flex-wrap:wrap;background:#fff;border-top:1px solid '+border+'">'
+      +       '<div><span style="color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+_pct(roiPct)+'</span> ROI sobre costos</div>'
+      +       '<div><span style="color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+(cosPctIng/100).toFixed(2)+'</span> Costo/Ingreso ratio</div>'
+      +       '<div><span style="color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+_miles(totalIngreso>0?totalIngreso/totalHa:0)+'</span> Productividad USD/ha</div>'
       +     '</div>'
 
       +   '</div>'
@@ -10498,24 +10501,26 @@ window.renderRentabilidadTotal = function() {
     if(!datosCampos.length){cEl.innerHTML='<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div></div>';return}
     var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
     cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
-      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
       var ingTot=Math.round(d.ingHa*d.ha)
       var cosTot=Math.round(d.costo)
       var mgTot=ingTot-cosTot
       var mgHaRound=Math.round(d.mgHa)
-      var mgBg=mgTot>=0?'#f0fef4':'#fff5f5'
+      // Colores SOLO en los números (no en el fondo de la fila)
+      var colIngresos = '#15803d'   // verde oscuro
+      var colCostos   = '#dc2626'   // rojo
+      var colMargen   = mgTot>=0 ? '#16a34a' : '#dc2626'   // verde más claro / rojo si negativo
       return '<div class="card" style="cursor:pointer;margin-bottom:0;padding:0;overflow:hidden" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
         '<div style="padding:14px 14px 10px">'+
         '<div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
         '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="color:var(--texto-suave)">Ingresos</span><span style="font-family:DM Mono,monospace;color:#1a7a52;font-weight:600">USD '+ingTot.toLocaleString('es-AR')+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="color:var(--texto-suave)">Costos</span><span style="font-family:DM Mono,monospace;color:#c0392b;font-weight:600">USD '+cosTot.toLocaleString('es-AR')+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:.5px solid var(--borde);background:'+mgBg+'">'+
-        '<span style="font-size:12px;font-weight:700;color:'+mc2+'">Margen neto</span>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
+        '<span style="color:#000;font-weight:500">Ingresos</span><span style="font-family:DM Mono,monospace;color:'+colIngresos+';font-weight:700">USD '+ingTot.toLocaleString('es-AR')+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
+        '<span style="color:#000;font-weight:500">Costos</span><span style="font-family:DM Mono,monospace;color:'+colCostos+';font-weight:700">USD '+cosTot.toLocaleString('es-AR')+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:.5px solid var(--borde)">'+
+        '<span style="font-size:12px;font-weight:700;color:#000">Margen neto</span>'+
         '<div style="text-align:right">'+
-        '<div style="font-size:15px;font-weight:700;font-family:DM Mono,monospace;color:'+mc2+'">'+(mgTot>=0?'+':'')+mgTot.toLocaleString('es-AR')+'</div>'+
+        '<div style="font-size:15px;font-weight:800;font-family:DM Mono,monospace;color:'+colMargen+'">'+(mgTot>=0?'+':'')+mgTot.toLocaleString('es-AR')+'</div>'+
         '<div style="font-size:10px;color:var(--texto-suave)">'+(mgHaRound>=0?'+':'')+mgHaRound+' USD/ha</div>'+
         '</div></div></div>'
     }).join('')+'</div>'

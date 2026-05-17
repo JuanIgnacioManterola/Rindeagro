@@ -2296,15 +2296,50 @@ async function cargarTodo() {
     }
     return r
   }
+  // Helper: cada query tiene timeout 4s y fallback REST para evitar que el SDK
+  // cuelgue toda la carga inicial.
+  async function _selectConFallback(table, params) {
+    // params: {col, val, order?: {col, asc}}
+    try {
+      var q = sb.from(table).select('*')
+      if (params.col) q = q.eq(params.col, params.val)
+      if (params.col2) q = q.eq(params.col2, params.val2)
+      if (params.order) q = q.order(params.order.col, {ascending: !!params.order.asc})
+      var r = await Promise.race([
+        q,
+        new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('SDK timeout 4s')) }, 4000) })
+      ])
+      if (r && r.error) throw r.error
+      return { data: r.data || [] }
+    } catch (eSdk) {
+      console.warn('[cargarTodo] '+table+' SDK falló, REST:', eSdk.message)
+      try {
+        var path = '/'+table+'?'+(params.col? params.col+'=eq.'+encodeURIComponent(params.val) : '')+
+                   (params.col2? '&'+params.col2+'=eq.'+encodeURIComponent(params.val2) : '')+
+                   (params.order? '&order='+params.order.col+'.'+(params.order.asc?'asc':'desc') : '')+
+                   '&select=*'
+        var data = await _restGet(path)
+        return { data: data || [] }
+      } catch (eRest) {
+        console.error('[cargarTodo] '+table+' REST también falló:', eRest.message)
+        return { data: null, error: eRest }
+      }
+    }
+  }
+  function _wrapSettled(promise) {
+    return promise.then(function(v){ return {status:'fulfilled', value:v} },
+                        function(e){ return {status:'rejected', reason:e} })
+  }
+
   var [resP, resC, resG, resL, resS, resT, resEq, resI] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
-    sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
-    sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false}),
-    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true),
-    sb.from('stock_insumos').select('*').eq('owner_id', uid).order('created_at',{ascending:false})
+    _selectConFallback('gastos',         {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('lluvias',        {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('analisis_suelo', {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('tareas',         {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
+    _selectConFallback('equipo',         {col:'owner_id',   val:uid, col2:'activo', val2:true}),
+    _selectConFallback('stock_insumos',  {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}})
   ])
 
   // Perfil → nombre/saludo

@@ -4008,7 +4008,7 @@ function renderTareas() {
       +(!esCompletada ? '<button onclick="completarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap">✓ Completar</button>' : '')
       +(!esCompletada && t.estado!=='en_progreso' ? '<button onclick="iniciarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">▶ Iniciar</button>' : '')
       +(esAdmin ? '<button onclick="abrirModalTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">✏️ Editar</button>' : '')
-      +(esAdmin && esCompletada ? '<button onclick="eliminarTarea(\''+t.id+'\')" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--borde);background:transparent;color:var(--rojo);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap">🗑</button>' : '')
+      +(esAdmin ? '<button onclick="eliminarTarea(\''+t.id+'\')" title="Eliminar tarea" style="font-size:11px;padding:5px 11px;border-radius:7px;border:.5px solid var(--rojo);background:transparent;color:var(--rojo);cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap;font-weight:600">🗑 Eliminar</button>' : '')
       +'</div>'
       +'</div>'
       +'</div>'

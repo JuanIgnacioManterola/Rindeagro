@@ -2408,6 +2408,37 @@ async function cargarTodo() {
   if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
 }
 
+// Refresca insumos desde REST y re-renderiza si el módulo está visible.
+// Se llama cuando el usuario abre el tab Insumos, para garantizar datos
+// frescos incluso si cargarTodo no terminó o se perdió el render.
+async function _refrescarInsumosVistaActual() {
+  if (!usuario || !usuario.id || typeof _restGet !== 'function') return
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var data = await _restGet('/stock_insumos?owner_id=eq.'+encodeURIComponent(uid)+'&order=created_at.desc&select=*')
+    if (Array.isArray(data)) {
+      insumos = data
+      try { _guardarCache() } catch(e) {}
+      var modI = document.getElementById('mod-stock-insumos')
+      if (modI && modI.classList.contains('active')) renderInsumos()
+    }
+  } catch(e) { console.warn('[Insumos] refresh REST falló:', e.message) }
+}
+
+async function _refrescarTareasVistaActual() {
+  if (!usuario || !usuario.id || typeof _restGet !== 'function') return
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var data = await _restGet('/tareas?owner_id=eq.'+encodeURIComponent(uid)+'&order=created_at.desc&select=*')
+    if (Array.isArray(data)) {
+      tareas = data
+      try { _guardarCache() } catch(e) {}
+      var modT = document.getElementById('mod-tareas')
+      if (modT && modT.classList.contains('active')) renderTareas()
+    }
+  } catch(e) { console.warn('[Tareas] refresh REST falló:', e.message) }
+}
+
 window.showModulo = function(mod) {
   document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
@@ -2429,8 +2460,14 @@ window.showModulo = function(mod) {
   }
   if (mod === 'mapa') initMapa()
   if (mod === 'mi-plan') renderMiPlan()
-  if (mod === 'tareas') renderTareas()
-  if (mod === 'stock-insumos') renderInsumos()
+  if (mod === 'tareas') {
+    renderTareas()
+    _refrescarTareasVistaActual()
+  }
+  if (mod === 'stock-insumos') {
+    renderInsumos()
+    _refrescarInsumosVistaActual()
+  }
 }
 
 window.openModalPrecios = function() {

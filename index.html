@@ -475,7 +475,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="footer-top">
         <div><div class="footer-logo">Rinde<span class="d">.</span>Agro</div><div class="footer-desc">La plataforma agropecuaria argentina para productores que quieren saber cuánto rinde su campaña.</div></div>
         <div><div class="footer-col-tit">Producto</div><div class="footer-links"><a href="#features">Funcionalidades</a><a href="#planes">Precios</a></div></div>
-        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="mailto:rindeagro.contacto@gmail.com">rindeagro.contacto@gmail.com</a><a href="#">Términos</a><a href="#">Privacidad</a></div></div>
+        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="mailto:rindeagro.contacto@gmail.com">rindeagro.contacto@gmail.com</a><a href="javascript:void(0)">Términos</a><a href="javascript:void(0)">Privacidad</a></div></div>
       </div>
       <div class="footer-bottom"><div class="footer-copy">© 2026 Rinde.Agro · Hecho en Argentina 🇦🇷</div></div>
     </div>
@@ -2147,6 +2147,9 @@ async function init() {
       }
       // Dispara siempre al cargar la página con el estado actual de sesión
       if (session && session.user) {
+        // Limpiar hash residual (#access_token=... post magic link, etc.) ya
+        // consumido por supabase-js. Deja la barra de URL limpia.
+        try { if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search) } catch(e) {}
         await window._entrarApp(session.user)
       } else {
         hideLoading()
@@ -2158,6 +2161,8 @@ async function init() {
       // No entrar si es recovery (PASSWORD_RECOVERY se encarga)
       var _hashParams2 = new URLSearchParams(window.location.hash.replace('#','?').slice(1))
       if (_hashParams2.get('type') === 'recovery') return
+      // Limpiar hash residual post auth callback
+      try { if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search) } catch(e) {}
       await window._entrarApp(session.user)
       showToast('✓ ¡Bienvenido!', 'ok')
     } else if (event === 'PASSWORD_RECOVERY') {

@@ -1971,7 +1971,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 <!-- ── DEV: Copy Tools widget (eliminar cuando salga a prod final) ── -->
 <div id="dev-copy-widget" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:99997;font-family:'DM Sans',sans-serif">
   <div style="background:#1a1a18;border:1.5px solid rgba(0,255,136,.4);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 40px rgba(0,0,0,.5);min-width:180px">
-    <div style="font-size:9px;font-weight:700;color:rgba(0,255,136,.8);letter-spacing:.1em;text-transform:uppercase;text-align:center;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px">📋 Copy Tools</div>
+    <div id="dev-copy-handle" style="font-size:9px;font-weight:700;color:rgba(0,255,136,.8);letter-spacing:.1em;text-transform:uppercase;text-align:center;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px;cursor:move;user-select:none;touch-action:none" title="Arrastrá para mover">⋮⋮ 📋 Copy Tools ⋮⋮</div>
     <button onclick="_devCopyPage()" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,255,136,.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px" title="Copia HTML del módulo o modal activo (tecla 1)">
       <span>📄 Página activa</span>
       <span style="font-size:10px;opacity:.5;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">1</span>
@@ -11553,6 +11553,87 @@ window.addEventListener('scroll',()=>{
   var w = document.getElementById('dev-copy-widget')
   if (w) w.style.display = 'block'
 
+  // ── Drag & posición persistida ─────────────────────────────────
+  function _devMakeDraggable() {
+    var widget = document.getElementById('dev-copy-widget')
+    var handle = document.getElementById('dev-copy-handle')
+    if (!widget || !handle) return
+
+    function _applyPos(left, top) {
+      var width = widget.offsetWidth || 200
+      var height = widget.offsetHeight || 120
+      // Clamp dentro del viewport (con margen mínimo de 4px)
+      left = Math.max(4, Math.min(window.innerWidth - width - 4, left))
+      top = Math.max(4, Math.min(window.innerHeight - height - 4, top))
+      widget.style.left = left + 'px'
+      widget.style.top = top + 'px'
+      widget.style.right = 'auto'
+      widget.style.bottom = 'auto'
+    }
+
+    // Restaurar posición guardada
+    try {
+      var saved = JSON.parse(localStorage.getItem('ra_devmode_pos') || 'null')
+      if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+        _applyPos(saved.left, saved.top)
+      }
+    } catch(e) {}
+
+    var dragging = false
+    var startX, startY, startLeft, startTop, moved
+
+    function _ptr(e) {
+      if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      return { x: e.clientX, y: e.clientY }
+    }
+
+    function onDown(e) {
+      var p = _ptr(e)
+      var rect = widget.getBoundingClientRect()
+      dragging = true
+      moved = false
+      startX = p.x; startY = p.y
+      startLeft = rect.left; startTop = rect.top
+      // Fijar el widget con left/top (no bottom/right) para que funcione el drag
+      _applyPos(startLeft, startTop)
+      e.preventDefault()
+    }
+
+    function onMove(e) {
+      if (!dragging) return
+      var p = _ptr(e)
+      var dx = p.x - startX
+      var dy = p.y - startY
+      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true
+      _applyPos(startLeft + dx, startTop + dy)
+      e.preventDefault()
+    }
+
+    function onUp() {
+      if (!dragging) return
+      dragging = false
+      if (!moved) return
+      try {
+        var rect = widget.getBoundingClientRect()
+        localStorage.setItem('ra_devmode_pos', JSON.stringify({ left: rect.left, top: rect.top }))
+      } catch(e) {}
+    }
+
+    handle.addEventListener('mousedown', onDown)
+    handle.addEventListener('touchstart', onDown, { passive: false })
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('mouseup', onUp)
+    document.addEventListener('touchend', onUp)
+
+    // Si la ventana se achica y el widget queda fuera, lo reclampeamos
+    window.addEventListener('resize', function() {
+      var rect = widget.getBoundingClientRect()
+      _applyPos(rect.left, rect.top)
+    })
+  }
+  _devMakeDraggable()
+
   function _toast(msg, kind) {
     if (typeof showToast === 'function') showToast(msg, kind || 'ok')
     else console.log('[dev]', msg)
@@ -11668,6 +11749,7 @@ window.addEventListener('scroll',()=>{
 
   window._devCopyDisable = function() {
     try { localStorage.removeItem('ra_devmode') } catch(e) {}
+    try { localStorage.removeItem('ra_devmode_pos') } catch(e) {}
     var w = document.getElementById('dev-copy-widget')
     if (w) w.style.display = 'none'
     if (_inspectorActive && _inspectorCleanup) _inspectorCleanup()

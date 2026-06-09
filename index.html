@@ -1968,6 +1968,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .dev-sim-btn:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)}
 </style>
 
+<!-- ── DEV: Copy Tools widget (eliminar cuando salga a prod final) ── -->
+<div id="dev-copy-widget" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:99997;font-family:'DM Sans',sans-serif">
+  <div style="background:#1a1a18;border:1.5px solid rgba(0,255,136,.4);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 40px rgba(0,0,0,.5);min-width:180px">
+    <div style="font-size:9px;font-weight:700;color:rgba(0,255,136,.8);letter-spacing:.1em;text-transform:uppercase;text-align:center;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px">📋 Copy Tools</div>
+    <button onclick="_devCopyPage()" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,255,136,.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px" title="Copia HTML del módulo o modal activo (tecla 1)">
+      <span>📄 Página activa</span>
+      <span style="font-size:10px;opacity:.5;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">1</span>
+    </button>
+    <button onclick="_devPickElement()" id="dev-pick-btn" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,255,136,.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px" title="Click un elemento para copiar su HTML (tecla 2). ESC cancela.">
+      <span>🎯 Inspeccionar</span>
+      <span style="font-size:10px;opacity:.5;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">2</span>
+    </button>
+    <button onclick="_devCopyDisable()" style="padding:5px;border:none;background:transparent;color:rgba(255,255,255,.35);font-size:10px;cursor:pointer;font-family:inherit;text-decoration:underline" title="Salir del modo dev">desactivar</button>
+  </div>
+</div>
+<!-- ── END DEV copy widget ── -->
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -11516,6 +11533,159 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('scroll',()=>{
   document.getElementById('navbar')?.classList.toggle('scrolled',window.scrollY>50)
 })
+
+// ══════════════════════════════════════════════
+// DEV: Copy Tools widget (eliminar antes de prod final)
+// Activación: ?dev=1 (se persiste en localStorage 'ra_devmode')
+// ══════════════════════════════════════════════
+;(function() {
+  function _isDev() {
+    try {
+      if (new URLSearchParams(window.location.search).get('dev') === '1') {
+        try { localStorage.setItem('ra_devmode', '1') } catch(e) {}
+        return true
+      }
+      return localStorage.getItem('ra_devmode') === '1'
+    } catch(e) { return false }
+  }
+  if (!_isDev()) return
+
+  var w = document.getElementById('dev-copy-widget')
+  if (w) w.style.display = 'block'
+
+  function _toast(msg, kind) {
+    if (typeof showToast === 'function') showToast(msg, kind || 'ok')
+    else console.log('[dev]', msg)
+  }
+
+  window._devCopyPage = function() {
+    var target = null
+    var overlay = document.querySelector('.overlay.open')
+    if (overlay) target = overlay
+    if (!target) target = document.querySelector('.modulo.active')
+    if (!target) {
+      _toast('No encontré módulo ni modal activo', 'err')
+      return
+    }
+    var html = target.outerHTML
+    var label = target.id || target.tagName.toLowerCase()
+    navigator.clipboard.writeText(html).then(function(){
+      _toast('✓ Copiado: ' + label + ' (' + html.length.toLocaleString() + ' chars)', 'ok')
+    }, function(e){
+      _toast('⚠️ No pude copiar: ' + e.message, 'err')
+    })
+  }
+
+  var _inspectorActive = false
+  var _inspectorCleanup = null
+
+  window._devPickElement = function() {
+    if (_inspectorActive) { _inspectorCleanup && _inspectorCleanup(); return }
+    _inspectorActive = true
+    document.body.style.cursor = 'crosshair'
+    var btn = document.getElementById('dev-pick-btn')
+    if (btn) btn.style.background = 'rgba(255,200,0,.2)'
+
+    var hi = document.createElement('div')
+    hi.id = 'dev-inspector-highlight'
+    hi.style.cssText = 'position:fixed;pointer-events:none;z-index:99996;border:2px solid #00ff88;background:rgba(0,255,136,.1);box-shadow:0 0 0 9999px rgba(0,0,0,.2);transition:left .05s,top .05s,width .05s,height .05s;display:none'
+    document.body.appendChild(hi)
+
+    // Label flotante con tag + id/class
+    var lbl = document.createElement('div')
+    lbl.style.cssText = 'position:fixed;pointer-events:none;z-index:99996;background:#00ff88;color:#000;font-family:monospace;font-size:11px;font-weight:700;padding:3px 7px;border-radius:4px;display:none;white-space:nowrap'
+    document.body.appendChild(lbl)
+
+    var lastTarget = null
+
+    function describe(el) {
+      var s = el.tagName.toLowerCase()
+      if (el.id) s += '#' + el.id
+      else if (el.className && typeof el.className === 'string') {
+        var c = el.className.split(/\s+/).filter(Boolean).slice(0,2).join('.')
+        if (c) s += '.' + c
+      }
+      return s
+    }
+
+    function onMove(e) {
+      var t = e.target
+      if (!t || t === hi || t === lbl) return
+      if (t.closest && t.closest('#dev-copy-widget')) {
+        hi.style.display = 'none'
+        lbl.style.display = 'none'
+        lastTarget = null
+        return
+      }
+      lastTarget = t
+      var r = t.getBoundingClientRect()
+      hi.style.display = 'block'
+      hi.style.left = r.left + 'px'
+      hi.style.top = r.top + 'px'
+      hi.style.width = r.width + 'px'
+      hi.style.height = r.height + 'px'
+      lbl.textContent = describe(t)
+      lbl.style.display = 'block'
+      // Mostrar el label arriba o abajo según haya espacio
+      var top = r.top - 22
+      if (top < 0) top = r.bottom + 4
+      lbl.style.left = Math.max(0, r.left) + 'px'
+      lbl.style.top = top + 'px'
+    }
+
+    function onClick(e) {
+      if (!lastTarget) return
+      if (lastTarget.closest && lastTarget.closest('#dev-copy-widget')) return
+      e.preventDefault()
+      e.stopPropagation()
+      var html = lastTarget.outerHTML
+      var label = describe(lastTarget)
+      navigator.clipboard.writeText(html).then(function(){
+        _toast('✓ Copiado: ' + label + ' (' + html.length.toLocaleString() + ' chars)', 'ok')
+      })
+      cleanup()
+    }
+
+    function onKey(e) { if (e.key === 'Escape') cleanup() }
+
+    function cleanup() {
+      document.removeEventListener('mousemove', onMove, true)
+      document.removeEventListener('click', onClick, true)
+      document.removeEventListener('keydown', onKey, true)
+      hi.remove()
+      lbl.remove()
+      document.body.style.cursor = ''
+      _inspectorActive = false
+      if (btn) btn.style.background = 'rgba(0,255,136,.08)'
+      _inspectorCleanup = null
+    }
+    _inspectorCleanup = cleanup
+
+    document.addEventListener('mousemove', onMove, true)
+    document.addEventListener('click', onClick, true)
+    document.addEventListener('keydown', onKey, true)
+  }
+
+  window._devCopyDisable = function() {
+    try { localStorage.removeItem('ra_devmode') } catch(e) {}
+    var w = document.getElementById('dev-copy-widget')
+    if (w) w.style.display = 'none'
+    if (_inspectorActive && _inspectorCleanup) _inspectorCleanup()
+    _toast('Modo dev desactivado. Volvé con ?dev=1', 'ok')
+  }
+
+  // Atajos: 1 = copiar página, 2 = inspeccionar. Ignorar si hay foco en input/textarea/select/contenteditable.
+  document.addEventListener('keydown', function(e) {
+    var t = e.target
+    if (!t) return
+    var tag = t.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    if (t.isContentEditable) return
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.key === '1') { e.preventDefault(); window._devCopyPage() }
+    else if (e.key === '2') { e.preventDefault(); window._devPickElement() }
+  })
+})();
 
 init()
 </script>

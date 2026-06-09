@@ -4898,7 +4898,9 @@ window.login = async function() {
       showScreen('app')
       await cargarTodo()
     } else if(data.user && usuario) {
-      // onAuthStateChange ya lo manejó
+      // onAuthStateChange ya lo manejó: _entrarApp seteó usuario y disparó
+      // cargarTodo en background. Falta cerrar el modal y avisar.
+      closeModal()
       showToast('✓ ¡Bienvenido de vuelta!','ok')
     }
   }catch(e){
@@ -4927,6 +4929,12 @@ window.login = async function() {
       var flog=document.getElementById('f-log')
       if(flog) flog.appendChild(errDiv)
     }
+  } finally {
+    // Defensivo: siempre dejar el botón listo para el próximo intento.
+    // El catch ya lo hace, pero si entra por if/else if con éxito,
+    // queremos que la próxima vez que se abra el modal arranque limpio.
+    btn.disabled = false
+    btn.textContent = 'Ingresar a mi cuenta'
   }
 }
 window._reenviarConf = async function(email) {

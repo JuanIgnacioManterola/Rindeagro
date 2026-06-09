@@ -9144,13 +9144,28 @@ window.salirModoColaborador = async function() {
 // ── MODAL MI EQUIPO ──
 window.openModalMiEquipo = async function() {
   document.getElementById('ov-mi-equipo').classList.add('open')
+  // Decidir tab inicial: REST primero (rápido, no cuelga), SDK como fallback.
+  // Sin esto, si supabase-js queda colgado, el modal se queda "vacío".
   try {
-    var { data } = await sb.from('equipo').select('id').eq('owner_id', usuario.id).eq('activo', true).limit(1)
-    var hayMiembros = data && data.length > 0
+    var hayMiembros = false
+    try {
+      if (usuario && usuario.id && typeof _restGet === 'function') {
+        var data = await _restGet('/equipo?owner_id=eq.'+encodeURIComponent(usuario.id)+'&activo=is.true&select=id&limit=1')
+        hayMiembros = Array.isArray(data) && data.length > 0
+      } else {
+        var r = await Promise.race([
+          sb.from('equipo').select('id').eq('owner_id', usuario.id).eq('activo', true).limit(1),
+          new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('SDK timeout')) }, 3000) })
+        ])
+        hayMiembros = r && r.data && r.data.length > 0
+      }
+    } catch(e) {
+      console.warn('[openModalMiEquipo] check inicial falló, asumo "invitar":', e.message)
+    }
     switchEquipoTab(hayMiembros ? 'miembros' : 'invitar',
       document.getElementById(hayMiembros ? 'eq-tab-miembros' : 'eq-tab-invitar'))
   } catch(e) {
-    switchEquipoTab('miembros', document.getElementById('eq-tab-miembros'))
+    switchEquipoTab('invitar', document.getElementById('eq-tab-invitar'))
   }
 }
 
@@ -9817,26 +9832,26 @@ window.generarInvitacion = async function() {
       usuario_id: usuario.id, rolUI: rolUI, rolDB: rolDB, permisos: permisos, token: token
     })
 
-    // Timeout de 8s: si Supabase no responde (proyecto pausado, red caída)
-    // la promesa colgaría para siempre sin timeout explícito
-    var insertPromise = sb.from('invitaciones').insert({
-      token:    token,
-      owner_id: usuario.id,
-      rol:      rolDB,
-      permisos: permisos
+    // Usar _dbMutate: intenta SDK con timeout 3s y cae a REST si falla/cuelga.
+    // Antes era SDK puro con timeout de 8s, sin fallback REST: si el SDK
+    // se quedaba colgado, no había forma de seguir.
+    var r = await _dbMutate({
+      method: 'insert',
+      table:  'invitaciones',
+      payload: {
+        token:    token,
+        owner_id: usuario.id,
+        rol:      rolDB,
+        permisos: permisos
+      },
+      timeout: 3000
     })
-    var timeoutPromise = new Promise(function(_, rj) {
-      setTimeout(function() {
-        rj(new Error('Sin respuesta de Supabase (8s). Verificá que tu proyecto no esté pausado en app.supabase.com'))
-      }, 8000)
-    })
-    var { data, error } = await Promise.race([insertPromise, timeoutPromise])
 
-    console.log('[generarInvitacion] respuesta Supabase', { data: data, error: error })
+    console.log('[generarInvitacion] respuesta', r)
 
-    if (error) {
-      console.error('[generarInvitacion] error Supabase:', JSON.stringify(error))
-      var msg = error.message || error.details || error.hint || JSON.stringify(error)
+    if (r && r.error) {
+      console.error('[generarInvitacion] error:', JSON.stringify(r.error))
+      var msg = r.error.message || r.error.details || r.error.hint || JSON.stringify(r.error)
       throw new Error(msg)
     }
 

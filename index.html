@@ -12439,8 +12439,8 @@ function renderDetGastos() {
         +cultivosDeCampo.map(function(cult) {
           var color = CULT_COLORES[cult]||'#16a34a'
           var icon = CULT_ICONS[cult]||'🌱'
-          var nExcl = gastos.filter(function(g){ return g.campo_id===campoDet && g.cultivo===cult && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).length
-          var totalExcl = gastos.filter(function(g){ return g.campo_id===campoDet && g.cultivo===cult && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+          var nExcl = gastos.filter(function(g){ return g.campo_id===campoDet && (g.cultivo===cult || !g.cultivo) && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).length
+          var totalExcl = gastos.filter(function(g){ return g.campo_id===campoDet && (g.cultivo===cult || !g.cultivo) && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
           var montoStr = totalExcl > 0 ? ' · USD '+Math.round(totalExcl).toLocaleString('es-AR') : ''
           return '<div onclick="seleccionarCultivoGastos(\''+cult+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--crema);border-radius:13px;border-left:4px solid '+color+';cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 14px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">'
             +'<div style="display:flex;align-items:center;gap:12px">'

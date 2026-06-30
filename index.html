@@ -1062,6 +1062,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo">💰 Pagos</div><div class="mod-sub">Cargá los cheques que emitís y las cuotas de tus créditos. Te alertamos cuando se acerca el vencimiento para que junte la plata a tiempo.</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="openModalPagoFoto()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Desde foto/PDF</button>
         <button onclick="openModalCredito()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">💳 + Crédito</button>
         <button onclick="openModalCheque()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">🧾 + Cheque</button>
       </div>
@@ -1336,6 +1337,63 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer">
       <button class="fb" id="btn-guardar-credito" onclick="guardarCredito()">Generar cuotas y guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR PAGO DESDE FOTO/PDF -->
+<div class="overlay" id="ov-pago-foto">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalPagoFoto()">✕</button>
+      <div class="m-tit">📄 Cargar pago desde foto o PDF</div>
+      <div class="m-sub" style="margin-bottom:0">Subí una foto del cheque o del voucher del crédito. Leemos los datos y prellenamos el formulario.</div>
+    </div>
+    <div class="modal-body">
+
+      <!-- Paso 1: tipo + upload -->
+      <div id="pf-step-1">
+        <div class="fg">
+          <label class="fl">¿Qué estás subiendo?</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button type="button" class="pf-tipo-btn" data-tipo="cheque" onclick="window._selPfTipo('cheque',this)" style="flex:1;border:1.5px solid var(--verde);border-radius:10px;padding:14px 10px;cursor:pointer;background:var(--verde-pale);color:var(--verde);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:22px;margin-bottom:4px">🧾</div>Cheque<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Lee beneficiario, importe y fechas</div></button>
+            <button type="button" class="pf-tipo-btn" data-tipo="credito" onclick="window._selPfTipo('credito',this)" style="flex:1;border:1.5px solid var(--borde);border-radius:10px;padding:14px 10px;cursor:pointer;background:var(--crema);color:var(--texto-mid);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:22px;margin-bottom:4px">💳</div>Crédito<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Lee cuota, cantidad y fecha inicio</div></button>
+          </div>
+          <input type="hidden" id="pf-tipo" value="cheque"/>
+        </div>
+
+        <div class="fg">
+          <label class="fl">Archivo</label>
+          <label id="pf-upload-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;border-radius:12px;border:2px dashed var(--borde);cursor:pointer;background:var(--crema);transition:border-color .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+            <span style="font-size:28px">📁</span>
+            <div>
+              <div id="pf-upload-label" style="font-size:14px;font-weight:600;color:var(--texto)">Tocá para elegir foto o PDF</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">JPG, PNG, WEBP o PDF · máx. 10 MB</div>
+            </div>
+            <input type="file" id="pf-file-input" accept="image/*,.pdf" style="display:none" onchange="window._pfProcesarSeleccion(this)"/>
+          </label>
+        </div>
+
+        <div id="pf-preview" style="display:none;margin-top:10px"></div>
+
+        <button class="fb" id="btn-pf-procesar" onclick="window._pfProcesarOCR()" style="margin-top:10px;display:none">🔍 Leer datos del archivo</button>
+      </div>
+
+      <!-- Paso 2: loading -->
+      <div id="pf-step-2" style="display:none;text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:14px">🔍</div>
+        <div style="font-size:15px;font-weight:600;color:var(--texto)">Leyendo el documento...</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:6px">Esto puede tardar 5-15 segundos.</div>
+        <div style="margin-top:18px;height:4px;background:var(--crema);border-radius:2px;overflow:hidden"><div style="height:100%;background:var(--verde);width:30%;animation:facBar 1.6s ease-in-out infinite"></div></div>
+      </div>
+
+      <!-- Paso 3: error / sin OCR configurado -->
+      <div id="pf-step-err" style="display:none;text-align:center;padding:30px 20px">
+        <div style="font-size:40px;margin-bottom:14px">⚠️</div>
+        <div id="pf-err-msg" style="font-size:14px;color:var(--texto);line-height:1.5"></div>
+        <button onclick="window._pfReset()" style="margin-top:18px;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Volver a intentar</button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -8980,11 +9038,18 @@ window.guardarCheque = async function() {
   var btn = document.getElementById('btn-guardar-cheque')
   btn.disabled = true; btn.textContent = 'Guardando...'
 
+  var archUrl = window._chequeArchivoUrl || null
+  var archPath = window._chequeArchivoPath || null
   var _p = {
     tipo: 'cheque', beneficiario: benef, fecha_emision: fEmision, fecha_cobro: fCobro,
     importe: importe, moneda: moneda, banco: banco, numero_cheque: numero,
-    alerta_dias_antes: alertaDias, notas: notas
+    alerta_dias_antes: alertaDias, notas: notas,
+    archivo_url: archUrl, archivo_path: archPath,
+    fuente: archUrl ? 'foto' : 'manual'
   }
+  // limpiar refs después de usar
+  window._chequeArchivoUrl = null
+  window._chequeArchivoPath = null
 
   try {
     if (editId) {
@@ -9073,6 +9138,13 @@ window.guardarCredito = async function() {
   var creditoId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
 
+  var archUrlCr = window._creditoArchivoUrl || null
+  var archPathCr = window._creditoArchivoPath || null
+  var fuenteCr = archUrlCr ? 'foto' : 'manual'
+  // limpiar refs después de usar
+  window._creditoArchivoUrl = null
+  window._creditoArchivoPath = null
+
   var nuevasCuotas = []
   var fecha = fPrimera
   for (var i = 1; i <= nCuotas; i++) {
@@ -9085,7 +9157,9 @@ window.guardarCredito = async function() {
       importe: cuotaImporte, moneda: moneda,
       alerta_dias_antes: alertaDias, estado: 'pendiente',
       credito_id: creditoId, numero_cuota: i, total_cuotas: nCuotas,
-      notas: notas, created_at: new Date().toISOString()
+      notas: notas,
+      archivo_url: archUrlCr, archivo_path: archPathCr, fuente: fuenteCr,
+      created_at: new Date().toISOString()
     })
     fecha = _siguienteFecha(fecha, frecuencia)
   }
@@ -9288,6 +9362,145 @@ window.renderPagos = function() {
 
       + '</div>'
   }).join('')
+}
+
+// ── PAGOS: Upload + OCR (cheques/créditos desde foto/PDF) ──
+var _pfFile = null
+var _pfFileBase64 = null
+var _pfFileMime = null
+var _pfArchivoUrl = null
+var _pfArchivoPath = null
+
+window.openModalPagoFoto = function() {
+  _pfReset()
+  document.getElementById('ov-pago-foto').classList.add('open')
+}
+
+window.closeModalPagoFoto = function() {
+  document.getElementById('ov-pago-foto').classList.remove('open')
+  _pfReset()
+}
+
+window._selPfTipo = function(tipo, btn) {
+  document.getElementById('pf-tipo').value = tipo
+  document.querySelectorAll('.pf-tipo-btn').forEach(function(b){
+    var sel = b.getAttribute('data-tipo') === tipo
+    b.style.background = sel ? 'var(--verde-pale)' : 'var(--crema)'
+    b.style.borderColor = sel ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = sel ? 'var(--verde)' : 'var(--texto-mid)'
+  })
+}
+
+window._pfReset = function() {
+  _pfFile = null
+  _pfFileBase64 = null
+  _pfFileMime = null
+  _pfArchivoUrl = null
+  _pfArchivoPath = null
+  document.getElementById('pf-step-1').style.display = ''
+  document.getElementById('pf-step-2').style.display = 'none'
+  document.getElementById('pf-step-err').style.display = 'none'
+  document.getElementById('pf-preview').style.display = 'none'
+  document.getElementById('pf-preview').innerHTML = ''
+  document.getElementById('btn-pf-procesar').style.display = 'none'
+  document.getElementById('pf-upload-label').textContent = 'Tocá para elegir foto o PDF'
+  var fi = document.getElementById('pf-file-input'); if (fi) fi.value = ''
+  var btn = document.querySelector('.pf-tipo-btn[data-tipo="cheque"]'); if (btn) _selPfTipo('cheque', btn)
+}
+
+window._pfProcesarSeleccion = function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB', 'err'); input.value = ''; return }
+  _pfFile = f
+  _pfFileMime = f.type || 'application/octet-stream'
+  var prev = document.getElementById('pf-preview')
+  var isImg = (f.type || '').startsWith('image/')
+  if (isImg) {
+    var url = URL.createObjectURL(f)
+    prev.innerHTML = '<img src="'+url+'" style="max-width:100%;max-height:240px;border-radius:8px;border:1px solid var(--borde);display:block;margin:0 auto"/>'
+  } else {
+    prev.innerHTML = '<div style="padding:14px;background:var(--crema);border:1px solid var(--borde);border-radius:8px;display:flex;align-items:center;gap:10px;font-size:13px"><span style="font-size:30px">📄</span><div><div style="font-weight:600">'+f.name+'</div><div style="font-size:11px;color:var(--texto-suave)">'+Math.round(f.size/1024)+' KB · PDF</div></div></div>'
+  }
+  prev.style.display = ''
+  document.getElementById('pf-upload-label').textContent = 'Cambiar archivo'
+  document.getElementById('btn-pf-procesar').style.display = ''
+}
+
+window._pfProcesarOCR = async function() {
+  if (!_pfFile) { showToast('⚠️ Subí un archivo primero','err'); return }
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+  var tipo = document.getElementById('pf-tipo').value || 'cheque'
+
+  document.getElementById('pf-step-1').style.display = 'none'
+  document.getElementById('pf-step-2').style.display = ''
+
+  try {
+    // 1) Subir al Storage (queda asociado al pago al guardar)
+    var up = await _subirArchivoStorageBucket(_pfFile, 'pagos-archivos')
+    _pfArchivoUrl = up.url
+    _pfArchivoPath = up.path
+
+    // 2) Convertir a base64
+    var b64 = await _fileToBase64(_pfFile)
+    _pfFileBase64 = b64
+
+    // 3) Llamar edge function ocr-pago
+    var sbUrl = (window.SUPABASE_URL || '') || (sb && sb.supabaseUrl) || SB_URL
+    var endpoint = (sbUrl || '').replace(/\/$/,'') + '/functions/v1/ocr-pago'
+    var sess = (await sb.auth.getSession()).data.session
+    var token = sess && sess.access_token
+    var r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+(token||'') },
+      body: JSON.stringify({ image_base64: b64, mime_type: _pfFileMime, tipo: tipo })
+    })
+    if (!r.ok) {
+      var txt = await r.text().catch(function(){return ''})
+      if (r.status === 404) throw new Error('OCR no configurado todavía. El admin tiene que desplegar la función ocr-pago.')
+      if (r.status === 401) throw new Error('Sesión inválida. Volvé a entrar.')
+      throw new Error('OCR error '+r.status+': '+(txt||'sin detalle'))
+    }
+    var resp = await r.json()
+    if (!resp.ok || !resp.data) throw new Error('No pude identificar los datos. Probá con una foto más clara.')
+
+    var d = resp.data
+    closeModalPagoFoto()
+
+    if (tipo === 'cheque') {
+      // Pre-llenar el modal de cheque
+      openModalCheque()
+      document.getElementById('ch-beneficiario').value = d.beneficiario || ''
+      document.getElementById('ch-importe').value = d.importe || ''
+      document.getElementById('ch-moneda').value = d.moneda || 'ARS'
+      document.getElementById('ch-fecha-emision').value = d.fecha_emision || ''
+      document.getElementById('ch-fecha-cobro').value = d.fecha_cobro || ''
+      document.getElementById('ch-banco').value = d.banco || ''
+      document.getElementById('ch-numero').value = d.numero_cheque || ''
+      // Guardar archivo url para incluir al guardar
+      window._chequeArchivoUrl = _pfArchivoUrl
+      window._chequeArchivoPath = _pfArchivoPath
+      showToast('✓ Datos extraídos. Revisalos y guardá.','ok')
+    } else {
+      // Pre-llenar modal de crédito
+      openModalCredito()
+      document.getElementById('cr-descripcion').value = d.descripcion || ''
+      document.getElementById('cr-cuota-importe').value = d.cuota_importe || ''
+      document.getElementById('cr-moneda').value = d.moneda || 'ARS'
+      document.getElementById('cr-cuotas').value = d.n_cuotas || ''
+      document.getElementById('cr-frecuencia').value = d.frecuencia || 'mensual'
+      document.getElementById('cr-beneficiario').value = d.beneficiario || ''
+      document.getElementById('cr-fecha-primera').value = d.fecha_primera || ''
+      window._creditoArchivoUrl = _pfArchivoUrl
+      window._creditoArchivoPath = _pfArchivoPath
+      showToast('✓ Datos extraídos. Revisalos y guardá.','ok')
+    }
+  } catch(e) {
+    console.error('OCR pago error:', e)
+    document.getElementById('pf-step-2').style.display = 'none'
+    document.getElementById('pf-step-err').style.display = ''
+    document.getElementById('pf-err-msg').innerHTML = (e.message || 'No se pudo leer el documento.') + '<br/><br/><span style="color:var(--texto-suave);font-size:12px">Mientras tanto podés cargar el pago manualmente.</span>'
+  }
 }
 
 // ── CRUD LLUVIAS ──

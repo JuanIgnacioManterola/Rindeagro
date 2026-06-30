@@ -1062,29 +1062,23 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo">💰 Pagos</div><div class="mod-sub">Cargá los cheques que emitís y las cuotas de tus créditos. Te alertamos cuando se acerca el vencimiento para que junte la plata a tiempo.</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="openModalExportPagos()" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📥 Exportar PDF</button>
         <button onclick="openModalPagoFoto()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Desde foto/PDF</button>
         <button onclick="openModalCredito()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">💳 + Crédito</button>
         <button onclick="openModalCheque()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">🧾 + Cheque</button>
       </div>
     </div>
 
-    <!-- Resumen rápido -->
+    <!-- Resumen rápido (cards clickeables) -->
     <div class="grid4" id="pagos-mets" style="margin-bottom:14px"></div>
 
     <!-- Filtros de estado -->
-    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="pagos-filtros">
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="pagos-filtros">
       <button class="pag-filtro-btn active" data-estado="pendientes" onclick="filtrarPagos('pendientes')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⏳ Pendientes</button>
       <button class="pag-filtro-btn" data-estado="proximos" onclick="filtrarPagos('proximos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔔 Próximos a vencer</button>
       <button class="pag-filtro-btn" data-estado="vencidos" onclick="filtrarPagos('vencidos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⚠️ Vencidos</button>
-      <button class="pag-filtro-btn" data-estado="cobrados" onclick="filtrarPagos('cobrados')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Cobrados</button>
+      <button class="pag-filtro-btn" data-estado="pagados" onclick="filtrarPagos('pagados')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Pagados</button>
       <button class="pag-filtro-btn" data-estado="todos" onclick="filtrarPagos('todos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
-    </div>
-
-    <!-- Filtros tipo (cheques / créditos) -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="pagos-filtros-tipo">
-      <button class="pag-tipo-btn active" data-tipo="" onclick="filtrarPagosTipo('')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
-      <button class="pag-tipo-btn" data-tipo="cheque" onclick="filtrarPagosTipo('cheque')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🧾 Cheques</button>
-      <button class="pag-tipo-btn" data-tipo="cuota_credito" onclick="filtrarPagosTipo('cuota_credito')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">💳 Créditos</button>
     </div>
 
     <!-- Lista de pagos -->
@@ -1273,9 +1267,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg">
-          <label class="fl">Cuota mensual <span style="color:var(--rojo)">*</span></label>
-          <input class="fi" type="number" id="cr-cuota-importe" placeholder="Ej: 500000" min="0" step="0.01"/>
-          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Importe de cada cuota.</div>
+          <label class="fl">Beneficiario / Banco</label>
+          <input class="fi" type="text" id="cr-beneficiario" placeholder="Ej: Banco Galicia"/>
         </div>
         <div class="fg">
           <label class="fl">Moneda</label>
@@ -1286,14 +1279,33 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
       </div>
 
+      <!-- Modo de cuotas: fijo / variable -->
+      <div class="fg">
+        <label class="fl">Tipo de cuotas</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button type="button" class="cr-modo-btn" data-modo="fijo" onclick="window._selModoCuota('fijo',this)" style="flex:1;border:1.5px solid var(--verde);border-radius:10px;padding:12px 10px;cursor:pointer;background:var(--verde-pale);color:var(--verde);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:18px;margin-bottom:3px">📏</div>Mismo valor<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Todas las cuotas son iguales</div></button>
+          <button type="button" class="cr-modo-btn" data-modo="variable" onclick="window._selModoCuota('variable',this)" style="flex:1;border:1.5px solid var(--borde);border-radius:10px;padding:12px 10px;cursor:pointer;background:var(--crema);color:var(--texto-mid);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px"><div style="font-size:18px;margin-bottom:3px">📊</div>Variable<div style="font-size:10px;font-weight:400;color:var(--texto-suave);margin-top:2px">Sistema francés, alemán, etc.</div></button>
+        </div>
+        <input type="hidden" id="cr-modo" value="fijo"/>
+      </div>
+
+      <!-- Cuota fija (importe único) -->
+      <div id="cr-block-fijo">
+        <div class="fg">
+          <label class="fl">Importe de la cuota <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="number" id="cr-cuota-importe" placeholder="Ej: 500000" min="0" step="0.01"/>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Cada cuota tendrá este mismo valor.</div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg">
           <label class="fl">Cantidad de cuotas <span style="color:var(--rojo)">*</span></label>
-          <input class="fi" type="number" id="cr-cuotas" placeholder="Ej: 12" min="1" max="120" step="1"/>
+          <input class="fi" type="number" id="cr-cuotas" placeholder="Ej: 12" min="1" max="120" step="1" oninput="window._regenerarCuotasVariables()"/>
         </div>
         <div class="fg">
           <label class="fl">Frecuencia</label>
-          <select class="fi" id="cr-frecuencia" style="cursor:pointer">
+          <select class="fi" id="cr-frecuencia" style="cursor:pointer" onchange="window._regenerarCuotasVariables()">
             <option value="mensual">Mensual</option>
             <option value="bimestral">Bimestral</option>
             <option value="trimestral">Trimestral</option>
@@ -1303,14 +1315,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg">
+        <label class="fl">Fecha de la 1ra cuota <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="date" id="cr-fecha-primera" oninput="window._regenerarCuotasVariables()"/>
+      </div>
+
+      <!-- Cuotas variables (importe + fecha individual) -->
+      <div id="cr-block-variable" style="display:none">
         <div class="fg">
-          <label class="fl">Beneficiario / Banco</label>
-          <input class="fi" type="text" id="cr-beneficiario" placeholder="Ej: Banco Galicia"/>
-        </div>
-        <div class="fg">
-          <label class="fl">Fecha de la 1ra cuota <span style="color:var(--rojo)">*</span></label>
-          <input class="fi" type="date" id="cr-fecha-primera"/>
+          <label class="fl">Detalle de cada cuota</label>
+          <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px">Las fechas vienen sugeridas por la frecuencia. Editá cada importe y fecha si hace falta.</div>
+          <div id="cr-cuotas-lista" style="max-height:280px;overflow-y:auto;border:1px solid var(--borde);border-radius:10px;padding:8px"></div>
+          <div id="cr-cuotas-total" style="margin-top:8px;font-size:13px;font-weight:700;color:var(--verde);text-align:right"></div>
         </div>
       </div>
 
@@ -1332,11 +1348,44 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <textarea class="fi" id="cr-notas" rows="2" placeholder="Tasa, TNA, observaciones..." style="resize:vertical;min-height:50px"></textarea>
       </div>
 
-      <!-- Resumen -->
       <div id="cr-resumen" style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--verde);font-weight:600;display:none"></div>
     </div>
     <div class="modal-footer">
       <button class="fb" id="btn-guardar-credito" onclick="guardarCredito()">Generar cuotas y guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT PDF DE PAGOS -->
+<div class="overlay" id="ov-export-pagos">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalExportPagos()">✕</button>
+      <div class="m-tit">📥 Exportar PDF de pagos</div>
+      <div class="m-sub" style="margin-bottom:0">Generamos un PDF con todos los compromisos del rango elegido (pendientes + pagados + vencidos).</div>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Desde <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="date" id="exp-desde"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Hasta <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="date" id="exp-hasta"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Incluir</label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="exp-pendientes" checked style="width:16px;height:16px"/>Pendientes</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="exp-pagados" checked style="width:16px;height:16px"/>Pagados</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="exp-vencidos" checked style="width:16px;height:16px"/>Vencidos</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" onclick="exportarPDFPagos()">📥 Generar PDF</button>
     </div>
   </div>
 </div>
@@ -2301,7 +2350,7 @@ var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
 var pagos = []                       // compromisos_pago (cheques + cuotas)
-var pagosFiltroEstado = 'pendientes' // pendientes | proximos | vencidos | cobrados | todos
+var pagosFiltroEstado = 'pendientes' // pendientes | proximos | vencidos | pagados | todos
 var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
 var paso = 1
 var campoRent = null
@@ -9093,6 +9142,18 @@ window.openModalCredito = function() {
   document.getElementById('cr-alerta-input').style.display = 'none'
   document.getElementById('cr-notas').value = ''
   document.getElementById('cr-resumen').style.display = 'none'
+  document.getElementById('cr-modo').value = 'fijo'
+  document.getElementById('cr-block-fijo').style.display = ''
+  document.getElementById('cr-block-variable').style.display = 'none'
+  document.getElementById('cr-cuotas-lista').innerHTML = ''
+  document.getElementById('cr-cuotas-total').textContent = ''
+  // botones modo
+  document.querySelectorAll('.cr-modo-btn').forEach(function(b){
+    var sel = b.getAttribute('data-modo') === 'fijo'
+    b.style.background = sel ? 'var(--verde-pale)' : 'var(--crema)'
+    b.style.borderColor = sel ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = sel ? 'var(--verde)' : 'var(--texto-mid)'
+  })
   document.getElementById('ov-credito').classList.add('open')
 }
 
@@ -9105,6 +9166,60 @@ window._toggleAlertaCredito = function() {
   document.getElementById('cr-alerta-input').style.display = on ? 'block' : 'none'
 }
 
+window._selModoCuota = function(modo, btn) {
+  document.getElementById('cr-modo').value = modo
+  document.querySelectorAll('.cr-modo-btn').forEach(function(b){
+    var sel = b.getAttribute('data-modo') === modo
+    b.style.background = sel ? 'var(--verde-pale)' : 'var(--crema)'
+    b.style.borderColor = sel ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = sel ? 'var(--verde)' : 'var(--texto-mid)'
+  })
+  document.getElementById('cr-block-fijo').style.display = modo === 'fijo' ? '' : 'none'
+  document.getElementById('cr-block-variable').style.display = modo === 'variable' ? '' : 'none'
+  if (modo === 'variable') _regenerarCuotasVariables()
+}
+
+window._regenerarCuotasVariables = function() {
+  var modo = document.getElementById('cr-modo').value
+  if (modo !== 'variable') return
+  var n = parseInt(document.getElementById('cr-cuotas').value)||0
+  var frec = document.getElementById('cr-frecuencia').value || 'mensual'
+  var fPrim = document.getElementById('cr-fecha-primera').value
+  var cont = document.getElementById('cr-cuotas-lista')
+  if (!cont) return
+  if (n < 1 || !fPrim) {
+    cont.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);text-align:center;padding:20px 10px">Completá <strong>cantidad de cuotas</strong> y <strong>fecha de la 1ra cuota</strong> para ver el detalle.</div>'
+    document.getElementById('cr-cuotas-total').textContent = ''
+    return
+  }
+  // Preservar importes ya editados
+  var importesPrev = []
+  cont.querySelectorAll('.cr-cuota-importe-row').forEach(function(inp){ importesPrev.push(parseFloat(inp.value)||0) })
+  var html = ''
+  var fecha = fPrim
+  for (var i = 1; i <= n; i++) {
+    var importePrev = importesPrev[i-1] || ''
+    html += '<div style="display:grid;grid-template-columns:50px 1fr 1fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--crema)">'
+      +    '<div style="font-size:12px;color:var(--texto-suave);font-weight:600">#'+i+'</div>'
+      +    '<input type="date" class="fi cr-cuota-fecha-row" data-i="'+(i-1)+'" value="'+fecha+'" onchange="window._recalcularTotalVariable()" style="font-size:12px;padding:5px 8px"/>'
+      +    '<input type="number" class="fi cr-cuota-importe-row" data-i="'+(i-1)+'" value="'+importePrev+'" placeholder="Importe" min="0" step="0.01" oninput="window._recalcularTotalVariable()" style="font-size:12px;padding:5px 8px"/>'
+      +  '</div>'
+    fecha = _siguienteFecha(fecha, frec)
+  }
+  cont.innerHTML = html
+  _recalcularTotalVariable()
+}
+
+window._recalcularTotalVariable = function() {
+  var cont = document.getElementById('cr-cuotas-lista')
+  if (!cont) return
+  var total = 0
+  cont.querySelectorAll('.cr-cuota-importe-row').forEach(function(inp){ total += parseFloat(inp.value)||0 })
+  var moneda = document.getElementById('cr-moneda').value || 'ARS'
+  var simb = moneda === 'USD' ? 'USD ' : '$ '
+  document.getElementById('cr-cuotas-total').textContent = 'Total del crédito: ' + simb + total.toLocaleString('es-AR',{maximumFractionDigits:2})
+}
+
 function _siguienteFecha(fechaActual, frecuencia) {
   var d = new Date(fechaActual+'T00:00:00')
   var meses = {mensual:1, bimestral:2, trimestral:3, semestral:6, anual:12}[frecuencia] || 1
@@ -9114,7 +9229,6 @@ function _siguienteFecha(fechaActual, frecuencia) {
 
 window.guardarCredito = async function() {
   var desc       = document.getElementById('cr-descripcion').value.trim()
-  var cuotaImporte = parseFloat(document.getElementById('cr-cuota-importe').value)
   var moneda     = document.getElementById('cr-moneda').value || 'ARS'
   var nCuotas    = parseInt(document.getElementById('cr-cuotas').value)
   var frecuencia = document.getElementById('cr-frecuencia').value || 'mensual'
@@ -9123,52 +9237,76 @@ window.guardarCredito = async function() {
   var alertaOn   = document.getElementById('cr-alerta-on').checked
   var alertaDias = alertaOn ? parseInt(document.getElementById('cr-alerta-dias').value)||7 : null
   var notas      = document.getElementById('cr-notas').value.trim() || null
+  var modo       = document.getElementById('cr-modo').value || 'fijo'
 
   if (!desc) { showToast('⚠️ Ingresá la descripción del crédito','err'); return }
-  if (!cuotaImporte || cuotaImporte <= 0) { showToast('⚠️ Ingresá el importe de la cuota','err'); return }
   if (!nCuotas || nCuotas < 1 || nCuotas > 120) { showToast('⚠️ Cantidad de cuotas inválida (1 a 120)','err'); return }
   if (!fPrimera) { showToast('⚠️ Ingresá la fecha de la primera cuota','err'); return }
   if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+
+  // Validar importes según el modo
+  var cuotasArr = []  // [{importe, fecha}]
+  if (modo === 'fijo') {
+    var cuotaImporte = parseFloat(document.getElementById('cr-cuota-importe').value)
+    if (!cuotaImporte || cuotaImporte <= 0) { showToast('⚠️ Ingresá el importe de la cuota','err'); return }
+    var fecha = fPrimera
+    for (var i = 0; i < nCuotas; i++) {
+      cuotasArr.push({ importe: cuotaImporte, fecha: fecha })
+      fecha = _siguienteFecha(fecha, frecuencia)
+    }
+  } else {
+    // variable: leer cada importe y fecha de los inputs
+    var lista = document.getElementById('cr-cuotas-lista')
+    var inputsImporte = lista.querySelectorAll('.cr-cuota-importe-row')
+    var inputsFecha = lista.querySelectorAll('.cr-cuota-fecha-row')
+    if (inputsImporte.length !== nCuotas) {
+      showToast('⚠️ Cargá todos los importes de las cuotas','err'); return
+    }
+    for (var k = 0; k < nCuotas; k++) {
+      var imp = parseFloat(inputsImporte[k].value)
+      var fch = inputsFecha[k].value
+      if (!imp || imp <= 0) { showToast('⚠️ Cuota '+(k+1)+': importe inválido','err'); return }
+      if (!fch) { showToast('⚠️ Cuota '+(k+1)+': falta fecha','err'); return }
+      cuotasArr.push({ importe: imp, fecha: fch })
+    }
+  }
 
   var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
   var btn = document.getElementById('btn-guardar-credito')
   btn.disabled = true; btn.textContent = 'Generando cuotas...'
 
-  // Generar las N cuotas
   var creditoId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
 
   var archUrlCr = window._creditoArchivoUrl || null
   var archPathCr = window._creditoArchivoPath || null
   var fuenteCr = archUrlCr ? 'foto' : 'manual'
-  // limpiar refs después de usar
   window._creditoArchivoUrl = null
   window._creditoArchivoPath = null
 
-  var nuevasCuotas = []
-  var fecha = fPrimera
-  for (var i = 1; i <= nCuotas; i++) {
+  var nuevasCuotas = cuotasArr.map(function(c, idx){
     var rowId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
       'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
-    nuevasCuotas.push({
+    var i = idx + 1
+    return {
       id: rowId, owner_id: uid,
       tipo: 'cuota_credito', descripcion: desc + ' (cuota '+i+'/'+nCuotas+')',
-      beneficiario: benef, fecha_emision: null, fecha_cobro: fecha,
-      importe: cuotaImporte, moneda: moneda,
+      beneficiario: benef, fecha_emision: null, fecha_cobro: c.fecha,
+      importe: c.importe, moneda: moneda,
       alerta_dias_antes: alertaDias, estado: 'pendiente',
       credito_id: creditoId, numero_cuota: i, total_cuotas: nCuotas,
       notas: notas,
       archivo_url: archUrlCr, archivo_path: archPathCr, fuente: fuenteCr,
       created_at: new Date().toISOString()
-    })
-    fecha = _siguienteFecha(fecha, frecuencia)
-  }
+    }
+  })
+
+  var totalCredito = cuotasArr.reduce(function(a,c){return a + c.importe},0)
 
   try {
-    // Optimistic local
     nuevasCuotas.forEach(function(c){ pagos.unshift(Object.assign({}, c)) })
     _guardarCache(); renderPagos(); _actualizarBadgePagos(); closeModalCredito()
-    showToast('✓ '+nCuotas+' cuotas creadas — total: '+(cuotaImporte*nCuotas).toLocaleString('es-AR')+' '+moneda,'ok')
+    showToast('✓ '+nCuotas+' cuotas creadas — total: '+totalCredito.toLocaleString('es-AR',{maximumFractionDigits:0})+' '+moneda,'ok')
 
     // DB en background
     ;(async function(){
@@ -9223,18 +9361,20 @@ window.eliminarCompromiso = async function(id) {
   })()
 }
 
-window.marcarPagoCobrado = async function(id) {
+window.marcarPagoPagado = async function(id) {
   var p = pagos.find(function(x){return x.id===id})
   if (!p) return
   var prevEstado = p.estado
-  p.estado = 'cobrado'
+  p.estado = 'pagado'
   _guardarCache(); renderPagos(); _actualizarBadgePagos()
-  showToast('✓ Marcado como cobrado','ok')
+  showToast('✓ Marcado como pagado','ok')
   ;(async function(){
-    try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:id}, payload:{estado:'cobrado'}}) }
+    try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:id}, payload:{estado:'pagado'}}) }
     catch(e){ p.estado = prevEstado; _guardarCache(); renderPagos(); showToast('⚠️ No se sincronizó: '+e.message,'err') }
   })()
 }
+// Alias retro por si alguien llama el nombre viejo
+window.marcarPagoCobrado = window.marcarPagoPagado
 
 window.marcarPagoPendiente = async function(id) {
   var p = pagos.find(function(x){return x.id===id})
@@ -9253,28 +9393,29 @@ window.renderPagos = function() {
   var cont = document.getElementById('pagos-lista')
   if (!cont) return
 
-  // Métricas en el header
+  // Métricas en el header — ahora clickeables y aplicando el filtro
   var totMet = document.getElementById('pagos-mets')
   if (totMet) {
     var pendPesos = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='ARS'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
     var pendDol   = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='USD'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
     var vencidos  = _pagosVencidosCount()
     var proximos  = _pagosProximosCount()
-    totMet.innerHTML = [
-      {l:'Pendiente $',v:'$ '+pendPesos.toLocaleString('es-AR',{maximumFractionDigits:0}),s:'pesos a pagar',c:'#1a5fa8'},
-      {l:'Pendiente USD',v:'USD '+pendDol.toLocaleString('es-AR',{maximumFractionDigits:0}),s:'dólares a pagar',c:'#0d6e41'},
-      {l:'Próximos a vencer',v:proximos.toString(),s:'dentro de su alerta',c:'#c97a14'},
-      {l:'Vencidos',v:vencidos.toString(),s:'pasaron la fecha',c:'#c0392b'}
-    ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+    var cards = [
+      {l:'Pendiente $',  v:'$ '+pendPesos.toLocaleString('es-AR',{maximumFractionDigits:0}),  s:'pesos a pagar',         c:'#1a5fa8', estado:'pendientes'},
+      {l:'Pendiente USD',v:'USD '+pendDol.toLocaleString('es-AR',{maximumFractionDigits:0}),  s:'dólares a pagar',       c:'#0d6e41', estado:'pendientes'},
+      {l:'Próximos a vencer', v:proximos.toString(), s:'dentro de su alerta', c:'#c97a14', estado:'proximos'},
+      {l:'Vencidos',     v:vencidos.toString(),     s:'pasaron la fecha',     c:'#c0392b', estado:'vencidos'}
+    ]
+    totMet.innerHTML = cards.map(function(m){
+      return '<div class="met" onclick="window.filtrarPagos(\''+m.estado+'\')" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'
+    }).join('')
   }
 
   // Filtrar lista
   var lista = (pagos||[]).slice()
-  // por tipo
   if (pagosFiltroTipo) lista = lista.filter(function(p){return p.tipo===pagosFiltroTipo})
-  // por estado
   if (pagosFiltroEstado === 'pendientes') lista = lista.filter(function(p){return p.estado==='pendiente'})
-  else if (pagosFiltroEstado === 'cobrados') lista = lista.filter(function(p){return p.estado==='cobrado'})
+  else if (pagosFiltroEstado === 'pagados') lista = lista.filter(function(p){return p.estado==='pagado'})
   else if (pagosFiltroEstado === 'vencidos') {
     lista = lista.filter(function(p){
       if (p.estado!=='pendiente') return false
@@ -9287,7 +9428,6 @@ window.renderPagos = function() {
       var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0 && d <= p.alerta_dias_antes
     })
   }
-  // Ordenar por fecha de cobro ascendente
   lista.sort(function(a,b){
     var fa = a.fecha_cobro||'9999-12-31', fb = b.fecha_cobro||'9999-12-31'
     return fa.localeCompare(fb)
@@ -9298,7 +9438,7 @@ window.renderPagos = function() {
       pendientes:'No tenés pagos pendientes',
       proximos:'Ningún pago próximo a vencer',
       vencidos:'No hay pagos vencidos',
-      cobrados:'Aún no marcaste pagos como cobrados',
+      pagados:'Aún no marcaste pagos como pagados',
       todos:'No cargaste pagos todavía'
     }
     var emoji = pagosFiltroEstado === 'vencidos' ? '✅' : '💰'
@@ -9308,11 +9448,11 @@ window.renderPagos = function() {
 
   cont.innerHTML = lista.map(function(p){
     var dias = _pagoDiasRestantes(p.fecha_cobro)
-    var esCobrado = p.estado === 'cobrado'
-    var esVencido = !esCobrado && dias != null && dias < 0
-    var esProximo = !esCobrado && p.alerta_dias_antes != null && dias != null && dias >= 0 && dias <= p.alerta_dias_antes
+    var esPagado = p.estado === 'pagado'
+    var esVencido = !esPagado && dias != null && dias < 0
+    var esProximo = !esPagado && p.alerta_dias_antes != null && dias != null && dias >= 0 && dias <= p.alerta_dias_antes
     var color, badge
-    if (esCobrado)      { color='#0d6e41'; badge='✓ COBRADO' }
+    if (esPagado)       { color='#0d6e41'; badge='✓ PAGADO' }
     else if (esVencido) { color='#c0392b'; badge='⚠️ VENCIDO HACE '+Math.abs(dias)+' DÍA'+(Math.abs(dias)!==1?'S':'') }
     else if (esProximo) { color='#c97a14'; badge='🔔 EN '+dias+' DÍA'+(dias!==1?'S':'') }
     else if (dias != null) { color='var(--texto-suave)'; badge='EN '+dias+' DÍA'+(dias!==1?'S':'') }
@@ -9324,44 +9464,210 @@ window.renderPagos = function() {
     var infoExtra = p.tipo==='cheque'
       ? [p.banco, p.numero_cheque ? 'Nº '+p.numero_cheque : null].filter(Boolean).join(' · ')
       : ''
-    var safeNom = (p.beneficiario||'').replace(/'/g,'')
 
     var borderColor = esVencido ? '#c0392b' : esProximo ? '#c97a14' : 'var(--borde)'
     var bgRow = esVencido ? '#fff6f6' : esProximo ? '#fffaf0' : '#fff'
-    var opacity = esCobrado ? '.65' : '1'
+    var opacity = esPagado ? '.65' : '1'
 
     return '<div data-pago-id="'+p.id+'" style="background:'+bgRow+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;opacity:'+opacity+'">'
-
       // Col 1: icono + tipo
       +   '<div style="text-align:center;min-width:60px">'
       +     '<div style="font-size:30px;line-height:1">'+icono+'</div>'
       +     '<div style="font-size:10px;color:var(--texto-suave);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">'+tipoLbl.split(' ')[0]+'</div>'
       +   '</div>'
-
       // Col 2: datos principales
       +   '<div style="min-width:0">'
       +     '<div style="font-weight:700;color:var(--texto);font-size:15px;margin-bottom:3px">'+ (p.beneficiario || p.descripcion || '(sin beneficiario)') + cuotaInfo +'</div>'
       +     '<div style="font-size:12px;color:var(--texto-suave);line-height:1.5">'
-      +       '📅 Cobra: <strong style="color:var(--texto)">'+ _pagoFmtFecha(p.fecha_cobro) +'</strong>'
+      +       '📅 Vence: <strong style="color:var(--texto)">'+ _pagoFmtFecha(p.fecha_cobro) +'</strong>'
       +       (p.fecha_emision ? ' · Emitido: '+_pagoFmtFecha(p.fecha_emision) : '')
       +       (infoExtra ? '<br/>'+infoExtra : '')
       +       (p.notas ? '<br/><span style="font-style:italic">'+p.notas+'</span>' : '')
       +     '</div>'
-      +     '<div style="margin-top:6px;display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;color:'+color+';background:'+(esVencido?'#fee2e2':esProximo?'#fef3c7':esCobrado?'#dcfce7':'transparent')+';letter-spacing:.4px">'+badge+'</div>'
+      +     '<div style="margin-top:6px;display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;color:'+color+';background:'+(esVencido?'#fee2e2':esProximo?'#fef3c7':esPagado?'#dcfce7':'transparent')+';letter-spacing:.4px">'+badge+'</div>'
       +   '</div>'
-
       // Col 3: importe + acciones
       +   '<div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
       +     '<div style="font-size:20px;font-weight:800;color:'+color+';font-family:DM Mono,monospace">'+_pagoFmtMoney(p)+'</div>'
       +     '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
-      +       (!esCobrado ? '<button onclick="marcarPagoCobrado(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✓ Cobrado</button>' : '<button onclick="marcarPagoPendiente(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">↩ Reabrir</button>')
+      +       (!esPagado ? '<button onclick="marcarPagoPagado(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✓ Pagado</button>' : '<button onclick="marcarPagoPendiente(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">↩ Reabrir</button>')
       +       (p.tipo==='cheque' ? '<button onclick="editarCheque(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✏️ Editar</button>' : '')
       +       '<button onclick="eliminarCompromiso(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--rojo);background:transparent;color:var(--rojo);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">🗑</button>'
       +     '</div>'
       +   '</div>'
-
       + '</div>'
   }).join('')
+}
+
+// ── PAGOS: Exportar PDF por rango de fechas ──
+window.openModalExportPagos = function() {
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var hace3m = new Date(hoy); hace3m.setMonth(hace3m.getMonth() - 3)
+  var en3m = new Date(hoy); en3m.setMonth(en3m.getMonth() + 3)
+  document.getElementById('exp-desde').value = hace3m.toISOString().split('T')[0]
+  document.getElementById('exp-hasta').value = en3m.toISOString().split('T')[0]
+  document.getElementById('exp-pendientes').checked = true
+  document.getElementById('exp-pagados').checked = true
+  document.getElementById('exp-vencidos').checked = true
+  document.getElementById('ov-export-pagos').classList.add('open')
+}
+
+window.closeModalExportPagos = function() {
+  document.getElementById('ov-export-pagos').classList.remove('open')
+}
+
+window.exportarPDFPagos = function() {
+  var desde = document.getElementById('exp-desde').value
+  var hasta = document.getElementById('exp-hasta').value
+  if (!desde || !hasta) { showToast('⚠️ Elegí ambas fechas','err'); return }
+  if (desde > hasta) { showToast('⚠️ La fecha "desde" tiene que ser anterior a "hasta"','err'); return }
+  var incP = document.getElementById('exp-pendientes').checked
+  var incPag = document.getElementById('exp-pagados').checked
+  var incV = document.getElementById('exp-vencidos').checked
+  if (!incP && !incPag && !incV) { showToast('⚠️ Elegí al menos un estado','err'); return }
+
+  // Filtrar pagos en el rango
+  var hoyD = new Date(); hoyD.setHours(0,0,0,0)
+  var filtrados = (pagos||[]).filter(function(p){
+    if (!p.fecha_cobro) return false
+    if (p.fecha_cobro < desde || p.fecha_cobro > hasta) return false
+    var esPagado = p.estado === 'pagado'
+    var esVencido = p.estado === 'pendiente' && new Date(p.fecha_cobro+'T00:00:00') < hoyD
+    var esPendiente = p.estado === 'pendiente' && !esVencido
+    if (esPagado && !incPag) return false
+    if (esVencido && !incV) return false
+    if (esPendiente && !incP) return false
+    return true
+  })
+
+  if (!filtrados.length) { showToast('⚠️ No hay pagos en ese rango con los filtros elegidos','err'); return }
+
+  filtrados.sort(function(a,b){ return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'') })
+
+  // Agrupar por mes
+  var grupos = {}
+  filtrados.forEach(function(p){
+    var k = p.fecha_cobro.substring(0,7) // YYYY-MM
+    if (!grupos[k]) grupos[k] = []
+    grupos[k].push(p)
+  })
+
+  // Totales globales por moneda y estado
+  var totalARS = {pendiente:0, pagado:0, vencido:0}
+  var totalUSD = {pendiente:0, pagado:0, vencido:0}
+  filtrados.forEach(function(p){
+    var tot = p.moneda === 'USD' ? totalUSD : totalARS
+    var esVencido = p.estado === 'pendiente' && new Date(p.fecha_cobro+'T00:00:00') < hoyD
+    var bucket = p.estado === 'pagado' ? 'pagado' : (esVencido ? 'vencido' : 'pendiente')
+    tot[bucket] += parseFloat(p.importe)||0
+  })
+
+  function _fmtMon(m, p) {
+    var simb = m === 'USD' ? 'USD' : '$'
+    return simb + ' ' + (p||0).toLocaleString('es-AR',{maximumFractionDigits:2})
+  }
+  function _fmtFecha(s){
+    if (!s) return ''
+    var d = new Date(s+'T00:00:00')
+    return d.toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})
+  }
+  function _fmtMes(s){
+    var [y,m] = s.split('-')
+    var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+    return meses[parseInt(m)-1]+' '+y
+  }
+
+  var nombreUsuario = (usuario && usuario.user_metadata && usuario.user_metadata.nombre) || (usuario && usuario.email) || ''
+
+  // HTML para impresión
+  var html = ''
+  html += '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Pagos · '+desde+' a '+hasta+'</title>'
+  html += '<style>'
+  html += '@page { size: A4; margin: 18mm 16mm; }'
+  html += 'body{font-family:\'Helvetica\',sans-serif;color:#1a1a1a;margin:0;font-size:11pt}'
+  html += 'h1{font-size:20pt;margin:0 0 4px 0;color:#1a4a2e}'
+  html += '.sub{font-size:10pt;color:#666;margin-bottom:14px}'
+  html += '.brand{font-size:9pt;color:#888;border-bottom:2px solid #1a4a2e;padding-bottom:6px;margin-bottom:14px}'
+  html += '.mes{font-size:13pt;font-weight:700;color:#1a4a2e;margin-top:18px;padding:6px 8px;background:#e8f5ee;border-radius:4px}'
+  html += 'table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9.5pt}'
+  html += 'th{text-align:left;padding:6px 4px;border-bottom:1.5px solid #1a4a2e;font-weight:700;color:#1a4a2e;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3px}'
+  html += 'td{padding:6px 4px;border-bottom:.5px solid #ddd;vertical-align:top}'
+  html += '.r{text-align:right}'
+  html += '.bd{font-weight:700}'
+  html += '.bd-r{font-weight:700;text-align:right;font-family:\'Courier New\',monospace}'
+  html += '.estado{display:inline-block;padding:2px 7px;border-radius:3px;font-size:8pt;font-weight:700;letter-spacing:.3px}'
+  html += '.estado-pagado{background:#dcfce7;color:#0d6e41}'
+  html += '.estado-pendiente{background:#fef3c7;color:#92410a}'
+  html += '.estado-vencido{background:#fee2e2;color:#991b1b}'
+  html += '.totales{margin-top:24px;padding:14px;background:#faf7f0;border:1px solid #ddd;border-radius:6px}'
+  html += '.totales h3{margin:0 0 8px 0;font-size:11pt;color:#1a4a2e}'
+  html += '.tot-row{display:flex;justify-content:space-between;padding:4px 0;font-size:10pt}'
+  html += '.tot-row strong{color:#1a4a2e}'
+  html += '.foot{margin-top:30px;font-size:8pt;color:#888;text-align:center;border-top:1px solid #ddd;padding-top:10px}'
+  html += '@media print { .print-btn { display: none } }'
+  html += '.print-btn{position:fixed;top:14px;right:14px;background:#1a4a2e;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:12pt;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:9999}'
+  html += '</style></head><body>'
+  html += '<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>'
+  html += '<div class="brand">RindeAgro · '+nombreUsuario+'</div>'
+  html += '<h1>📋 Reporte de pagos</h1>'
+  html += '<div class="sub">Período: <strong>'+_fmtFecha(desde)+'</strong> a <strong>'+_fmtFecha(hasta)+'</strong> · '+filtrados.length+' compromiso'+(filtrados.length!==1?'s':'')+'</div>'
+
+  // Tabla por mes
+  Object.keys(grupos).sort().forEach(function(mes){
+    html += '<div class="mes">'+_fmtMes(mes)+'</div>'
+    html += '<table>'
+    html += '<thead><tr><th>Fecha</th><th>Tipo</th><th>Beneficiario / Descripción</th><th>Detalle</th><th class="r">Importe</th><th>Estado</th></tr></thead><tbody>'
+    grupos[mes].forEach(function(p){
+      var esPagado = p.estado === 'pagado'
+      var esVencido = p.estado === 'pendiente' && new Date(p.fecha_cobro+'T00:00:00') < hoyD
+      var estLbl = esPagado ? 'pagado' : (esVencido ? 'vencido' : 'pendiente')
+      var icono = p.tipo === 'cheque' ? '🧾' : '💳'
+      var detalle = p.tipo === 'cheque'
+        ? [p.banco, p.numero_cheque ? 'Nº '+p.numero_cheque : null].filter(Boolean).join(' · ')
+        : (p.numero_cuota && p.total_cuotas ? 'cuota '+p.numero_cuota+'/'+p.total_cuotas : '')
+      html += '<tr>'
+        + '<td>'+_fmtFecha(p.fecha_cobro)+'</td>'
+        + '<td>'+icono+' '+(p.tipo==='cheque'?'Cheque':'Crédito')+'</td>'
+        + '<td>'+(p.beneficiario||p.descripcion||'—')+'</td>'
+        + '<td>'+(detalle||'—')+'</td>'
+        + '<td class="bd-r">'+_fmtMon(p.moneda, parseFloat(p.importe)||0)+'</td>'
+        + '<td><span class="estado estado-'+estLbl+'">'+estLbl.toUpperCase()+'</span></td>'
+        + '</tr>'
+    })
+    // Subtotal del mes
+    var subARS = grupos[mes].filter(function(p){return p.moneda==='ARS'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
+    var subUSD = grupos[mes].filter(function(p){return p.moneda==='USD'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
+    var subLines = []
+    if (subARS > 0) subLines.push(_fmtMon('ARS', subARS))
+    if (subUSD > 0) subLines.push(_fmtMon('USD', subUSD))
+    html += '<tr><td colspan="4" class="bd">Subtotal '+_fmtMes(mes)+'</td><td class="bd-r">'+subLines.join(' / ')+'</td><td></td></tr>'
+    html += '</tbody></table>'
+  })
+
+  // Resumen final
+  html += '<div class="totales">'
+  html += '<h3>Resumen del período</h3>'
+  if (totalARS.pendiente + totalARS.pagado + totalARS.vencido > 0) {
+    html += '<div class="tot-row"><span>💰 Pendiente ARS</span><strong>'+_fmtMon('ARS', totalARS.pendiente)+'</strong></div>'
+    html += '<div class="tot-row"><span>⚠️ Vencido ARS</span><strong>'+_fmtMon('ARS', totalARS.vencido)+'</strong></div>'
+    html += '<div class="tot-row"><span>✓ Pagado ARS</span><strong>'+_fmtMon('ARS', totalARS.pagado)+'</strong></div>'
+  }
+  if (totalUSD.pendiente + totalUSD.pagado + totalUSD.vencido > 0) {
+    html += '<div class="tot-row"><span>💰 Pendiente USD</span><strong>'+_fmtMon('USD', totalUSD.pendiente)+'</strong></div>'
+    html += '<div class="tot-row"><span>⚠️ Vencido USD</span><strong>'+_fmtMon('USD', totalUSD.vencido)+'</strong></div>'
+    html += '<div class="tot-row"><span>✓ Pagado USD</span><strong>'+_fmtMon('USD', totalUSD.pagado)+'</strong></div>'
+  }
+  html += '</div>'
+  html += '<div class="foot">Generado el '+new Date().toLocaleString('es-AR')+' desde RindeAgro</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()},800)</scr'+'ipt>'
+  html += '</body></html>'
+
+  // Abrir en ventana nueva
+  var win = window.open('', '_blank')
+  if (!win) { showToast('⚠️ El navegador bloqueó la ventana. Habilitá popups.','err'); return }
+  win.document.write(html)
+  win.document.close()
+  closeModalExportPagos()
 }
 
 // ── PAGOS: Upload + OCR (cheques/créditos desde foto/PDF) ──

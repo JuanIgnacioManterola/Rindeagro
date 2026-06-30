@@ -494,6 +494,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-campos" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" id="nav-insumos" onclick="showModulo('stock-insumos')"><span>🧪</span><span>Insumos</span></button>
+      <button class="anl" id="nav-pagos" onclick="showModulo('pagos')"><span>💰</span><span id="pagos-badge">Pagos</span></button>
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
@@ -552,6 +553,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div id="dash-tareas"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Widget Próximos pagos -->
+    <div class="card" id="dash-pagos-card" style="display:none">
+      <div class="card-hdr">
+        <span class="card-tit">💰 Próximos pagos</span>
+        <button class="btn-vs" onclick="showModulo('pagos')">Ver todos →</button>
+      </div>
+      <div id="dash-pagos"></div>
     </div>
 
     <!-- Widget Mi equipo -->
@@ -1047,6 +1057,39 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div id="insumos-lista"></div>
   </div>
 
+  <!-- ══════ PAGOS (cheques + créditos) ══════ -->
+  <div class="modulo" id="mod-pagos">
+    <div class="mod-header">
+      <div><div class="mod-titulo">💰 Pagos</div><div class="mod-sub">Cargá los cheques que emitís y las cuotas de tus créditos. Te alertamos cuando se acerca el vencimiento para que junte la plata a tiempo.</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="openModalCredito()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">💳 + Crédito</button>
+        <button onclick="openModalCheque()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">🧾 + Cheque</button>
+      </div>
+    </div>
+
+    <!-- Resumen rápido -->
+    <div class="grid4" id="pagos-mets" style="margin-bottom:14px"></div>
+
+    <!-- Filtros de estado -->
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="pagos-filtros">
+      <button class="pag-filtro-btn active" data-estado="pendientes" onclick="filtrarPagos('pendientes')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⏳ Pendientes</button>
+      <button class="pag-filtro-btn" data-estado="proximos" onclick="filtrarPagos('proximos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔔 Próximos a vencer</button>
+      <button class="pag-filtro-btn" data-estado="vencidos" onclick="filtrarPagos('vencidos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⚠️ Vencidos</button>
+      <button class="pag-filtro-btn" data-estado="cobrados" onclick="filtrarPagos('cobrados')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Cobrados</button>
+      <button class="pag-filtro-btn" data-estado="todos" onclick="filtrarPagos('todos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
+    </div>
+
+    <!-- Filtros tipo (cheques / créditos) -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="pagos-filtros-tipo">
+      <button class="pag-tipo-btn active" data-tipo="" onclick="filtrarPagosTipo('')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
+      <button class="pag-tipo-btn" data-tipo="cheque" onclick="filtrarPagosTipo('cheque')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🧾 Cheques</button>
+      <button class="pag-tipo-btn" data-tipo="cuota_credito" onclick="filtrarPagosTipo('cuota_credito')" style="border:1px solid var(--borde);background:#fff;color:var(--texto-mid);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">💳 Créditos</button>
+    </div>
+
+    <!-- Lista de pagos -->
+    <div id="pagos-lista"></div>
+  </div>
+
   </div>
 </div>
 
@@ -1131,6 +1174,168 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
       <button onclick="document.getElementById('ov-completar-tarea').classList.remove('open')" style="background:transparent;color:var(--texto-suave);border:1px solid var(--borde);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
       <button class="fb" id="btn-confirmar-completar" onclick="confirmarCompletarTarea()" style="flex:1">✓ Marcar como completada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR CHEQUE -->
+<div class="overlay" id="ov-cheque">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCheque()">✕</button>
+      <div class="m-tit" id="cheque-modal-tit">🧾 Cargar cheque emitido</div>
+      <div class="m-sub" style="margin-bottom:0">Te avisamos antes del vencimiento para que juntes la plata.</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ch-edit-id" value=""/>
+
+      <div class="fg">
+        <label class="fl">Beneficiario / A nombre de <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="text" id="ch-beneficiario" placeholder="Ej: Acopio La Hortensia"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Importe <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="number" id="ch-importe" placeholder="Ej: 1500000" min="0" step="0.01"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="ch-moneda" style="cursor:pointer">
+            <option value="ARS">ARS (pesos)</option>
+            <option value="USD">USD (dólares)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Fecha de emisión</label>
+          <input class="fi" type="date" id="ch-fecha-emision"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Fecha de cobro <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="date" id="ch-fecha-cobro"/>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Banco</label>
+          <input class="fi" type="text" id="ch-banco" placeholder="Ej: Nación, Galicia..."/>
+        </div>
+        <div class="fg">
+          <label class="fl">Número de cheque</label>
+          <input class="fi" type="text" id="ch-numero" placeholder="Ej: 00045678"/>
+        </div>
+      </div>
+
+      <!-- Alerta opcional -->
+      <div class="fg" style="background:var(--crema);border-radius:10px;padding:12px;border:1px dashed var(--borde)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+          <input type="checkbox" id="ch-alerta-on" onchange="window._toggleAlertaCheque()" style="width:16px;height:16px;cursor:pointer"/>
+          <span style="font-size:13px;font-weight:600;color:var(--texto)">🔔 Avisarme antes del vencimiento</span>
+        </label>
+        <div id="ch-alerta-input" style="display:none;margin-top:8px">
+          <label class="fl">Días de anticipación</label>
+          <input class="fi" type="number" id="ch-alerta-dias" placeholder="Ej: 7" min="1" max="365" value="7" style="max-width:120px"/>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Cuántos días antes de la fecha de cobro querés que te avise.</div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Notas</label>
+        <textarea class="fi" id="ch-notas" rows="2" placeholder="Detalles, contra qué operación, etc." style="resize:vertical;min-height:50px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
+      <button id="btn-eliminar-cheque" onclick="eliminarCompromiso()" style="display:none;background:transparent;color:var(--rojo);border:1px solid var(--rojo);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Eliminar</button>
+      <button class="fb" id="btn-guardar-cheque" onclick="guardarCheque()" style="flex:1">Guardar cheque</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR CRÉDITO -->
+<div class="overlay" id="ov-credito">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCredito()">✕</button>
+      <div class="m-tit">💳 Cargar crédito</div>
+      <div class="m-sub" style="margin-bottom:0">Generamos automáticamente todas las cuotas según la frecuencia que elijas.</div>
+    </div>
+    <div class="modal-body">
+
+      <div class="fg">
+        <label class="fl">Descripción / Nombre del crédito <span style="color:var(--rojo)">*</span></label>
+        <input class="fi" type="text" id="cr-descripcion" placeholder="Ej: Préstamo Banco Galicia para sembradora"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Cuota mensual <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="number" id="cr-cuota-importe" placeholder="Ej: 500000" min="0" step="0.01"/>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Importe de cada cuota.</div>
+        </div>
+        <div class="fg">
+          <label class="fl">Moneda</label>
+          <select class="fi" id="cr-moneda" style="cursor:pointer">
+            <option value="ARS">ARS (pesos)</option>
+            <option value="USD">USD (dólares)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Cantidad de cuotas <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="number" id="cr-cuotas" placeholder="Ej: 12" min="1" max="120" step="1"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Frecuencia</label>
+          <select class="fi" id="cr-frecuencia" style="cursor:pointer">
+            <option value="mensual">Mensual</option>
+            <option value="bimestral">Bimestral</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg">
+          <label class="fl">Beneficiario / Banco</label>
+          <input class="fi" type="text" id="cr-beneficiario" placeholder="Ej: Banco Galicia"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Fecha de la 1ra cuota <span style="color:var(--rojo)">*</span></label>
+          <input class="fi" type="date" id="cr-fecha-primera"/>
+        </div>
+      </div>
+
+      <!-- Alerta opcional -->
+      <div class="fg" style="background:var(--crema);border-radius:10px;padding:12px;border:1px dashed var(--borde)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+          <input type="checkbox" id="cr-alerta-on" onchange="window._toggleAlertaCredito()" style="width:16px;height:16px;cursor:pointer"/>
+          <span style="font-size:13px;font-weight:600;color:var(--texto)">🔔 Avisarme antes de cada vencimiento</span>
+        </label>
+        <div id="cr-alerta-input" style="display:none;margin-top:8px">
+          <label class="fl">Días de anticipación</label>
+          <input class="fi" type="number" id="cr-alerta-dias" placeholder="Ej: 7" min="1" max="365" value="7" style="max-width:120px"/>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Se aplica a cada una de las cuotas.</div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Notas</label>
+        <textarea class="fi" id="cr-notas" rows="2" placeholder="Tasa, TNA, observaciones..." style="resize:vertical;min-height:50px"></textarea>
+      </div>
+
+      <!-- Resumen -->
+      <div id="cr-resumen" style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--verde);font-weight:600;display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-guardar-credito" onclick="guardarCredito()">Generar cuotas y guardar</button>
     </div>
   </div>
 </div>
@@ -2037,6 +2242,9 @@ var lluvias = []
 var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
+var pagos = []                       // compromisos_pago (cheques + cuotas)
+var pagosFiltroEstado = 'pendientes' // pendientes | proximos | vencidos | cobrados | todos
+var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
 var paso = 1
 var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app'
@@ -2270,7 +2478,7 @@ function _guardarCache() {
   try {
     localStorage.setItem(k, JSON.stringify({
       campos: campos, gastos: gastos, lluvias: lluvias, analisisS: analisisS,
-      tareas: tareas, insumos: insumos, ts: Date.now()
+      tareas: tareas, insumos: insumos, pagos: pagos, ts: Date.now()
     }))
   } catch(e) {}
 }
@@ -2301,6 +2509,7 @@ async function cargarTodo() {
         lluvias = _snap.lluvias || []
         analisisS = _snap.analisisS || []
         insumos = _snap.insumos || []
+        pagos = _snap.pagos || []
         _mergePendingCampos()
         if(campos.length > 0) campoRent = campos[0].id
         renderDashboard()
@@ -2353,15 +2562,16 @@ async function cargarTodo() {
                         function(e){ return {status:'rejected', reason:e} })
   }
 
-  var [resP, resC, resG, resL, resS, resT, resEq, resI] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
-    _selectConFallback('gastos',         {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
-    _selectConFallback('lluvias',        {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
-    _selectConFallback('analisis_suelo', {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
-    _selectConFallback('tareas',         {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
-    _selectConFallback('equipo',         {col:'owner_id',   val:uid, col2:'activo', val2:true}),
-    _selectConFallback('stock_insumos',  {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}})
+    _selectConFallback('gastos',           {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('lluvias',          {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('analisis_suelo',   {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
+    _selectConFallback('tareas',           {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
+    _selectConFallback('equipo',           {col:'owner_id',   val:uid, col2:'activo', val2:true}),
+    _selectConFallback('stock_insumos',    {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
+    _selectConFallback('compromisos_pago', {col:'owner_id',   val:uid, order:{col:'fecha_cobro', asc:true}})
   ])
 
   // Perfil → nombre/saludo
@@ -2400,6 +2610,14 @@ async function cargarTodo() {
     insumos = freshInsumos
     var modI = document.getElementById('mod-stock-insumos')
     if (modI && modI.classList.contains('active')) renderInsumos()
+  }
+  // Pagos / compromisos
+  var freshPagos = (resPg && resPg.status==='fulfilled' && resPg.value && Array.isArray(resPg.value.data)) ? resPg.value.data : null
+  if(freshPagos !== null) {
+    pagos = freshPagos
+    var modPg = document.getElementById('mod-pagos')
+    if (modPg && modPg.classList.contains('active')) renderPagos()
+    try { _actualizarBadgePagos() } catch(e) {}
   }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
@@ -2461,12 +2679,27 @@ async function _refrescarTareasVistaActual() {
   } catch(e) { console.warn('[Tareas] refresh REST falló:', e.message) }
 }
 
+async function _refrescarPagosVistaActual() {
+  if (!usuario || !usuario.id || typeof _restGet !== 'function') return
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var data = await _restGet('/compromisos_pago?owner_id=eq.'+encodeURIComponent(uid)+'&order=fecha_cobro.asc&select=*')
+    if (Array.isArray(data)) {
+      pagos = data
+      try { _guardarCache() } catch(e) {}
+      var modPg = document.getElementById('mod-pagos')
+      if (modPg && modPg.classList.contains('active')) renderPagos()
+      try { _actualizarBadgePagos() } catch(e) {}
+    }
+  } catch(e) { console.warn('[Pagos] refresh REST falló:', e.message) }
+}
+
 window.showModulo = function(mod) {
   document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','tareas','mapa']
+  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','pagos','tareas','mapa']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -2489,6 +2722,10 @@ window.showModulo = function(mod) {
   if (mod === 'stock-insumos') {
     renderInsumos()
     _refrescarInsumosVistaActual()
+  }
+  if (mod === 'pagos') {
+    renderPagos()
+    _refrescarPagosVistaActual()
   }
 }
 
@@ -2659,6 +2896,49 @@ function renderDashboard() {
   try { _renderAccesosColaborador() } catch(e) {}
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
   try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
+  try { _renderDashPagos() } catch(e) { console.error('dash pagos:', e) }
+}
+
+function _renderDashPagos() {
+  var el = document.getElementById('dash-pagos')
+  var card = document.getElementById('dash-pagos-card')
+  if (!el || !card) return
+
+  // Solo aparecen los próximos a vencer (dentro de ventana de alerta) + vencidos pendientes
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var urgentes = (pagos||[]).filter(function(p){
+    if (p.estado !== 'pendiente') return false
+    var d = _pagoDiasRestantes(p.fecha_cobro)
+    if (d == null) return false
+    if (d < 0) return true
+    if (p.alerta_dias_antes != null && d <= p.alerta_dias_antes) return true
+    return false
+  }).sort(function(a,b){
+    return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'')
+  }).slice(0, 5)
+
+  if (!urgentes.length) {
+    card.style.display = 'none'
+    return
+  }
+  card.style.display = ''
+
+  el.innerHTML = urgentes.map(function(p){
+    var dias = _pagoDiasRestantes(p.fecha_cobro)
+    var venc = dias < 0
+    var color = venc ? '#c0392b' : '#c97a14'
+    var bgCard = venc ? '#fff6f6' : '#fffaf0'
+    var icono = p.tipo === 'cheque' ? '🧾' : '💳'
+    var leyenda = venc ? '⚠️ Venció hace '+Math.abs(dias)+' día'+(Math.abs(dias)!==1?'s':'') : (dias===0 ? '🔔 Vence hoy' : '🔔 En '+dias+' día'+(dias!==1?'s':''))
+    return '<div onclick="showModulo(\'pagos\')" style="background:'+bgCard+';border:1px solid '+color+';border-radius:9px;padding:10px 12px;margin-bottom:8px;cursor:pointer;display:flex;gap:10px;align-items:center">'
+      + '<div style="font-size:22px">'+icono+'</div>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:13px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.beneficiario||p.descripcion||'(sin beneficiario)')+'</div>'
+      +   '<div style="font-size:11px;color:'+color+';font-weight:600;margin-top:2px">'+leyenda+'</div>'
+      + '</div>'
+      + '<div style="text-align:right;font-size:14px;font-weight:700;color:'+color+';font-family:DM Mono,monospace">'+_pagoFmtMoney(p)+'</div>'
+      + '</div>'
+  }).join('')
 }
 
 async function _renderDashEquipo() {
@@ -8574,6 +8854,440 @@ window._insumoInlineUpdate = async function(input) {
     setTimeout(function(){ input.style.background = 'transparent' }, 1500)
     showToast('⚠️ No se pudo guardar: '+(e.message||''),'err')
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── PAGOS (cheques + cuotas de crédito) ──
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _pagoDiasRestantes(fechaCobro) {
+  if (!fechaCobro) return null
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var f = new Date(fechaCobro+'T00:00:00')
+  return Math.round((f - hoy) / 86400000)
+}
+
+function _pagoFmtMoney(p) {
+  var v = parseFloat(p.importe)||0
+  var simb = p.moneda === 'USD' ? 'USD ' : '$ '
+  return simb + v.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})
+}
+
+function _pagoFmtFecha(s) {
+  if (!s) return ''
+  var d = new Date(s+'T00:00:00')
+  return d.toLocaleDateString('es-AR', {day:'2-digit', month:'short', year:'numeric'})
+}
+
+// Cuenta cuántos pagos están "próximos" (pendientes + dentro de su ventana de alerta)
+function _pagosProximosCount() {
+  return (pagos||[]).filter(function(p){
+    if (p.estado !== 'pendiente') return false
+    if (p.alerta_dias_antes == null) return false
+    var d = _pagoDiasRestantes(p.fecha_cobro)
+    return d != null && d >= 0 && d <= p.alerta_dias_antes
+  }).length
+}
+
+function _pagosVencidosCount() {
+  return (pagos||[]).filter(function(p){
+    if (p.estado !== 'pendiente') return false
+    var d = _pagoDiasRestantes(p.fecha_cobro)
+    return d != null && d < 0
+  }).length
+}
+
+window._actualizarBadgePagos = function() {
+  var badge = document.getElementById('pagos-badge')
+  if (!badge) return
+  var prox = _pagosProximosCount() + _pagosVencidosCount()
+  badge.textContent = prox > 0 ? 'Pagos ('+prox+')' : 'Pagos'
+}
+
+// ── Filtros ──
+window.filtrarPagos = function(estado) {
+  pagosFiltroEstado = estado || 'pendientes'
+  document.querySelectorAll('.pag-filtro-btn').forEach(function(b){
+    var e = b.getAttribute('data-estado')||''
+    var active = e === pagosFiltroEstado
+    b.style.background = active ? 'var(--verde)' : 'var(--crema)'
+    b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = active ? '#fff' : 'var(--texto-mid)'
+  })
+  renderPagos()
+}
+
+window.filtrarPagosTipo = function(tipo) {
+  pagosFiltroTipo = tipo || ''
+  document.querySelectorAll('.pag-tipo-btn').forEach(function(b){
+    var t = b.getAttribute('data-tipo')||''
+    var active = t === pagosFiltroTipo
+    b.style.background = active ? 'var(--verde-pale)' : '#fff'
+    b.style.borderColor = active ? 'var(--verde)' : 'var(--borde)'
+    b.style.color = active ? 'var(--verde)' : 'var(--texto-mid)'
+  })
+  renderPagos()
+}
+
+// ── Modal Cheque ──
+window.openModalCheque = function() {
+  document.getElementById('ch-edit-id').value = ''
+  document.getElementById('ch-beneficiario').value = ''
+  document.getElementById('ch-importe').value = ''
+  document.getElementById('ch-moneda').value = 'ARS'
+  document.getElementById('ch-fecha-emision').value = new Date().toISOString().split('T')[0]
+  document.getElementById('ch-fecha-cobro').value = ''
+  document.getElementById('ch-banco').value = ''
+  document.getElementById('ch-numero').value = ''
+  document.getElementById('ch-alerta-on').checked = false
+  document.getElementById('ch-alerta-dias').value = 7
+  document.getElementById('ch-alerta-input').style.display = 'none'
+  document.getElementById('ch-notas').value = ''
+  document.getElementById('cheque-modal-tit').textContent = '🧾 Cargar cheque emitido'
+  document.getElementById('btn-guardar-cheque').textContent = 'Guardar cheque'
+  document.getElementById('btn-eliminar-cheque').style.display = 'none'
+  document.getElementById('ov-cheque').classList.add('open')
+}
+
+window.closeModalCheque = function() {
+  document.getElementById('ov-cheque').classList.remove('open')
+}
+
+window._toggleAlertaCheque = function() {
+  var on = document.getElementById('ch-alerta-on').checked
+  document.getElementById('ch-alerta-input').style.display = on ? 'block' : 'none'
+}
+
+window.guardarCheque = async function() {
+  var benef    = document.getElementById('ch-beneficiario').value.trim()
+  var importe  = parseFloat(document.getElementById('ch-importe').value)
+  var moneda   = document.getElementById('ch-moneda').value || 'ARS'
+  var fEmision = document.getElementById('ch-fecha-emision').value || null
+  var fCobro   = document.getElementById('ch-fecha-cobro').value
+  var banco    = document.getElementById('ch-banco').value.trim() || null
+  var numero   = document.getElementById('ch-numero').value.trim() || null
+  var alertaOn = document.getElementById('ch-alerta-on').checked
+  var alertaDias = alertaOn ? parseInt(document.getElementById('ch-alerta-dias').value)||7 : null
+  var notas    = document.getElementById('ch-notas').value.trim() || null
+  var editId   = document.getElementById('ch-edit-id').value || ''
+
+  if (!benef) { showToast('⚠️ Ingresá el beneficiario','err'); return }
+  if (!importe || importe <= 0) { showToast('⚠️ Ingresá un importe válido','err'); return }
+  if (!fCobro) { showToast('⚠️ Ingresá la fecha de cobro','err'); return }
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var btn = document.getElementById('btn-guardar-cheque')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+
+  var _p = {
+    tipo: 'cheque', beneficiario: benef, fecha_emision: fEmision, fecha_cobro: fCobro,
+    importe: importe, moneda: moneda, banco: banco, numero_cheque: numero,
+    alerta_dias_antes: alertaDias, notas: notas
+  }
+
+  try {
+    if (editId) {
+      var idx = pagos.findIndex(function(x){return x.id===editId})
+      var prev = idx>=0 ? Object.assign({}, pagos[idx]) : null
+      if (idx>=0) pagos[idx] = Object.assign({}, pagos[idx], _p)
+      _guardarCache(); renderPagos(); _actualizarBadgePagos(); closeModalCheque()
+      showToast('✓ Cheque actualizado','ok')
+      ;(async function(){
+        try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:editId}, payload:_p}) }
+        catch(e){ if(prev && idx>=0) pagos[idx]=prev; _guardarCache(); renderPagos(); showToast('⚠️ No se sincronizó: '+e.message,'err') }
+      })()
+    } else {
+      var nId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      var local = Object.assign({}, _p, {id:nId, owner_id:uid, estado:'pendiente', created_at:new Date().toISOString()})
+      pagos.unshift(local)
+      _guardarCache(); renderPagos(); _actualizarBadgePagos(); closeModalCheque()
+      showToast('✓ Cheque cargado — vence '+_pagoFmtFecha(fCobro),'ok')
+      ;(async function(){
+        var payload = Object.assign({}, _p, {id:nId, owner_id:uid})
+        try { await _dbMutate({method:'insert', table:'compromisos_pago', payload:payload}) }
+        catch(e){ console.error('insert cheque (bg):', e); showToast('⚠️ No se sincronizó en la nube: '+e.message,'err') }
+      })()
+    }
+  } catch(e) { console.error(e); showToast('⚠️ Error: '+(e.message||''),'err') }
+  finally { btn.disabled=false; btn.textContent = editId ? 'Guardar cambios' : 'Guardar cheque' }
+}
+
+// ── Modal Crédito ──
+window.openModalCredito = function() {
+  document.getElementById('cr-descripcion').value = ''
+  document.getElementById('cr-cuota-importe').value = ''
+  document.getElementById('cr-moneda').value = 'ARS'
+  document.getElementById('cr-cuotas').value = ''
+  document.getElementById('cr-frecuencia').value = 'mensual'
+  document.getElementById('cr-beneficiario').value = ''
+  document.getElementById('cr-fecha-primera').value = ''
+  document.getElementById('cr-alerta-on').checked = false
+  document.getElementById('cr-alerta-dias').value = 7
+  document.getElementById('cr-alerta-input').style.display = 'none'
+  document.getElementById('cr-notas').value = ''
+  document.getElementById('cr-resumen').style.display = 'none'
+  document.getElementById('ov-credito').classList.add('open')
+}
+
+window.closeModalCredito = function() {
+  document.getElementById('ov-credito').classList.remove('open')
+}
+
+window._toggleAlertaCredito = function() {
+  var on = document.getElementById('cr-alerta-on').checked
+  document.getElementById('cr-alerta-input').style.display = on ? 'block' : 'none'
+}
+
+function _siguienteFecha(fechaActual, frecuencia) {
+  var d = new Date(fechaActual+'T00:00:00')
+  var meses = {mensual:1, bimestral:2, trimestral:3, semestral:6, anual:12}[frecuencia] || 1
+  d.setMonth(d.getMonth() + meses)
+  return d.toISOString().split('T')[0]
+}
+
+window.guardarCredito = async function() {
+  var desc       = document.getElementById('cr-descripcion').value.trim()
+  var cuotaImporte = parseFloat(document.getElementById('cr-cuota-importe').value)
+  var moneda     = document.getElementById('cr-moneda').value || 'ARS'
+  var nCuotas    = parseInt(document.getElementById('cr-cuotas').value)
+  var frecuencia = document.getElementById('cr-frecuencia').value || 'mensual'
+  var benef      = document.getElementById('cr-beneficiario').value.trim() || null
+  var fPrimera   = document.getElementById('cr-fecha-primera').value
+  var alertaOn   = document.getElementById('cr-alerta-on').checked
+  var alertaDias = alertaOn ? parseInt(document.getElementById('cr-alerta-dias').value)||7 : null
+  var notas      = document.getElementById('cr-notas').value.trim() || null
+
+  if (!desc) { showToast('⚠️ Ingresá la descripción del crédito','err'); return }
+  if (!cuotaImporte || cuotaImporte <= 0) { showToast('⚠️ Ingresá el importe de la cuota','err'); return }
+  if (!nCuotas || nCuotas < 1 || nCuotas > 120) { showToast('⚠️ Cantidad de cuotas inválida (1 a 120)','err'); return }
+  if (!fPrimera) { showToast('⚠️ Ingresá la fecha de la primera cuota','err'); return }
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  var btn = document.getElementById('btn-guardar-credito')
+  btn.disabled = true; btn.textContent = 'Generando cuotas...'
+
+  // Generar las N cuotas
+  var creditoId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+
+  var nuevasCuotas = []
+  var fecha = fPrimera
+  for (var i = 1; i <= nCuotas; i++) {
+    var rowId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+    nuevasCuotas.push({
+      id: rowId, owner_id: uid,
+      tipo: 'cuota_credito', descripcion: desc + ' (cuota '+i+'/'+nCuotas+')',
+      beneficiario: benef, fecha_emision: null, fecha_cobro: fecha,
+      importe: cuotaImporte, moneda: moneda,
+      alerta_dias_antes: alertaDias, estado: 'pendiente',
+      credito_id: creditoId, numero_cuota: i, total_cuotas: nCuotas,
+      notas: notas, created_at: new Date().toISOString()
+    })
+    fecha = _siguienteFecha(fecha, frecuencia)
+  }
+
+  try {
+    // Optimistic local
+    nuevasCuotas.forEach(function(c){ pagos.unshift(Object.assign({}, c)) })
+    _guardarCache(); renderPagos(); _actualizarBadgePagos(); closeModalCredito()
+    showToast('✓ '+nCuotas+' cuotas creadas — total: '+(cuotaImporte*nCuotas).toLocaleString('es-AR')+' '+moneda,'ok')
+
+    // DB en background
+    ;(async function(){
+      try {
+        // Insertar todas en batch
+        var payload = nuevasCuotas.map(function(c){ var p=Object.assign({},c); delete p.created_at; return p })
+        await _dbMutate({method:'insert', table:'compromisos_pago', payload:payload})
+      } catch(e) { console.error('insert credito (bg):', e); showToast('⚠️ No se sincronizó en la nube: '+e.message,'err') }
+    })()
+  } catch(e) { console.error(e); showToast('⚠️ Error: '+(e.message||''),'err') }
+  finally { btn.disabled=false; btn.textContent='Generar cuotas y guardar' }
+}
+
+// ── Acciones sobre un compromiso ──
+window.editarCheque = function(id) {
+  var p = pagos.find(function(x){return x.id===id})
+  if (!p || p.tipo !== 'cheque') return
+  document.getElementById('ov-cheque').classList.add('open')
+  document.getElementById('cheque-modal-tit').textContent = '🧾 Editar cheque'
+  document.getElementById('btn-guardar-cheque').textContent = 'Guardar cambios'
+  document.getElementById('btn-eliminar-cheque').style.display = 'inline-block'
+  document.getElementById('ch-edit-id').value = p.id
+  document.getElementById('ch-beneficiario').value = p.beneficiario||''
+  document.getElementById('ch-importe').value = p.importe||''
+  document.getElementById('ch-moneda').value = p.moneda||'ARS'
+  document.getElementById('ch-fecha-emision').value = p.fecha_emision||''
+  document.getElementById('ch-fecha-cobro').value = p.fecha_cobro||''
+  document.getElementById('ch-banco').value = p.banco||''
+  document.getElementById('ch-numero').value = p.numero_cheque||''
+  var tieneAlerta = p.alerta_dias_antes != null
+  document.getElementById('ch-alerta-on').checked = tieneAlerta
+  document.getElementById('ch-alerta-input').style.display = tieneAlerta ? 'block' : 'none'
+  document.getElementById('ch-alerta-dias').value = tieneAlerta ? p.alerta_dias_antes : 7
+  document.getElementById('ch-notas').value = p.notas||''
+}
+
+window.eliminarCompromiso = async function(id) {
+  // Llamado desde el modal cheque (sin arg) → usa edit-id
+  if (!id) id = document.getElementById('ch-edit-id').value
+  if (!id) return
+  var p = pagos.find(function(x){return x.id===id})
+  if (!p) return
+  if (!confirm('¿Eliminar este compromiso?')) return
+  var prev = pagos.slice()
+  pagos = pagos.filter(function(x){return x.id!==id})
+  _guardarCache(); renderPagos(); _actualizarBadgePagos()
+  try { closeModalCheque() } catch(e){}
+  showToast('Eliminado','ok')
+  ;(async function(){
+    try { await _dbMutate({method:'delete', table:'compromisos_pago', filter:{col:'id', val:id}}) }
+    catch(e){ console.error('eliminar pago (bg):', e); pagos = prev; _guardarCache(); renderPagos(); showToast('⚠️ No se eliminó en la nube — restaurado','err') }
+  })()
+}
+
+window.marcarPagoCobrado = async function(id) {
+  var p = pagos.find(function(x){return x.id===id})
+  if (!p) return
+  var prevEstado = p.estado
+  p.estado = 'cobrado'
+  _guardarCache(); renderPagos(); _actualizarBadgePagos()
+  showToast('✓ Marcado como cobrado','ok')
+  ;(async function(){
+    try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:id}, payload:{estado:'cobrado'}}) }
+    catch(e){ p.estado = prevEstado; _guardarCache(); renderPagos(); showToast('⚠️ No se sincronizó: '+e.message,'err') }
+  })()
+}
+
+window.marcarPagoPendiente = async function(id) {
+  var p = pagos.find(function(x){return x.id===id})
+  if (!p) return
+  var prevEstado = p.estado
+  p.estado = 'pendiente'
+  _guardarCache(); renderPagos(); _actualizarBadgePagos()
+  ;(async function(){
+    try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:id}, payload:{estado:'pendiente'}}) }
+    catch(e){ p.estado = prevEstado; _guardarCache(); renderPagos() }
+  })()
+}
+
+// ── Render ──
+window.renderPagos = function() {
+  var cont = document.getElementById('pagos-lista')
+  if (!cont) return
+
+  // Métricas en el header
+  var totMet = document.getElementById('pagos-mets')
+  if (totMet) {
+    var pendPesos = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='ARS'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
+    var pendDol   = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='USD'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
+    var vencidos  = _pagosVencidosCount()
+    var proximos  = _pagosProximosCount()
+    totMet.innerHTML = [
+      {l:'Pendiente $',v:'$ '+pendPesos.toLocaleString('es-AR',{maximumFractionDigits:0}),s:'pesos a pagar',c:'#1a5fa8'},
+      {l:'Pendiente USD',v:'USD '+pendDol.toLocaleString('es-AR',{maximumFractionDigits:0}),s:'dólares a pagar',c:'#0d6e41'},
+      {l:'Próximos a vencer',v:proximos.toString(),s:'dentro de su alerta',c:'#c97a14'},
+      {l:'Vencidos',v:vencidos.toString(),s:'pasaron la fecha',c:'#c0392b'}
+    ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+  }
+
+  // Filtrar lista
+  var lista = (pagos||[]).slice()
+  // por tipo
+  if (pagosFiltroTipo) lista = lista.filter(function(p){return p.tipo===pagosFiltroTipo})
+  // por estado
+  if (pagosFiltroEstado === 'pendientes') lista = lista.filter(function(p){return p.estado==='pendiente'})
+  else if (pagosFiltroEstado === 'cobrados') lista = lista.filter(function(p){return p.estado==='cobrado'})
+  else if (pagosFiltroEstado === 'vencidos') {
+    lista = lista.filter(function(p){
+      if (p.estado!=='pendiente') return false
+      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d < 0
+    })
+  } else if (pagosFiltroEstado === 'proximos') {
+    lista = lista.filter(function(p){
+      if (p.estado!=='pendiente') return false
+      if (p.alerta_dias_antes == null) return false
+      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0 && d <= p.alerta_dias_antes
+    })
+  }
+  // Ordenar por fecha de cobro ascendente
+  lista.sort(function(a,b){
+    var fa = a.fecha_cobro||'9999-12-31', fb = b.fecha_cobro||'9999-12-31'
+    return fa.localeCompare(fb)
+  })
+
+  if (!lista.length) {
+    var msgs = {
+      pendientes:'No tenés pagos pendientes',
+      proximos:'Ningún pago próximo a vencer',
+      vencidos:'No hay pagos vencidos',
+      cobrados:'Aún no marcaste pagos como cobrados',
+      todos:'No cargaste pagos todavía'
+    }
+    var emoji = pagosFiltroEstado === 'vencidos' ? '✅' : '💰'
+    cont.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--texto-suave)"><div style="font-size:42px;margin-bottom:10px">'+emoji+'</div><div style="font-size:15px;font-weight:600;color:var(--texto-mid);margin-bottom:6px">'+(msgs[pagosFiltroEstado]||msgs.todos)+'</div><div style="font-size:13px">Usá los botones <strong>+ Cheque</strong> o <strong>+ Crédito</strong> para empezar.</div></div>'
+    return
+  }
+
+  cont.innerHTML = lista.map(function(p){
+    var dias = _pagoDiasRestantes(p.fecha_cobro)
+    var esCobrado = p.estado === 'cobrado'
+    var esVencido = !esCobrado && dias != null && dias < 0
+    var esProximo = !esCobrado && p.alerta_dias_antes != null && dias != null && dias >= 0 && dias <= p.alerta_dias_antes
+    var color, badge
+    if (esCobrado)      { color='#0d6e41'; badge='✓ COBRADO' }
+    else if (esVencido) { color='#c0392b'; badge='⚠️ VENCIDO HACE '+Math.abs(dias)+' DÍA'+(Math.abs(dias)!==1?'S':'') }
+    else if (esProximo) { color='#c97a14'; badge='🔔 EN '+dias+' DÍA'+(dias!==1?'S':'') }
+    else if (dias != null) { color='var(--texto-suave)'; badge='EN '+dias+' DÍA'+(dias!==1?'S':'') }
+    else                { color='var(--texto-suave)'; badge='SIN FECHA' }
+
+    var icono = p.tipo === 'cheque' ? '🧾' : '💳'
+    var tipoLbl = p.tipo === 'cheque' ? 'Cheque' : 'Cuota de crédito'
+    var cuotaInfo = (p.tipo==='cuota_credito' && p.numero_cuota && p.total_cuotas) ? ' · cuota '+p.numero_cuota+'/'+p.total_cuotas : ''
+    var infoExtra = p.tipo==='cheque'
+      ? [p.banco, p.numero_cheque ? 'Nº '+p.numero_cheque : null].filter(Boolean).join(' · ')
+      : ''
+    var safeNom = (p.beneficiario||'').replace(/'/g,'')
+
+    var borderColor = esVencido ? '#c0392b' : esProximo ? '#c97a14' : 'var(--borde)'
+    var bgRow = esVencido ? '#fff6f6' : esProximo ? '#fffaf0' : '#fff'
+    var opacity = esCobrado ? '.65' : '1'
+
+    return '<div data-pago-id="'+p.id+'" style="background:'+bgRow+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;opacity:'+opacity+'">'
+
+      // Col 1: icono + tipo
+      +   '<div style="text-align:center;min-width:60px">'
+      +     '<div style="font-size:30px;line-height:1">'+icono+'</div>'
+      +     '<div style="font-size:10px;color:var(--texto-suave);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">'+tipoLbl.split(' ')[0]+'</div>'
+      +   '</div>'
+
+      // Col 2: datos principales
+      +   '<div style="min-width:0">'
+      +     '<div style="font-weight:700;color:var(--texto);font-size:15px;margin-bottom:3px">'+ (p.beneficiario || p.descripcion || '(sin beneficiario)') + cuotaInfo +'</div>'
+      +     '<div style="font-size:12px;color:var(--texto-suave);line-height:1.5">'
+      +       '📅 Cobra: <strong style="color:var(--texto)">'+ _pagoFmtFecha(p.fecha_cobro) +'</strong>'
+      +       (p.fecha_emision ? ' · Emitido: '+_pagoFmtFecha(p.fecha_emision) : '')
+      +       (infoExtra ? '<br/>'+infoExtra : '')
+      +       (p.notas ? '<br/><span style="font-style:italic">'+p.notas+'</span>' : '')
+      +     '</div>'
+      +     '<div style="margin-top:6px;display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;color:'+color+';background:'+(esVencido?'#fee2e2':esProximo?'#fef3c7':esCobrado?'#dcfce7':'transparent')+';letter-spacing:.4px">'+badge+'</div>'
+      +   '</div>'
+
+      // Col 3: importe + acciones
+      +   '<div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
+      +     '<div style="font-size:20px;font-weight:800;color:'+color+';font-family:DM Mono,monospace">'+_pagoFmtMoney(p)+'</div>'
+      +     '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+      +       (!esCobrado ? '<button onclick="marcarPagoCobrado(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✓ Cobrado</button>' : '<button onclick="marcarPagoPendiente(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">↩ Reabrir</button>')
+      +       (p.tipo==='cheque' ? '<button onclick="editarCheque(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✏️ Editar</button>' : '')
+      +       '<button onclick="eliminarCompromiso(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--rojo);background:transparent;color:var(--rojo);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">🗑</button>'
+      +     '</div>'
+      +   '</div>'
+
+      + '</div>'
+  }).join('')
 }
 
 // ── CRUD LLUVIAS ──

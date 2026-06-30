@@ -81,6 +81,42 @@ Operaciones ya migradas: Insumos, Tareas, Gastos, archivos en Storage, **Mi Equi
 - **`window.login` tiene un race condition con `onAuthStateChange SIGNED_IN`** (PR #40). El handler tiene un `finally { btn.disabled=false; btn.textContent='Ingresar a mi cuenta' }` que SIEMPRE debe ejecutarse. La rama `else if(data.user && usuario)` también debe llamar `closeModal()`. No tocar sin entender por qué.
 - **Limpiar fragmento `#` post-auth**: dentro de `onAuthStateChange`, tanto para `INITIAL_SESSION` como para `SIGNED_IN`, se hace `history.replaceState(null, '', window.location.pathname + window.location.search)` envuelto en try/catch. No remover (PR #41).
 
+## Módulo Pagos (compromisos_pago)
+
+Nueva sección entre Insumos y Tareas para registrar **cheques emitidos** y **cuotas de crédito**. Tabla `public.compromisos_pago` con columnas:
+
+`id`, `owner_id`, `tipo` (`cheque|cuota_credito`), `descripcion`, `beneficiario`, `fecha_emision`, `fecha_cobro` (NOT NULL), `importe`, `moneda` (ARS|USD), `alerta_dias_antes` (nullable — opt-in por compromiso), `estado` (`pendiente|cobrado|vencido|cancelado`), `banco`, `numero_cheque`, `credito_id` (agrupa cuotas), `numero_cuota`, `total_cuotas`, `notas`, `archivo_url`, `archivo_path`, `fuente` (`manual|foto|whatsapp` — default `'manual'`), `created_at`, `updated_at`.
+
+4 RLS policies explícitas (owner-only) — convención del proyecto. NO usar FOR ALL.
+
+Bucket Storage `pagos-archivos` (público) para guardar fotos/PDFs adjuntos a cada compromiso. Path: `<owner_id>/<timestamp>_<filename>`. 4 policies de Storage owner-only por carpeta.
+
+### Formas de carga
+
+1. **Manual** (modal `#ov-cheque` o `#ov-credito`): el usuario tipea todo. `fuente='manual'`.
+2. **Foto / PDF con OCR**: modal `#ov-pago-foto` permite subir imagen o PDF. Llama edge function `ocr-pago` que devuelve JSON parseado (Claude vision). El frontend pre-llena el modal de cheque o crédito y el usuario revisa antes de guardar. `fuente='foto'`, `archivo_url/path` apunta al archivo en Storage. **Requiere `ANTHROPIC_API_KEY` configurada como secret en Edge Functions** (igual que `ocr-factura`).
+3. **WhatsApp** (pendiente del bot): cuando el bot esté activo, debe insertar las filas directamente en `compromisos_pago` con `fuente='whatsapp'`. Ver "Contrato WhatsApp → Pagos" abajo.
+
+### Edge functions de OCR para pagos
+
+- `supabase/functions/ocr-pago/index.ts` — desplegada. Body: `{image_base64, mime_type, tipo: 'cheque'|'credito'}`. Devuelve `{ok, data: {…campos…}}`. Tuneada para cheques bancarios argentinos y vouchers/contratos de crédito.
+
+### Contrato WhatsApp → Pagos (para el bot cuando esté activo)
+
+El bot de WhatsApp debería poder parsear comandos como:
+- "cheque 1500000 a Acopio La Hortensia vence 15/06" → INSERT con `tipo='cheque'`, `beneficiario='Acopio La Hortensia'`, `importe=1500000`, `fecha_cobro='2026-06-15'`.
+- "crédito Galicia 12 cuotas de 500000 desde 15/06" → INSERT de 12 filas con `tipo='cuota_credito'`, mismo `credito_id`, `numero_cuota=1..12`, `total_cuotas=12`, fechas calculadas (mensual por default).
+
+Reglas para el bot:
+- Siempre setear `fuente='whatsapp'` para distinguir el origen en el dashboard.
+- Usar `service_role` key para insert (saltea RLS porque el bot no tiene sesión auth del usuario directa — la asociación al `owner_id` correcto la hace el bot mediante `wa_conversaciones`).
+- Si el usuario no da `alerta_dias_antes` explícito, dejar `null` (sin alerta). El usuario lo puede editar después desde la UI.
+- Si el usuario no aclara moneda, asumir `ARS`.
+- Si el usuario no da fecha de emisión, dejar `null` y usar solo `fecha_cobro`.
+- Confirmar al usuario por WhatsApp después de insertar: "✓ Cargué cheque de $1.500.000 a Acopio La Hortensia, vence el 15/06".
+
+Lectura desde el frontend: cuando el bot inserta, la app del usuario verá los nuevos compromisos en la próxima carga (`cargarTodo` o al abrir el tab Pagos vía `_refrescarPagosVistaActual`).
+
 ## Catálogo de insumos predefinidos
 
 `INSUMOS_PREDEFINIDOS` (en `index.html`) contiene ~120 productos curados según uso en agricultura argentina (datos INTA/CASAFE/Aapresid). Aparece como autocompletado `<datalist>` en el modal de carga de insumo, filtrado por tipo. Semillas y "otros" quedan en carga manual.
@@ -99,7 +135,8 @@ Las 4 categorías predefinidas:
 - [ ] **Habilitar RLS en tabla `precios_pizarra`** — security advisor lo marca como crítico.
 - [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
-- [ ] **OCR de facturas — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. La edge function `ocr-factura` está desplegada pero devuelve 500 hasta que se setee el secret. Con el secret: foto/PDF de factura → Claude API vision → JSON de items → bulk import al stock.
+- [ ] **OCR de facturas y pagos — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las edge functions `ocr-factura` (insumos) y `ocr-pago` (cheques + créditos) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado de modal o bulk import.
+- [ ] **Bot de WhatsApp insertando pagos**: cuando el bot esté listo, implementar el parser de comandos "cheque NNN a X vence DD/MM" y "crédito X N cuotas de NNN desde DD/MM" según el contrato documentado en "Módulo Pagos → Contrato WhatsApp → Pagos".
 - [ ] **Confirmación de eliminación más fuerte** — el delete actual usa `confirm()` simple, que en combinación con UI optimistic facilita borrados accidentales (un usuario reportó pérdida de todo el stock). Opciones: tipear "ELIMINAR" para confirmar, o agregar botón "Deshacer" en el toast por 5s.
 
 ## Cosas en curso
@@ -137,3 +174,5 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 1. `stock_insumos.sql` — tabla + RLS + columna `gastos.insumo_id`.
 2. `tareas_comentario_y_insumos_factura.sql` — `tareas.comentario_completado`, `tareas.completado_por`, `stock_insumos.factura_url/path/tipo`, bucket `insumos-facturas` + 4 RLS de Storage.
 3. `equipo_split_for_all_policy.sql` — reemplazo del policy `owner_manage_equipo` FOR ALL por 4 explícitas.
+4. `compromisos_pago.sql` — tabla `compromisos_pago` con todos los campos para cheques y cuotas de crédito + 4 RLS policies explícitas.
+5. `compromisos_pago_archivo_y_fuente.sql` — agrega `archivo_url`, `archivo_path`, `fuente` (manual|foto|whatsapp) a `compromisos_pago` + bucket `pagos-archivos` con 4 RLS de Storage.

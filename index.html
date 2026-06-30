@@ -3324,15 +3324,20 @@ function renderRentabilidad() {
       // ── MULTI-CULTIVO: una sección por cultivo ──
       var savedIngMC = {}; try{ savedIngMC=JSON.parse(campo.ingresos_cultivos||'{}') }catch(e){}
       var savedHaMC  = {}; try{ savedHaMC=JSON.parse(campo.hectareas_cultivo||'{}')  }catch(e){}
+      // Gastos del campo: específicos por cultivo (g.cultivo asignado) y compartidos (g.cultivo NULL → reparto por ha)
+      var gastosCampoMC = gastos.filter(function(g){return g.campo_id===campoIdMC})
+      var haTotMC = cultMC.reduce(function(a,c2){return a + (parseFloat(savedHaMC[c2])||(ha/cultMC.length))}, 0) || ha
       var mcRows = cultMC.map(function(cult) {
         var d = savedIngMC[cult]||{}
         var haCu = parseFloat(savedHaMC[cult]) || (ha/cultMC.length)
         var ingCu = parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
-        var gasCu = gastos.filter(function(g){return g.campo_id===campoIdMC && (g.cultivo===cult||!g.cultivo)}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        // Si no hay gastos por cultivo, dividir el total entre cultivos
-        if(gasCu === 0 && gastos.filter(function(g){return g.campo_id===campoIdMC && g.cultivo}).length === 0) {
-          gasCu = costoUSD / cultMC.length
-        }
+        var fracHa = haTotMC > 0 ? haCu / haTotMC : 0
+        var gasCu = gastosCampoMC.reduce(function(a,g){
+          var v = g.total_de_usd||0
+          if(g.cultivo === cult) return a + v
+          if(g.cultivo)          return a       // gasto de otro cultivo, no cuenta acá
+          return a + v * fracHa                 // gasto compartido: split proporcional a ha
+        }, 0)
         var mgCu = ingCu - gasCu
         var col = CULT_COLORES[cult]||'#16a34a'
         var ico = CULT_ICONS[cult]||'🌱'
@@ -12431,6 +12436,10 @@ function renderDetGastos() {
     // ── PANTALLA: selector de cultivo ──
     if(pickerEl) {
       var campR0 = getCampanaRange(campanaActivaId)
+      // Para split de gastos compartidos: ha por cultivo (override) o repartir parejo
+      var savedHaPicker = {}; try{ savedHaPicker = JSON.parse(c.hectareas_cultivo||'{}') }catch(e){}
+      var haCampoTotal = parseFloat(c.hectareas)||0
+      var haTotPicker = cultivosDeCampo.reduce(function(a,cu2){return a + (parseFloat(savedHaPicker[cu2])||(haCampoTotal/cultivosDeCampo.length))}, 0) || haCampoTotal || 1
       pickerEl.style.display = 'block'
       pickerEl.innerHTML = '<div class="card">'
         +'<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">Gastos por cultivo</div>'
@@ -12439,8 +12448,17 @@ function renderDetGastos() {
         +cultivosDeCampo.map(function(cult) {
           var color = CULT_COLORES[cult]||'#16a34a'
           var icon = CULT_ICONS[cult]||'🌱'
-          var nExcl = gastos.filter(function(g){ return g.campo_id===campoDet && (g.cultivo===cult || !g.cultivo) && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).length
-          var totalExcl = gastos.filter(function(g){ return g.campo_id===campoDet && (g.cultivo===cult || !g.cultivo) && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end }).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+          var haCultPicker = parseFloat(savedHaPicker[cult]) || (haCampoTotal/cultivosDeCampo.length)
+          var fracHaPicker = haTotPicker > 0 ? haCultPicker / haTotPicker : 0
+          var gastosCampoP = gastos.filter(function(g){ return g.campo_id===campoDet && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end })
+          // Conteo: específicos del cultivo + compartidos (visible en c/u, no duplican en USD por el split)
+          var nExcl = gastosCampoP.filter(function(g){ return g.cultivo===cult || !g.cultivo }).length
+          var totalExcl = gastosCampoP.reduce(function(a,g){
+            var v = g.total_de_usd||0
+            if(g.cultivo === cult) return a + v
+            if(g.cultivo)          return a
+            return a + v * fracHaPicker
+          }, 0)
           var montoStr = totalExcl > 0 ? ' · USD '+Math.round(totalExcl).toLocaleString('es-AR') : ''
           return '<div onclick="seleccionarCultivoGastos(\''+cult+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--crema);border-radius:13px;border-left:4px solid '+color+';cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 14px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">'
             +'<div style="display:flex;align-items:center;gap:12px">'
@@ -12499,7 +12517,23 @@ function renderDetGastos() {
     return 'USD ' + Math.round(usd).toLocaleString('es-AR')
   }
   var ha = c.hectareas||1
-  var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  var costoUSD
+  if(esMultiCultivo && gastosCultivoActivo) {
+    // Multi-cultivo con uno seleccionado: usar split por ha (mismo formula que picker y rentabilidad)
+    var savedHaInside = {}; try{ savedHaInside = JSON.parse(c.hectareas_cultivo||'{}') }catch(e){}
+    var haCultInside = parseFloat(savedHaInside[gastosCultivoActivo]) || (ha/cultivosDeCampo.length)
+    var haTotInside  = cultivosDeCampo.reduce(function(a,cu2){return a+(parseFloat(savedHaInside[cu2])||(ha/cultivosDeCampo.length))},0) || ha
+    var fracInside   = haTotInside > 0 ? haCultInside / haTotInside : 0
+    costoUSD = gf.reduce(function(a,g){
+      var v = g.total_de_usd||0
+      if(g.cultivo === gastosCultivoActivo) return a + v
+      if(g.cultivo)                          return a
+      return a + v * fracInside
+    }, 0)
+    ha = haCultInside  // ha del cultivo, para USD/ha
+  } else {
+    costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  }
   var costoHa = costoUSD/ha
   var ingTotalReal = _ingRealParaCampo(c)
   var ingHa = ha>0?ingTotalReal/ha:0, mgHa = ingHa-costoHa

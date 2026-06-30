@@ -4,7 +4,7 @@ App para gestión agropecuaria. Frontend single-file HTML + backend FastAPI + Su
 
 ## Stack
 
-- **Frontend:** `index.html` (~600KB, single-file) publicado en GitHub Pages → https://juanignaciomanterola.github.io/Rindeagro/
+- **Frontend:** `index.html` (~600KB, single-file) publicado en GitHub Pages → **https://rindeagro.app** (dominio custom). El `CNAME` en la raíz del repo apunta a `rindeagro.app`. URL legacy `juanignaciomanterola.github.io/Rindeagro/` también funciona.
 - **Backend:** FastAPI en `/Users/juanignaciomanterola/rindeagro-server/main.py`, deployado en Railway
 - **DB/Auth:** Supabase JS v2 en frontend + Supabase REST API desde el server
 - **Repo frontend:** https://github.com/JuanIgnacioManterola/Rindeagro
@@ -65,9 +65,21 @@ Helpers disponibles en `index.html`:
 - `_dbMutate({method, table, filter:{col,val}, payload, timeout})` — helper genérico: intenta SDK con timeout, cae a REST. Para mutaciones.
 - `_selectConFallback(table, {col, val, col2, val2, order})` — usado en `cargarTodo` para que cada SELECT inicial tenga su propio timeout y fallback REST.
 
-**Convención**: cualquier mutación nueva (INSERT/UPDATE/DELETE) debe usar `_dbMutate` o el patrón `Promise.race([sdk, timeout])` + `_restXxx` en el catch. Las operaciones de Insumos, Tareas, Gastos y archivos en Storage ya están migradas.
+**Convención (CRÍTICA)**: cualquier query nueva a Supabase debe seguir este patrón:
+- **Lecturas** → `_restGet(path)` directo. No `sb.from(...).select(...)` sin fallback.
+- **Mutaciones** (INSERT/UPDATE/DELETE) → `_dbMutate({...})` o el patrón `Promise.race([sdk, timeout])` + `_restXxx` en el catch.
+- **Storage** → `_restStorageUpload(...)` con fallback a SDK.
+
+Operaciones ya migradas: Insumos, Tareas, Gastos, archivos en Storage, **Mi Equipo + generación de invitaciones** (PR #45 de Agustina).
 
 **Patrón optimista**: además del fallback, las mutaciones son optimistic — el cambio se aplica al estado local + render + cache YA, y la sincronización con DB pasa en background. Si la DB falla, se hace rollback con un snapshot previo.
+
+## Auth — convenciones
+
+- **NUNCA hardcodear URLs** en `redirectTo` / `emailRedirectTo` de Supabase Auth. Siempre `window.location.origin + window.location.pathname`. Esto vale para magic link, recuperación de contraseña, OAuth, etc. Romper esto rompe el dominio rindeagro.app (PR #39).
+- **NUNCA usar `href="#"`** para placeholders en links (footer, etc). Usar `href="javascript:void(0)"`. Razón: el `#` deja un fragmento residual en la URL al hacer click y rompe el flujo de auth (PR #41).
+- **`window.login` tiene un race condition con `onAuthStateChange SIGNED_IN`** (PR #40). El handler tiene un `finally { btn.disabled=false; btn.textContent='Ingresar a mi cuenta' }` que SIEMPRE debe ejecutarse. La rama `else if(data.user && usuario)` también debe llamar `closeModal()`. No tocar sin entender por qué.
+- **Limpiar fragmento `#` post-auth**: dentro de `onAuthStateChange`, tanto para `INITIAL_SESSION` como para `SIGNED_IN`, se hace `history.replaceState(null, '', window.location.pathname + window.location.search)` envuelto en try/catch. No remover (PR #41).
 
 ## Catálogo de insumos predefinidos
 
@@ -81,13 +93,12 @@ Las 4 categorías predefinidas:
 
 ## Pendientes (roadmap corto)
 
-- [ ] **Dominio `rindeagro.lat`** — verificar estado en el registrador, renovar o reconfigurar DNS. Bloqueante para links públicos.
+- [x] ~~Dominio `rindeagro.lat`~~ — Reemplazado por **rindeagro.app** (PR #39). El CNAME apunta ahí. Los redirects auth ahora son dinámicos (`window.location.origin + pathname`), funcionan en cualquier dominio sin hardcodear.
 - [ ] **Open Graph meta tags + imagen `assets/og-image.jpg`** — para previews al compartir links en WhatsApp/Twitter/etc.
 - [ ] **Migrar FKs de Supabase a `ON DELETE CASCADE`** — actualmente `gastos`, `lluvias`, `analisis_suelo`, `campanas`, `eventos`, `mensajes_wa` son `NO ACTION`. Esto facilita borrar usuarios limpiamente sin transacciones manuales.
 - [ ] **Habilitar RLS en tabla `precios_pizarra`** — security advisor lo marca como crítico.
 - [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
-- [ ] **Cuando vuelva `rindeagro.lat`**, revertir el workaround del hardcode del github.io en los links de invitación.
 - [ ] **OCR de facturas — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. La edge function `ocr-factura` está desplegada pero devuelve 500 hasta que se setee el secret. Con el secret: foto/PDF de factura → Claude API vision → JSON de items → bulk import al stock.
 - [ ] **Confirmación de eliminación más fuerte** — el delete actual usa `confirm()` simple, que en combinación con UI optimistic facilita borrados accidentales (un usuario reportó pérdida de todo el stock). Opciones: tipear "ELIMINAR" para confirmar, o agregar botón "Deshacer" en el toast por 5s.
 
@@ -96,15 +107,28 @@ Las 4 categorías predefinidas:
 - Bot de WhatsApp (Twilio Sandbox, ya recibe mensajes y reconoce números vinculados, falta terminar los flujos de carga de gastos/lluvias y los recordatorios programados con APScheduler).
 - Integración de Mercado Pago para suscripciones (planes Semilla, Lote, Agrónomo, Corporativo en ARS atadas al dólar BNA).
 
-## Convenciones de UI / patrones agregados hoy
+## Convenciones de UI
 
-- **Estado de resultados (P&L)** en Rentabilidad Total: tabla con filas pintadas (verde oscuro Ingresos, rojo Costos, verde claro Margen) + texto negro bold. Convenciones contables: costos entre paréntesis, doble underline en subtotal Margen, font-variant-numeric: tabular-nums.
-- **Cards de Rentabilidad por campo**: solo el NÚMERO va coloreado (ingresos verde oscuro, costos rojo, margen verde claro). Las filas sin fondo. Labels en negro.
+- **Estado de resultados (P&L)** en Rentabilidad Total: tabla con filas pintadas. **Paleta actualizada (PR #43 de Agustina)**: Ingresos `#dcfce7` (verde claro suave), Costos `#dc2626` (rojo), Margen `#86efac` (verde medio, o `#fca5a5` si negativo). Texto NEGRO bold en todas las filas. Convenciones contables: costos entre paréntesis, doble underline en subtotal Margen, font-variant-numeric: tabular-nums.
+- **Cards de Rentabilidad por campo**: solo el NÚMERO va coloreado (ingresos verde oscuro `#15803d`, costos rojo `#dc2626`, margen verde más claro `#16a34a`). Las filas sin fondo. Labels en negro.
 - **Tortas Rentabilidad**: la primera (Gastos por rubro) tiene selector de campo. La segunda (Detalle por producto) hereda ese filtro + tiene su propio selector de rubro. Cascada de filtros.
 - **Insumos**: filas de ancho completo (no grid de cards). Cantidad, precio y ubicación son inputs inline (editar sin abrir modal). Botón "Detalles" abre el modal completo. Badge "Sin stock" rojo DENTRO del card cuando stock_actual=0.
 - **Tareas**: 4 botones (Completar / Iniciar / Editar / Eliminar) del mismo ancho (110px) y mismo estilo visual. Eliminar siempre visible para admin.
 - **Mapa**: campos sin polígono tienen botón "✏️ Dibujar polígono" en la tarjeta sidebar y en el popup del marcador. Usa `L.Draw.Polygon` de leaflet-draw. Al cerrar el polígono, calcula hectáreas por shoelace + radio terrestre y guarda en `campos.poligono` + `campos.hectareas`.
 - **Refresh garantizado al abrir tab**: `showModulo('stock-insumos')` y `showModulo('tareas')` disparan un fetch REST extra que garantiza ver datos frescos incluso si `cargarTodo` no terminó.
+
+## Dev tools — Copy Tools widget (PR #42, #44 de Agustina)
+
+Widget flotante para devs que permite copiar contexto rápido (HTML/CSS/JS de un elemento) para pegarlo en un chat de asistente. No afecta producción para usuarios finales.
+
+- **Activación**: agregar `?dev=1` en la URL una vez. Guarda `localStorage['ra_devmode'] = '1'`. A partir de ahí aparece el widget bottom-right.
+- **Desactivar**: `window._devCopyDisable()` borra `ra_devmode` y `ra_devmode_pos`.
+- **Posición**: draggable desde el header `⋮⋮ COPY TOOLS ⋮⋮`. Posición persiste en `localStorage['ra_devmode_pos']` como JSON `{left, top}`. Se reclampa a viewport en resize.
+- **Atajos teclado (solo si dev mode activo)**: `1` → copiar página activa, `2` → inspeccionar elemento. Ignora targets INPUT/TEXTAREA/SELECT/contenteditable.
+- **Globals expuestas**: `window._devCopyPage`, `window._devPickElement`, `window._devCopyDisable`.
+- **DOM**: `<div id="dev-copy-widget">` con `z-index:99997`. Coexiste con el widget viejo (bottom-left).
+
+**No reusar**: el id `dev-copy-widget`, los nombres `_dev*`, las localStorage keys `ra_devmode` / `ra_devmode_pos`, ni el z-index 99997. Si agregás atajos globales con tecla 1 o 2, vas a chocar — siempre filtrá targets editables como hace este widget.
 
 ## SQL migrations aplicadas (en orden)
 

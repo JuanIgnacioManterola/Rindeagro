@@ -8993,11 +8993,14 @@ function _pagoFmtFecha(s) {
 
 // Cuenta cuántos pagos están "próximos" (pendientes + dentro de su ventana de alerta)
 function _pagosProximosCount() {
+  // Si el compromiso no tiene alerta_dias_antes configurada, usar 60d por default
+  // (ventana razonable para planificación agrícola: cubre las cuotas del próximo
+  // par de meses sin necesidad de setear alerta explícita en cada compromiso).
   return (pagos||[]).filter(function(p){
     if (p.estado !== 'pendiente') return false
-    if (p.alerta_dias_antes == null) return false
+    var ventana = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
     var d = _pagoDiasRestantes(p.fecha_cobro)
-    return d != null && d >= 0 && d <= p.alerta_dias_antes
+    return d != null && d >= 0 && d <= ventana
   }).length
 }
 

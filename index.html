@@ -566,9 +566,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
-    <!-- Alerta prominente de pagos vencidos/próximos (banda) — se muestra solo cuando corresponde -->
-    <div id="dash-pagos-alerta" style="display:none;margin:14px 0"></div>
-
     <!-- Widget Mi equipo -->
     <div class="card" id="dash-equipo-card">
       <div class="card-hdr">
@@ -3073,7 +3070,6 @@ window.actualizarPrecios = async function(forzar) {
 function renderDashboard() {
   try { if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() } } catch(e) {}
   try { _renderBannerColaborador() } catch(e) {}
-  try { _renderDashPagosAlertaTop() } catch(e) { console.error('dash alerta top:', e) }
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
@@ -3084,61 +3080,6 @@ function renderDashboard() {
 // Alerta prominente arriba del dashboard cuando hay pagos vencidos o próximos.
 // "Próximos" = todos los pendientes futuros ordenados por fecha (mismo criterio
 // que _pagosProximosCount).
-function _renderDashPagosAlertaTop() {
-  var el = document.getElementById('dash-pagos-alerta')
-  if (!el) return
-  var venc = [], prox = []
-  ;(pagos||[]).forEach(function(p){
-    if (p.estado !== 'pendiente') return
-    var d = _pagoDiasRestantes(p.fecha_cobro)
-    if (d == null) return
-    if (d < 0) venc.push(p)
-    else       prox.push(p)
-  })
-  if (!venc.length && !prox.length) { el.style.display = 'none'; return }
-  var totVenc = venc.reduce(function(a,p){var v=parseFloat(p.importe)||0; if(p.moneda==='USD') a.usd+=v; else a.ars+=v; return a}, {ars:0,usd:0})
-  var totProx = prox.reduce(function(a,p){var v=parseFloat(p.importe)||0; if(p.moneda==='USD') a.usd+=v; else a.ars+=v; return a}, {ars:0,usd:0})
-  var proxima = (venc.concat(prox).sort(function(a,b){return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'')}))[0]
-  var proxFecha = proxima ? _pagoFmtFecha(proxima.fecha_cobro) : ''
-  var proxDesc  = proxima ? (proxima.beneficiario || proxima.descripcion || 'compromiso') : ''
-  function _fmtBloque(t){
-    var out = []
-    if (t.ars>0) out.push('$ '+t.ars.toLocaleString('es-AR',{maximumFractionDigits:0}))
-    if (t.usd>0) out.push('USD '+t.usd.toLocaleString('es-AR',{maximumFractionDigits:0}))
-    return out.join(' + ') || '—'
-  }
-  var partes = []
-  if (venc.length) {
-    partes.push(
-      '<div style="display:flex;align-items:center;gap:10px">'
-      +'<div style="font-size:28px">⚠️</div>'
-      +'<div><div style="font-size:14px;font-weight:800;color:#8b1a1a">'+venc.length+' vencido'+(venc.length!==1?'s':'')+'</div>'
-      +'<div style="font-size:11px;color:#8b1a1a;opacity:.75">'+_fmtBloque(totVenc)+'</div></div>'
-      +'</div>'
-    )
-  }
-  if (prox.length) {
-    partes.push(
-      '<div style="display:flex;align-items:center;gap:10px">'
-      +'<div style="font-size:28px">🔔</div>'
-      +'<div><div style="font-size:14px;font-weight:800;color:#8a5a08">'+prox.length+' próximo'+(prox.length!==1?'s':'')+' a vencer</div>'
-      +'<div style="font-size:11px;color:#8a5a08;opacity:.75">'+_fmtBloque(totProx)+'</div></div>'
-      +'</div>'
-    )
-  }
-  var bg = venc.length ? 'linear-gradient(90deg,#fee2e2,#fef3c7)' : '#fef3c7'
-  var borderCol = venc.length ? '#c0392b' : '#c97a14'
-  el.style.display = 'block'
-  el.innerHTML = ''
-    +'<div onclick="showModulo(\'pagos\')" style="background:'+bg+';border:1.5px solid '+borderCol+';border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:transform .15s" onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'\'">'
-    +   partes.join('<div style="width:1.5px;background:'+borderCol+';opacity:.3;height:38px"></div>')
-    +   '<div style="margin-left:auto;text-align:right">'
-    +     (proxima ? '<div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Próximo</div><div style="font-size:12px;color:var(--texto);font-weight:700">'+proxDesc+'</div><div style="font-size:11px;color:var(--texto-suave)">'+proxFecha+'</div>' : '')
-    +   '</div>'
-    +   '<div style="display:flex;align-items:center;color:'+borderCol+';font-weight:700;font-size:12px;gap:4px">Ver pagos ›</div>'
-    +'</div>'
-}
-
 function _renderDashPagos() {
   var el = document.getElementById('dash-pagos')
   var card = document.getElementById('dash-pagos-card')

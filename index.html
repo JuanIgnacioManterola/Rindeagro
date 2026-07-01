@@ -9841,9 +9841,12 @@ window.renderPagos = function() {
 
   // Filtrar lista
   var lista = (pagos||[]).slice()
-  // Búsqueda de texto libre (beneficiario, descripción, banco, número cheque, notas)
+  // Búsqueda de texto libre (beneficiario, descripción, banco, número cheque, notas).
+  // Si hay búsqueda activa, IGNORA los filtros de estado — el usuario quiere encontrar
+  // ese pago sin importar si está pendiente/pagado/vencido.
   var qP = (document.getElementById('pagos-search')?.value||'').trim().toLowerCase()
-  if (qP) {
+  var hayBusqueda = qP.length > 0
+  if (hayBusqueda) {
     lista = lista.filter(function(p){
       return String(p.beneficiario||'').toLowerCase().indexOf(qP) >= 0
         || String(p.descripcion||'').toLowerCase().indexOf(qP) >= 0
@@ -9853,18 +9856,21 @@ window.renderPagos = function() {
     })
   }
   if (pagosFiltroTipo) lista = lista.filter(function(p){return p.tipo===pagosFiltroTipo})
-  if (pagosFiltroEstado === 'pendientes') lista = lista.filter(function(p){return p.estado==='pendiente'})
-  else if (pagosFiltroEstado === 'pagados') lista = lista.filter(function(p){return p.estado==='pagado'})
-  else if (pagosFiltroEstado === 'vencidos') {
-    lista = lista.filter(function(p){
-      if (p.estado!=='pendiente') return false
-      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d < 0
-    })
-  } else if (pagosFiltroEstado === 'proximos') {
-    lista = lista.filter(function(p){
-      if (p.estado!=='pendiente') return false
-      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0
-    })
+  // Los filtros de estado solo aplican cuando NO hay búsqueda activa
+  if (!hayBusqueda) {
+    if (pagosFiltroEstado === 'pendientes') lista = lista.filter(function(p){return p.estado==='pendiente'})
+    else if (pagosFiltroEstado === 'pagados') lista = lista.filter(function(p){return p.estado==='pagado'})
+    else if (pagosFiltroEstado === 'vencidos') {
+      lista = lista.filter(function(p){
+        if (p.estado!=='pendiente') return false
+        var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d < 0
+      })
+    } else if (pagosFiltroEstado === 'proximos') {
+      lista = lista.filter(function(p){
+        if (p.estado!=='pendiente') return false
+        var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0
+      })
+    }
   }
   lista.sort(function(a,b){
     var fa = a.fecha_cobro||'9999-12-31', fb = b.fecha_cobro||'9999-12-31'
@@ -9872,6 +9878,10 @@ window.renderPagos = function() {
   })
 
   if (!lista.length) {
+    if (hayBusqueda) {
+      cont.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--texto-suave)"><div style="font-size:42px;margin-bottom:10px">🔍</div><div style="font-size:15px;font-weight:600;color:var(--texto-mid);margin-bottom:6px">Sin resultados para "'+qP+'"</div><div style="font-size:13px">Probá con otro término o <a href="javascript:void(0)" onclick="_limpiarBusquedaPagos()" style="color:var(--verde);font-weight:700">limpiar búsqueda</a>.</div></div>'
+      return
+    }
     var msgs = {
       pendientes:'No tenés pagos pendientes',
       proximos:'Ningún pago próximo a vencer',
@@ -9884,7 +9894,16 @@ window.renderPagos = function() {
     return
   }
 
-  cont.innerHTML = lista.map(function(p){
+  // Si hay búsqueda activa, mostrar cuántos resultados encontró (arriba del listado)
+  var pagosListaHtml = ''
+  if (hayBusqueda) {
+    pagosListaHtml += '<div style="background:var(--verde-pale);border-radius:8px;padding:9px 14px;margin-bottom:10px;font-size:12px;color:var(--verde);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+      + '<span>🔍 <strong>'+lista.length+' resultado'+(lista.length!==1?'s':'')+'</strong> para "'+qP+'" · buscando en todos los estados</span>'
+      + '<button onclick="_limpiarBusquedaPagos()" style="background:transparent;border:1px solid var(--verde);color:var(--verde);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">✕ Limpiar</button>'
+      + '</div>'
+  }
+
+  pagosListaHtml += lista.map(function(p){
     var dias = _pagoDiasRestantes(p.fecha_cobro)
     var esPagado = p.estado === 'pagado'
     var esVencido = !esPagado && dias != null && dias < 0
@@ -9939,6 +9958,15 @@ window.renderPagos = function() {
       +   '</div>'
       + '</div>'
   }).join('')
+  cont.innerHTML = pagosListaHtml
+}
+
+// Limpia el buscador de Pagos y re-renderea (sin filtro de texto)
+window._limpiarBusquedaPagos = function() {
+  var input = document.getElementById('pagos-search')
+  if (input) input.value = ''
+  renderPagos()
+  if (input) input.focus()
 }
 
 // ── COMPARATIVA CAMPAÑAS: Modal + Exportar PDF ──

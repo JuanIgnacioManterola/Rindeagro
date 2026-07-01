@@ -849,6 +849,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: LLUVIAS -->
     <div class="campo-seccion" id="sec-lluvias">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button onclick="openModalExportLluvias()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📈 Comparar campañas</button>
+      </div>
       <div class="grid4" id="det-lluvia-mets" style="margin-bottom:14px"></div>
       <div class="grid2">
         <div class="card">
@@ -1373,6 +1376,30 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL EXPORT PDF DE PAGOS -->
+<!-- MODAL: EXPORTAR COMPARATIVA DE LLUVIAS ENTRE CAMPAÑAS -->
+<div class="overlay" id="ov-export-lluvias">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalExportLluvias()">✕</button>
+      <div class="m-tit">🌧️ Comparar lluvias entre campañas</div>
+      <div class="m-sub" style="margin-bottom:0">Elegí las campañas a comparar. Generamos un PDF con la evolución mm por campaña + detalle por mes.</div>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Campañas a comparar</label>
+        <div id="expl-campanas-list" style="display:flex;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto;border:1px solid var(--borde);border-radius:8px;padding:10px"></div>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button type="button" onclick="_explTogglar(true)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:var(--crema);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-mid)">Todas</button>
+          <button type="button" onclick="_explTogglar(false)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-suave)">Ninguna</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" onclick="exportarPDFLluviasCampo()">📄 Generar PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: EXPORTAR COMPARATIVA DE CAMPAÑAS -->
 <div class="overlay" id="ov-export-campanas">
   <div class="modal" style="max-width:560px">
@@ -9993,6 +10020,140 @@ window.exportarPDFGastosCampo = function() {
   w.document.write(html); w.document.close()
 }
 
+// ── COMPARATIVA DE LLUVIAS ENTRE CAMPAÑAS (Modal + PDF) ──
+window.openModalExportLluvias = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(f){return f.id===campoDet}); if (!c) return
+  // Detectar campañas disponibles (auto desde lluvias de ESTE campo + actual)
+  var hoy = new Date()
+  var yActual = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1
+  var campSet = {}
+  campSet[yActual+'/'+String(yActual+1).slice(2)] = { id: yActual+'/'+String(yActual+1).slice(2), y: yActual, current: true }
+  ;(lluvias||[]).filter(function(l){return l.campo_id===campoDet && l.fecha}).forEach(function(l){
+    var d = new Date(l.fecha)
+    var yy = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear()-1
+    var lbl = yy + '/' + String(yy+1).slice(2)
+    if (!campSet[lbl]) campSet[lbl] = { id: lbl, y: yy, current: yy===yActual }
+  })
+  var lista = Object.values(campSet).sort(function(a,b){ return b.y - a.y })
+  var el = document.getElementById('expl-campanas-list')
+  el.innerHTML = lista.map(function(c){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" class="expl-camp-chk" value="'+c.id+'" checked style="width:16px;height:16px"/>'
+      +'<span>Campaña <strong>'+c.id+'</strong>'+(c.current?' <span style="color:var(--verde);font-weight:700;font-size:10px">(actual)</span>':'')+'</span>'
+      +'</label>'
+  }).join('')
+  document.getElementById('ov-export-lluvias').classList.add('open')
+}
+window.closeModalExportLluvias = function() {
+  document.getElementById('ov-export-lluvias').classList.remove('open')
+}
+window._explTogglar = function(on) {
+  document.querySelectorAll('.expl-camp-chk').forEach(function(cb){ cb.checked = on })
+}
+
+window.exportarPDFLluviasCampo = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(f){return f.id===campoDet}); if (!c) return
+  var campsSel = Array.from(document.querySelectorAll('.expl-camp-chk:checked')).map(function(cb){return cb.value})
+  if (!campsSel.length) { showToast('⚠️ Elegí al menos una campaña','err'); return }
+
+  function _rango(anio) {
+    var yy = parseInt(anio.split('/')[0])
+    return { start: new Date(yy,6,1), end: new Date(yy+1,5,30,23,59,59) }
+  }
+  var MESES_ETIQ = ['Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun']
+
+  // Data por campaña: array de 12 valores (Jul → Jun) con mm sumado por mes
+  var datos = campsSel.sort().map(function(anio){
+    var r = _rango(anio)
+    var mesMm = [0,0,0,0,0,0,0,0,0,0,0,0]
+    var eventos = 0
+    ;(lluvias||[]).forEach(function(l){
+      if (l.campo_id !== campoDet || !l.fecha) return
+      var d = new Date(l.fecha + 'T00:00:00')  // consistente con el range en local time
+      if (d < r.start || d > r.end) return
+      eventos++
+      var m = d.getMonth() // 0=ene
+      // Índice campaña: jul=0, ago=1, ..., dic=5, ene=6, ..., jun=11
+      var idx = (m >= 6) ? (m - 6) : (m + 6)
+      mesMm[idx] += parseFloat(l.mm) || 0
+    })
+    var total = mesMm.reduce(function(a,v){return a+v},0)
+    return { anio: anio, mesMm: mesMm, total: total, eventos: eventos }
+  })
+
+  var maxMm = Math.max.apply(null, datos.flatMap(function(d){return d.mesMm}).concat([1]))
+  var maxTotal = Math.max.apply(null, datos.map(function(d){return d.total}).concat([1]))
+  var today = new Date()
+  var todayStr = today.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+  var nombreUsuario = (usuario && usuario.user_metadata && usuario.user_metadata.nombre) || (usuario && usuario.email) || ''
+
+  var html = ''
+  html += '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Lluvias · '+c.nombre+'</title>'
+  html += '<style>'
+  html += '@page{size:A4;margin:16mm 14mm}'
+  html += 'body{font-family:Helvetica,sans-serif;color:#1a1a1a;margin:0;font-size:10.5pt}'
+  html += 'h1{font-size:20pt;margin:0 0 4px 0;color:#1a4a2e}'
+  html += '.sub{font-size:10pt;color:#666;margin-bottom:14px}'
+  html += '.brand{font-size:9pt;color:#888;border-bottom:2px solid #1a4a2e;padding-bottom:6px;margin-bottom:14px}'
+  html += 'h2{font-size:14pt;color:#1a4a2e;margin:22px 0 8px 0;padding-bottom:4px;border-bottom:1px solid #ddd}'
+  html += 'table{width:100%;border-collapse:collapse;margin-top:6px;font-size:9.5pt}'
+  html += 'th{text-align:left;padding:7px 6px;border-bottom:1.5px solid #1a4a2e;font-weight:700;color:#1a4a2e;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3px;background:#e8f5ee}'
+  html += 'td{padding:6px;border-bottom:.5px solid #eee}'
+  html += '.r{text-align:right;font-variant-numeric:tabular-nums}'
+  html += '.tot{background:#faf7f0;font-weight:700;border-top:2px solid #1a4a2e}'
+  html += '.bar{height:12px;background:#1a5fa8;border-radius:2px}'
+  html += '.bar-wrap{display:flex;align-items:center;gap:8px}'
+  html += '.foot{margin-top:30px;font-size:8pt;color:#888;text-align:center;border-top:1px solid #ddd;padding-top:10px}'
+  html += '.print-btn{position:fixed;top:14px;right:14px;background:#1a4a2e;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:12pt;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:9999}'
+  html += '@media print{.print-btn{display:none}}'
+  html += '</style></head><body>'
+  html += '<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>'
+  html += '<div class="brand">RindeAgro · '+nombreUsuario+' · Generado '+todayStr+'</div>'
+  html += '<h1>🌧️ Lluvias · '+c.nombre+'</h1>'
+  html += '<div class="sub">'+c.hectareas+' ha · '+(c.cultivo||'—')+' · '+campsSel.length+' campaña'+(campsSel.length!==1?'s':'')+' comparadas</div>'
+
+  // Resumen total por campaña
+  html += '<h2>Total por campaña</h2>'
+  html += '<table><thead><tr><th>Campaña</th><th class="r">Eventos</th><th class="r">Total (mm)</th><th class="r">Promedio evento</th><th>Comparativa</th></tr></thead><tbody>'
+  datos.forEach(function(d){
+    var prom = d.eventos > 0 ? (d.total / d.eventos).toFixed(1) : '—'
+    var barW = d.total / maxTotal * 200
+    html += '<tr><td><strong>'+d.anio+'</strong></td><td class="r">'+d.eventos+'</td><td class="r">'+d.total.toFixed(0)+' mm</td><td class="r">'+prom+' mm</td><td><div class="bar-wrap"><div class="bar" style="width:'+barW+'px"></div><span style="font-size:8.5pt;color:#666">'+d.total.toFixed(0)+'</span></div></td></tr>'
+  })
+  var totGlob = datos.reduce(function(a,d){return a+d.total},0)
+  var totEv = datos.reduce(function(a,d){return a+d.eventos},0)
+  var promGlob = totEv>0 ? (totGlob/totEv).toFixed(1) : '—'
+  html += '<tr class="tot"><td>Promedio</td><td class="r">'+Math.round(totEv/datos.length)+'</td><td class="r">'+(totGlob/datos.length).toFixed(0)+' mm</td><td class="r">'+promGlob+' mm</td><td>—</td></tr>'
+  html += '</tbody></table>'
+
+  // Distribución mes a mes
+  html += '<h2>Distribución mensual (mm)</h2>'
+  html += '<table><thead><tr><th>Campaña</th>'
+  MESES_ETIQ.forEach(function(m){ html += '<th class="r">'+m+'</th>' })
+  html += '<th class="r">Total</th></tr></thead><tbody>'
+  datos.forEach(function(d){
+    html += '<tr><td><strong>'+d.anio+'</strong></td>'
+    d.mesMm.forEach(function(mm){
+      var opacity = maxMm>0 ? Math.min(mm/maxMm, 1) : 0
+      var bg = 'rgba(26, 95, 168, '+(opacity*0.8).toFixed(2)+')'
+      var color = opacity > 0.4 ? '#fff' : '#333'
+      html += '<td class="r" style="background:'+bg+';color:'+color+';font-weight:'+(mm>0?600:400)+'">'+(mm>0?Math.round(mm):'—')+'</td>'
+    })
+    html += '<td class="r"><strong>'+d.total.toFixed(0)+'</strong></td></tr>'
+  })
+  html += '</tbody></table>'
+
+  html += '<div class="foot">Rinde.Agro · Comparativa de lluvias · '+today.toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
+
+  var w = window.open('', '_blank')
+  if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
+  w.document.write(html); w.document.close()
+  closeModalExportLluvias()
+}
+
 // ── PAGOS: Exportar PDF por rango de fechas ──
 window.openModalExportPagos = function() {
   var hoy = new Date(); hoy.setHours(0,0,0,0)
@@ -10526,7 +10687,16 @@ window.renderCamposLista = function() {
     var ingTotal = _ingRealParaCampo(c)
     var mg = (ha>0?ingTotal/ha:0) - cHa
     var mc = mg>=0?'#1a7a52':'#c0392b'
-    var llMm = lluvias.filter(function(l){return l.campo_id===c.id}).reduce(function(a,l){return a+(l.mm||0)},0)
+    // mm SOLO de la campaña actual (jul año → jun año+1). Antes sumaba histórico completo — bug reportado por usuario.
+    // Nota: forzamos T00:00:00 para evitar TZ shift (new Date('YYYY-MM-DD') parsea como UTC medianoche
+    // y el rango está construido en local time con new Date(y, 6, 1)).
+    var _campR = getCampanaRange(campanaActivaId)
+    var llMm = lluvias.filter(function(l){
+      if (l.campo_id !== c.id) return false
+      if (!l.fecha) return false
+      var d = new Date(l.fecha + 'T00:00:00')
+      return d >= _campR.start && d <= _campR.end
+    }).reduce(function(a,l){return a+(parseFloat(l.mm)||0)},0)
     var nG = gastos.filter(function(g){return g.campo_id===c.id}).length
     var nA = analisisS.filter(function(a){return a.campo_id===c.id}).length
     var col = COLS[i%COLS.length]

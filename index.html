@@ -629,7 +629,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
-      <div class="pi" style="border-right:none"><div class="pi-l">Dólar BNA</div><div class="pi-v" id="ps-bna">—</div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi" style="border-right:none" title="Divisa BNA — Compra: se usa al convertir ingresos por venta de cereal. Venta: se usa al convertir costos de insumos en USD."><div class="pi-l">Dólar BNA divisa</div><div class="pi-v" id="ps-bna" style="font-size:13px;line-height:1.15">C <span id="ps-usd-c">—</span> · V <span id="ps-usd-v">—</span></div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <div style="display:flex;gap:6px">
           <button onclick="actualizarPrecios(true)" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
@@ -2581,7 +2581,20 @@ var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
 var paso = 1
 var campoRent = null
 var SERVER_URL = 'https://rindeagro-server-production.up.railway.app'
-var precios = {soja:341,maiz:181,trigo:183,girasol:390,sorgo:189,bna:1387}
+var precios = {
+  soja:341, maiz:181, trigo:183, girasol:390, sorgo:189,
+  bna:1387,                          // legacy — alias a dolar_divisa_venta
+  dolar_billete_compra:null,
+  dolar_billete_venta:null,
+  dolar_divisa_compra:null,          // USD → ARS para INGRESOS (venta cereal)
+  dolar_divisa_venta:null,           // USD → ARS para EGRESOS (compra insumos)
+  timestamp_dolar:null,
+  fecha_pizarra:null,
+  fuente_dolar:null
+}
+// Helpers globales — usar SIEMPRE estos en vez de precios.bna directamente.
+window._dolarCompra = function(){ return precios.dolar_divisa_compra || precios.dolar_billete_compra || precios.bna || 1300 }
+window._dolarVenta  = function(){ return precios.dolar_divisa_venta  || precios.dolar_billete_venta  || precios.bna || 1300 }
 var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
 var RUBROS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',otros:'Otros'}
 var charts = {}
@@ -3173,15 +3186,25 @@ function _mostrarPrecios(fuente) {
   ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(g){
     var el=document.getElementById('ps-'+g), dEl=document.getElementById('ps-'+g+'-d')
     if(el) el.textContent='USD '+Math.round(precios[g])
-    if(dEl){dEl.style.color='rgba(250,247,240,.6)';dEl.textContent=fuente||'Ambito · BNA'}
+    if(dEl){dEl.style.color='rgba(250,247,240,.6)';dEl.textContent=fuente||'BCR · BNA'}
   })
-  var elBna=document.getElementById('ps-bna'),dBna=document.getElementById('ps-bna-d')
-  if(elBna) elBna.textContent='$ '+Math.round(precios.bna).toLocaleString('es-AR')
-  if(dBna){dBna.style.color='rgba(250,247,240,.6)';dBna.textContent='BNA divisa comprador'}
+  // Dólar: mostrar Compra y Venta separadas en la misma celda.
+  var elC=document.getElementById('ps-usd-c'), elV=document.getElementById('ps-usd-v')
+  if(elC) elC.textContent='$'+Math.round(_dolarCompra()).toLocaleString('es-AR')
+  if(elV) elV.textContent='$'+Math.round(_dolarVenta()).toLocaleString('es-AR')
+  var dBna=document.getElementById('ps-bna-d')
+  if(dBna){dBna.style.color='rgba(250,247,240,.6)';dBna.textContent='C: ingresos · V: insumos'}
   var horaEl=document.getElementById('ps-hora')
   if(horaEl){
-    var now=new Date()
-    horaEl.textContent='Actualizado: '+now.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})+' · '+(fuente||'Ambito · BNA')
+    var etiquetaFecha=''
+    if(precios.fecha_pizarra){
+      var d=new Date(precios.fecha_pizarra+'T12:00:00')
+      etiquetaFecha='Cierre pizarra: '+d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})
+    } else {
+      var now=new Date()
+      etiquetaFecha='Actualizado: '+now.toLocaleDateString('es-AR',{day:'numeric',month:'short'})
+    }
+    horaEl.textContent=etiquetaFecha+' · '+(fuente||'BCR · BNA')
   }
 }
 
@@ -3190,70 +3213,95 @@ window.actualizarPrecios = async function(forzar) {
   if(btn){btn.textContent='⏳';btn.disabled=true}
   var hoy = new Date().toISOString().substring(0,10)
 
-  // Usar cache local si es de hoy y no es forzado
+  // Cache local si es del día y no es forzado
   if(!forzar){
     try{
-      var c=JSON.parse(localStorage.getItem('ra_precios_v3')||'null')
+      var c=JSON.parse(localStorage.getItem('ra_precios_v4')||'null')
       if(c&&c.fecha===hoy){
-        if(c.soja)precios.soja=c.soja;if(c.maiz)precios.maiz=c.maiz
-        if(c.trigo)precios.trigo=c.trigo;if(c.girasol)precios.girasol=c.girasol
-        if(c.sorgo)precios.sorgo=c.sorgo;if(c.bna)precios.bna=c.bna
-        _mostrarPrecios('BCR Rosario · BNA')
+        ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(k){ if(c[k]) precios[k]=c[k] })
+        if(c.dolar_billete_compra) precios.dolar_billete_compra=c.dolar_billete_compra
+        if(c.dolar_billete_venta)  precios.dolar_billete_venta=c.dolar_billete_venta
+        if(c.dolar_divisa_compra)  precios.dolar_divisa_compra=c.dolar_divisa_compra
+        if(c.dolar_divisa_venta)   precios.dolar_divisa_venta=c.dolar_divisa_venta
+        if(c.fecha_pizarra)        precios.fecha_pizarra=c.fecha_pizarra
+        if(c.fuente_dolar)         precios.fuente_dolar=c.fuente_dolar
+        precios.bna = precios.dolar_divisa_venta || precios.dolar_billete_venta || precios.bna
+        _mostrarPrecios('BCR · BNA (cache)')
         if(btn){btn.textContent='↻ Actualizar';btn.disabled=false}
         return
       }
     }catch(e){}
   }
 
-  // Retenciones vigentes: Soja 24%, Maíz 8.5%, Trigo 7.5%, Girasol 4.5%, Sorgo 8.5%
-  var _ret = {soja:0.24, maiz:0.085, trigo:0.075, girasol:0.045, sorgo:0.085}
-  function _pizarra(chicago, g){ return Math.round(chicago * (1 - (_ret[g]||0.085))) }
+  // Fuente primaria: vistas públicas de Supabase (las alimenta el cron server-side).
+  // Uso fetch directo con apikey (SB_KEY) — no requiere sesión de usuario porque
+  // las vistas tienen RLS con select público.
+  async function _fetchPreciosSB(endpoint){
+    var r = await fetch(SB_URL + '/rest/v1' + endpoint, {
+      headers: { 'apikey': SB_KEY, 'Accept': 'application/json' }
+    })
+    if(!r.ok) throw new Error('SB '+r.status)
+    return await r.json()
+  }
+  var supaCereales = null, supaDolar = null
+  try {
+    var rc = await Promise.race([
+      _fetchPreciosSB('/v_precio_cereales_actual?select=*&limit=1'),
+      new Promise(function(_,rej){ setTimeout(function(){ rej('timeout') }, 4000) })
+    ])
+    if(Array.isArray(rc) && rc.length) supaCereales = rc[0]
+  } catch(e) {}
+  try {
+    var rd = await Promise.race([
+      _fetchPreciosSB('/v_precio_dolar_actual?select=*&limit=1'),
+      new Promise(function(_,rej){ setTimeout(function(){ rej('timeout') }, 4000) })
+    ])
+    if(Array.isArray(rd) && rd.length) supaDolar = rd[0]
+  } catch(e) {}
 
-  // Fetch BNA y Ambito EN PARALELO con timeout corto (3s c/u)
-  function _fetchTimeout(url, ms) {
-    var ctrl = new AbortController()
-    var id = setTimeout(function(){ ctrl.abort() }, ms)
-    return fetch(url, {signal: ctrl.signal}).finally(function(){ clearTimeout(id) })
+  if(supaCereales){
+    ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(k){
+      var v = parseFloat(supaCereales[k]); if(v && !isNaN(v)) precios[k]=v
+    })
+    if(supaCereales.fecha) precios.fecha_pizarra = supaCereales.fecha
+  }
+  if(supaDolar){
+    ;['billete_compra','billete_venta','divisa_compra','divisa_venta'].forEach(function(k){
+      var v = parseFloat(supaDolar[k]); if(v && !isNaN(v)) precios['dolar_'+k]=v
+    })
+    precios.timestamp_dolar = supaDolar.timestamp_scrape || null
+    precios.fuente_dolar = supaDolar.fuente || null
+    // Alias legacy: precios.bna → divisa_venta (más usada en la app en gastos/mi plan/pagos)
+    if(precios.dolar_divisa_venta) precios.bna = precios.dolar_divisa_venta
+    else if(precios.dolar_billete_venta) precios.bna = precios.dolar_billete_venta
   }
 
-  var results = await Promise.allSettled([
-    _fetchTimeout('https://dolarapi.com/v1/dolares/oficial', 3000),
-    _fetchTimeout('https://mercados.ambito.com/mercados/commodities', 3000)
-  ])
+  // Fallback si Supabase no dio dólar → dolarapi.com (solo billete, sin divisa)
+  if(!supaDolar || (!precios.dolar_divisa_compra && !precios.dolar_billete_compra)){
+    try{
+      var jBna = await (await fetch('https://dolarapi.com/v1/dolares/oficial')).json()
+      var c1=parseFloat(jBna.compra||0), v1=parseFloat(jBna.venta||0)
+      if(c1>0){ precios.dolar_billete_compra = c1 }
+      if(v1>0){ precios.dolar_billete_venta = v1; precios.bna = v1 }
+      precios.fuente_dolar = precios.fuente_dolar || 'dolarapi'
+    }catch(e){}
+  }
 
-  // Resultado BNA
+  // Cache
   try{
-    if(results[0].status==='fulfilled' && results[0].value.ok){
-      var jBna = await results[0].value.json()
-      var compra = parseFloat(jBna.compra||0)
-      if(compra>0) precios.bna = compra
-    }
-  }catch(e){}
-
-  // Resultado Ambito cereales
-  try{
-    if(results[1].status==='fulfilled' && results[1].value.ok){
-      var items = await results[1].value.json()
-      items.forEach(function(item){
-        var n=(item.nombre||'').toLowerCase()
-        var v=parseFloat((item.ultimo||'').replace(',','.'))
-        if(!v||isNaN(v)) return
-        if(n==='soja')              precios.soja=_pizarra(v,'soja')
-        else if(n==='maiz'||n==='maíz') precios.maiz=_pizarra(v,'maiz')
-        else if(n==='trigo')        precios.trigo=_pizarra(v,'trigo')
-      })
-    }
-  }catch(e){}
-
-  // Guardar en localStorage (cache diaria)
-  try{
-    localStorage.setItem('ra_precios_v3',JSON.stringify({
-      fecha:hoy,soja:precios.soja,maiz:precios.maiz,trigo:precios.trigo,
-      girasol:precios.girasol,sorgo:precios.sorgo,bna:precios.bna
+    localStorage.setItem('ra_precios_v4', JSON.stringify({
+      fecha:hoy,
+      soja:precios.soja, maiz:precios.maiz, trigo:precios.trigo, girasol:precios.girasol, sorgo:precios.sorgo,
+      dolar_billete_compra:precios.dolar_billete_compra,
+      dolar_billete_venta:precios.dolar_billete_venta,
+      dolar_divisa_compra:precios.dolar_divisa_compra,
+      dolar_divisa_venta:precios.dolar_divisa_venta,
+      fecha_pizarra:precios.fecha_pizarra,
+      fuente_dolar:precios.fuente_dolar
     }))
   }catch(e){}
 
-  _mostrarPrecios('BCR Rosario · BNA')
+  _mostrarPrecios('BCR · BNA')
   if(btn){btn.textContent='↻ Actualizar';btn.disabled=false}
 }
 
@@ -3739,7 +3787,7 @@ window.calcRendReal = function() {
   res.style.display = 'block'
   var tn = rend * ha
   var ingUSD = tn * precio
-  var ingPesos = ingUSD * precios.bna
+  var ingPesos = ingUSD * _dolarCompra()  // ingreso por venta de cereal → divisa comprador
   var qqEquiv = ingUSD / precio * 10
   document.getElementById('rr-tn').textContent = tn.toLocaleString('es-AR',{maximumFractionDigits:1}) + ' t'
   document.getElementById('rr-ing').textContent = 'USD ' + Math.round(ingUSD).toLocaleString('es-AR')
@@ -12879,7 +12927,7 @@ window.renderIngresosTab = function() {
 window.calcIngresosLive = function() {
   var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
   var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
-  var enARS = monedaGlobal==='ARS', tcambio = precios.bna||1300
+  var enARS = monedaGlobal==='ARS', tcambio = _dolarCompra()  // ingresos → divisa comprador
   var CULT_ICONS = {'Soja':'🌱','Ma\xedz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Man\xed':'🥜'}
 
   // Sync _ingVentas from DOM inputs

@@ -527,6 +527,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
+    <!-- Alerta de pagos próximos/vencidos -->
+    <div id="dash-pagos-alerta" style="display:none;margin-bottom:12px"></div>
     <div class="precio-strip">
       <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
@@ -866,7 +868,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="card">
           <div class="card-hdr">
             <span class="card-tit">Semáforo nutricional</span>
-            <select class="fi" id="det-suelo-cultivo" style="width:auto;padding:5px 10px;font-size:12px;cursor:pointer;height:auto" onchange="renderDetSuelo()">
+            <select class="fi" id="det-suelo-cultivo" style="width:auto;padding:5px 10px;font-size:12px;cursor:pointer;height:auto" onchange="this.dataset.userChanged='1';renderDetSuelo()">
               <option value="soja">Soja</option><option value="maiz">Maíz</option><option value="trigo">Trigo</option><option value="girasol">Girasol</option>
             </select>
           </div>
@@ -3019,6 +3021,7 @@ window.actualizarPrecios = async function(forzar) {
 function renderDashboard() {
   try { if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() } } catch(e) {}
   try { _renderBannerColaborador() } catch(e) {}
+  try { _renderDashPagosAlertaTop() } catch(e) { console.error('dash alerta top:', e) }
   try { _renderDashboardProductor() } catch(e) { console.error('renderDashboardProductor:', e) }
   try { _renderAccesosColaborador() } catch(e) {}
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
@@ -3026,20 +3029,81 @@ function renderDashboard() {
   try { _renderDashPagos() } catch(e) { console.error('dash pagos:', e) }
 }
 
+// Alerta prominente arriba del dashboard cuando hay pagos vencidos o próximos.
+// Ventana default de 60 días si el compromiso no tiene alerta_dias_antes configurada
+// (misma convención que _pagosProximosCount).
+function _renderDashPagosAlertaTop() {
+  var el = document.getElementById('dash-pagos-alerta')
+  if (!el) return
+  var venc = [], prox = []
+  ;(pagos||[]).forEach(function(p){
+    if (p.estado !== 'pendiente') return
+    var d = _pagoDiasRestantes(p.fecha_cobro)
+    if (d == null) return
+    if (d < 0) venc.push(p)
+    else {
+      var vent = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
+      if (d <= vent) prox.push(p)
+    }
+  })
+  if (!venc.length && !prox.length) { el.style.display = 'none'; return }
+  var totVenc = venc.reduce(function(a,p){var v=parseFloat(p.importe)||0; if(p.moneda==='USD') a.usd+=v; else a.ars+=v; return a}, {ars:0,usd:0})
+  var totProx = prox.reduce(function(a,p){var v=parseFloat(p.importe)||0; if(p.moneda==='USD') a.usd+=v; else a.ars+=v; return a}, {ars:0,usd:0})
+  var proxima = (venc.concat(prox).sort(function(a,b){return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'')}))[0]
+  var proxFecha = proxima ? _pagoFmtFecha(proxima.fecha_cobro) : ''
+  var proxDesc  = proxima ? (proxima.beneficiario || proxima.descripcion || 'compromiso') : ''
+  function _fmtBloque(t){
+    var out = []
+    if (t.ars>0) out.push('$ '+t.ars.toLocaleString('es-AR',{maximumFractionDigits:0}))
+    if (t.usd>0) out.push('USD '+t.usd.toLocaleString('es-AR',{maximumFractionDigits:0}))
+    return out.join(' + ') || '—'
+  }
+  var partes = []
+  if (venc.length) {
+    partes.push(
+      '<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="font-size:28px">⚠️</div>'
+      +'<div><div style="font-size:14px;font-weight:800;color:#8b1a1a">'+venc.length+' vencido'+(venc.length!==1?'s':'')+'</div>'
+      +'<div style="font-size:11px;color:#8b1a1a;opacity:.75">'+_fmtBloque(totVenc)+'</div></div>'
+      +'</div>'
+    )
+  }
+  if (prox.length) {
+    partes.push(
+      '<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="font-size:28px">🔔</div>'
+      +'<div><div style="font-size:14px;font-weight:800;color:#8a5a08">'+prox.length+' próximo'+(prox.length!==1?'s':'')+' a vencer</div>'
+      +'<div style="font-size:11px;color:#8a5a08;opacity:.75">'+_fmtBloque(totProx)+'</div></div>'
+      +'</div>'
+    )
+  }
+  var bg = venc.length ? 'linear-gradient(90deg,#fee2e2,#fef3c7)' : '#fef3c7'
+  var borderCol = venc.length ? '#c0392b' : '#c97a14'
+  el.style.display = 'block'
+  el.innerHTML = ''
+    +'<div onclick="showModulo(\'pagos\')" style="background:'+bg+';border:1.5px solid '+borderCol+';border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:transform .15s" onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'\'">'
+    +   partes.join('<div style="width:1.5px;background:'+borderCol+';opacity:.3;height:38px"></div>')
+    +   '<div style="margin-left:auto;text-align:right">'
+    +     (proxima ? '<div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Próximo</div><div style="font-size:12px;color:var(--texto);font-weight:700">'+proxDesc+'</div><div style="font-size:11px;color:var(--texto-suave)">'+proxFecha+'</div>' : '')
+    +   '</div>'
+    +   '<div style="display:flex;align-items:center;color:'+borderCol+';font-weight:700;font-size:12px;gap:4px">Ver pagos ›</div>'
+    +'</div>'
+}
+
 function _renderDashPagos() {
   var el = document.getElementById('dash-pagos')
   var card = document.getElementById('dash-pagos-card')
   if (!el || !card) return
 
-  // Solo aparecen los próximos a vencer (dentro de ventana de alerta) + vencidos pendientes
+  // Vencidos + próximos (60d default si no hay alerta_dias_antes)
   var hoy = new Date(); hoy.setHours(0,0,0,0)
   var urgentes = (pagos||[]).filter(function(p){
     if (p.estado !== 'pendiente') return false
     var d = _pagoDiasRestantes(p.fecha_cobro)
     if (d == null) return false
     if (d < 0) return true
-    if (p.alerta_dias_antes != null && d <= p.alerta_dias_antes) return true
-    return false
+    var vent = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
+    return d <= vent
   }).sort(function(a,b){
     return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'')
   }).slice(0, 5)
@@ -10119,6 +10183,9 @@ window.abrirCampo = function(id) {
   // Reset acordeón al abrir un campo distinto
   _crAcSt = {cultivoOpen:null, rubroActivo:null, ingOpen:false, gasOpen:false}
   window._crAcordeonData = null
+  // Reset flag del dropdown de cultivo del análisis de suelo — así se auto-selecciona
+  // según el cultivo del campo recién abierto (usuario puede overrideear después).
+  try { var _sc = document.getElementById('det-suelo-cultivo'); if (_sc) delete _sc.dataset.userChanged } catch(e) {}
   var c = campos.find(function(f){return f.id===id})
   if (!c) return
   document.getElementById('det-campo-nombre').textContent = c.nombre
@@ -12846,7 +12913,16 @@ function renderDetLluvias() {
 }
 
 window.renderDetSuelo = function() {
-  var cultivo = document.getElementById('det-suelo-cultivo')?.value||'soja'
+  // Auto-detect cultivo de la campaña actual del campo (con precedencia al dropdown si el usuario lo cambió)
+  var _campoActual = (campos||[]).find(function(f){ return f.id === campoDet })
+  var _primerCult = ((_campoActual && _campoActual.cultivo) || 'Soja').split(',')[0].trim().toLowerCase()
+  var _normCult = { 'soja':'soja','maíz':'maiz','maiz':'maiz','trigo':'trigo','girasol':'girasol' }[_primerCult] || 'soja'
+  var _dropdown = document.getElementById('det-suelo-cultivo')
+  // Si el dropdown todavía tiene el default 'soja' pero el campo no es soja, sincronizarlo
+  if (_dropdown && _dropdown.value === 'soja' && _normCult !== 'soja' && !_dropdown.dataset.userChanged) {
+    _dropdown.value = _normCult
+  }
+  var cultivo = (_dropdown && _dropdown.value) || _normCult
   var RANGOS = {soja:{N:[150,280],P:[18,40],K:[250,400],S:[10,25],MO:[3.0,5.0],pH:[6.0,7.0],Zn:[1.0,3.0]},maiz:{N:[180,300],P:[20,45],K:[280,450],S:[12,28],MO:[2.8,5.0],pH:[6.0,7.0],Zn:[1.2,3.0]},trigo:{N:[130,250],P:[15,35],K:[220,380],S:[8,22],MO:[2.5,4.5],pH:[5.8,7.0],Zn:[0.8,2.5]},girasol:{N:[140,260],P:[16,38],K:[240,400],S:[15,30],MO:[2.8,5.0],pH:[6.0,7.0],Zn:[1.0,3.0]}}
   var rangos = RANGOS[cultivo]||RANGOS.soja
   var anals = analisisS.filter(function(a){return a.campo_id===campoDet})

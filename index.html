@@ -937,6 +937,32 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
       </div>
     </div>
+    <!-- Sección Evolución multi-campaña (Fase 3.4) -->
+    <div class="card" style="margin-bottom:14px" id="rt-tendencias-card">
+      <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
+        <span class="card-tit">📈 Evolución de tu operación</span>
+        <span style="font-size:11px;color:var(--texto-suave)">Tendencias últimas <strong id="rt-tend-n-campanas">—</strong> campañas</span>
+      </div>
+      <div id="rt-tendencias-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Margen USD/ha por campaña</div>
+          <div style="position:relative;height:200px"><canvas id="chart-tend-margen"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Lluvia total (mm) por campaña</div>
+          <div style="position:relative;height:200px"><canvas id="chart-tend-lluvias"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Rendimiento por cultivo (qq/ha)</div>
+          <div style="position:relative;height:200px"><canvas id="chart-tend-rinde"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Costo USD/ha por rubro</div>
+          <div style="position:relative;height:200px"><canvas id="chart-tend-rubros"></canvas></div>
+        </div>
+      </div>
+    </div>
     <!-- Métricas globales (Hectáreas · Ingresos · Costos · Margen) -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
     <!-- Cascada Ingresos → Costos → Margen (estado de resultados) -->
@@ -13012,7 +13038,201 @@ window.calcRendCampo = function() {
   calcIngresosLive()
 }
 
+// ── Tendencias multi-campaña (Fase 3.4) ──
+// Detecta todas las campañas presentes en gastos + lluvias + campanas del usuario,
+// calcula 4 series por campaña, y renderiza 4 charts + KPIs.
+window._tendCharts = window._tendCharts || {}
+function _renderTendenciasMultiCampana() {
+  var card = document.getElementById('rt-tendencias-card')
+  if (!card) return
+  function _rangoAnio(y){ return { start: new Date(y,6,1), end: new Date(y+1,5,30,23,59,59), label: y+'/'+String(y+1).slice(2) } }
+  // Detectar campañas desde gastos + lluvias
+  var campSet = {}
+  ;(gastos||[]).concat(lluvias||[]).forEach(function(item){
+    if (!item.fecha) return
+    var d = new Date(String(item.fecha).length===10 ? item.fecha+'T00:00:00' : item.fecha)
+    var y = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear()-1
+    campSet[y] = true
+  })
+  // Incluir la actual siempre
+  var hoy = new Date()
+  var yA = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1
+  campSet[yA] = true
+  var years = Object.keys(campSet).map(Number).sort(function(a,b){return a-b})
+  if (!years.length) { card.style.display='none'; return }
+  card.style.display=''
+  var labels = years.map(function(y){ return y+'/'+String(y+1).slice(2) })
+  document.getElementById('rt-tend-n-campanas').textContent = years.length
+
+  // Total ha del usuario (constante entre campañas — asumimos que no cambia)
+  var totalHa = (campos||[]).reduce(function(a,c){ return a + (parseFloat(c.hectareas)||0) }, 0) || 1
+
+  // === Serie 1: Margen USD/ha por campaña ===
+  var margenPorAnio = years.map(function(y){
+    var r = _rangoAnio(y)
+    var costo = 0, ingreso = 0
+    ;(gastos||[]).forEach(function(g){
+      if (!g.fecha) return
+      var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+      if (d < r.start || d > r.end) return
+      costo += parseFloat(g.total_de_usd)||0
+    })
+    // Ingresos: preferir tabla campanas (rendimiento × precio × ha), fallback campo.rendimiento
+    ;(window.campanas||[]).forEach(function(c){
+      var anioMatch = (c.anio === r.label) || (c.anio === y+'/'+(y+1))
+      if (!anioMatch) return
+      var campo = (campos||[]).find(function(f){return f.id===c.campo_id})
+      var ha = campo ? (parseFloat(campo.hectareas)||0) : 0
+      var rend = parseFloat(c.rendimiento)||0
+      var pre  = parseFloat(c.precio_venta)||0
+      ingreso += rend * pre * ha
+    })
+    // Fallback para campaña actual: usar campo.rendimiento
+    if (ingreso === 0 && y === yA) {
+      ;(campos||[]).forEach(function(c){
+        var ha = parseFloat(c.hectareas)||0
+        var rend = parseFloat(c.rendimiento)||0
+        var pre  = parseFloat(c.precio_venta)||0
+        ingreso += rend * pre * ha
+      })
+    }
+    var margen = ingreso - costo
+    return { margenHa: totalHa>0 ? margen/totalHa : 0, ingreso: ingreso, costo: costo, margen: margen }
+  })
+
+  // === Serie 2: Lluvias mm por campaña ===
+  var lluviasPorAnio = years.map(function(y){
+    var r = _rangoAnio(y)
+    var mm = 0
+    ;(lluvias||[]).forEach(function(l){
+      if (!l.fecha) return
+      var d = new Date(String(l.fecha).length===10 ? l.fecha+'T00:00:00' : l.fecha)
+      if (d < r.start || d > r.end) return
+      mm += parseFloat(l.mm)||0
+    })
+    return mm
+  })
+
+  // === Serie 3: Rendimiento por cultivo por campaña ===
+  // datos: { cultivo: [ha_ponderado_por_año] }
+  var cultivosSet = {}
+  ;(window.campanas||[]).forEach(function(c){ if(c.cultivo) cultivosSet[c.cultivo]=true })
+  var cultivosArr = Object.keys(cultivosSet).slice(0,6)
+  var rindePorAnio = cultivosArr.map(function(cult){
+    return { cult: cult, data: years.map(function(y){
+      var lbl = y+'/'+String(y+1).slice(2)
+      var lblLong = y+'/'+(y+1)
+      var rendSum = 0, n = 0
+      ;(window.campanas||[]).forEach(function(c){
+        if (c.cultivo !== cult) return
+        if (c.anio !== lbl && c.anio !== lblLong) return
+        var r = parseFloat(c.rendimiento); if (isNaN(r)) return
+        rendSum += r; n++
+      })
+      return n>0 ? Math.round((rendSum/n)*10)/10 : null
+    })}
+  })
+
+  // === Serie 4: Costo USD/ha por rubro por campaña (top 5 rubros) ===
+  var RUBS_LBL = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
+  var costoPorRubro = {}   // rubro → año_idx → sum USD
+  years.forEach(function(y, idx){
+    var r = _rangoAnio(y)
+    ;(gastos||[]).forEach(function(g){
+      if (!g.fecha) return
+      var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+      if (d < r.start || d > r.end) return
+      var k = RUBS_LBL[g.rubro] || g.rubro || 'Otros'
+      if (!costoPorRubro[k]) costoPorRubro[k] = years.map(function(){return 0})
+      costoPorRubro[k][idx] += parseFloat(g.total_de_usd)||0
+    })
+  })
+  // Top 5 rubros globales
+  var rubrosOrden = Object.keys(costoPorRubro).sort(function(a,b){
+    var sa = costoPorRubro[a].reduce(function(x,y){return x+y},0)
+    var sb = costoPorRubro[b].reduce(function(x,y){return x+y},0)
+    return sb-sa
+  }).slice(0, 5)
+
+  // === KPIs de tendencia (delta último vs primero) ===
+  function _fmtDelta(actual, base) {
+    if (!base) return '<span style="color:var(--texto-suave)">—</span>'
+    var pct = (actual-base)/Math.abs(base)*100
+    var sign = pct>=0 ? '+' : ''
+    var col = pct>=0 ? '#1a7a52' : '#c0392b'
+    return '<span style="color:'+col+';font-weight:700">'+sign+pct.toFixed(0)+'%</span>'
+  }
+  var ult = margenPorAnio.length-1
+  var kpiHtml = ''
+  if (years.length >= 2) {
+    var margen0 = margenPorAnio[0].margenHa, margenU = margenPorAnio[ult].margenHa
+    var mm0 = lluviasPorAnio[0], mmU = lluviasPorAnio[ult]
+    kpiHtml = ''
+      +'<div style="background:#e8f5ee;border-radius:8px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;color:#0d6e41;letter-spacing:.05em;font-weight:700">Margen USD/ha</div><div style="font-size:16px;font-weight:700;color:var(--texto);margin-top:2px">'+Math.round(margenU).toLocaleString('es-AR')+' <span style="font-size:11px;color:var(--texto-suave);font-weight:500">USD/ha</span></div><div style="font-size:11px;margin-top:2px">Vs 1ra campaña: '+_fmtDelta(margenU, margen0)+'</div></div>'
+      +'<div style="background:#dbeafe;border-radius:8px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;color:#1a4a8a;letter-spacing:.05em;font-weight:700">Lluvia total</div><div style="font-size:16px;font-weight:700;color:var(--texto);margin-top:2px">'+Math.round(mmU).toLocaleString('es-AR')+' <span style="font-size:11px;color:var(--texto-suave);font-weight:500">mm</span></div><div style="font-size:11px;margin-top:2px">Vs 1ra campaña: '+_fmtDelta(mmU, mm0)+'</div></div>'
+      +'<div style="background:#fef3c7;border-radius:8px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;color:#8a5a08;letter-spacing:.05em;font-weight:700">Campañas cargadas</div><div style="font-size:16px;font-weight:700;color:var(--texto);margin-top:2px">'+years.length+' <span style="font-size:11px;color:var(--texto-suave);font-weight:500">años de historia</span></div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+labels[0]+' → '+labels[ult]+'</div></div>'
+      +'<div style="background:#e0e7ff;border-radius:8px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;color:#3730a3;letter-spacing:.05em;font-weight:700">Superficie total</div><div style="font-size:16px;font-weight:700;color:var(--texto);margin-top:2px">'+Math.round(totalHa).toLocaleString('es-AR')+' <span style="font-size:11px;color:var(--texto-suave);font-weight:500">ha</span></div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+(campos||[]).length+' campos</div></div>'
+  }
+  document.getElementById('rt-tendencias-kpis').innerHTML = kpiHtml
+
+  // === Render charts (Chart.js) ===
+  if (!window.Chart) return
+  function _destroy(k){ try{ if(window._tendCharts[k]) window._tendCharts[k].destroy() }catch(e){} }
+
+  // Chart 1: Margen USD/ha (barras)
+  _destroy('margen')
+  var cvMargen = document.getElementById('chart-tend-margen')
+  if (cvMargen) {
+    window._tendCharts.margen = new Chart(cvMargen.getContext('2d'), {
+      type:'bar',
+      data:{ labels: labels, datasets:[{ label:'USD/ha', data: margenPorAnio.map(function(m){return Math.round(m.margenHa)}), backgroundColor: margenPorAnio.map(function(m){return m.margenHa>=0?'#1a7a52':'#c0392b'}) }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}} }
+    })
+  }
+
+  // Chart 2: Lluvias mm (barras)
+  _destroy('lluvias')
+  var cvLl = document.getElementById('chart-tend-lluvias')
+  if (cvLl) {
+    window._tendCharts.lluvias = new Chart(cvLl.getContext('2d'), {
+      type:'bar',
+      data:{ labels: labels, datasets:[{ label:'mm', data: lluviasPorAnio.map(function(m){return Math.round(m)}), backgroundColor:'#1a5fa8' }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}} }
+    })
+  }
+
+  // Chart 3: Rinde por cultivo (líneas)
+  _destroy('rinde')
+  var cvR = document.getElementById('chart-tend-rinde')
+  if (cvR && rindePorAnio.length) {
+    var COLORES_CULT = ['#1a4a2e','#c9a84c','#c97a14','#1a5fa8','#8b5cf6','#c0392b']
+    window._tendCharts.rinde = new Chart(cvR.getContext('2d'), {
+      type:'line',
+      data:{ labels: labels, datasets: rindePorAnio.map(function(s,i){
+        return { label:s.cult, data:s.data, borderColor:COLORES_CULT[i%6], backgroundColor:COLORES_CULT[i%6]+'22', tension:0.3, borderWidth:2, pointRadius:3, spanGaps:true }
+      })},
+      options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:9}}}}, scales:{y:{ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}} }
+    })
+  }
+
+  // Chart 4: Costo USD/ha por rubro (barras apiladas)
+  _destroy('rubros')
+  var cvB = document.getElementById('chart-tend-rubros')
+  if (cvB && rubrosOrden.length) {
+    var COLORES_R = ['#1a4a2e','#c9a84c','#c97a14','#534AB7','#1a5fa8','#c0392b','#0F6E56']
+    window._tendCharts.rubros = new Chart(cvB.getContext('2d'), {
+      type:'bar',
+      data:{ labels: labels, datasets: rubrosOrden.map(function(rub,i){
+        return { label:rub, data: costoPorRubro[rub].map(function(v){return totalHa>0?Math.round(v/totalHa):0}), backgroundColor: COLORES_R[i%7] }
+      })},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:9}}}}, scales:{y:{stacked:true, ticks:{font:{size:10}}}, x:{stacked:true, ticks:{font:{size:10}}}} }
+    })
+  }
+}
+
 window.renderRentabilidadTotal = function() {
+  // Renderizar la sección de tendencias multi-campaña primero (Fase 3.4)
+  try { _renderTendenciasMultiCampana() } catch(e) { console.error('tendencias:', e) }
   var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
 

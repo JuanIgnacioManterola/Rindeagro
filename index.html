@@ -1135,8 +1135,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <!-- Buscador -->
-    <div style="margin-bottom:12px">
-      <input type="text" id="insumos-search" placeholder="🔍 Buscar por nombre, ubicación..." oninput="renderInsumos()" style="width:100%;max-width:400px;padding:9px 14px;border:1px solid var(--borde);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff"/>
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="insumos-search" placeholder="🔍 Buscar por nombre, ubicación..." oninput="renderInsumos()" style="flex:1;min-width:220px;max-width:400px;padding:9px 14px;border:1px solid var(--borde);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff"/>
+      <button onclick="toggleBulkInsumos()" id="ins-bulk-toggle" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">☐ Selección</button>
+    </div>
+    <!-- Barra de acciones bulk (oculta hasta que hay selección) -->
+    <div id="ins-bulk-bar" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:9px;align-items:center;gap:12px;flex-wrap:wrap">
+      <span id="ins-bulk-count" style="font-size:13px;font-weight:700;color:var(--verde)">0 seleccionados</span>
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+        <button onclick="exportarInsumosSeleccionados()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Exportar CSV</button>
+        <button onclick="eliminarInsumosSeleccionados()" style="background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar seleccionados</button>
+        <button onclick="_insBulkClear()" style="background:transparent;color:var(--texto-suave);border:1px solid var(--borde);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+      </div>
     </div>
     <!-- Filtro por tipo -->
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="insumos-filtros">
@@ -9130,11 +9140,19 @@ window.renderInsumos = function() {
       html +=     '</div>'
       html +=   '</div>'
 
-      // Col 5: Botones — Historial + Editar
-      html +=   '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
-      html +=     '<button onclick="verHistorialInsumo(\''+i.id+'\')" title="Historial de uso" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'#1a5fa8\';this.style.color=\'#1a5fa8\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">📊 Historial</button>'
-      html +=     '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
-      html +=   '</div>'
+      // Col 5: Botones — Historial + Editar (o checkbox si está en modo bulk)
+      var estaEnBulk = window._insBulkMode
+      if (estaEnBulk) {
+        var checked = (window._insBulkSel||new Set()).has(i.id) ? 'checked' : ''
+        html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+          + '<input type="checkbox" '+checked+' onchange="_insBulkToggle(\''+i.id+'\')" style="width:20px;height:20px;cursor:pointer;accent-color:var(--verde)"/>'
+          + '</label>'
+      } else {
+        html +=   '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+        html +=     '<button onclick="verHistorialInsumo(\''+i.id+'\')" title="Historial de uso" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'#1a5fa8\';this.style.color=\'#1a5fa8\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">📊 Historial</button>'
+        html +=     '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
+        html +=   '</div>'
+      }
 
       html += '</div>'
     })
@@ -10895,6 +10913,80 @@ window.showToast = function(msg, tipo) {
   t.className='toast show'+(tipo==='err'?' err':tipo==='ok'?' ok':tipo==='info'?' info':'')
   clearTimeout(t._t)
   t._t=setTimeout(()=>t.classList.remove('show'),3800)
+}
+
+// ── BULK OPERATIONS en Insumos (Fase 3.2) ──
+window._insBulkMode = false
+window._insBulkSel  = new Set()
+window.toggleBulkInsumos = function() {
+  window._insBulkMode = !window._insBulkMode
+  if (!window._insBulkMode) window._insBulkSel = new Set()
+  var btn = document.getElementById('ins-bulk-toggle')
+  if (btn) btn.textContent = window._insBulkMode ? '✓ Salir de selección' : '☐ Selección'
+  _updateBulkBar()
+  renderInsumos()
+}
+window._insBulkToggle = function(id) {
+  if (window._insBulkSel.has(id)) window._insBulkSel.delete(id)
+  else window._insBulkSel.add(id)
+  _updateBulkBar()
+}
+window._insBulkClear = function() {
+  window._insBulkSel = new Set()
+  window._insBulkMode = false
+  var btn = document.getElementById('ins-bulk-toggle')
+  if (btn) btn.textContent = '☐ Selección'
+  _updateBulkBar()
+  renderInsumos()
+}
+function _updateBulkBar() {
+  var bar = document.getElementById('ins-bulk-bar')
+  var count = document.getElementById('ins-bulk-count')
+  if (!bar || !count) return
+  var n = window._insBulkSel.size
+  bar.style.display = (window._insBulkMode && n > 0) ? 'flex' : 'none'
+  count.textContent = n + ' seleccionado' + (n!==1?'s':'')
+}
+window.exportarInsumosSeleccionados = function() {
+  var sel = Array.from(window._insBulkSel)
+  var rows = (insumos||[]).filter(function(i){ return sel.indexOf(i.id) >= 0 })
+  if (!rows.length) return
+  var keys = Object.keys(rows[0])
+  var lines = [keys.join(',')]
+  rows.forEach(function(r){
+    lines.push(keys.map(function(k){
+      var v = r[k]; if (v==null) return ''
+      if (typeof v === 'object') v = JSON.stringify(v)
+      v = String(v).replace(/"/g,'""')
+      return /[",\n]/.test(v) ? '"'+v+'"' : v
+    }).join(','))
+  })
+  var blob = new Blob([lines.join('\n')], {type: 'text/csv;charset=utf-8'})
+  var url = URL.createObjectURL(blob)
+  var a = document.createElement('a')
+  a.href = url; a.download = 'insumos-seleccionados-'+new Date().toISOString().split('T')[0]+'.csv'
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  showToast('✓ '+rows.length+' insumos exportados','ok')
+}
+window.eliminarInsumosSeleccionados = async function() {
+  var sel = Array.from(window._insBulkSel)
+  if (!sel.length) return
+  if (!confirm('¿Eliminar '+sel.length+' insumo'+(sel.length!==1?'s':'')+'? Esta acción no se puede deshacer.')) return
+  var errores = 0
+  for (var i = 0; i < sel.length; i++) {
+    try {
+      await _dbMutate({method:'delete', table:'stock_insumos', filter:{col:'id', val:sel[i]}, timeout: 6000})
+      insumos = insumos.filter(function(x){return x.id !== sel[i]})
+    } catch(e) {
+      console.error('bulk delete:', e); errores++
+    }
+  }
+  _guardarCache()
+  window._insBulkClear()
+  renderInsumos()
+  if (errores) showToast('⚠️ '+errores+' no se pudieron eliminar','err')
+  else showToast('✓ '+sel.length+' insumos eliminados','ok')
 }
 
 // ── BACKUP: descargar todos los datos del usuario en JSON o CSV ──

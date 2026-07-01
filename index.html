@@ -8196,17 +8196,24 @@ window.guardarGasto = async function() {
       if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
       closeModalGasto()
       showToast('✓ Gasto guardado — USD ' + usdTotal.toFixed(2),'ok')
-      // Sync con DB en background
+      // Sync con DB en background — vía _dbMutate con REST fallback (evita el
+      // deadlock crónico de sb.from().insert() del SDK).
       ;(async function() {
         try {
           _p.campo_id = campoId; _p.usuario_id = uid2; _p.id = gId
-          var rG = await sb.from('gastos').insert(_p)
-          if(rG.error) {
-            // Retry sin columnas opcionales que puedan no existir
-            var _pMin2 = {id:gId,campo_id:campoId,usuario_id:uid2,rubro:_p.rubro,fecha:_p.fecha,total_de_usd:_p.total_de_usd,usd_ha:_p.usd_ha,qq_ha:_p.qq_ha,descripcion:_p.descripcion,ha_aplicadas:_p.ha_aplicadas}
-            await sb.from('gastos').insert(_pMin2)
+          try {
+            await _dbMutate({method:'insert', table:'gastos', payload: _p, timeout: 8000})
+          } catch (eFull) {
+            console.warn('gasto insert full falló, retry columnas mínimas:', eFull.message)
+            // Retry con columnas mínimas por si alguna columna opcional falla
+            var _pMin2 = {id:gId,campo_id:campoId,usuario_id:uid2,rubro:_p.rubro,fecha:_p.fecha,total_de_usd:_p.total_de_usd,usd_ha:_p.usd_ha,qq_ha:_p.qq_ha,descripcion:_p.descripcion,ha_aplicadas:_p.ha_aplicadas,cultivo:_p.cultivo||null}
+            try { await _dbMutate({method:'insert', table:'gastos', payload: _pMin2, timeout: 8000}) }
+            catch (eMin) {
+              console.error('gasto insert falló definitivamente:', eMin.message)
+              showToast('⚠️ Error al guardar en DB: '+eMin.message.slice(0,80),'err')
+            }
           }
-        } catch(e) { console.error('bg gasto insert:', e) }
+        } catch(e) { console.error('bg gasto insert wrapper:', e) }
       })()
     }
     ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva','g-insumo-sel'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})

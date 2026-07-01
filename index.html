@@ -130,6 +130,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .pp-per{font-size:12px;color:var(--texto-suave);margin-top:4px;margin-bottom:1.25rem}
 .pago-unico-badge{display:inline-block;background:var(--dorado);color:var(--verde);font-size:12px;font-weight:800;letter-spacing:.05em;padding:6px 14px;border-radius:20px;margin:8px 0;box-shadow:0 2px 8px rgba(201,168,76,.35);text-align:center;white-space:nowrap}
 .plan.pop .pago-unico-badge{background:#fff;color:var(--verde)}
+/* Botones grandes del header de Pagos: más visibles que los 12px + padding chico anterior */
+.pagos-hdr-btn{padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.pagos-hdr-btn span{font-weight:700}
+.pagos-hdr-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.pagos-hdr-btn-outline{background:#fff;color:var(--verde);border:1.5px solid var(--verde)}
+.pagos-hdr-btn-outline:hover{background:var(--verde-pale)}
+.pagos-hdr-btn-primary{background:var(--verde);color:#fff;border:1.5px solid var(--verde);box-shadow:0 3px 10px rgba(26,74,46,.25)}
+.pagos-hdr-btn-primary:hover{background:#154020;box-shadow:0 5px 14px rgba(26,74,46,.35)}
+@media(max-width:780px){ .pagos-hdr-btn{padding:10px 14px;font-size:13px} }
 .plan.pop .pp-per{color:rgba(250,247,240,.55)}
 .pf{flex:1;display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem}
 .pfi{font-size:12px;display:flex;gap:6px;line-height:1.5;align-items:flex-start}
@@ -1217,10 +1226,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo">💰 Pagos</div><div class="mod-sub">Cargá los cheques que emitís y las cuotas de tus créditos. Te alertamos cuando se acerca el vencimiento para que junte la plata a tiempo.</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="openModalExportPagos()" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📥 Exportar PDF</button>
-        <button onclick="openModalPagoFoto()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Desde foto/PDF</button>
-        <button onclick="openModalCredito()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">💳 + Crédito</button>
-        <button onclick="openModalCheque()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">🧾 + Cheque</button>
+        <button onclick="openModalExportPagos()" class="pagos-hdr-btn" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde)">📥 <span>Exportar PDF</span></button>
+        <button onclick="openModalPagoFoto()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 <span>Desde foto/PDF</span></button>
+        <button onclick="openModalCredito()" class="pagos-hdr-btn pagos-hdr-btn-outline">💳 <span>+ Crédito</span></button>
+        <button onclick="openModalCheque()" class="pagos-hdr-btn pagos-hdr-btn-primary">🧾 <span>+ Cheque</span></button>
       </div>
     </div>
 

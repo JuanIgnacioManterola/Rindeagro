@@ -7793,23 +7793,67 @@ window.exportarPDFTotal = function() {
     +'<th class="r">Rent.%</th>'
     +'</tr></thead><tbody>'
 
+  // Helper: para un campo con múltiples cultivos, dividir ingresos + costos por cultivo.
+  // Costos: los específicos (g.cultivo === cult) van full; los compartidos (g.cultivo == null)
+  // se reparten proporcional a las hectáreas de cada cultivo. Misma lógica que el picker interno.
+  function _splitPorCultivo(d, cultObj) {
+    var haCult = cultObj.ha
+    var haTot = d.cultivosList.reduce(function(a, cu){ return a + _haParaCultivo(d.c, cu, d.cultivosList) }, 0) || d.ha
+    var frac = haTot > 0 ? haCult / haTot : 0
+    var costo = 0
+    d.gf.forEach(function(g){
+      var v = g.total_de_usd || 0
+      if (g.cultivo === cultObj.cult) costo += v            // Específico de este cultivo
+      else if (g.cultivo)              return                // De otro cultivo, no cuenta
+      else                             costo += v * frac     // Compartido, split proporcional
+    })
+    return { ha: haCult, ing: cultObj.ing, costo: costo, mg: cultObj.ing - costo, mgHa: haCult > 0 ? (cultObj.ing - costo)/haCult : 0 }
+  }
+
   camposSorted.forEach(function(d, i) {
-    var mgColor = d.mgTotal >= 0 ? '#0d6e41' : '#c0392b'
     var rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : ''
-    var mgBadge = d.mgTotal >= 0 ? 'badge-pos' : 'badge-neg'
-    var rentC = d.ingTotal > 0 ? Math.round(Math.abs(d.mgTotal) / d.ingTotal * 100) : 0
-    var cultivos = d.cultivosList.join(' / ')
-    html += '<tr class="'+rankClass+'">'
-      +'<td class="bold">'+d.c.nombre+'</td>'
-      +'<td style="color:#888;font-size:11px">'+(d.c.provincia||'—')+'</td>'
-      +'<td><span class="tag-cult">'+cultivos+'</span></td>'
-      +'<td class="r">'+d.ha.toLocaleString('es-AR')+'</td>'
-      +'<td class="r" style="color:#1a7a52;font-weight:600">'+fmtUSD(d.ingTotal)+'</td>'
-      +'<td class="r" style="color:#c0392b">'+fmtUSD(d.costo)+'</td>'
-      +'<td class="r"><span class="badge-mg '+mgBadge+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</span></td>'
-      +'<td class="r bold" style="color:'+mgColor+'">'+(d.mgHa>=0?'+':'−')+Math.abs(Math.round(d.mgHa)).toLocaleString('es-AR')+'</td>'
-      +'<td class="r" style="color:'+mgColor+';font-weight:600">'+rentC+'%</td>'
-      +'</tr>'
+    var esMulti = d.cultivosList.length > 1
+
+    if (!esMulti) {
+      // Comportamiento anterior: una fila por campo
+      var mgColor = d.mgTotal >= 0 ? '#0d6e41' : '#c0392b'
+      var mgBadge = d.mgTotal >= 0 ? 'badge-pos' : 'badge-neg'
+      var rentC = d.ingTotal > 0 ? Math.round(Math.abs(d.mgTotal) / d.ingTotal * 100) : 0
+      html += '<tr class="'+rankClass+'">'
+        +'<td class="bold">'+d.c.nombre+'</td>'
+        +'<td style="color:#888;font-size:11px">'+(d.c.provincia||'—')+'</td>'
+        +'<td><span class="tag-cult">'+d.cultivosList.join(' / ')+'</span></td>'
+        +'<td class="r">'+d.ha.toLocaleString('es-AR')+'</td>'
+        +'<td class="r" style="color:#1a7a52;font-weight:600">'+fmtUSD(d.ingTotal)+'</td>'
+        +'<td class="r" style="color:#c0392b">'+fmtUSD(d.costo)+'</td>'
+        +'<td class="r"><span class="badge-mg '+mgBadge+'">'+(d.mgTotal>=0?'+':'−')+fmtUSD(Math.abs(d.mgTotal))+'</span></td>'
+        +'<td class="r bold" style="color:'+mgColor+'">'+(d.mgHa>=0?'+':'−')+Math.abs(Math.round(d.mgHa)).toLocaleString('es-AR')+'</td>'
+        +'<td class="r" style="color:'+mgColor+';font-weight:600">'+rentC+'%</td>'
+        +'</tr>'
+      return
+    }
+    // Multi-cultivo: una fila por cada cultivo (nombre del campo se repite).
+    d.ingDetalle.forEach(function(cultObj, cultIdx){
+      var s = _splitPorCultivo(d, cultObj)
+      var mgColor = s.mg >= 0 ? '#0d6e41' : '#c0392b'
+      var mgBadge = s.mg >= 0 ? 'badge-pos' : 'badge-neg'
+      var rentC = s.ing > 0 ? Math.round(Math.abs(s.mg) / s.ing * 100) : 0
+      // Marca visual de "sub-fila" para las repeticiones adicionales del mismo campo
+      var subRowStyle = cultIdx > 0 ? 'background:#fafaf7' : ''
+      html += '<tr class="'+rankClass+'" style="'+subRowStyle+'">'
+        +'<td class="bold" style="'+(cultIdx>0?'color:#666;padding-left:20px':'')+'">'
+          + (cultIdx===0 ? d.c.nombre : '<span style="opacity:.55">↳ </span>'+d.c.nombre)
+        +'</td>'
+        +'<td style="color:#888;font-size:11px">'+(cultIdx===0 ? (d.c.provincia||'—') : '')+'</td>'
+        +'<td><span class="tag-cult">'+cultObj.cult+'</span></td>'
+        +'<td class="r">'+Math.round(s.ha).toLocaleString('es-AR')+'</td>'
+        +'<td class="r" style="color:#1a7a52;font-weight:600">'+fmtUSD(s.ing)+'</td>'
+        +'<td class="r" style="color:#c0392b">'+fmtUSD(s.costo)+'</td>'
+        +'<td class="r"><span class="badge-mg '+mgBadge+'">'+(s.mg>=0?'+':'−')+fmtUSD(Math.abs(s.mg))+'</span></td>'
+        +'<td class="r bold" style="color:'+mgColor+'">'+(s.mgHa>=0?'+':'−')+Math.abs(Math.round(s.mgHa)).toLocaleString('es-AR')+'</td>'
+        +'<td class="r" style="color:'+mgColor+';font-weight:600">'+rentC+'%</td>'
+        +'</tr>'
+    })
   })
 
   html += '<tr class="total-row">'

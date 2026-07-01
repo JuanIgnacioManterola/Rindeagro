@@ -108,10 +108,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .planes-sec{padding:8rem 2rem;background:var(--crema);display:flex;flex-direction:column;align-items:center;text-align:center}
 .planes-sec > *{width:100%;max-width:980px}
 .planes-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:980px;margin:0 auto}
-/* Mi Plan interno: 3 planes lado a lado en desktop, stack en mobile */
-.mp-planes-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
+/* Mi Plan interno: 3 planes lado a lado en desktop, stack en mobile.
+   Reutiliza las clases .plan/.pn/.ps/.pp/.pf/.pfi/.p-btn del landing. */
+.mp-planes-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch;max-width:980px;margin:0 auto}
 @media(max-width:900px){ .mp-planes-row{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media(max-width:600px){ .mp-planes-row{grid-template-columns:1fr} }
+.mp-info-box{background:var(--verde-pale);border-radius:12px;padding:14px 20px;margin-bottom:1.5rem;max-width:980px;margin-left:auto;margin-right:auto}
+.mp-info-tit{font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px}
+.mp-info-body{font-size:12px;color:var(--verde);line-height:1.6;opacity:.9}
 .plan{border-radius:18px;padding:1.75rem 1.5rem;border:.5px solid var(--borde);background:var(--blanco);display:flex;flex-direction:column;position:relative;transition:all .2s}
 .plan:hover{box-shadow:var(--sombra-md);transform:translateY(-3px)}
 .plan.pop{border:2px solid var(--verde);background:var(--verde)}
@@ -5706,51 +5710,56 @@ function renderTarjetasPlanes() {
   var planActual = usuario?.user_metadata?.plan || 'gratis'
   var bna = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
 
-  var infoHtml = '<div style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:12px;padding:14px 18px;margin-bottom:1.5rem">'
-    + '<div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:6px">💰 Cómo se cobra</div>'
-    + '<div style="font-size:12px;color:var(--verde);line-height:1.6">'
-    +   '• <strong>Pago único anual</strong> — cubrís toda la campaña de una.<br/>'
-    +   '• Los precios listados son <strong>en USD, sin IVA</strong>. Al momento de facturar se suma el <strong>IVA 21%</strong>.<br/>'
-    +   '• Se abona <strong>en pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día del pago.<br/>'
-    +   '• Cotización actual: <strong>USD 1 = $' + Math.round(bna).toLocaleString('es-AR') + '</strong>'
+  // Info compacta arriba (mecánica de facturación)
+  var infoHtml = '<div class="mp-info-box">'
+    + '<div class="mp-info-tit">💰 Cómo se cobra</div>'
+    + '<div class="mp-info-body">'
+    +   'Pago único <strong>anual</strong> · Precios en <strong>USD sin IVA</strong> (se suma 21% al facturar) · Se abona en <strong>pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día · Hoy: USD 1 = <strong>$' + Math.round(bna).toLocaleString('es-AR') + '</strong>'
     + '</div></div>'
 
+  // Reutilizo las clases .plan / .pn / .ps / .pp / .pf / .pfi / .p-btn del landing.
+  // El plan Semilla se destaca con .pop (verde oscuro con dorado).
   var tarjetas = Object.entries(PLANES_INFO).map(function(entry){
     var id = entry[0], plan = entry[1]
     var esActual = id === planActual
     var esGratis = plan.precio_usd === 0
-
+    var esPop = id === 'semilla'  // Semilla destacado como en landing
     var precioUsdIva = Math.round(plan.precio_usd * (1 + IVA_PCT/100))
-    var precioArsSinIva = Math.round(plan.precio_usd * bna)
     var precioArsIva = Math.round(precioUsdIva * bna)
 
-    var precioBloque
+    // Bloque de precio (mismo estilo que landing)
+    var precioHtml, periodoHtml
     if (esGratis) {
-      precioBloque = '<div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">Gratis</div>'
-        + '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Para siempre</div>'
+      precioHtml = '<div class="pp pp-g">Gratis</div>'
+      periodoHtml = '<div class="pp-per">para siempre</div>'
     } else {
-      precioBloque = '<div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">USD ' + plan.precio_usd + '<span style="font-size:12px;font-weight:400;color:var(--texto-suave)">/año</span></div>'
-        + '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Sin IVA</div>'
-        + '<div style="font-size:11px;color:var(--texto-mid);margin-top:6px">+ 21% IVA = <strong>USD ' + precioUsdIva + '</strong></div>'
-        + '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">≈ <strong>$ ' + precioArsIva.toLocaleString('es-AR') + '</strong> ARS al BNA</div>'
+      precioHtml = '<div class="pp">USD '+plan.precio_usd+'</div>'
+      periodoHtml = '<div class="pp-per">/ año · sin IVA<br/>+ 21% IVA ≈ <strong>$' + precioArsIva.toLocaleString('es-AR') + '</strong> ARS</div>'
     }
 
-    var features = plan.features.map(function(f){
-      return '<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:12px;color:var(--texto)"><span style="color:var(--verde);font-weight:700">✓</span><span>'+f+'</span></div>'
+    // Features
+    var featuresHtml = plan.features.map(function(f){
+      return '<div class="pfi"><span class="ok">✓</span><span class="pfi-t">'+f+'</span></div>'
     }).join('')
 
-    var buttonHtml
-    if (esActual) buttonHtml = '<div style="text-align:center;padding:11px;border-radius:9px;background:var(--verde-pale);color:var(--verde);font-size:13px;font-weight:700">✓ Plan actual</div>'
-    else if (esGratis) buttonHtml = '<button onclick="suscribirse(\''+id+'\')" style="width:100%;padding:11px;border-radius:9px;border:1.5px solid var(--verde);background:#fff;color:var(--verde);font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Cambiar al plan gratuito</button>'
-    else buttonHtml = '<button onclick="suscribirse(\''+id+'\')" style="width:100%;padding:11px;border-radius:9px;border:none;background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Contratar '+plan.nombre+' →</button>'
+    // Botón / estado
+    var actionHtml
+    if (esActual) actionHtml = '<div class="p-btn" style="background:var(--verde-pale);border-color:var(--verde);color:var(--verde);cursor:default">✓ Plan actual</div>'
+    else if (esGratis) actionHtml = '<button class="p-btn" onclick="suscribirse(\''+id+'\')">Cambiar al plan gratuito</button>'
+    else actionHtml = '<button class="p-btn '+(esPop?'p-btn-pop':'')+'" onclick="suscribirse(\''+id+'\')">Contratar '+plan.nombre+' →</button>'
 
-    return '<div style="background:#fff;border-radius:16px;padding:1.5rem;border:'+(esActual?'2px solid var(--verde)':'1px solid var(--borde)')+';display:flex;flex-direction:column;position:relative">'
-      + (esActual ? '<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--verde);color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap">Plan actual</div>' : '')
-      + '<div style="margin-bottom:12px"><div style="font-size:18px;font-weight:700;color:var(--verde);font-family:\'Playfair Display\',serif">'+plan.nombre+'</div>'
-      + '<div style="font-size:12px;color:var(--texto-suave);margin-top:3px">'+plan.descripcion+'</div></div>'
-      + '<div style="padding:12px 0;border-top:.5px solid var(--borde);border-bottom:.5px solid var(--borde);margin-bottom:14px">'+precioBloque+'</div>'
-      + '<div style="flex:1;margin-bottom:14px">'+features+'</div>'
-      + buttonHtml
+    var badgeHtml = ''
+    if (esActual) badgeHtml = '<div class="plan-badge" style="background:var(--verde);color:#fff">✓ Plan actual</div>'
+    else if (esPop) badgeHtml = '<div class="plan-badge">⭐ Más elegido</div>'
+
+    return '<div class="plan'+(esPop?' pop':'')+'">'
+      + badgeHtml
+      + '<div class="pn">'+plan.nombre+'</div>'
+      + '<div class="ps">'+plan.descripcion+'</div>'
+      + precioHtml
+      + periodoHtml
+      + '<div class="pf">' + featuresHtml + '</div>'
+      + actionHtml
       + '</div>'
   }).join('')
 

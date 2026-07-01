@@ -2640,6 +2640,26 @@ async function cargarTodo() {
   // en primera carga (handshake + query).
   async function _selectConFallback(table, params) {
     // params: {col, val, order?: {col, asc}}
+    // Modo forcerest: ?forcerest=1 en URL → salteamos SDK y vamos directo a REST.
+    // Útil cuando el cliente SDK queda deadlocked (bug crónico del @supabase/supabase-js).
+    var forceRest = /[?&]forcerest=1/i.test(window.location.search)
+    async function _restCall() {
+      var path = '/'+table+'?'+(params.col? params.col+'=eq.'+encodeURIComponent(params.val) : '')+
+                 (params.col2? '&'+params.col2+'=eq.'+encodeURIComponent(params.val2) : '')+
+                 (params.order? '&order='+params.order.col+'.'+(params.order.asc?'asc':'desc') : '')+
+                 '&select=*'
+      var t0 = performance.now()
+      var data = await _restGet(path)
+      console.log('[cargarTodo] '+table+' REST OK '+((performance.now()-t0)|0)+'ms · '+(Array.isArray(data)?data.length:0)+' filas')
+      return { data: data || [] }
+    }
+    if (forceRest) {
+      try { return await _restCall() }
+      catch (eRest) {
+        console.error('[cargarTodo] '+table+' REST falló (forcerest):', eRest.message)
+        return { data: null, error: eRest }
+      }
+    }
     try {
       var q = sb.from(table).select('*')
       if (params.col) q = q.eq(params.col, params.val)
@@ -2652,15 +2672,9 @@ async function cargarTodo() {
       if (r && r.error) throw r.error
       return { data: r.data || [] }
     } catch (eSdk) {
-      console.warn('[cargarTodo] '+table+' SDK falló, REST:', eSdk.message)
-      try {
-        var path = '/'+table+'?'+(params.col? params.col+'=eq.'+encodeURIComponent(params.val) : '')+
-                   (params.col2? '&'+params.col2+'=eq.'+encodeURIComponent(params.val2) : '')+
-                   (params.order? '&order='+params.order.col+'.'+(params.order.asc?'asc':'desc') : '')+
-                   '&select=*'
-        var data = await _restGet(path)
-        return { data: data || [] }
-      } catch (eRest) {
+      console.warn('[cargarTodo] '+table+' SDK falló, intento REST:', eSdk.message)
+      try { return await _restCall() }
+      catch (eRest) {
         console.error('[cargarTodo] '+table+' REST también falló:', eRest.message)
         return { data: null, error: eRest }
       }

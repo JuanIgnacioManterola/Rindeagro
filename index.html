@@ -732,6 +732,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: INGRESOS -->
     <div class="campo-seccion" id="sec-ingresos">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button onclick="exportarPDFIngresosCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+      </div>
       <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
         <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">📊 Ingresos por cultivo</div>
         <div style="font-size:13px;color:rgba(250,247,240,.5);margin-bottom:18px">Ingresá rendimiento y precio de venta por cultivo</div>
@@ -743,6 +746,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: GASTOS -->
     <div class="campo-seccion" id="sec-gastos">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button onclick="exportarPDFGastosCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+      </div>
       <!-- Selector de cultivo (aparece cuando el campo tiene 2+ cultivos) -->
       <div id="gastos-cultivo-pantalla" style="display:none"></div>
       <!-- Botón volver cultivo (solo visible cuando hay cultivo seleccionado en multi-cultivo) -->
@@ -793,7 +799,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div style="font-size:13px;font-weight:600;color:#3B6D11" id="rent-pdf-titulo">Rentabilidad del campo</div>
           <div style="font-size:11px;color:#3B6D11;opacity:.8" id="rent-pdf-resumen">—</div>
         </div>
-        <button onclick="exportarPDF()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="openModalExportCampanas()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📈 Comparar campañas</button>
+          <button onclick="exportarPDF()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+        </div>
       </div>
       <!-- Metricas -->
       <div class="grid5" id="cr-mets" style="margin-bottom:14px"></div>
@@ -864,6 +873,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     <!-- TAB: SUELO -->
     <div class="campo-seccion" id="sec-suelo">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button onclick="exportarPDFSueloCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+      </div>
       <div class="grid2">
         <div class="card">
           <div class="card-hdr">
@@ -9838,6 +9850,187 @@ window.exportarPDFComparativaCampanas = function() {
   closeModalExportCampanas()
 }
 
+// ── EXPORTAR PDF: SUELO, INGRESOS, GASTOS (por campo, campaña activa) ──
+function _pdfEncabezado(titulo, subtitulo) {
+  var today = new Date()
+  var todayStr = today.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+  var nombreUsuario = (usuario && usuario.user_metadata && usuario.user_metadata.nombre) || (usuario && usuario.email) || ''
+  var css = ''
+    +'@page{size:A4;margin:16mm 14mm}'
+    +'body{font-family:Helvetica,sans-serif;color:#1a1a1a;margin:0;font-size:10.5pt}'
+    +'h1{font-size:20pt;margin:0 0 4px 0;color:#1a4a2e}'
+    +'.sub{font-size:10pt;color:#666;margin-bottom:14px}'
+    +'.brand{font-size:9pt;color:#888;border-bottom:2px solid #1a4a2e;padding-bottom:6px;margin-bottom:14px}'
+    +'h2{font-size:14pt;color:#1a4a2e;margin:22px 0 8px 0;padding-bottom:4px;border-bottom:1px solid #ddd}'
+    +'h3{font-size:11pt;color:#1a4a2e;margin:16px 0 6px 0}'
+    +'table{width:100%;border-collapse:collapse;margin-top:6px;font-size:9.5pt}'
+    +'th{text-align:left;padding:7px 6px;border-bottom:1.5px solid #1a4a2e;font-weight:700;color:#1a4a2e;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3px;background:#e8f5ee}'
+    +'td{padding:6px;border-bottom:.5px solid #eee}'
+    +'.r{text-align:right;font-variant-numeric:tabular-nums}'
+    +'.pos{color:#1a7a52;font-weight:700}'
+    +'.neg{color:#c0392b;font-weight:700}'
+    +'.tot{background:#faf7f0;font-weight:700;border-top:2px solid #1a4a2e}'
+    +'.foot{margin-top:30px;font-size:8pt;color:#888;text-align:center;border-top:1px solid #ddd;padding-top:10px}'
+    +'.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:8pt;font-weight:700;letter-spacing:.3px}'
+    +'.b-crit{background:#fee2e2;color:#8b1a1a}.b-bajo{background:#fef3c7;color:#8a5a08}.b-opt{background:#dcfce7;color:#0d6e41}.b-alto{background:#dbeafe;color:#1a4a8a}'
+    +'.print-btn{position:fixed;top:14px;right:14px;background:#1a4a2e;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:12pt;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:9999}'
+    +'@media print{.print-btn{display:none}}'
+  return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>'+titulo+'</title><style>'+css+'</style></head><body>'
+    +'<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>'
+    +'<div class="brand">RindeAgro · '+nombreUsuario+' · Generado '+todayStr+'</div>'
+    +'<h1>'+titulo+'</h1>'
+    +(subtitulo?'<div class="sub">'+subtitulo+'</div>':'')
+}
+
+window.exportarPDFSueloCampo = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(f){return f.id===campoDet}); if (!c) return
+  var anals = (analisisS||[]).filter(function(a){return a.campo_id===campoDet}).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha)})
+  if (!anals.length) { showToast('⚠️ Este campo no tiene análisis cargados','err'); return }
+
+  var COLS = [
+    {key:'ph',           label:'pH',        full:'pH', r:[6.0,7.0],    fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}},
+    {key:'materia_org',  label:'MO %',      full:'Materia Orgánica (%)', r:[2.5,4.5], fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}},
+    {key:'p_disponible', label:'P (ppm)',   full:'Fósforo (ppm)',        r:[15,40],   fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}},
+    {key:'k',            label:'K (ppm)',   full:'Potasio (ppm)',        r:[250,400], fmt:function(v){return v!=null?Number(v).toFixed(0):'—'}},
+    {key:'n_total',      label:'N total %', full:'Nitrógeno total (%)',  r:[0.14,0.25],fmt:function(v){return v!=null?Number(v).toFixed(3):'—'}},
+    {key:'s',            label:'S (ppm)',   full:'Azufre (ppm)',         r:[10,25],   fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}}
+  ]
+  function _estado(val, r){
+    val = parseFloat(val); if (isNaN(val) || !r) return {lbl:'—', cls:''}
+    if (val < r[0]*0.7) return {lbl:'Crítico', cls:'b-crit'}
+    if (val < r[0])     return {lbl:'Bajo',    cls:'b-bajo'}
+    if (val <= r[1])    return {lbl:'Óptimo',  cls:'b-opt'}
+    return {lbl:'Alto', cls:'b-alto'}
+  }
+  function _lblCamp(f){ var d=new Date(f), y=d.getMonth()>=6?d.getFullYear():d.getFullYear()-1; return y+'/'+String(y+1).slice(2) }
+
+  var html = _pdfEncabezado('🔬 Análisis de suelo · '+c.nombre, c.hectareas+' ha · '+(c.cultivo||'—')+' · '+(c.provincia||''))
+  html += '<h2>Evolución por campaña</h2>'
+  html += '<table><thead><tr><th>Campaña</th><th>Fecha</th>'+COLS.map(function(k){return '<th title="'+k.full+'">'+k.label+'</th>'}).join('')+'<th>Recomendación</th></tr></thead><tbody>'
+  anals.forEach(function(a){
+    html += '<tr><td><strong>'+_lblCamp(a.fecha)+'</strong></td><td>'+new Date(a.fecha).toLocaleDateString('es-AR')+'</td>'
+    COLS.forEach(function(col){
+      var v = a[col.key], est = _estado(v, col.r)
+      html += '<td class="r">'+col.fmt(v)+' <span class="badge '+est.cls+'">'+est.lbl+'</span></td>'
+    })
+    var nota = a.notas ? String(a.notas).slice(0, 200) : '—'
+    html += '<td style="max-width:220px;font-size:8.5pt">'+nota+'</td></tr>'
+  })
+  html += '</tbody></table>'
+
+  // Referencias de rangos
+  html += '<h2>Referencias INTA (rangos óptimos)</h2>'
+  html += '<table><thead><tr><th>Nutriente</th><th>Nombre completo</th><th class="r">Rango óptimo</th><th>Interpretación</th></tr></thead><tbody>'
+  COLS.forEach(function(k){
+    html += '<tr><td><strong>'+k.label+'</strong></td><td>'+k.full+'</td><td class="r">'+k.r[0]+' – '+k.r[1]+'</td><td style="font-size:9pt;color:#666">'+
+      ({ph:'Óptimo neutro–ligero ácido para pampeana.',materia_org:'Reservorio de nutrientes + estructura.',p_disponible:'Bray disponible; bajo → aplicar en siembra.',k:'Raramente limitante en pampeana húmeda.',n_total:'Motor del crecimiento; ajustar con MO.',s:'Síntesis proteica; bajo → sulfato.'})[k.key]+'</td></tr>'
+  })
+  html += '</tbody></table>'
+
+  html += '<div class="foot">Rinde.Agro · Análisis de suelo · '+new Date().toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
+
+  var w = window.open('', '_blank'); if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
+  w.document.write(html); w.document.close()
+}
+
+window.exportarPDFIngresosCampo = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(f){return f.id===campoDet}); if (!c) return
+  var campR = getCampanaRange(campanaActivaId)
+  var cultivosList = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var savedIng = {}; try { savedIng = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+  var savedHa  = {}; try { savedHa  = JSON.parse(c.hectareas_cultivo||'{}') } catch(e) {}
+  var haCampo = parseFloat(c.hectareas)||0
+
+  var fmtUSD = function(v){ return 'USD ' + Math.abs(Math.round(v||0)).toLocaleString('es-AR') }
+  var html = _pdfEncabezado('💵 Ingresos · '+c.nombre, 'Campaña '+campR.label+' · '+c.hectareas+' ha · '+(c.cultivo||'—'))
+
+  html += '<h2>Ingresos por cultivo</h2>'
+  html += '<table><thead><tr><th>Cultivo</th><th class="r">Ha</th><th class="r">Rend (qq/ha)</th><th class="r">Precio (USD/tn)</th><th class="r">Ingreso estimado</th><th class="r">Ventas cargadas</th></tr></thead><tbody>'
+  var totIngEst = 0, totIngReal = 0
+  cultivosList.forEach(function(cu){
+    var d = savedIng[cu] || {}
+    var haCu = parseFloat(savedHa[cu]) || (haCampo/cultivosList.length)
+    var rend = parseFloat(d.rendimiento||0), pr = parseFloat(d.precio_venta||0)
+    if (!rend && !pr && cultivosList.length===1) { rend = parseFloat(c.rendimiento||0); pr = parseFloat(c.precio_venta||0) }
+    var ingEst = rend * pr * haCu / 10  // qq × usd/tn × ha / 10 (qq→tn)
+    // NOTA: la app calcula rend*pr*ha sin conversión qq→tn en varios lugares; mantengo consistencia con eso:
+    ingEst = rend * pr * haCu
+    var ventas = Array.isArray(d.ventas) ? d.ventas : []
+    var ingReal = ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+    totIngEst += ingEst; totIngReal += ingReal
+    html += '<tr><td><strong>'+cu+'</strong></td><td class="r">'+haCu.toLocaleString('es-AR')+'</td><td class="r">'+(rend||'—')+'</td><td class="r">'+(pr?fmtUSD(pr):'—')+'</td><td class="r">'+fmtUSD(ingEst)+'</td><td class="r pos">'+fmtUSD(ingReal)+'</td></tr>'
+  })
+  html += '<tr class="tot"><td colspan="4">Total</td><td class="r">'+fmtUSD(totIngEst)+'</td><td class="r pos">'+fmtUSD(totIngReal)+'</td></tr>'
+  html += '</tbody></table>'
+
+  // Detalle de ventas
+  var haVentas = cultivosList.some(function(cu){var d=savedIng[cu]||{}; return Array.isArray(d.ventas)&&d.ventas.length})
+  if (haVentas) {
+    html += '<h2>Detalle de ventas cargadas</h2>'
+    html += '<table><thead><tr><th>Cultivo</th><th>Tipo</th><th>Fecha</th><th>Comprador</th><th class="r">Tn</th><th class="r">Precio USD/tn</th><th class="r">Subtotal</th></tr></thead><tbody>'
+    cultivosList.forEach(function(cu){
+      var d = savedIng[cu] || {}
+      ;(d.ventas||[]).forEach(function(v){
+        var sub = parseFloat(v.tn||0)*parseFloat(v.precio||0)
+        html += '<tr><td>'+cu+'</td><td>'+(v.tipo==='forward'?'Forward':'Spot')+'</td><td>'+(v.fecha||'—')+'</td><td>'+(v.comprador||'—')+'</td><td class="r">'+(v.tn||0)+'</td><td class="r">'+(v.precio||0)+'</td><td class="r">'+fmtUSD(sub)+'</td></tr>'
+      })
+    })
+    html += '</tbody></table>'
+  }
+
+  html += '<div class="foot">Rinde.Agro · Ingresos · '+new Date().toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
+  var w = window.open('', '_blank'); if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
+  w.document.write(html); w.document.close()
+}
+
+window.exportarPDFGastosCampo = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(f){return f.id===campoDet}); if (!c) return
+  var campR = getCampanaRange(campanaActivaId)
+  var gf = (gastos||[]).filter(function(g){
+    if (g.campo_id!==campoDet||!g.fecha) return false
+    var d = new Date(g.fecha); return d>=campR.start && d<=campR.end
+  }).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha)})
+  if (!gf.length) { showToast('⚠️ Este campo no tiene gastos en la campaña actual','err'); return }
+  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
+  var fmtUSD = function(v){ return 'USD ' + Math.abs(Math.round(v||0)).toLocaleString('es-AR') }
+
+  var html = _pdfEncabezado('💰 Gastos · '+c.nombre, 'Campaña '+campR.label+' · '+c.hectareas+' ha · '+(c.cultivo||'—'))
+
+  // Por rubro
+  var porRubro = {}
+  gf.forEach(function(g){ var k = RUBS[g.rubro]||g.rubro||'Otros'; porRubro[k]=(porRubro[k]||0)+(g.total_de_usd||0) })
+  var totGas = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  var haC = parseFloat(c.hectareas)||1
+  html += '<h2>Resumen por rubro</h2>'
+  html += '<table><thead><tr><th>Rubro</th><th class="r">Total USD</th><th class="r">% del total</th><th class="r">USD/ha</th></tr></thead><tbody>'
+  Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]}).forEach(function(k){
+    var v = porRubro[k]
+    html += '<tr><td>'+k+'</td><td class="r">'+fmtUSD(v)+'</td><td class="r">'+(v/totGas*100).toFixed(1)+'%</td><td class="r">'+fmtUSD(v/haC)+'</td></tr>'
+  })
+  html += '<tr class="tot"><td>Total</td><td class="r">'+fmtUSD(totGas)+'</td><td class="r">100%</td><td class="r">'+fmtUSD(totGas/haC)+'</td></tr>'
+  html += '</tbody></table>'
+
+  // Detalle línea por línea
+  html += '<h2>Detalle de gastos</h2>'
+  html += '<table><thead><tr><th>Fecha</th><th>Rubro</th><th>Descripción</th><th>Cultivo</th><th class="r">Cant · Unidad</th><th class="r">USD</th></tr></thead><tbody>'
+  gf.forEach(function(g){
+    var cant = g.cantidad ? (g.cantidad+' '+(g.unidad||'')) : '—'
+    html += '<tr><td>'+new Date(g.fecha).toLocaleDateString('es-AR')+'</td><td>'+(RUBS[g.rubro]||g.rubro||'Otros')+'</td><td>'+(g.descripcion||'—')+'</td><td>'+(g.cultivo||'—')+'</td><td class="r">'+cant+'</td><td class="r">'+fmtUSD(g.total_de_usd)+'</td></tr>'
+  })
+  html += '<tr class="tot"><td colspan="5">Total ('+gf.length+' gastos)</td><td class="r">'+fmtUSD(totGas)+'</td></tr>'
+  html += '</tbody></table>'
+
+  html += '<div class="foot">Rinde.Agro · Gastos · '+new Date().toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
+  var w = window.open('', '_blank'); if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
+  w.document.write(html); w.document.close()
+}
+
 // ── PAGOS: Exportar PDF por rango de fechas ──
 window.openModalExportPagos = function() {
   var hoy = new Date(); hoy.setHours(0,0,0,0)
@@ -12069,6 +12262,18 @@ function _refreshCrAcordeon() {
 function renderCampoRent() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
+  // Helper de formato según monedaGlobal (USD default | ARS con conversión al BNA)
+  var _enARSrc = monedaGlobal === 'ARS'
+  var _tcRC = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
+  function _fmtM(usd, opts){
+    opts = opts || {}
+    var v = _enARSrc ? Math.round(usd * _tcRC) : Math.round(usd)
+    var simb = _enARSrc ? '$ ' : 'USD '
+    var abs = Math.abs(v).toLocaleString('es-AR')
+    var pref = opts.sign ? (v>=0?'+':'−') : (v<0?'−':'')
+    var signed = pref + abs
+    return simb + signed
+  }
   var ha = c.hectareas||1
   var cult = c.cultivo||'Soja'
   var rendEst = cult==='Maíz'?8:cult==='Trigo'?3:3.2
@@ -12117,11 +12322,11 @@ function renderCampoRent() {
   // ── Métricas ──
   var mEl=document.getElementById('cr-mets')
   if(mEl) mEl.innerHTML=[
-    {l:'Ingreso bruto/ha',v:'USD '+Math.round(ingHaReal),s:totalIngUSD>0?'USD '+Math.round(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
-    {l:'Costo total/ha',v:'USD '+Math.round(costoHa),s:'USD '+Math.round(costoUSD)+' total',c:'#c0392b'},
-    {l:'Margen neto/ha',v:(mgHaReal>=0?'+':'')+'USD '+Math.round(mgHaReal),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
-    {l:'Margen total',v:(mgHaReal*ha>=0?'+':'')+'USD '+Math.round(mgHaReal*ha/1000)+'k',s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
-    {l:'En quintales/ha',v:(mgHaReal>=0?'+':'')+(pr>0?(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
+    {l:'Ingreso bruto/ha',v:_fmtM(ingHaReal),s:totalIngUSD>0?_fmtM(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
+    {l:'Costo total/ha',v:_fmtM(costoHa),s:_fmtM(costoUSD)+' total',c:'#c0392b'},
+    {l:'Margen neto/ha',v:_fmtM(mgHaReal,{sign:true}),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
+    {l:'Margen total',v:_fmtM(mgHaReal*ha,{sign:true}),s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
+    {l:'En quintales/ha',v:(mgHaReal>=0?'+':'−')+(pr>0?Math.abs(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // ── Gastos por rubro ──
@@ -13155,10 +13360,18 @@ window.renderDetSuelo = function() {
   var rangos = RANGOS[cultivo]||RANGOS.soja
   var anals = analisisS.filter(function(a){return a.campo_id===campoDet})
   var ultimo = anals[0]
-  var NUTRI = [{key:'n_total',label:'Nitrógeno (N)',unidad:'ppm',r:rangos.N},{key:'p_disponible',label:'Fósforo (P)',unidad:'ppm',r:rangos.P},{key:'k',label:'Potasio (K)',unidad:'ppm',r:rangos.K},{key:'s',label:'Azufre (S)',unidad:'ppm',r:rangos.S},{key:'materia_org',label:'Materia orgánica',unidad:'%',r:rangos.MO},{key:'ph',label:'pH',unidad:'',r:rangos.pH},{key:'zinc',label:'Zinc',unidad:'ppm',r:rangos.Zn}]
+  var NUTRI = [
+    {key:'n_total',label:'Nitrógeno (N)',full:'Nitrógeno total — motor del crecimiento vegetativo. Bajo → aplicar UAN, urea o sulfato de amonio.',unidad:'ppm',r:rangos.N},
+    {key:'p_disponible',label:'Fósforo (P)',full:'Fósforo disponible (Bray) — clave para raíz y macollaje. Bajo → aplicar MAP, DAP o SFT.',unidad:'ppm',r:rangos.P},
+    {key:'k',label:'Potasio (K)',full:'Potasio intercambiable — regula agua y resistencia. Raramente limitante en pampeana húmeda.',unidad:'ppm',r:rangos.K},
+    {key:'s',label:'Azufre (S)',full:'Azufre disponible — síntesis de proteínas. Bajo → aplicar sulfato de amonio o azufre elemental.',unidad:'ppm',r:rangos.S},
+    {key:'materia_org',label:'Materia orgánica',full:'Materia orgánica (%) — reservorio de nutrientes y estructura. Baja → rotación con gramíneas + incorporar residuos.',unidad:'%',r:rangos.MO},
+    {key:'ph',label:'pH',full:'pH — acidez/basicidad del suelo. < 5.8 muy ácido, considerar encalado. > 7.5 alcalino, verificar disponibilidad de micronutrientes.',unidad:'',r:rangos.pH},
+    {key:'zinc',label:'Zinc',full:'Zinc — micronutriente clave para maíz especialmente. Bajo → aplicar zinc quelatado foliar en V4-V6.',unidad:'ppm',r:rangos.Zn}
+  ]
   var elS = document.getElementById('det-suelo-semaforo')
   if(!ultimo){elS.innerHTML='<div class="empty"><div class="empty-i">🔬</div><div class="empty-t">Sin análisis</div><div class="empty-s">Cargá un análisis de laboratorio.</div></div>';document.getElementById('det-suelo-recs').innerHTML='<div style="font-size:12px;color:var(--texto-suave);padding:.75rem 0">Cargá un análisis para ver recomendaciones.</div>';return}
-  elS.innerHTML = NUTRI.map(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0],max=n.r[1],pct=Math.min(val/max*100,100),estado=val<min*.7?'critico':val<min?'bajo':val<=max?'optimo':'alto',estadoLbl={critico:'Crítico',bajo:'Bajo',optimo:'Óptimo',alto:'Alto'},color={critico:'#c0392b',bajo:'#c97a14',optimo:'#1a7a52',alto:'#1a5fa8'}[estado];return '<div class="nutriente-row"><span class="nut-label">'+n.label+'</span><div class="nut-bar-wrap"><div class="nut-bar" style="width:'+pct+'%;background:'+color+'88"></div></div><span class="nut-val" style="color:'+color+'">'+val+(n.unidad?' '+n.unidad:'')+'</span><span class="nut-estado n-'+estado+'">'+estadoLbl[estado]+'</span></div>'}).join('')
+  elS.innerHTML = NUTRI.map(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0],max=n.r[1],pct=Math.min(val/max*100,100),estado=val<min*.7?'critico':val<min?'bajo':val<=max?'optimo':'alto',estadoLbl={critico:'Crítico',bajo:'Bajo',optimo:'Óptimo',alto:'Alto'},color={critico:'#c0392b',bajo:'#c97a14',optimo:'#1a7a52',alto:'#1a5fa8'}[estado];return '<div class="nutriente-row" title="'+(n.full||n.label).replace(/"/g,'&quot;')+'" style="cursor:help"><span class="nut-label" style="text-decoration:underline dotted rgba(0,0,0,.2)">'+n.label+'</span><div class="nut-bar-wrap"><div class="nut-bar" style="width:'+pct+'%;background:'+color+'88"></div></div><span class="nut-val" style="color:'+color+'">'+val+(n.unidad?' '+n.unidad:'')+'</span><span class="nut-estado n-'+estado+'">'+estadoLbl[estado]+'</span></div>'}).join('')
   var FERTIL={N:{prod:'Urea 46%',dosis:120,precio:.85,momento:'Presiembra'},P:{prod:'DAP',dosis:80,precio:1.2,momento:'Siembra'},S:{prod:'Sulfato amonio',dosis:60,precio:.45,momento:'Siembra'},Zn:{prod:'Zinc quelatado',dosis:2,precio:8,momento:'Foliar V4'}}
   var recs=[];NUTRI.forEach(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0];if(val<min){var k=n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':n.key.includes('zinc')?'Zn':null;if(k&&FERTIL[k])recs.push(Object.assign({label:n.label},FERTIL[k]))}})
   document.getElementById('det-suelo-recs').innerHTML = !recs.length?'<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Nutrientes en niveles óptimos para '+cultivo+'</div>':recs.map(function(r){return '<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:4px">'+r.label+' — '+r.prod+'</div><div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>'+r.dosis+' kg/ha</strong> · '+r.momento+' · Costo: <strong>USD '+(r.dosis*r.precio).toFixed(0)+'/ha</strong></div></div>'}).join('')
@@ -13175,12 +13388,12 @@ window.renderDetSuelo = function() {
         return y + '/' + String(y+1).slice(2)
       }
       var COLUMNAS = [
-        {key:'ph',           label:'pH',          fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.pH},
-        {key:'materia_org',  label:'MO %',        fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.MO},
-        {key:'p_disponible', label:'P (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.P},
-        {key:'k',            label:'K (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(0):'—'}, r:rangos.K},
-        {key:'n_total',      label:'N total %',   fmt:function(v){return v!=null?Number(v).toFixed(3):'—'}, r:[0.14, 0.25]},
-        {key:'s',            label:'S (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.S}
+        {key:'ph',           label:'pH',          full:'pH (acidez del suelo)',       fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.pH},
+        {key:'materia_org',  label:'MO %',        full:'Materia Orgánica (%)',       fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.MO},
+        {key:'p_disponible', label:'P (ppm)',     full:'Fósforo disponible (ppm)',    fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.P},
+        {key:'k',            label:'K (ppm)',     full:'Potasio intercambiable (ppm)',fmt:function(v){return v!=null?Number(v).toFixed(0):'—'}, r:rangos.K},
+        {key:'n_total',      label:'N total %',   full:'Nitrógeno total (%)',         fmt:function(v){return v!=null?Number(v).toFixed(3):'—'}, r:[0.14, 0.25]},
+        {key:'s',            label:'S (ppm)',     full:'Azufre disponible (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.S}
       ]
       var _colorPorRango = function(val, r){
         val = parseFloat(val); if (isNaN(val) || !r) return 'inherit'
@@ -13191,7 +13404,7 @@ window.renderDetSuelo = function() {
       }
       var hdr = '<tr style="background:var(--crema)">' +
         '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campaña</th>' +
-        COLUMNAS.map(function(col){return '<th style="padding:9px 10px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">'+col.label+'</th>'}).join('') +
+        COLUMNAS.map(function(col){return '<th title="'+col.full+'" style="padding:9px 10px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600;cursor:help;text-decoration:underline dotted var(--texto-suave)">'+col.label+'</th>'}).join('') +
         '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Recomendación</th></tr>'
       var rows = ordenados.map(function(a){
         var cells = COLUMNAS.map(function(col){

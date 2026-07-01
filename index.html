@@ -371,10 +371,38 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   .app-nav-links .anl span:not(:first-child){display:none}
   .stats-bar .stat{border-right:none;border-bottom:.5px solid var(--borde);width:50%}
   .stats-bar .stat:last-child{border-bottom:none}
+  /* Header de módulo: título arriba, botones abajo con wrap */
+  .mod-header{flex-direction:column;align-items:stretch;gap:10px}
+  .mod-titulo{font-size:20px !important}
+  .mod-sub{font-size:12px !important}
+  /* Tabs del campo: horizontal scroll en vez de wrap */
+  .campo-tab-bar,[style*="display:flex"][style*="gap:5px"][style*="background:rgba(0,0,0"]{
+    overflow-x:auto;flex-wrap:nowrap !important;scrollbar-width:thin;-webkit-overflow-scrolling:touch
+  }
+  .campo-tab{white-space:nowrap;flex-shrink:0}
+  /* Precio strip: scroll horizontal */
+  .precio-strip{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  .precio-strip .pi{flex-shrink:0;min-width:110px}
+  /* Modals: menos padding */
+  .modal{padding:16px !important;margin:8px !important;max-height:92vh;overflow-y:auto}
+  .modal-header .m-tit{font-size:16px !important}
+  /* Card padding reducido */
+  .card{padding:14px !important}
+  /* Overlay más ajustado */
+  .overlay{padding:8px !important;align-items:flex-start;padding-top:32px !important}
 }
 @media(max-width:480px){
   .grid2,.grid3,.grid4,.grid5{grid-template-columns:1fr}
   .planes-grid{grid-template-columns:1fr}
+  /* Botones más grandes para tocar en mobile */
+  .btn-vs,.fb{padding:11px 16px !important;font-size:13px !important}
+  /* Tipografía dashboard más compacta */
+  .met-v{font-size:18px !important}
+  .met-l{font-size:10px !important}
+  .met-s{font-size:10px !important}
+  /* Nombre del campo en el detalle (Don Juan): más chico para que quepa */
+  #det-campo-nombre{font-size:22px !important}
+  #det-campo-meta{font-size:11px !important}
 }
 @media print {
   body * { visibility: hidden }

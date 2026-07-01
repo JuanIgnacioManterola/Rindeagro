@@ -10011,6 +10011,39 @@ window.showToast = function(msg, tipo) {
 // ══ MÓDULO CAMPOS ══
 var campoDet = null
 
+// ── DIAGNÓSTICO en pantalla (activar con ?diag=1 en la URL) ──
+if(/[?&]diag=1/i.test(window.location.search)) {
+  window.addEventListener('load', function(){
+    var box = document.createElement('div')
+    box.id = 'diag-panel'
+    box.style.cssText = 'position:fixed;top:8px;right:8px;z-index:99999;background:#0f172a;color:#a7f3d0;padding:12px 14px;font-family:monospace;font-size:11px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:380px;line-height:1.4;white-space:pre-wrap;max-height:80vh;overflow:auto'
+    document.body.appendChild(box)
+    function refresh(){
+      try {
+        var s = 'DIAG ('+new Date().toLocaleTimeString('es-AR')+')\n'
+        s += 'usuario: ' + (window.usuario ? usuario.email : '(no logueado)') + '\n'
+        s += 'campos: ' + (campos||[]).length + ' | gastos: ' + (gastos||[]).length + '\n'
+        s += 'lluvias: ' + (lluvias||[]).length + ' | pagos: ' + (pagos||[]).length + '\n'
+        s += 'campoDet actual: ' + (campoDet||'(ninguno)') + '\n'
+        s += 'campanaActivaId: ' + (typeof campanaActivaId!=='undefined'?campanaActivaId:'-') + '\n\n'
+        var cs = (campos||[]).filter(function(c){return String(c.id||'').indexOf('a1000001')===0})
+        s += 'CAMPOS SIM (' + cs.length + '):\n'
+        cs.forEach(function(c){
+          var gc = (gastos||[]).filter(function(g){return g.campo_id===c.id})
+          var totalUsd = gc.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+          s += '• ' + c.nombre + ' [' + c.cultivo + '] ' + c.hectareas + 'ha\n'
+          s += '  gastos: ' + gc.length + ' filas · USD ' + Math.round(totalUsd) + '\n'
+          s += '  hectareas_cultivo: ' + (c.hectareas_cultivo||'null') + '\n'
+        })
+        box.textContent = s
+      } catch(e) { box.textContent = 'DIAG error: '+e.message }
+    }
+    refresh()
+    setInterval(refresh, 2000)
+  })
+}
+
+
 window.renderCamposLista = function() {
   var el = document.getElementById('campos-lista-cards')
   if (!el) return

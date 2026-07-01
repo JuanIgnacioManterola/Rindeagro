@@ -1007,6 +1007,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="color:var(--texto-suave);font-size:13px">Cargando preferencias...</div>
       </div>
     </div>
+
+    <!-- Backup de datos -->
+    <div class="card" style="margin-top:1.5rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <span style="font-size:22px">💾</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--texto)">Descargar backup completo</div>
+          <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">Bajate todos tus datos en formato JSON. Ideal para tener copia propia o migrar.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="descargarBackupJSON()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📥 Descargar JSON</button>
+        <button onclick="descargarBackupCSV()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📥 Descargar CSVs (ZIP no — un archivo por tabla)</button>
+      </div>
+      <div style="font-size:11px;color:var(--texto-suave);margin-top:10px">Incluye: campos, gastos, lluvias, análisis de suelo, insumos, pagos, tareas y campañas. NO incluye archivos (fotos, PDFs) — están en Storage.</div>
+    </div>
   </div>
 
   <div class="modulo" id="mod-tareas">
@@ -1064,6 +1080,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Buscador -->
+    <div style="margin-bottom:12px">
+      <input type="text" id="insumos-search" placeholder="🔍 Buscar por nombre, ubicación..." oninput="renderInsumos()" style="width:100%;max-width:400px;padding:9px 14px;border:1px solid var(--borde);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff"/>
+    </div>
     <!-- Filtro por tipo -->
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="insumos-filtros">
       <button class="ins-filtro-btn active" data-tipo="" onclick="filtrarInsumos('')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
@@ -1094,6 +1114,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <!-- Resumen rápido (cards clickeables) -->
     <div class="grid3" id="pagos-mets" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
 
+    <!-- Buscador de pagos -->
+    <div style="margin-bottom:12px">
+      <input type="text" id="pagos-search" placeholder="🔍 Buscar por beneficiario, descripción, banco, número..." oninput="renderPagos()" style="width:100%;max-width:500px;padding:9px 14px;border:1px solid var(--borde);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff"/>
+    </div>
     <!-- Filtros de estado (solo 3: Próximos, Vencidos, Pagados) -->
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="pagos-filtros">
       <button class="pag-filtro-btn active" data-estado="proximos" onclick="filtrarPagos('proximos')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔔 Próximos a vencer</button>
@@ -8976,6 +9000,15 @@ window.renderInsumos = function() {
   var cont = document.getElementById('insumos-lista')
   if(!cont) return
   var lista = (insumosFiltroTipo ? insumos.filter(function(i){return i.tipo===insumosFiltroTipo}) : insumos).slice()
+  // Búsqueda de texto libre (nombre, ubicación, notas)
+  var q = (document.getElementById('insumos-search')?.value||'').trim().toLowerCase()
+  if (q) {
+    lista = lista.filter(function(i){
+      return String(i.nombre||'').toLowerCase().indexOf(q) >= 0
+        || String(i.ubicacion||'').toLowerCase().indexOf(q) >= 0
+        || String(i.notas||'').toLowerCase().indexOf(q) >= 0
+    })
+  }
   if(!lista.length) {
     cont.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--texto-suave)"><div style="font-size:42px;margin-bottom:10px">🧪</div><div style="font-size:15px;font-weight:600;color:var(--texto-mid);margin-bottom:6px">No tenés insumos cargados todavía</div><div style="font-size:13px">Tocá <strong>+ Cargar insumo</strong> para empezar. Al registrar un gasto vinculado, el stock se descuenta solo.</div></div>'
     return
@@ -9586,6 +9619,17 @@ window.renderPagos = function() {
 
   // Filtrar lista
   var lista = (pagos||[]).slice()
+  // Búsqueda de texto libre (beneficiario, descripción, banco, número cheque, notas)
+  var qP = (document.getElementById('pagos-search')?.value||'').trim().toLowerCase()
+  if (qP) {
+    lista = lista.filter(function(p){
+      return String(p.beneficiario||'').toLowerCase().indexOf(qP) >= 0
+        || String(p.descripcion||'').toLowerCase().indexOf(qP) >= 0
+        || String(p.banco||'').toLowerCase().indexOf(qP) >= 0
+        || String(p.numero_cheque||'').toLowerCase().indexOf(qP) >= 0
+        || String(p.notas||'').toLowerCase().indexOf(qP) >= 0
+    })
+  }
   if (pagosFiltroTipo) lista = lista.filter(function(p){return p.tipo===pagosFiltroTipo})
   if (pagosFiltroEstado === 'pendientes') lista = lista.filter(function(p){return p.estado==='pendiente'})
   else if (pagosFiltroEstado === 'pagados') lista = lista.filter(function(p){return p.estado==='pagado'})
@@ -10797,6 +10841,80 @@ window.showToast = function(msg, tipo) {
   t.className='toast show'+(tipo==='err'?' err':tipo==='ok'?' ok':tipo==='info'?' info':'')
   clearTimeout(t._t)
   t._t=setTimeout(()=>t.classList.remove('show'),3800)
+}
+
+// ── BACKUP: descargar todos los datos del usuario en JSON o CSV ──
+window.descargarBackupJSON = function() {
+  var payload = {
+    _meta: {
+      app: 'Rinde.Agro',
+      version: 1,
+      generado: new Date().toISOString(),
+      usuario: usuario ? usuario.email : null,
+      user_id: usuario ? usuario.id : null
+    },
+    campos: campos || [],
+    gastos: gastos || [],
+    lluvias: lluvias || [],
+    analisis_suelo: analisisS || [],
+    insumos: insumos || [],
+    pagos: pagos || [],
+    tareas: tareas || [],
+    campanas: window.campanas || []
+  }
+  var json = JSON.stringify(payload, null, 2)
+  var blob = new Blob([json], {type: 'application/json'})
+  var url = URL.createObjectURL(blob)
+  var a = document.createElement('a')
+  a.href = url
+  a.download = 'rindeagro-backup-' + new Date().toISOString().split('T')[0] + '.json'
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  showToast('✓ Backup JSON descargado ('+(blob.size/1024).toFixed(0)+' KB)', 'ok')
+}
+
+window.descargarBackupCSV = function() {
+  // Genera un CSV por tabla, todos descargados como archivos separados
+  function _toCSV(arr) {
+    if (!arr || !arr.length) return ''
+    var keys = Object.keys(arr[0])
+    var lines = [keys.join(',')]
+    arr.forEach(function(row){
+      lines.push(keys.map(function(k){
+        var v = row[k]
+        if (v == null) return ''
+        if (typeof v === 'object') v = JSON.stringify(v)
+        v = String(v).replace(/"/g,'""')
+        return /[",\n]/.test(v) ? '"'+v+'"' : v
+      }).join(','))
+    })
+    return lines.join('\n')
+  }
+  var fecha = new Date().toISOString().split('T')[0]
+  var tablas = [
+    { nombre: 'campos', data: campos },
+    { nombre: 'gastos', data: gastos },
+    { nombre: 'lluvias', data: lluvias },
+    { nombre: 'analisis_suelo', data: analisisS },
+    { nombre: 'insumos', data: insumos },
+    { nombre: 'pagos', data: pagos },
+    { nombre: 'tareas', data: tareas },
+    { nombre: 'campanas', data: window.campanas||[] }
+  ]
+  var n = 0
+  tablas.forEach(function(t){
+    var csv = _toCSV(t.data)
+    if (!csv) return
+    var blob = new Blob([csv], {type: 'text/csv;charset=utf-8'})
+    var url = URL.createObjectURL(blob)
+    var a = document.createElement('a')
+    a.href = url
+    a.download = 'rindeagro-'+t.nombre+'-'+fecha+'.csv'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    n++
+  })
+  showToast('✓ '+n+' CSVs descargados', 'ok')
 }
 
 // Toast con botón Deshacer para deletes safe. Timer de 5s antes de ejecutar el delete

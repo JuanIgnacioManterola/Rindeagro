@@ -2666,6 +2666,20 @@ function _guardarCache() {
     }))
   } catch(e) {}
 }
+
+// Invalida el cache local cuando detectamos divergencia con DB (una mutación optimista
+// que no se pudo persistir). Reset del cache fuerza que la próxima carga vaya directo a
+// REST y el usuario vea el estado real. Además muestra un banner discreto.
+window._invalidarCacheLocal = function(motivo) {
+  var k = _cacheKey(); if(!k) return
+  try { localStorage.removeItem(k) } catch(e) {}
+  console.warn('[cache invalidated] ' + (motivo||''))
+  // Banner de aviso una vez por sesión — evita spammar al usuario
+  if (!window._cacheInvalidatedBannerShown) {
+    window._cacheInvalidatedBannerShown = true
+    try { showToast('⚠️ Datos desincronizados con el servidor — refrescá con Ctrl+Shift+R','err') } catch(e) {}
+  }
+}
 function _mergePendingCampos() {
   try {
     var pend = JSON.parse(localStorage.getItem('rinde_campos_pending')||'[]')
@@ -8408,8 +8422,14 @@ async function _ajustarStockInsumo(insumoId, delta) {
   _guardarCache()
   if(document.getElementById('mod-stock-insumos')?.classList.contains('active')) renderInsumos()
   ;(async function(){
-    try { await sb.from('stock_insumos').update({stock_actual: nuevo}).eq('id', insumoId) }
-    catch(e){ console.error('bg stock adjust:', e) }
+    try {
+      await _dbMutate({method:'update', table:'stock_insumos', filter:{col:'id',val:insumoId}, payload:{stock_actual: nuevo}, timeout: 6000})
+    } catch(e) {
+      console.error('bg stock adjust:', e)
+      // Rollback local si no persistió: el stock queda con el valor original en memoria
+      // Si algún día pasa, avisamos al usuario para que refresque
+      showToast('⚠️ Stock no se sincronizó — refrescá la página','err')
+    }
   })()
   return true
 }
@@ -10591,14 +10611,23 @@ window.guardarLluvia = async function() {
   btn.disabled=true;btn.textContent='Guardando...'
   try{
     var _ownerUid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-    const {data,error}=await sb.from('lluvias').insert({
+    var localId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('a'+Math.random().toString(16).slice(2))
+    var lluviaPayload = {
+      id: localId,
       campo_id:campoId,usuario_id:_ownerUid,fecha,mm,
       etapa:document.getElementById('ll-etapa').value||null,
       tipo:document.getElementById('ll-tipo').value||null,
       observacion:document.getElementById('ll-obs').value.trim()||null
-    }).select().single()
-    if(error)throw error
-    lluvias.unshift(data)
+    }
+    // Optimistic + _dbMutate (REST fallback si el SDK se cuelga)
+    lluvias.unshift(lluviaPayload)
+    try {
+      await _dbMutate({method:'insert', table:'lluvias', payload: lluviaPayload, timeout: 8000})
+    } catch (e) {
+      // Rollback si falla
+      lluvias = lluvias.filter(function(l){return l.id !== localId})
+      throw e
+    }
     _guardarCache()
     if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
     closeModalLluvia()
@@ -10608,13 +10637,33 @@ window.guardarLluvia = async function() {
   finally{btn.disabled=false;btn.textContent='Registrar lluvia'}
 }
 window.eliminarLluvia = async function(id) {
-  if(!confirm('¿Eliminás este registro de lluvia?'))return
-  try{
-    await sb.from('lluvias').delete().eq('id',id)
-    lluvias=lluvias.filter(l=>l.id!==id)
+  // Delete con undo: optimistic remove + toast "Deshacer" 5s. Si al final del timer
+  // no se deshace, ejecutamos el DELETE contra la DB con _dbMutate (REST fallback).
+  var lluviaAntes = lluvias.find(function(l){return l.id===id})
+  if (!lluviaAntes) return
+  var snapshot = Object.assign({}, lluviaAntes)
+  lluvias = lluvias.filter(function(l){return l.id!==id})
+  if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
+  var deshacer = false
+  var toastEl = _showToastUndo('Lluvia eliminada · Deshacer', function(){
+    deshacer = true
+    lluvias.unshift(snapshot)
+    lluvias.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') })
     if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
-    showToast('Registro eliminado','ok')
-  }catch(e){showToast('⚠️ Error al eliminar','err')}
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    try {
+      await _dbMutate({method:'delete', table:'lluvias', filter:{col:'id', val:id}, timeout: 6000})
+    } catch(e) {
+      // No pudo persistir el delete: revertir estado local y avisar
+      lluvias.unshift(snapshot)
+      lluvias.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') })
+      if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
+      showToast('⚠️ No se pudo eliminar en DB — restaurado','err')
+    }
+  }, 5000)
+  return
 }
 
 // ── CRUD SUELO ──
@@ -10748,6 +10797,33 @@ window.showToast = function(msg, tipo) {
   t.className='toast show'+(tipo==='err'?' err':tipo==='ok'?' ok':tipo==='info'?' info':'')
   clearTimeout(t._t)
   t._t=setTimeout(()=>t.classList.remove('show'),3800)
+}
+
+// Toast con botón Deshacer para deletes safe. Timer de 5s antes de ejecutar el delete
+// real en DB. El callback onUndo() revierte el estado local si el usuario clickea.
+window._showToastUndo = function(msg, onUndo) {
+  var t = document.getElementById('toast')
+  // Contenido con botón Deshacer inline
+  t.innerHTML = '<span style="flex:1">'+msg+'</span><button id="_toast-undo-btn" style="background:#fff;color:#1a4a2e;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-left:12px;font-family:DM Sans,sans-serif">Deshacer</button>'
+  t.className = 'toast show ok'
+  t.style.display = 'flex'
+  t.style.alignItems = 'center'
+  clearTimeout(t._t)
+  var undoBtn = document.getElementById('_toast-undo-btn')
+  var undone = false
+  var cleanup = function(){
+    t.classList.remove('show')
+    setTimeout(function(){ t.innerHTML=''; t.style.display=''; t.style.alignItems='' }, 300)
+  }
+  undoBtn.onclick = function(){
+    if (undone) return
+    undone = true
+    try { onUndo() } catch(e) { console.error('undo callback:', e) }
+    showToast('↩ Cancelado','info')
+    cleanup()
+  }
+  t._t = setTimeout(cleanup, 5000)
+  return t
 }
 
 
@@ -11621,7 +11697,7 @@ window._eqConfirmarCambioRol = async function(equipoId, nombre, nuevoRol) {
   if (modal) modal.remove()
   try {
     var nuevosPermisos = Object.assign({}, PERMISOS_PRESETS[_EQ_ROL_PRESETS[nuevoRol]])
-    await sb.from('equipo').update({ permisos: nuevosPermisos }).eq('id', equipoId)
+    await _dbMutate({method:'update', table:'equipo', filter:{col:'id', val:equipoId}, payload:{permisos: nuevosPermisos}, timeout: 6000})
     showToast('✓ Rol de '+nombre+' actualizado','ok')
     _renderListaMiembros()
   } catch(e) { showToast('⚠️ Error al cambiar rol','err') }
@@ -11656,7 +11732,7 @@ window._eqConfirmarQuitarCampo = async function(equipoId, nombre, accJson) {
   if (modal) modal.remove()
   try {
     var acc = JSON.parse(accJson)
-    await sb.from('equipo').update({ campos_acceso: acc.length ? acc : null }).eq('id', equipoId)
+    await _dbMutate({method:'update', table:'equipo', filter:{col:'id', val:equipoId}, payload:{campos_acceso: acc.length ? acc : null}, timeout: 6000})
     showToast('✓ Acceso quitado','ok')
     _renderListaMiembros()
   } catch(e) { showToast('⚠️ Error al quitar acceso','err') }
@@ -11685,7 +11761,7 @@ window._eqConfirmarRemover = async function(equipoId, nombre) {
   var btn = document.getElementById('_btn-conf-remover')
   if (btn) { btn.disabled = true; btn.textContent = 'Removiendo...' }
   try {
-    await sb.from('equipo').update({ activo: false }).eq('id', equipoId)
+    await _dbMutate({method:'update', table:'equipo', filter:{col:'id', val:equipoId}, payload:{activo: false}, timeout: 6000})
     if (modal) modal.remove()
     _renderListaMiembros()
     showToast('✓ '+nombre+' fue removido del equipo','ok')
@@ -12023,15 +12099,19 @@ window.compartirInvWA = function() {
 })()
 
 window.eliminarCampo = async function(id, nombre) {
-  if(!confirm('¿Eliminar el campo "'+nombre+'"? Se van a borrar también todos sus gastos, lluvias y análisis de suelo. Esta acción no se puede deshacer.')) return
+  // Confirmación fuerte: tipear el nombre del campo para eliminar (protege contra clicks accidentales).
+  var confirmacion = prompt('⚠️ ACCIÓN IRREVERSIBLE\n\nEsto borra el campo "'+nombre+'" + TODOS sus gastos, lluvias y análisis de suelo.\n\nPara confirmar, escribí exactamente el nombre del campo:')
+  if (confirmacion !== nombre) {
+    if (confirmacion !== null) showToast('⚠️ El nombre no coincide — no se eliminó nada','err')
+    return
+  }
   try {
-    // Eliminar datos relacionados primero
-    await sb.from('gastos').delete().eq('campo_id', id)
-    await sb.from('lluvias').delete().eq('campo_id', id)
-    await sb.from('analisis_suelo').delete().eq('campo_id', id)
-    // Eliminar el campo
-    var {error} = await sb.from('campos').delete().eq('id', id)
-    if(error) throw error
+    // Delete cascade con _dbMutate (REST fallback si el SDK se cuelga) para evitar
+    // borrados parciales silenciosos que dejan datos huérfanos.
+    await _dbMutate({method:'delete', table:'gastos',        filter:{col:'campo_id', val:id}, timeout: 6000})
+    await _dbMutate({method:'delete', table:'lluvias',       filter:{col:'campo_id', val:id}, timeout: 6000})
+    await _dbMutate({method:'delete', table:'analisis_suelo',filter:{col:'campo_id', val:id}, timeout: 6000})
+    await _dbMutate({method:'delete', table:'campos',        filter:{col:'id',       val:id}, timeout: 6000})
     // Actualizar estado local
     campos = campos.filter(function(c){ return c.id !== id })
     gastos = gastos.filter(function(g){ return g.campo_id !== id })

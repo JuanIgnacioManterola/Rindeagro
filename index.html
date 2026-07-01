@@ -128,6 +128,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .plan.pop .pp{color:#fff}
 .pp-g{color:var(--verde-light)!important}
 .pp-per{font-size:12px;color:var(--texto-suave);margin-top:4px;margin-bottom:1.25rem}
+.pago-unico-badge{display:inline-block;background:var(--dorado);color:var(--verde);font-size:12px;font-weight:800;letter-spacing:.05em;padding:6px 14px;border-radius:20px;margin:8px 0;box-shadow:0 2px 8px rgba(201,168,76,.35);text-align:center;white-space:nowrap}
+.plan.pop .pago-unico-badge{background:#fff;color:var(--verde)}
 .plan.pop .pp-per{color:rgba(250,247,240,.55)}
 .pf{flex:1;display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem}
 .pfi{font-size:12px;display:flex;gap:6px;line-height:1.5;align-items:flex-start}
@@ -492,7 +494,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <section class="planes-sec" id="planes">
     <div class="s-eye">Precios</div>
     <h2 class="s-tit">Elegí tu plan</h2>
-    <p class="s-sub">Pago anual único. Todos los precios en USD + IVA 21% · Se abona en pesos al dólar oficial vendedor del BNA del día de pago.</p>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:var(--verde);color:#fff;padding:10px 22px;border-radius:999px;font-size:15px;font-weight:700;margin:0 auto 14px;font-family:'DM Sans',sans-serif;box-shadow:0 4px 14px rgba(26,74,46,.2)">
+      💰 <span style="font-size:16px">PAGO ÚNICO · SUSCRIPCIÓN ANUAL</span>
+    </div>
+    <p class="s-sub" style="max-width:640px">Todos los precios en USD + IVA 21%. Se abona en pesos al dólar oficial vendedor del BNA del día de pago.</p>
     <div class="planes-grid">
       <div class="plan">
         <div class="pn">Gratis</div>
@@ -512,7 +517,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="pn">Semilla</div>
         <div class="ps">Para el productor mediano</div>
         <div class="pp">USD 550<span style="font-size:14px;font-weight:500;color:var(--texto-suave)"> /año</span></div>
-        <div class="pp-per">+ IVA 21% · pago único anual en pesos (dólar BNA vendedor)</div>
+        <div class="pago-unico-badge">💰 PAGO ÚNICO · SUSCRIPCIÓN ANUAL</div>
+        <div class="pp-per" style="font-size:11px">+ IVA 21% · se abona en pesos al dólar BNA vendedor</div>
         <div class="pf">
           <div class="pfi"><span class="ok">✓</span><span class="pfi-t"><strong>Hasta 3 campos</strong></span></div>
           <div class="pfi"><span class="ok">✓</span><span class="pfi-t">Todos los módulos + campañas históricas</span></div>
@@ -526,7 +532,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="pn">Corporativo</div>
         <div class="ps">Para empresas y explotaciones grandes</div>
         <div class="pp">USD 700<span style="font-size:14px;font-weight:500;color:var(--texto-suave)"> /año</span></div>
-        <div class="pp-per">+ IVA 21% · pago único anual en pesos (dólar BNA vendedor)</div>
+        <div class="pago-unico-badge">💰 PAGO ÚNICO · SUSCRIPCIÓN ANUAL</div>
+        <div class="pp-per" style="font-size:11px">+ IVA 21% · se abona en pesos al dólar BNA vendedor</div>
         <div class="pf">
           <div class="pfi"><span class="ok">✓</span><span class="pfi-t"><strong>Campos ilimitados</strong></span></div>
           <div class="pfi"><span class="ok">✓</span><span class="pfi-t">Todo lo del plan Semilla</span></div>
@@ -5710,11 +5717,15 @@ function renderTarjetasPlanes() {
   var planActual = usuario?.user_metadata?.plan || 'gratis'
   var bna = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
 
-  // Info compacta arriba (mecánica de facturación)
-  var infoHtml = '<div class="mp-info-box">'
-    + '<div class="mp-info-tit">💰 Cómo se cobra</div>'
+  // Info compacta arriba (mecánica de facturación) — con badge prominente arriba
+  var infoHtml = '<div style="text-align:center;margin-bottom:14px">'
+    + '<div style="display:inline-flex;align-items:center;gap:10px;background:var(--verde);color:#fff;padding:11px 26px;border-radius:999px;font-size:15px;font-weight:800;letter-spacing:.03em;box-shadow:0 4px 14px rgba(26,74,46,.2);font-family:\'DM Sans\',sans-serif">'
+    +   '💰 PAGO ÚNICO · SUSCRIPCIÓN ANUAL'
+    + '</div></div>'
+    + '<div class="mp-info-box">'
+    + '<div class="mp-info-tit">📄 Detalle de facturación</div>'
     + '<div class="mp-info-body">'
-    +   'Pago único <strong>anual</strong> · Precios en <strong>USD sin IVA</strong> (se suma 21% al facturar) · Se abona en <strong>pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día · Hoy: USD 1 = <strong>$' + Math.round(bna).toLocaleString('es-AR') + '</strong>'
+    +   'Precios en <strong>USD sin IVA</strong> (se suma 21% al facturar) · Se abona en <strong>pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día · Hoy: USD 1 = <strong>$' + Math.round(bna).toLocaleString('es-AR') + '</strong>'
     + '</div></div>'
 
   // Reutilizo las clases .plan / .pn / .ps / .pp / .pf / .pfi / .p-btn del landing.
@@ -5734,7 +5745,8 @@ function renderTarjetasPlanes() {
       periodoHtml = '<div class="pp-per">para siempre</div>'
     } else {
       precioHtml = '<div class="pp">USD '+plan.precio_usd+'</div>'
-      periodoHtml = '<div class="pp-per">/ año · sin IVA<br/>+ 21% IVA ≈ <strong>$' + precioArsIva.toLocaleString('es-AR') + '</strong> ARS</div>'
+      periodoHtml = '<div class="pago-unico-badge">💰 PAGO ÚNICO · ANUAL</div>'
+        + '<div class="pp-per" style="font-size:11px">+ 21% IVA ≈ <strong>$' + precioArsIva.toLocaleString('es-AR') + '</strong> ARS</div>'
     }
 
     // Features

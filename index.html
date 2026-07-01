@@ -2640,9 +2640,11 @@ async function cargarTodo() {
   // en primera carga (handshake + query).
   async function _selectConFallback(table, params) {
     // params: {col, val, order?: {col, asc}}
-    // Modo forcerest: ?forcerest=1 en URL → salteamos SDK y vamos directo a REST.
-    // Útil cuando el cliente SDK queda deadlocked (bug crónico del @supabase/supabase-js).
-    var forceRest = /[?&]forcerest=1/i.test(window.location.search)
+    // REST es el PATH POR DEFAULT — el SDK de @supabase/supabase-js tiene un bug
+    // crónico donde queda deadlocked internamente y no dispara requests. REST via
+    // fetch() directo es estable. Si por alguna razón se quiere probar el SDK,
+    // pasar ?withsdk=1 en la URL.
+    var useSdkFirst = /[?&]withsdk=1/i.test(window.location.search)
     async function _restCall() {
       var path = '/'+table+'?'+(params.col? params.col+'=eq.'+encodeURIComponent(params.val) : '')+
                  (params.col2? '&'+params.col2+'=eq.'+encodeURIComponent(params.val2) : '')+
@@ -2653,10 +2655,10 @@ async function cargarTodo() {
       console.log('[cargarTodo] '+table+' REST OK '+((performance.now()-t0)|0)+'ms · '+(Array.isArray(data)?data.length:0)+' filas')
       return { data: data || [] }
     }
-    if (forceRest) {
+    if (!useSdkFirst) {
       try { return await _restCall() }
       catch (eRest) {
-        console.error('[cargarTodo] '+table+' REST falló (forcerest):', eRest.message)
+        console.error('[cargarTodo] '+table+' REST falló:', eRest.message)
         return { data: null, error: eRest }
       }
     }

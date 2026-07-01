@@ -555,20 +555,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
           <div id="dash-tareas"></div>
         </div>
+        <!-- Widget Cuentas por vencer (debajo de Tareas, mismo estilo) -->
+        <div class="card" id="dash-pagos-card" style="display:none;margin-top:14px">
+          <div class="card-hdr">
+            <span class="card-tit">💰 Cuentas por vencer</span>
+            <button class="btn-vs" onclick="showModulo('pagos')">Ver todas →</button>
+          </div>
+          <div id="dash-pagos"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Alerta de pagos próximos/vencidos (debajo de Tareas) -->
+    <!-- Alerta prominente de pagos vencidos/próximos (banda) — se muestra solo cuando corresponde -->
     <div id="dash-pagos-alerta" style="display:none;margin:14px 0"></div>
-
-    <!-- Widget Próximos pagos -->
-    <div class="card" id="dash-pagos-card" style="display:none">
-      <div class="card-hdr">
-        <span class="card-tit">💰 Próximos pagos</span>
-        <button class="btn-vs" onclick="showModulo('pagos')">Ver todos →</button>
-      </div>
-      <div id="dash-pagos"></div>
-    </div>
 
     <!-- Widget Mi equipo -->
     <div class="card" id="dash-equipo-card">

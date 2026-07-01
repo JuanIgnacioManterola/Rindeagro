@@ -892,7 +892,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-rentabilidad-total" style="background:#f0fef4">
     <div class="mod-header">
       <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
-      <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="openModalExportCampanas()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📈 Comparar campañas</button>
+        <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
+      </div>
     </div>
     <!-- Métricas globales (Hectáreas · Ingresos · Costos · Margen) -->
     <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
@@ -1361,6 +1364,38 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL EXPORT PDF DE PAGOS -->
+<!-- MODAL: EXPORTAR COMPARATIVA DE CAMPAÑAS -->
+<div class="overlay" id="ov-export-campanas">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalExportCampanas()">✕</button>
+      <div class="m-tit">📈 Comparar campañas</div>
+      <div class="m-sub" style="margin-bottom:0">Elegí el rango de campañas y los campos a incluir. Generamos un PDF con la evolución de rentabilidad, ingresos y costos.</div>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Campañas a comparar</label>
+        <div id="expc-campanas-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--borde);border-radius:8px;padding:10px"></div>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button type="button" onclick="_expcTogglar('campanas', true)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:var(--crema);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-mid)">Todas</button>
+          <button type="button" onclick="_expcTogglar('campanas', false)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-suave)">Ninguna</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Campos a incluir</label>
+        <div id="expc-campos-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--borde);border-radius:8px;padding:10px"></div>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button type="button" onclick="_expcTogglar('campos', true)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:var(--crema);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-mid)">Todos</button>
+          <button type="button" onclick="_expcTogglar('campos', false)" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;color:var(--texto-suave)">Ninguno</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" onclick="exportarPDFComparativaCampanas()">📄 Generar PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="ov-export-pagos">
   <div class="modal" style="max-width:460px">
     <div class="modal-header">
@@ -2354,6 +2389,7 @@ var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
 var pagos = []                       // compromisos_pago (cheques + cuotas)
+window.campanas = []                  // histórico de cultivos + rendimientos + precios por campo/año
 var pagosFiltroEstado = 'proximos' // proximos | vencidos | pagados
 var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
 var paso = 1
@@ -2691,7 +2727,7 @@ async function cargarTodo() {
                         function(e){ return {status:'rejected', reason:e} })
   }
 
-  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     _selectConFallback('gastos',           {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
@@ -2700,7 +2736,8 @@ async function cargarTodo() {
     _selectConFallback('tareas',           {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
     _selectConFallback('equipo',           {col:'owner_id',   val:uid, col2:'activo', val2:true}),
     _selectConFallback('stock_insumos',    {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
-    _selectConFallback('compromisos_pago', {col:'owner_id',   val:uid, order:{col:'fecha_cobro', asc:true}})
+    _selectConFallback('compromisos_pago', {col:'owner_id',   val:uid, order:{col:'fecha_cobro', asc:true}}),
+    _selectConFallback('campanas',         {col:'usuario_id', val:uid, order:{col:'anio', asc:false}})
   ])
 
   // Perfil → nombre/saludo
@@ -2748,6 +2785,9 @@ async function cargarTodo() {
     if (modPg && modPg.classList.contains('active')) renderPagos()
     try { _actualizarBadgePagos() } catch(e) {}
   }
+  // Campanas (histórico de cultivos + rendimientos + precios por campo/año, para comparativas)
+  var freshCampanas = (resCa && resCa.status==='fulfilled' && resCa.value && Array.isArray(resCa.value.data)) ? resCa.value.data : null
+  if (freshCampanas !== null) window.campanas = freshCampanas
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
 
@@ -9608,6 +9648,194 @@ window.renderPagos = function() {
       +   '</div>'
       + '</div>'
   }).join('')
+}
+
+// ── COMPARATIVA CAMPAÑAS: Modal + Exportar PDF ──
+window.openModalExportCampanas = function() {
+  // 1) Detectar campañas disponibles (de gastos, lluvias, campanas table, y actual)
+  var hoy = new Date()
+  var yActual = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1
+  var campSet = {}
+  campSet[yActual+'/'+String(yActual+1).slice(2)] = { id: yActual+'/'+String(yActual+1).slice(2), y: yActual, current: true }
+  ;(gastos||[]).concat(lluvias||[]).forEach(function(item){
+    if (!item.fecha) return
+    var d = new Date(item.fecha)
+    var yy = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear()-1
+    var lbl = yy + '/' + String(yy+1).slice(2)
+    if (!campSet[lbl]) campSet[lbl] = { id: lbl, y: yy, current: yy===yActual }
+  })
+  var listaCamp = Object.values(campSet).sort(function(a,b){ return b.y - a.y })
+
+  var elC = document.getElementById('expc-campanas-list')
+  elC.innerHTML = listaCamp.map(function(c){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" class="expc-camp-chk" value="'+c.id+'" checked style="width:16px;height:16px"/>'
+      +'<span>Campaña <strong>'+c.id+'</strong>'+(c.current?' <span style="color:var(--verde);font-weight:700;font-size:10px">(actual)</span>':'')+'</span>'
+      +'</label>'
+  }).join('')
+
+  var elF = document.getElementById('expc-campos-list')
+  var camposOrd = (campos||[]).slice().sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'','es') })
+  elF.innerHTML = camposOrd.map(function(c){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" class="expc-campo-chk" value="'+c.id+'" checked style="width:16px;height:16px"/>'
+      +'<span><strong>'+c.nombre+'</strong> · '+(c.cultivo||'—')+' · '+(c.hectareas||0)+' ha</span>'
+      +'</label>'
+  }).join('')
+
+  document.getElementById('ov-export-campanas').classList.add('open')
+}
+window.closeModalExportCampanas = function() {
+  document.getElementById('ov-export-campanas').classList.remove('open')
+}
+window._expcTogglar = function(tipo, on) {
+  var sel = tipo === 'campanas' ? '.expc-camp-chk' : '.expc-campo-chk'
+  document.querySelectorAll(sel).forEach(function(cb){ cb.checked = on })
+}
+
+window.exportarPDFComparativaCampanas = function() {
+  var campsSel = Array.from(document.querySelectorAll('.expc-camp-chk:checked')).map(function(cb){return cb.value})
+  var campos_sel = Array.from(document.querySelectorAll('.expc-campo-chk:checked')).map(function(cb){return cb.value})
+  if (!campsSel.length) { showToast('⚠️ Elegí al menos una campaña','err'); return }
+  if (!campos_sel.length) { showToast('⚠️ Elegí al menos un campo','err'); return }
+
+  // Rango de fechas por campaña: 1jul YY → 30jun YY+1
+  function _rango(anio) {
+    var yy = parseInt(anio.split('/')[0])
+    return { start: new Date(yy,6,1), end: new Date(yy+1,5,30,23,59,59) }
+  }
+  var camposMap = {}
+  ;(campos||[]).forEach(function(c){ camposMap[c.id] = c })
+
+  // Calcular por campaña
+  var filas = campsSel.sort().map(function(anio){
+    var r = _rango(anio)
+    var totIng = 0, totGas = 0, totHa = 0
+    var porCampo = campos_sel.map(function(cid){
+      var c = camposMap[cid]; if (!c) return null
+      // Buscar campanas record de este campo/año
+      var camp = (window.campanas||[]).find(function(x){ return x.campo_id===cid && (x.anio===anio || x.anio===anio.replace(/\/(\d{2})$/,'/20$1')) })
+      var cultivo = (camp && camp.cultivo) || c.cultivo || '—'
+      var ha = c.hectareas || 0
+      // Ingresos: prefer campanas record, else campo defaults (para campaña actual)
+      var ing = 0
+      if (camp && camp.rendimiento && camp.precio_venta) {
+        ing = parseFloat(camp.rendimiento) * parseFloat(camp.precio_venta) * ha
+      } else if (anio === (new Date()).getFullYear()+'/'+String((new Date()).getFullYear()+1).slice(2) || anio === ((new Date()).getMonth()>=6?(new Date()).getFullYear():(new Date()).getFullYear()-1)+'/'+String(((new Date()).getMonth()>=6?(new Date()).getFullYear():(new Date()).getFullYear()-1)+1).slice(2)) {
+        // Campaña actual: usar campo.rendimiento + precio_venta
+        if (c.rendimiento && c.precio_venta) ing = parseFloat(c.rendimiento) * parseFloat(c.precio_venta) * ha
+        // Sumar ventas reales cargadas en ingresos_cultivos
+        var savedIng = {}; try { savedIng = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+        var ingReal = 0
+        Object.keys(savedIng).forEach(function(cu){
+          var d = savedIng[cu]
+          if (d && Array.isArray(d.ventas) && d.ventas.length) {
+            ingReal += d.ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+          }
+        })
+        if (ingReal > 0) ing = ingReal
+      }
+      // Gastos: filtrar por fecha
+      var gs = (gastos||[]).filter(function(g){
+        if (g.campo_id !== cid || !g.fecha) return false
+        var d = new Date(g.fecha)
+        return d >= r.start && d <= r.end
+      })
+      var cost = gs.reduce(function(a,g){return a+(parseFloat(g.total_de_usd)||0)},0)
+      totIng += ing; totGas += cost; totHa += ha
+      return { nombre: c.nombre, cultivo: cultivo, ha: ha, ing: ing, cost: cost, margen: ing-cost }
+    }).filter(Boolean)
+    return { anio: anio, porCampo: porCampo, totHa: totHa, totIng: totIng, totGas: totGas, totMargen: totIng-totGas }
+  })
+
+  var fmtUSD = function(v){ return 'USD ' + Math.abs(Math.round(v||0)).toLocaleString('es-AR') }
+  var fmtSign = function(v){ return (v>=0?'':'−') + fmtUSD(Math.abs(v)) }
+  var today = new Date()
+  var todayStr = today.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+  var nombreUsuario = (usuario && usuario.user_metadata && usuario.user_metadata.nombre) || (usuario && usuario.email) || ''
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Comparativa de campañas · '+campsSel.join(', ')+'</title>'
+  html += '<style>'
+  html += '@page { size: A4; margin: 16mm 14mm; }'
+  html += 'body{font-family:\'Helvetica\',sans-serif;color:#1a1a1a;margin:0;font-size:10.5pt}'
+  html += 'h1{font-size:20pt;margin:0 0 4px 0;color:#1a4a2e}'
+  html += '.sub{font-size:10pt;color:#666;margin-bottom:14px}'
+  html += '.brand{font-size:9pt;color:#888;border-bottom:2px solid #1a4a2e;padding-bottom:6px;margin-bottom:14px}'
+  html += 'h2{font-size:14pt;color:#1a4a2e;margin:22px 0 8px 0;padding-bottom:4px;border-bottom:1px solid #ddd}'
+  html += 'h3{font-size:11pt;color:#1a4a2e;margin:16px 0 6px 0}'
+  html += 'table{width:100%;border-collapse:collapse;margin-top:6px;font-size:9.5pt}'
+  html += 'th{text-align:left;padding:7px 6px;border-bottom:1.5px solid #1a4a2e;font-weight:700;color:#1a4a2e;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3px;background:#e8f5ee}'
+  html += 'td{padding:6px;border-bottom:.5px solid #eee}'
+  html += '.r{text-align:right;font-variant-numeric:tabular-nums}'
+  html += '.pos{color:#1a7a52;font-weight:700}'
+  html += '.neg{color:#c0392b;font-weight:700}'
+  html += '.tot{background:#faf7f0;font-weight:700;border-top:2px solid #1a4a2e}'
+  html += '.foot{margin-top:30px;font-size:8pt;color:#888;text-align:center;border-top:1px solid #ddd;padding-top:10px}'
+  html += '.bar-wrap{display:flex;align-items:center;gap:8px;padding:2px 0}'
+  html += '.bar{height:14px;background:#dcfce7;border-radius:3px}'
+  html += '.bar-neg{background:#fee2e2}'
+  html += '.print-btn{position:fixed;top:14px;right:14px;background:#1a4a2e;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:12pt;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:9999}'
+  html += '@media print { .print-btn { display: none } }'
+  html += '</style></head><body>'
+  html += '<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>'
+  html += '<div class="brand">RindeAgro · '+nombreUsuario+' · Generado '+todayStr+'</div>'
+  html += '<h1>📈 Comparativa de campañas</h1>'
+  html += '<div class="sub"><strong>'+campsSel.length+'</strong> campaña'+(campsSel.length!==1?'s':'')+' · <strong>'+campos_sel.length+'</strong> campo'+(campos_sel.length!==1?'s':'')+' incluido'+(campos_sel.length!==1?'s':'')+'</div>'
+
+  // ── Tabla resumen (campaña × totales) ──
+  html += '<h2>Resumen por campaña</h2>'
+  html += '<table><thead><tr><th>Campaña</th><th class="r">Hectáreas</th><th class="r">Ingresos</th><th class="r">Costos</th><th class="r">Margen</th><th class="r">Margen USD/ha</th></tr></thead><tbody>'
+  var maxAbs = Math.max.apply(null, filas.map(function(f){return Math.abs(f.totMargen)}).concat([1]))
+  filas.forEach(function(f){
+    var mgHa = f.totHa > 0 ? f.totMargen/f.totHa : 0
+    var barW = Math.abs(f.totMargen)/maxAbs*120
+    html += '<tr>'
+      +'<td><strong>'+f.anio+'</strong></td>'
+      +'<td class="r">'+f.totHa.toLocaleString('es-AR')+'</td>'
+      +'<td class="r">'+fmtUSD(f.totIng)+'</td>'
+      +'<td class="r">'+fmtUSD(f.totGas)+'</td>'
+      +'<td class="r"><div class="bar-wrap"><div class="bar '+(f.totMargen<0?'bar-neg':'')+'" style="width:'+barW+'px"></div><span class="'+(f.totMargen>=0?'pos':'neg')+'">'+fmtSign(f.totMargen)+'</span></div></td>'
+      +'<td class="r '+(mgHa>=0?'pos':'neg')+'">'+fmtSign(mgHa)+'</td>'
+      +'</tr>'
+  })
+  // Total general
+  var totIngG = filas.reduce(function(a,f){return a+f.totIng},0)
+  var totGasG = filas.reduce(function(a,f){return a+f.totGas},0)
+  var totMgG = totIngG - totGasG
+  var totHaG = filas.reduce(function(a,f){return a+f.totHa},0)
+  html += '<tr class="tot"><td>Total general</td><td class="r">'+totHaG.toLocaleString('es-AR')+'</td><td class="r">'+fmtUSD(totIngG)+'</td><td class="r">'+fmtUSD(totGasG)+'</td><td class="r '+(totMgG>=0?'pos':'neg')+'">'+fmtSign(totMgG)+'</td><td class="r '+(totMgG>=0?'pos':'neg')+'">'+fmtSign(totHaG>0?totMgG/totHaG:0)+'</td></tr>'
+  html += '</tbody></table>'
+
+  // ── Detalle por campaña × campo ──
+  html += '<h2>Detalle por campaña</h2>'
+  filas.forEach(function(f){
+    html += '<h3>Campaña '+f.anio+'</h3>'
+    html += '<table><thead><tr><th>Campo</th><th>Cultivo</th><th class="r">Ha</th><th class="r">Ingresos</th><th class="r">Costos</th><th class="r">Margen</th><th class="r">USD/ha</th></tr></thead><tbody>'
+    f.porCampo.forEach(function(pc){
+      var mgHa = pc.ha > 0 ? pc.margen/pc.ha : 0
+      html += '<tr>'
+        +'<td><strong>'+pc.nombre+'</strong></td>'
+        +'<td>'+pc.cultivo+'</td>'
+        +'<td class="r">'+pc.ha.toLocaleString('es-AR')+'</td>'
+        +'<td class="r">'+fmtUSD(pc.ing)+'</td>'
+        +'<td class="r">'+fmtUSD(pc.cost)+'</td>'
+        +'<td class="r '+(pc.margen>=0?'pos':'neg')+'">'+fmtSign(pc.margen)+'</td>'
+        +'<td class="r '+(mgHa>=0?'pos':'neg')+'">'+fmtSign(mgHa)+'</td>'
+        +'</tr>'
+    })
+    html += '<tr class="tot"><td colspan="2">Subtotal '+f.anio+'</td><td class="r">'+f.totHa.toLocaleString('es-AR')+'</td><td class="r">'+fmtUSD(f.totIng)+'</td><td class="r">'+fmtUSD(f.totGas)+'</td><td class="r '+(f.totMargen>=0?'pos':'neg')+'">'+fmtSign(f.totMargen)+'</td><td class="r '+(f.totMargen>=0?'pos':'neg')+'">'+fmtSign(f.totHa>0?f.totMargen/f.totHa:0)+'</td></tr>'
+    html += '</tbody></table>'
+  })
+
+  html += '<div class="foot">Rinde.Agro · Comparativa de campañas · '+today.toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt>'
+  html += '</body></html>'
+
+  var w = window.open('', '_blank')
+  if (!w) { showToast('⚠️ Habilitá pop-ups para imprimir el PDF','err'); return }
+  w.document.write(html)
+  w.document.close()
+  closeModalExportCampanas()
 }
 
 // ── PAGOS: Exportar PDF por rango de fechas ──

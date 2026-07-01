@@ -1058,6 +1058,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo">🧪 Stock de Insumos</div><div class="mod-sub">Cargá tus herbicidas, fungicidas, fertilizantes y demás. Se descuenta automáticamente cuando registrás un gasto vinculado.</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="exportarPDFStockInsumos()" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
         <button onclick="openModalFactura()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Desde factura</button>
         <button onclick="openModalInsumo()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">+ Cargar insumo</button>
       </div>
@@ -9022,8 +9023,11 @@ window.renderInsumos = function() {
       html +=     '</div>'
       html +=   '</div>'
 
-      // Col 5: Botón editar (modal completo)
-      html +=   '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
+      // Col 5: Botones — Historial + Editar
+      html +=   '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+      html +=     '<button onclick="verHistorialInsumo(\''+i.id+'\')" title="Historial de uso" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'#1a5fa8\';this.style.color=\'#1a5fa8\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">📊 Historial</button>'
+      html +=     '<button onclick="editarInsumo(\''+i.id+'\')" title="Editar (todos los campos)" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Detalles</button>'
+      html +=   '</div>'
 
       html += '</div>'
     })
@@ -10169,6 +10173,111 @@ window.openModalExportPagos = function() {
 
 window.closeModalExportPagos = function() {
   document.getElementById('ov-export-pagos').classList.remove('open')
+}
+
+// ── EXPORTAR PDF: STOCK DE INSUMOS + HISTORIAL DE USO ──
+window.exportarPDFStockInsumos = function() {
+  if (!insumos || !insumos.length) { showToast('⚠️ No hay insumos cargados','err'); return }
+  var TIPOS = {herbicidas:'🧪 Herbicidas',fungicidas:'🍄 Fungicidas',insecticidas:'🐛 Insecticidas',fertilizantes:'⚗️ Fertilizantes',semillas:'🌱 Semillas',otros:'📦 Otros'}
+  var lista = insumos.slice().sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'','es') })
+
+  var html = _pdfEncabezado('🧪 Stock de insumos', lista.length+' productos cargados · valorización total en USD')
+
+  // Resumen por tipo
+  html += '<h2>Resumen por tipo</h2>'
+  var porTipo = {}
+  lista.forEach(function(ins){
+    var t = ins.tipo || 'otros'
+    if (!porTipo[t]) porTipo[t] = { n:0, valor:0 }
+    porTipo[t].n++
+    porTipo[t].valor += (parseFloat(ins.stock_actual)||0) * (parseFloat(ins.costo_unitario)||0)
+  })
+  var totalGlobal = 0
+  Object.values(porTipo).forEach(function(t){ totalGlobal += t.valor })
+  html += '<table><thead><tr><th>Tipo</th><th class="r">Productos</th><th class="r">Valorización USD</th><th class="r">% del total</th></tr></thead><tbody>'
+  Object.keys(porTipo).sort(function(a,b){return porTipo[b].valor - porTipo[a].valor}).forEach(function(t){
+    var v = porTipo[t]
+    html += '<tr><td>'+(TIPOS[t]||t)+'</td><td class="r">'+v.n+'</td><td class="r">USD '+Math.round(v.valor).toLocaleString('es-AR')+'</td><td class="r">'+(totalGlobal>0?(v.valor/totalGlobal*100).toFixed(1):'0.0')+'%</td></tr>'
+  })
+  html += '<tr class="tot"><td>Total</td><td class="r">'+lista.length+'</td><td class="r">USD '+Math.round(totalGlobal).toLocaleString('es-AR')+'</td><td class="r">100%</td></tr>'
+  html += '</tbody></table>'
+
+  // Detalle por producto
+  html += '<h2>Detalle de stock</h2>'
+  html += '<table><thead><tr><th>Producto</th><th>Tipo</th><th>Ubicación</th><th class="r">Stock</th><th class="r">Unidad</th><th class="r">USD/u</th><th class="r">Valorización</th></tr></thead><tbody>'
+  lista.forEach(function(ins){
+    var stock = parseFloat(ins.stock_actual)||0
+    var costo = parseFloat(ins.costo_unitario)||0
+    var val = stock * costo
+    var stockStr = stock.toLocaleString('es-AR')
+    if (stock === 0) stockStr = '<span style="color:#c0392b;font-weight:700">'+stockStr+' · SIN STOCK</span>'
+    html += '<tr><td><strong>'+(ins.nombre||'—')+'</strong></td><td>'+(TIPOS[ins.tipo]||ins.tipo||'—')+'</td><td>'+(ins.ubicacion||'—')+'</td><td class="r">'+stockStr+'</td><td class="r">'+(ins.unidad||'—')+'</td><td class="r">'+(costo>0?'USD '+costo.toLocaleString('es-AR'):'—')+'</td><td class="r">'+(val>0?'USD '+Math.round(val).toLocaleString('es-AR'):'—')+'</td></tr>'
+  })
+  html += '<tr class="tot"><td colspan="6">Total valorización</td><td class="r">USD '+Math.round(totalGlobal).toLocaleString('es-AR')+'</td></tr>'
+  html += '</tbody></table>'
+
+  html += '<div class="foot">Rinde.Agro · Stock de insumos · '+new Date().toLocaleDateString('es-AR')+'</div>'
+  html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
+  var w = window.open('', '_blank'); if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
+  w.document.write(html); w.document.close()
+}
+
+// Historial de uso de un insumo: modal que muestra todos los gastos vinculados
+window.verHistorialInsumo = function(insumoId) {
+  var ins = insumos.find(function(x){return x.id === insumoId})
+  if (!ins) { showToast('⚠️ Insumo no encontrado','err'); return }
+  var usos = (gastos||[]).filter(function(g){ return g.insumo_id === insumoId }).sort(function(a,b){
+    return new Date(b.fecha||0) - new Date(a.fecha||0)
+  })
+  var camposMap = {}; (campos||[]).forEach(function(c){ camposMap[c.id] = c })
+
+  var totalCantidad = usos.reduce(function(a,g){ return a + ((parseFloat(g.cantidad)||0) * (parseFloat(g.ha_aplicadas)||0)) }, 0)
+  var totalUSD = usos.reduce(function(a,g){ return a + (parseFloat(g.total_de_usd)||0) }, 0)
+
+  var body = ''
+  body += '<div style="background:var(--crema);border-radius:10px;padding:12px 14px;margin-bottom:14px">'
+    +'<div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Producto</div>'
+    +'<div style="font-size:16px;font-weight:700;color:var(--texto);margin-top:2px">'+ins.nombre+'</div>'
+    +'<div style="font-size:12px;color:var(--texto-suave);margin-top:6px">Stock actual: <strong>'+(parseFloat(ins.stock_actual)||0).toLocaleString('es-AR')+' '+(ins.unidad||'')+'</strong> · Ubicación: <strong>'+(ins.ubicacion||'—')+'</strong></div>'
+    +'</div>'
+
+  if (!usos.length) {
+    body += '<div style="text-align:center;padding:40px 20px;color:var(--texto-suave)"><div style="font-size:36px;margin-bottom:8px">📦</div><div style="font-size:14px;font-weight:600">Sin usos registrados</div><div style="font-size:12px;margin-top:4px">Los gastos que vinculen este insumo aparecerán acá.</div></div>'
+  } else {
+    body += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">'
+      +'<div style="background:#e8f5ee;border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:#0d6e41;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Total consumido</div><div style="font-size:15px;font-weight:700;color:#0d6e41;margin-top:2px">'+totalCantidad.toLocaleString('es-AR')+' '+(ins.unidad||'')+'</div></div>'
+      +'<div style="background:#fef3c7;border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:#8a5a08;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Costo total</div><div style="font-size:15px;font-weight:700;color:#8a5a08;margin-top:2px">USD '+Math.round(totalUSD).toLocaleString('es-AR')+'</div></div>'
+      +'</div>'
+    body += '<div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Aplicaciones ('+usos.length+')</div>'
+    body += '<div style="max-height:340px;overflow-y:auto">'
+    usos.forEach(function(g){
+      var camp = camposMap[g.campo_id]
+      var campoNom = camp ? camp.nombre : '(campo eliminado)'
+      var cant = parseFloat(g.cantidad)||0
+      var ha = parseFloat(g.ha_aplicadas)||0
+      var consumido = cant * ha
+      var fechaStr = g.fecha ? new Date(g.fecha+'T00:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}) : '—'
+      body += '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--borde);border-radius:8px;margin-bottom:6px;background:#fff">'
+        +'<div><div style="font-size:13px;font-weight:600;color:var(--texto)">'+campoNom+(g.cultivo?' · '+g.cultivo:'')+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+fechaStr+' · '+ha+' ha × '+cant+' '+(g.unidad||'')+'/ha</div></div>'
+        +'<div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#8a5a08">'+consumido.toLocaleString('es-AR')+' '+(ins.unidad||'')+'</div><div style="font-size:11px;color:var(--texto-suave)">USD '+Math.round(parseFloat(g.total_de_usd)||0).toLocaleString('es-AR')+'</div></div>'
+        +'</div>'
+    })
+    body += '</div>'
+  }
+
+  var ov = document.getElementById('ov-historial-insumo')
+  if (!ov) {
+    ov = document.createElement('div')
+    ov.className = 'overlay'; ov.id = 'ov-historial-insumo'
+    ov.innerHTML = '<div class="modal" style="max-width:560px"><div class="modal-header"><button class="m-close" onclick="closeHistorialInsumo()">✕</button><div class="m-tit">📊 Historial de uso</div><div class="m-sub" style="margin-bottom:0">Todos los gastos que consumieron este insumo.</div></div><div class="modal-body" id="hist-insumo-body"></div></div>'
+    document.body.appendChild(ov)
+  }
+  document.getElementById('hist-insumo-body').innerHTML = body
+  ov.classList.add('open')
+}
+window.closeHistorialInsumo = function() {
+  var ov = document.getElementById('ov-historial-insumo')
+  if (ov) ov.classList.remove('open')
 }
 
 window.exportarPDFPagos = function() {

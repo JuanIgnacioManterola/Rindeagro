@@ -720,16 +720,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:10px;padding:4px;flex-wrap:wrap">
-        <button class="campo-tab active" id="tab-ingresos-campo" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
+        <button class="campo-tab active" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
+        <button class="campo-tab" id="tab-ingresos-campo" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
         <button class="campo-tab" id="tab-gastos-campo" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
-        <button class="campo-tab" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
         <button class="campo-tab" id="tab-lluvias-campo" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" id="tab-suelo-campo" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
       </div>
     </div>
 
     <!-- TAB: INGRESOS -->
-    <div class="campo-seccion active" id="sec-ingresos">
+    <div class="campo-seccion" id="sec-ingresos">
       <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
         <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">📊 Ingresos por cultivo</div>
         <div style="font-size:13px;color:rgba(250,247,240,.5);margin-bottom:18px">Ingresá rendimiento y precio de venta por cultivo</div>
@@ -784,7 +784,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <!-- TAB: RENTABILIDAD -->
-    <div class="campo-seccion" id="sec-rentabilidad">
+    <div class="campo-seccion active" id="sec-rentabilidad">
       <!-- Banner exportar PDF -->
       <div id="rent-pdf-banner" style="background:#EAF3DE;border:.5px solid #97C459;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div>
@@ -879,8 +879,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
       </div>
       <div class="card">
-        <div class="card-hdr"><span class="card-tit">Evolución histórica</span></div>
-        <div style="position:relative;height:200px"><canvas id="chart-det-suelo"></canvas></div>
+        <div class="card-hdr"><span class="card-tit">Evolución por campaña</span></div>
+        <div id="det-suelo-tabla" style="overflow-x:auto"></div>
+        <div style="position:relative;height:240px;margin-top:14px"><canvas id="chart-det-suelo"></canvas></div>
       </div>
     </div>
   </div>
@@ -1073,15 +1074,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
 
     <!-- Resumen rápido (cards clickeables) -->
-    <div class="grid4" id="pagos-mets" style="margin-bottom:14px"></div>
+    <div class="grid3" id="pagos-mets" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
 
-    <!-- Filtros de estado -->
+    <!-- Filtros de estado (solo 3: Próximos, Vencidos, Pagados) -->
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="pagos-filtros">
-      <button class="pag-filtro-btn active" data-estado="pendientes" onclick="filtrarPagos('pendientes')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⏳ Pendientes</button>
-      <button class="pag-filtro-btn" data-estado="proximos" onclick="filtrarPagos('proximos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔔 Próximos a vencer</button>
+      <button class="pag-filtro-btn active" data-estado="proximos" onclick="filtrarPagos('proximos')" style="border:1.5px solid var(--verde);background:var(--verde);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔔 Próximos a vencer</button>
       <button class="pag-filtro-btn" data-estado="vencidos" onclick="filtrarPagos('vencidos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">⚠️ Vencidos</button>
       <button class="pag-filtro-btn" data-estado="pagados" onclick="filtrarPagos('pagados')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Pagados</button>
-      <button class="pag-filtro-btn" data-estado="todos" onclick="filtrarPagos('todos')" style="border:1.5px solid var(--borde);background:var(--crema);color:var(--texto-mid);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Todos</button>
     </div>
 
     <!-- Lista de pagos -->
@@ -2353,7 +2352,7 @@ var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
 var pagos = []                       // compromisos_pago (cheques + cuotas)
-var pagosFiltroEstado = 'pendientes' // pendientes | proximos | vencidos | pagados | todos
+var pagosFiltroEstado = 'proximos' // proximos | vencidos | pagados
 var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
 var paso = 1
 var campoRent = null
@@ -9000,10 +8999,27 @@ function _pagoDiasRestantes(fechaCobro) {
   return Math.round((f - hoy) / 86400000)
 }
 
-function _pagoFmtMoney(p) {
+function _pagoFmtMoney(p, opts) {
+  // opts.toggle → mostrar en la moneda OPUESTA convertida al TC actual
   var v = parseFloat(p.importe)||0
-  var simb = p.moneda === 'USD' ? 'USD ' : '$ '
-  return simb + v.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})
+  var toggle = opts && opts.toggle
+  var monedaOrig = p.moneda === 'USD' ? 'USD' : 'ARS'
+  var monedaMostrar = toggle ? (monedaOrig === 'USD' ? 'ARS' : 'USD') : monedaOrig
+  var tc = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
+  var vMostrar = monedaMostrar === monedaOrig ? v : (monedaOrig === 'USD' ? v * tc : v / tc)
+  var simb = monedaMostrar === 'USD' ? 'USD ' : '$ '
+  return simb + vMostrar.toLocaleString('es-AR', {minimumFractionDigits: monedaMostrar === 'USD' ? 2 : 0, maximumFractionDigits: 2})
+}
+
+// Set de ids de compromisos con toggle de moneda activado (persistido en localStorage)
+window._pagosToggleUsdArs = (function(){
+  try { var raw = localStorage.getItem('ra_pagos_toggle_moneda'); return new Set(raw ? JSON.parse(raw) : []) } catch(e) { return new Set() }
+})()
+window.togglePagoMoneda = function(id) {
+  var s = window._pagosToggleUsdArs
+  if (s.has(id)) s.delete(id); else s.add(id)
+  try { localStorage.setItem('ra_pagos_toggle_moneda', JSON.stringify(Array.from(s))) } catch(e) {}
+  if (typeof renderPagos === 'function') renderPagos()
 }
 
 function _pagoFmtFecha(s) {
@@ -9042,7 +9058,7 @@ window._actualizarBadgePagos = function() {
 
 // ── Filtros ──
 window.filtrarPagos = function(estado) {
-  pagosFiltroEstado = estado || 'pendientes'
+  pagosFiltroEstado = estado || 'proximos'
   document.querySelectorAll('.pag-filtro-btn').forEach(function(b){
     var e = b.getAttribute('data-estado')||''
     var active = e === pagosFiltroEstado
@@ -9422,18 +9438,16 @@ window.renderPagos = function() {
   var cont = document.getElementById('pagos-lista')
   if (!cont) return
 
-  // Métricas en el header — ahora clickeables y aplicando el filtro
+  // Métricas en el header — 3 cards: Próximos a vencer, Vencidos, Pagados
   var totMet = document.getElementById('pagos-mets')
   if (totMet) {
-    var pendPesos = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='ARS'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
-    var pendDol   = (pagos||[]).filter(function(p){return p.estado==='pendiente' && p.moneda==='USD'}).reduce(function(a,p){return a+(parseFloat(p.importe)||0)},0)
     var vencidos  = _pagosVencidosCount()
     var proximos  = _pagosProximosCount()
+    var pagados   = (pagos||[]).filter(function(p){return p.estado==='pagado'}).length
     var cards = [
-      {l:'Pendiente $',  v:'$ '+pendPesos.toLocaleString('es-AR',{maximumFractionDigits:0}),  s:'pesos a pagar',         c:'#1a5fa8', estado:'pendientes'},
-      {l:'Pendiente USD',v:'USD '+pendDol.toLocaleString('es-AR',{maximumFractionDigits:0}),  s:'dólares a pagar',       c:'#0d6e41', estado:'pendientes'},
-      {l:'Próximos a vencer', v:proximos.toString(), s:'dentro de su alerta', c:'#c97a14', estado:'proximos'},
-      {l:'Vencidos',     v:vencidos.toString(),     s:'pasaron la fecha',     c:'#c0392b', estado:'vencidos'}
+      {l:'Próximos a vencer', v:proximos.toString(), s:'dentro de los 60 días',  c:'#c97a14', estado:'proximos'},
+      {l:'Vencidos',          v:vencidos.toString(), s:'pasaron la fecha',       c:'#c0392b', estado:'vencidos'},
+      {l:'Pagados',           v:pagados.toString(),  s:'compromisos saldados',   c:'#1a7a52', estado:'pagados'}
     ]
     totMet.innerHTML = cards.map(function(m){
       return '<div class="met" onclick="window.filtrarPagos(\''+m.estado+'\')" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'
@@ -9453,8 +9467,8 @@ window.renderPagos = function() {
   } else if (pagosFiltroEstado === 'proximos') {
     lista = lista.filter(function(p){
       if (p.estado!=='pendiente') return false
-      if (p.alerta_dias_antes == null) return false
-      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0 && d <= p.alerta_dias_antes
+      var ventana = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
+      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0 && d <= ventana
     })
   }
   lista.sort(function(a,b){
@@ -9479,7 +9493,8 @@ window.renderPagos = function() {
     var dias = _pagoDiasRestantes(p.fecha_cobro)
     var esPagado = p.estado === 'pagado'
     var esVencido = !esPagado && dias != null && dias < 0
-    var esProximo = !esPagado && p.alerta_dias_antes != null && dias != null && dias >= 0 && dias <= p.alerta_dias_antes
+    var _ventanaProx = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
+    var esProximo = !esPagado && dias != null && dias >= 0 && dias <= _ventanaProx
     var color, badge
     if (esPagado)       { color='#0d6e41'; badge='✓ PAGADO' }
     else if (esVencido) { color='#c0392b'; badge='⚠️ VENCIDO HACE '+Math.abs(dias)+' DÍA'+(Math.abs(dias)!==1?'S':'') }
@@ -9517,7 +9532,10 @@ window.renderPagos = function() {
       +   '</div>'
       // Col 3: importe + acciones
       +   '<div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
-      +     '<div style="font-size:20px;font-weight:800;color:'+color+';font-family:DM Mono,monospace">'+_pagoFmtMoney(p)+'</div>'
+      +     '<div style="display:flex;align-items:center;gap:6px">'
+      +       '<div style="font-size:20px;font-weight:800;color:'+color+';font-family:DM Mono,monospace">'+_pagoFmtMoney(p,{toggle: window._pagosToggleUsdArs.has(p.id)})+'</div>'
+      +       '<button onclick="togglePagoMoneda(\''+p.id+'\')" title="Convertir a '+(p.moneda==='USD'?'ARS':'USD')+' al tipo de cambio actual" style="font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--borde);background:var(--crema);color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:700">⇄ '+(p.moneda==='USD'?'ARS':'USD')+'</button>'
+      +     '</div>'
       +     '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
       +       (!esPagado ? '<button onclick="marcarPagoPagado(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✓ Pagado</button>' : '<button onclick="marcarPagoPendiente(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">↩ Reabrir</button>')
       +       (p.tipo==='cheque' ? '<button onclick="editarCheque(\''+p.id+'\')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✏️ Editar</button>' : '')
@@ -10113,12 +10131,13 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   // Aplicar visibilidad de tabs según permisos
   _aplicarPermisosUI()
-  // Determinar primer tab visible y activarlo
+  // Determinar primer tab visible y activarlo. Orden nuevo: Rentabilidad → Ingresos → Gastos → Lluvias → Suelo.
   var _tabOpts = [
-    {id:'tab-ingresos-campo', sec:'sec-ingresos',  mod:'ingresos', render: function(){renderIngresosTab()}},
-    {id:'tab-gastos-campo',   sec:'sec-gastos',    mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
-    {id:'tab-lluvias-campo',  sec:'sec-lluvias',   mod:'lluvias',  render: function(){renderDetLluvias()}},
-    {id:'tab-suelo-campo',    sec:'sec-suelo',     mod:'suelo',    render: function(){renderDetSuelo()}}
+    {id:'tab-rentabilidad-campo', sec:'sec-rentabilidad', mod:'rentabilidad_campo', render: function(){renderCampoRent()}},
+    {id:'tab-ingresos-campo',     sec:'sec-ingresos',     mod:'ingresos', render: function(){renderIngresosTab()}},
+    {id:'tab-gastos-campo',       sec:'sec-gastos',       mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
+    {id:'tab-lluvias-campo',      sec:'sec-lluvias',      mod:'lluvias',  render: function(){renderDetLluvias()}},
+    {id:'tab-suelo-campo',        sec:'sec-suelo',        mod:'suelo',    render: function(){renderDetSuelo()}}
   ]
   var _primerTab = null
   for (var _ti = 0; _ti < _tabOpts.length; _ti++) {
@@ -12839,6 +12858,83 @@ window.renderDetSuelo = function() {
   var FERTIL={N:{prod:'Urea 46%',dosis:120,precio:.85,momento:'Presiembra'},P:{prod:'DAP',dosis:80,precio:1.2,momento:'Siembra'},S:{prod:'Sulfato amonio',dosis:60,precio:.45,momento:'Siembra'},Zn:{prod:'Zinc quelatado',dosis:2,precio:8,momento:'Foliar V4'}}
   var recs=[];NUTRI.forEach(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0];if(val<min){var k=n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':n.key.includes('zinc')?'Zn':null;if(k&&FERTIL[k])recs.push(Object.assign({label:n.label},FERTIL[k]))}})
   document.getElementById('det-suelo-recs').innerHTML = !recs.length?'<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Nutrientes en niveles óptimos para '+cultivo+'</div>':recs.map(function(r){return '<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:4px">'+r.label+' — '+r.prod+'</div><div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>'+r.dosis+' kg/ha</strong> · '+r.momento+' · Costo: <strong>USD '+(r.dosis*r.precio).toFixed(0)+'/ha</strong></div></div>'}).join('')
+
+  // ── EVOLUCIÓN POR CAMPAÑA (tabla + chart) ──
+  var evoTabla = document.getElementById('det-suelo-tabla')
+  if (evoTabla) {
+    var ordenados = anals.slice().sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
+    if (!ordenados.length) {
+      evoTabla.innerHTML = '<div style="font-size:12px;color:var(--texto-suave);padding:.75rem 0">Cargá análisis en distintas campañas para ver la evolución.</div>'
+    } else {
+      var _labelCampana = function(fechaStr){
+        var d = new Date(fechaStr), y = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear()-1
+        return y + '/' + String(y+1).slice(2)
+      }
+      var COLUMNAS = [
+        {key:'ph',           label:'pH',          fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.pH},
+        {key:'materia_org',  label:'MO %',        fmt:function(v){return v!=null?Number(v).toFixed(2):'—'}, r:rangos.MO},
+        {key:'p_disponible', label:'P (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.P},
+        {key:'k',            label:'K (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(0):'—'}, r:rangos.K},
+        {key:'n_total',      label:'N total %',   fmt:function(v){return v!=null?Number(v).toFixed(3):'—'}, r:[0.14, 0.25]},
+        {key:'s',            label:'S (ppm)',     fmt:function(v){return v!=null?Number(v).toFixed(1):'—'}, r:rangos.S}
+      ]
+      var _colorPorRango = function(val, r){
+        val = parseFloat(val); if (isNaN(val) || !r) return 'inherit'
+        if (val < r[0]*0.7) return '#c0392b'  // crítico
+        if (val < r[0])     return '#c97a14'  // bajo
+        if (val <= r[1])    return '#1a7a52'  // óptimo
+        return '#1a5fa8'                       // alto
+      }
+      var hdr = '<tr style="background:var(--crema)">' +
+        '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campaña</th>' +
+        COLUMNAS.map(function(col){return '<th style="padding:9px 10px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">'+col.label+'</th>'}).join('') +
+        '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Recomendación</th></tr>'
+      var rows = ordenados.map(function(a){
+        var cells = COLUMNAS.map(function(col){
+          var v = a[col.key], col2 = _colorPorRango(v, col.r)
+          return '<td style="padding:10px;text-align:right;font-size:12px;color:'+col2+';font-weight:600;font-variant-numeric:tabular-nums">'+col.fmt(v)+'</td>'
+        }).join('')
+        var nota = a.notas ? String(a.notas).slice(0, 140) + (String(a.notas).length > 140 ? '…' : '') : '—'
+        return '<tr style="border-bottom:.5px solid var(--borde)">' +
+          '<td style="padding:10px;font-size:12px;color:var(--texto);font-weight:700">'+_labelCampana(a.fecha)+'</td>' +
+          cells +
+          '<td style="padding:10px;font-size:11px;color:var(--texto-suave);max-width:280px">'+nota+'</td></tr>'
+      }).join('')
+      evoTabla.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead>'+hdr+'</thead><tbody>'+rows+'</tbody></table>'
+    }
+
+    // ── Chart de evolución con Chart.js ──
+    var canvas = document.getElementById('chart-det-suelo')
+    if (canvas && window.Chart && ordenados.length) {
+      if (window._chartSueloInst) { try { window._chartSueloInst.destroy() } catch(e){} }
+      var labels = ordenados.map(function(a){ return _labelCampana(a.fecha) })
+      var METRICAS = [
+        {label:'pH',        key:'ph',           color:'#1a5fa8'},
+        {label:'MO %',      key:'materia_org',  color:'#1a7a52'},
+        {label:'P (ppm)',   key:'p_disponible', color:'#c97a14'},
+        {label:'N total %', key:'n_total',      color:'#c0392b'},
+        {label:'S (ppm)',   key:'s',            color:'#8b5cf6'}
+      ]
+      window._chartSueloInst = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: METRICAS.map(function(m){
+            return {
+              label: m.label, data: ordenados.map(function(a){var v=parseFloat(a[m.key]);return isNaN(v)?null:v}),
+              borderColor: m.color, backgroundColor: m.color+'22', tension: 0.3, borderWidth: 2, pointRadius: 3, spanGaps: true
+            }
+          })
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+          scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+        }
+      })
+    }
+  }
 }
 
 

@@ -10623,19 +10623,23 @@ window._sueloAgregarArchivos = async function(input) {
   var files = Array.from(input.files || [])
   if (!files.length) return
   var labelEl = document.getElementById('s-upload-label')
-  if (labelEl) labelEl.textContent = 'Procesando...'
+  if (labelEl) labelEl.textContent = 'Subiendo...'
   for (var i = 0; i < files.length; i++) {
     var file = files[i]
+    if (file.size > 15 * 1024 * 1024) { showToast('⚠️ '+file.name+' > 15 MB','err'); continue }
     try {
-      var dataUrl = await _archivoABase64(file)
+      // Subir al bucket 'suelo-archivos' (creado 2026-07) en vez de guardar base64 en DB.
+      // Antes: cada análisis con foto de 5MB inflaba la fila 5MB. Ahora: solo referencia URL.
+      var up = await _subirArchivoStorageBucket(file, 'suelo-archivos')
       window._sueloArchivosPendientes.push({
-        nombre: file.name, url: dataUrl,
+        nombre: file.name, url: up.url, path: up.path,
         tipo: file.type || 'application/octet-stream',
         tamanio: file.size
       })
       showToast('✓ ' + file.name + ' adjuntado', 'ok')
     } catch(e) {
-      showToast('⚠️ ' + (e.message || 'Error con ' + file.name), 'err')
+      console.error('suelo upload:', e)
+      showToast('⚠️ Error subiendo '+file.name+': '+(e.message||''),'err')
     }
   }
   input.value = ''
@@ -10694,20 +10698,24 @@ window.guardarSuelo = async function() {
       materia_org:g('s-mo'), ph:g('s-ph'), zinc:g('s-zn'), boro:g('s-b'),
       notas:null
     }
-    // Adjuntar archivos si hay (columna puede no existir en DB vieja → retry sin ella)
+    // Adjuntar archivos si hay (columna puede no existir en DB vieja → retry sin ella).
+    // Los archivos ya se subieron al bucket 'suelo-archivos' — acá solo guardamos las URLs.
     if (window._sueloArchivosPendientes.length) {
       payloadSuelo.archivos = window._sueloArchivosPendientes
     }
-    var ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
-    if (ins.error) {
-      // Reintentar sin archivos si la columna no existe
-      if (/column|archivos|schema|does not exist|PGRST204/i.test(ins.error.message||'')) {
-        delete payloadSuelo.archivos
-        ins = await sb.from('analisis_suelo').insert(payloadSuelo).select().single()
-      }
-      if (ins.error) throw ins.error
+    // Insert con _dbMutate (REST fallback) para evitar el deadlock del SDK.
+    var localId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('a'+Math.random().toString(16).slice(2))
+    payloadSuelo.id = localId
+    try {
+      await _dbMutate({method:'insert', table:'analisis_suelo', payload: payloadSuelo, timeout: 8000})
+    } catch (eFull) {
+      console.warn('suelo insert full falló, retry sin archivos:', eFull.message)
+      // Retry sin columna 'archivos' por si no existe en DB vieja
+      var pMin = Object.assign({}, payloadSuelo); delete pMin.archivos
+      try { await _dbMutate({method:'insert', table:'analisis_suelo', payload: pMin, timeout: 8000}) }
+      catch (eMin) { throw eMin }
     }
-    analisisS.unshift(ins.data)
+    analisisS.unshift(payloadSuelo)
     window._sueloArchivosPendientes = []
     _sueloRenderArchivos()
     _guardarCache()
@@ -13646,17 +13654,36 @@ window.renderDetSuelo = function() {
       var hdr = '<tr style="background:var(--crema)">' +
         '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campaña</th>' +
         COLUMNAS.map(function(col){return '<th title="'+col.full+'" style="padding:9px 10px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600;cursor:help;text-decoration:underline dotted var(--texto-suave)">'+col.label+'</th>'}).join('') +
-        '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Recomendación</th></tr>'
+        '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Recomendación</th>' +
+        '<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--texto-suave);font-weight:600">Archivos</th></tr>'
       var rows = ordenados.map(function(a){
         var cells = COLUMNAS.map(function(col){
           var v = a[col.key], col2 = _colorPorRango(v, col.r)
           return '<td style="padding:10px;text-align:right;font-size:12px;color:'+col2+';font-weight:600;font-variant-numeric:tabular-nums">'+col.fmt(v)+'</td>'
         }).join('')
         var nota = a.notas ? String(a.notas).slice(0, 140) + (String(a.notas).length > 140 ? '…' : '') : '—'
+        // Archivos: parse del jsonb + links descargables por cada archivo
+        var arch = []
+        if (a.archivos) {
+          try {
+            var parsed = (typeof a.archivos === 'string') ? JSON.parse(a.archivos) : a.archivos
+            if (Array.isArray(parsed)) arch = parsed
+          } catch(e) {}
+        }
+        var archCell = '<span style="color:var(--texto-suave)">—</span>'
+        if (arch.length) {
+          archCell = arch.map(function(f){
+            var ico = (f.tipo||'').startsWith('image/') ? '🖼️' : '📄'
+            var url = f.url || '#'
+            var nombre = (f.nombre||'archivo').slice(0,25) + ((f.nombre||'').length>25?'…':'')
+            return '<a href="'+url+'" target="_blank" title="'+nombre+'" style="display:inline-block;margin:2px;padding:4px 8px;background:var(--crema);border-radius:6px;text-decoration:none;color:var(--verde);font-size:11px;font-weight:600">'+ico+' '+nombre+'</a>'
+          }).join('')
+        }
         return '<tr style="border-bottom:.5px solid var(--borde)">' +
           '<td style="padding:10px;font-size:12px;color:var(--texto);font-weight:700">'+_labelCampana(a.fecha)+'</td>' +
           cells +
-          '<td style="padding:10px;font-size:11px;color:var(--texto-suave);max-width:280px">'+nota+'</td></tr>'
+          '<td style="padding:10px;font-size:11px;color:var(--texto-suave);max-width:280px">'+nota+'</td>' +
+          '<td style="padding:10px;text-align:center">'+archCell+'</td></tr>'
       }).join('')
       evoTabla.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead>'+hdr+'</thead><tbody>'+rows+'</tbody></table>'
     }

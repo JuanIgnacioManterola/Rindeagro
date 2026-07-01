@@ -2634,8 +2634,10 @@ async function cargarTodo() {
     }
     return r
   }
-  // Helper: cada query tiene timeout 4s y fallback REST para evitar que el SDK
-  // cuelgue toda la carga inicial.
+  // Helper: cada query tiene timeout 10s y fallback REST para evitar que el SDK
+  // cuelgue toda la carga inicial. Subido de 4s → 10s: conexiones lentas
+  // desde Argentina hasta sa-east-1 pueden tardar más de 4s pero < 10s
+  // en primera carga (handshake + query).
   async function _selectConFallback(table, params) {
     // params: {col, val, order?: {col, asc}}
     try {
@@ -2645,7 +2647,7 @@ async function cargarTodo() {
       if (params.order) q = q.order(params.order.col, {ascending: !!params.order.asc})
       var r = await Promise.race([
         q,
-        new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('SDK timeout 4s')) }, 4000) })
+        new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('SDK timeout 10s')) }, 10000) })
       ])
       if (r && r.error) throw r.error
       return { data: r.data || [] }

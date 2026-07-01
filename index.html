@@ -3082,8 +3082,8 @@ function renderDashboard() {
 }
 
 // Alerta prominente arriba del dashboard cuando hay pagos vencidos o próximos.
-// Ventana default de 60 días si el compromiso no tiene alerta_dias_antes configurada
-// (misma convención que _pagosProximosCount).
+// "Próximos" = todos los pendientes futuros ordenados por fecha (mismo criterio
+// que _pagosProximosCount).
 function _renderDashPagosAlertaTop() {
   var el = document.getElementById('dash-pagos-alerta')
   if (!el) return
@@ -3093,10 +3093,7 @@ function _renderDashPagosAlertaTop() {
     var d = _pagoDiasRestantes(p.fecha_cobro)
     if (d == null) return
     if (d < 0) venc.push(p)
-    else {
-      var vent = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
-      if (d <= vent) prox.push(p)
-    }
+    else       prox.push(p)
   })
   if (!venc.length && !prox.length) { el.style.display = 'none'; return }
   var totVenc = venc.reduce(function(a,p){var v=parseFloat(p.importe)||0; if(p.moneda==='USD') a.usd+=v; else a.ars+=v; return a}, {ars:0,usd:0})
@@ -3147,15 +3144,12 @@ function _renderDashPagos() {
   var card = document.getElementById('dash-pagos-card')
   if (!el || !card) return
 
-  // Vencidos + próximos (60d default si no hay alerta_dias_antes)
+  // Vencidos + todos los pendientes futuros, ordenados por fecha ASC (primero los más urgentes)
   var hoy = new Date(); hoy.setHours(0,0,0,0)
   var urgentes = (pagos||[]).filter(function(p){
     if (p.estado !== 'pendiente') return false
     var d = _pagoDiasRestantes(p.fecha_cobro)
-    if (d == null) return false
-    if (d < 0) return true
-    var vent = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
-    return d <= vent
+    return d != null
   }).sort(function(a,b){
     return (a.fecha_cobro||'').localeCompare(b.fecha_cobro||'')
   }).slice(0, 5)
@@ -9153,14 +9147,13 @@ function _pagoFmtFecha(s) {
 
 // Cuenta cuántos pagos están "próximos" (pendientes + dentro de su ventana de alerta)
 function _pagosProximosCount() {
-  // Si el compromiso no tiene alerta_dias_antes configurada, usar 60d por default
-  // (ventana razonable para planificación agrícola: cubre las cuotas del próximo
-  // par de meses sin necesidad de setear alerta explícita en cada compromiso).
+  // "Próximos a vencer" = TODOS los pendientes que aún no vencieron (fecha_cobro >= hoy).
+  // Antes filtrábamos por alerta_dias_antes o 60d default; el usuario prefiere ver el
+  // panorama completo y usar el orden ASC de fechas para priorizar.
   return (pagos||[]).filter(function(p){
     if (p.estado !== 'pendiente') return false
-    var ventana = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
     var d = _pagoDiasRestantes(p.fecha_cobro)
-    return d != null && d >= 0 && d <= ventana
+    return d != null && d >= 0
   }).length
 }
 
@@ -9549,10 +9542,25 @@ window.marcarPagoPendiente = async function(id) {
   if (!p) return
   var prevEstado = p.estado
   p.estado = 'pendiente'
+  // Al reabrir, saltar automáticamente al filtro "Próximos" para que el usuario
+  // vea a dónde fue el compromiso (si no, desaparece del filtro Pagados y
+  // parece que no pasó nada).
+  if (pagosFiltroEstado === 'pagados') pagosFiltroEstado = 'proximos'
   _guardarCache(); renderPagos(); _actualizarBadgePagos()
+  showToast('↩ Compromiso reabierto — ahora aparece en Próximos','ok')
+  // Mantener el botón del filtro activo consistente con el switch
+  try {
+    document.querySelectorAll('.pag-filtro-btn').forEach(function(b){
+      var estBtn = b.getAttribute('data-estado')
+      var activo = estBtn === pagosFiltroEstado
+      b.style.background = activo ? 'var(--verde)' : 'var(--crema)'
+      b.style.color = activo ? '#fff' : 'var(--texto-mid)'
+      b.style.borderColor = activo ? 'var(--verde)' : 'var(--borde)'
+    })
+  } catch(e) {}
   ;(async function(){
     try { await _dbMutate({method:'update', table:'compromisos_pago', filter:{col:'id', val:id}, payload:{estado:'pendiente'}}) }
-    catch(e){ p.estado = prevEstado; _guardarCache(); renderPagos() }
+    catch(e){ p.estado = prevEstado; _guardarCache(); renderPagos(); showToast('⚠️ No se sincronizó: '+e.message.slice(0,80),'err') }
   })()
 }
 
@@ -9568,7 +9576,7 @@ window.renderPagos = function() {
     var proximos  = _pagosProximosCount()
     var pagados   = (pagos||[]).filter(function(p){return p.estado==='pagado'}).length
     var cards = [
-      {l:'Próximos a vencer', v:proximos.toString(), s:'dentro de los 60 días',  c:'#c97a14', estado:'proximos'},
+      {l:'Próximos a vencer', v:proximos.toString(), s:'pendientes ordenados por fecha',  c:'#c97a14', estado:'proximos'},
       {l:'Vencidos',          v:vencidos.toString(), s:'pasaron la fecha',       c:'#c0392b', estado:'vencidos'},
       {l:'Pagados',           v:pagados.toString(),  s:'compromisos saldados',   c:'#1a7a52', estado:'pagados'}
     ]
@@ -9590,8 +9598,7 @@ window.renderPagos = function() {
   } else if (pagosFiltroEstado === 'proximos') {
     lista = lista.filter(function(p){
       if (p.estado!=='pendiente') return false
-      var ventana = (p.alerta_dias_antes != null) ? p.alerta_dias_antes : 60
-      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0 && d <= ventana
+      var d = _pagoDiasRestantes(p.fecha_cobro); return d != null && d >= 0
     })
   }
   lista.sort(function(a,b){

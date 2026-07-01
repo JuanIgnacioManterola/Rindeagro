@@ -527,8 +527,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="mod-header">
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
     </div>
-    <!-- Alerta de pagos próximos/vencidos -->
-    <div id="dash-pagos-alerta" style="display:none;margin-bottom:12px"></div>
     <div class="precio-strip">
       <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Maíz · Rosario</div><div class="pi-v" id="ps-maiz">—</div><div class="pi-d" id="ps-maiz-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
@@ -559,6 +557,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
       </div>
     </div>
+
+    <!-- Alerta de pagos próximos/vencidos (debajo de Tareas) -->
+    <div id="dash-pagos-alerta" style="display:none;margin:14px 0"></div>
 
     <!-- Widget Próximos pagos -->
     <div class="card" id="dash-pagos-card" style="display:none">
@@ -8135,7 +8136,14 @@ window.guardarGasto = async function() {
       var _arrDesc=document.getElementById('g-arr-desc')?.value?.trim()||null
       if(_arrDesc) _p.descripcion = _arrDesc
     }
-    if(gastosCultivoActivo) _p.cultivo = gastosCultivoActivo
+    // Cultivo del gasto:
+    // - Si el usuario está dentro de un cultivo específico (picker activo) →
+    //   asignar ese cultivo. Se cuenta completo para ese cultivo.
+    // - EXCEPCIÓN: arrendamiento SIEMPRE queda como shared (cultivo=null),
+    //   incluso si el picker está en un cultivo. Se reparte proporcional a
+    //   las hectáreas de cada cultivo en campos mixtos.
+    if(gastosCultivoActivo && rubro !== 'arrendamiento') _p.cultivo = gastosCultivoActivo
+    else if(rubro === 'arrendamiento') _p.cultivo = null
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
 

@@ -10903,31 +10903,47 @@ window._pfProcesarOCR = async function() {
   document.getElementById('pf-step-1').style.display = 'none'
   document.getElementById('pf-step-2').style.display = ''
 
+  // Timeout duro por sub-paso — evita que el modal quede colgado si el SDK de
+  // Storage o la edge function no responden.
+  function _withTimeout(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Se pasó de tiempo: '+label+' (>'+Math.round(ms/1000)+'s)')) }, ms) })
+    ])
+  }
+
   try {
-    // 1) Subir al Storage (queda asociado al pago al guardar)
-    var up = await _subirArchivoStorageBucket(_pfFile, 'pagos-archivos')
+    // 1) Subir al Storage (queda asociado al pago al guardar) — máx 15s
+    var up = await _withTimeout(_subirArchivoStorageBucket(_pfFile, 'pagos-archivos'), 15000, 'subir archivo')
     _pfArchivoUrl = up.url
     _pfArchivoPath = up.path
 
-    // 2) Convertir a base64
-    var b64 = await _fileToBase64(_pfFile)
+    // 2) Convertir a base64 — máx 8s (archivos grandes)
+    var b64 = await _withTimeout(_fileToBase64(_pfFile), 8000, 'preparar archivo')
     _pfFileBase64 = b64
 
-    // 3) Llamar edge function ocr-pago
+    // 3) Llamar edge function ocr-pago — máx 30s (Claude puede tardar)
     var sbUrl = (window.SUPABASE_URL || '') || (sb && sb.supabaseUrl) || SB_URL
     var endpoint = (sbUrl || '').replace(/\/$/,'') + '/functions/v1/ocr-pago'
     var sess = (await sb.auth.getSession()).data.session
     var token = sess && sess.access_token
-    var r = await fetch(endpoint, {
+    var r = await _withTimeout(fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+(token||'') },
       body: JSON.stringify({ image_base64: b64, mime_type: _pfFileMime, tipo: tipo })
-    })
+    }), 30000, 'leer con OCR')
     if (!r.ok) {
       var txt = await r.text().catch(function(){return ''})
+      // Detectar errores conocidos y dar mensaje claro.
       if (r.status === 404) throw new Error('OCR no configurado todavía. El admin tiene que desplegar la función ocr-pago.')
       if (r.status === 401) throw new Error('Sesión inválida. Volvé a entrar.')
-      throw new Error('OCR error '+r.status+': '+(txt||'sin detalle'))
+      // Parsear body como JSON si trae {error:...}
+      var msg = ''
+      try { var j=JSON.parse(txt); msg=j.error||j.message||'' } catch(_) { msg=txt }
+      if (msg && msg.indexOf('ANTHROPIC_API_KEY') !== -1) {
+        throw new Error('El OCR todavía no está activado. Estamos en desarrollo — mientras tanto cargá el pago manualmente con "+ Crédito" o "+ Cheque".')
+      }
+      throw new Error('OCR error '+r.status+': '+(msg||'sin detalle'))
     }
     var resp = await r.json()
     if (!resp.ok || !resp.data) throw new Error('No pude identificar los datos. Probá con una foto más clara.')

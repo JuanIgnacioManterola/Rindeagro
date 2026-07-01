@@ -777,7 +777,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modulo" id="mod-campos">
     <div class="mod-header">
       <div><div class="mod-titulo">🌾 Mis campos</div><div class="mod-sub">Hacé clic en un campo para ver su detalle completo</div></div>
-      <button class="btn-vs" id="btn-add-campo-nav" onclick="openModalCampo()">+ Nuevo campo</button>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button class="btn-vs" id="btn-add-campo-nav" onclick="openModalCampo()">+ Nuevo campo</button>
+        <div id="campos-uso-plan" style="font-size:11px;color:var(--texto-suave);text-align:right"></div>
+      </div>
     </div>
     <div id="campos-lista-cards"></div>
   </div>
@@ -5690,6 +5693,26 @@ window.recuperarPass = async function() {
   }catch(e){showToast('⚠️ Error al enviar email','err')}
 }
 // ── PLANES DE SUSCRIPCIÓN ──
+// Excepción admin — usuarios internos con acceso ilimitado sin importar el plan.
+// Ignacio (dueño / dev) puede seguir probando sin bloquearse por límites.
+var USUARIOS_ADMIN_ILIMITADOS = [
+  'ea80343b-b31d-4cba-a43e-00c3f0a3fa39' // Ignacio Manterola
+]
+window._esAdminIlimitado = function() {
+  if (!usuario) return false
+  return USUARIOS_ADMIN_ILIMITADOS.indexOf(usuario.id) >= 0
+}
+// Devuelve el objeto de plan actual del usuario (default: gratis)
+window._infoPlanActual = function() {
+  var planId = (usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis'
+  return PLANES_INFO[planId] || PLANES_INFO.gratis
+}
+// Devuelve el límite de campos permitido según el plan (Infinity para admin/corporativo)
+window._limiteCamposPlan = function() {
+  if (window._esAdminIlimitado()) return Infinity
+  return window._infoPlanActual().limite_campos || 1
+}
+
 // 3 planes fijos: Gratis (1 campo), Semilla (3 campos, USD 550/año), Corporativo (>3 campos, USD 700/año).
 // Todos + IVA 21%, pago único anual en pesos al dólar oficial vendedor del BNA.
 var PLANES_INFO = {
@@ -6352,6 +6375,19 @@ window.guardarCampo = async function() {
   if(!usuario){showToast('⚠️ Sesión expirada','err');return}
   var editId = document.getElementById('c-edit-id')?.value||''
   var isEdit = !!editId
+  // ── Chequeo de límite del plan (solo cuando se crea, no cuando se edita) ──
+  if (!isEdit) {
+    var limite = _limiteCamposPlan()
+    var actuales = (campos||[]).length
+    if (actuales >= limite && limite !== Infinity) {
+      var infoPlan = _infoPlanActual()
+      showToast('🔒 Alcanzaste el límite de tu plan '+infoPlan.nombre+' ('+limite+' campo'+(limite!==1?'s':'')+'). Contratá Semilla o Corporativo para agregar más.', 'err')
+      closeModalCampo()
+      // Después de 800ms navego al módulo Mi Plan para que vea cómo upgradar
+      setTimeout(function(){ try { showModulo('mi-plan') } catch(e) {} }, 900)
+      return
+    }
+  }
   var btn=document.getElementById('btn-campo')
   btn.disabled=true; btn.textContent=isEdit?'Guardando cambios...':'Guardando...'
 
@@ -11408,6 +11444,27 @@ if(/[?&]diag=1/i.test(window.location.search)) {
 
 
 window.renderCamposLista = function() {
+  // Actualizar widget de uso del plan (X de N campos)
+  try {
+    var usoEl = document.getElementById('campos-uso-plan')
+    if (usoEl) {
+      var limite = window._limiteCamposPlan ? window._limiteCamposPlan() : 1
+      var esAdmin = window._esAdminIlimitado && window._esAdminIlimitado()
+      var infoPlan = window._infoPlanActual ? window._infoPlanActual() : {nombre:'Gratis'}
+      var actuales = (campos||[]).length
+      if (esAdmin) {
+        usoEl.innerHTML = '<span style="color:var(--dorado);font-weight:700">⭐ Admin · '+actuales+' campo'+(actuales!==1?'s':'')+' (sin límite)</span>'
+      } else if (limite === Infinity) {
+        usoEl.innerHTML = '<span>Plan '+infoPlan.nombre+' · '+actuales+' campo'+(actuales!==1?'s':'')+' (ilimitados)</span>'
+      } else {
+        var col = actuales >= limite ? 'var(--rojo)' : (actuales === limite-1 ? 'var(--dorado)' : 'var(--texto-suave)')
+        usoEl.innerHTML = '<span style="color:'+col+'"><strong>'+actuales+' de '+limite+'</strong> campos · Plan '+infoPlan.nombre+'</span>'
+        if (actuales >= limite) {
+          usoEl.innerHTML += ' · <a href="javascript:void(0)" onclick="showModulo(\'mi-plan\')" style="color:var(--verde);font-weight:700;text-decoration:underline">Upgrade →</a>'
+        }
+      }
+    }
+  } catch(e) {}
   var el = document.getElementById('campos-lista-cards')
   if (!el) return
   if (!campos.length) {

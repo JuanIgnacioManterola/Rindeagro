@@ -2918,12 +2918,13 @@ async function init() {
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
     // Mostrar nombre del email inmediatamente (antes de queries a DB)
     var emailNom = (user.email||'').split('@')[0]
+    var emailNomCap = emailNom ? (emailNom.charAt(0).toUpperCase() + emailNom.slice(1).toLowerCase()) : emailNom
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
     try {
-      var dNm = document.getElementById('d-nm'); if(dNm) dNm.textContent = emailNom
-      var dAv = document.getElementById('d-av'); if(dAv) dAv.textContent = emailNom.charAt(0).toUpperCase()
-      var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = sal + ', ' + emailNom + ' 👋'
+      var dNm = document.getElementById('d-nm'); if(dNm) dNm.textContent = emailNomCap
+      var dAv = document.getElementById('d-av'); if(dAv) dAv.textContent = emailNomCap.charAt(0).toUpperCase()
+      var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = sal + ', ' + emailNomCap + ' 👋'
       var dFec = document.getElementById('d-fecha'); if(dFec) dFec.textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
     } catch(e) {}
     hideLoading()
@@ -3223,11 +3224,13 @@ async function cargarTodo() {
   try {
     var p = resP.status==='fulfilled' ? resP.value.data : null
     var nombre = (p && p.nombre) ? p.nombre : (usuario.email||'').split('@')[0]
+    var primerNom = (nombre.split(' ')[0]||'')
+    var primerNomCap = primerNom ? (primerNom.charAt(0).toUpperCase() + primerNom.slice(1).toLowerCase()) : primerNom
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
-    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=nombre.charAt(0).toUpperCase()
+    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=primerNomCap.charAt(0).toUpperCase()
     var dNm=document.getElementById('d-nm'); if(dNm) dNm.textContent=nombre
-    var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=sal+', '+nombre.split(' ')[0]+' 👋'
+    var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=sal+', '+primerNomCap+' 👋'
     var dFec=document.getElementById('d-fecha'); if(dFec) dFec.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
   } catch(e) {}
 
@@ -5888,7 +5891,7 @@ window.registrar = async function() {
       }catch(e){console.log('Error campo:',e)}
     }
     closeModal()
-    showToast('🌾 ¡Bienvenido'+(nombre?' '+nombre.split(' ')[0]:'')+'!','ok')
+    showToast('🌾 ¡Bienvenido'+(nombre?' '+((nombre.split(' ')[0]||'').charAt(0).toUpperCase()+(nombre.split(' ')[0]||'').slice(1).toLowerCase()):'')+'!','ok')
     showScreen('app')
     await cargarTodo()
   }catch(e){

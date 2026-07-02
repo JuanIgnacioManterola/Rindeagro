@@ -8,6 +8,25 @@
 <meta http-equiv="Expires" content="0"/>
 <title>Rinde.Agro · Plataforma agropecuaria argentina</title>
 <meta name="description" content="Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico — todo desde el celular."/>
+<link rel="icon" type="image/svg+xml" href="/assets/og-image.svg"/>
+<!-- Open Graph (WhatsApp, Facebook, LinkedIn, Slack) -->
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Rinde.Agro"/>
+<meta property="og:url" content="https://rindeagro.app/"/>
+<meta property="og:title" content="Rinde.Agro · Sabé exactamente cuánto rinde tu campaña"/>
+<meta property="og:description" content="Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico. Todo desde el celular. Cargá datos por WhatsApp desde el campo."/>
+<meta property="og:image" content="https://rindeagro.app/assets/og-image.svg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Rinde.Agro — plataforma agropecuaria hecha en Argentina"/>
+<meta property="og:locale" content="es_AR"/>
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Rinde.Agro · Sabé exactamente cuánto rinde tu campaña"/>
+<meta name="twitter:description" content="Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico. Todo desde el celular."/>
+<meta name="twitter:image" content="https://rindeagro.app/assets/og-image.svg"/>
+<!-- Tema para browsers mobile -->
+<meta name="theme-color" content="#1a4a2e"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1333,11 +1352,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <option value="otros" data-vida="5">📦 Otros</option>
         </select>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
         <div class="fg"><label class="fl">Valor de compra (USD) *</label><input class="fi" type="number" id="ac-valor" placeholder="Ej: 30000" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
         <div class="fg"><label class="fl">Fecha de compra *</label><input class="fi" type="date" id="ac-fecha"/></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
         <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
         <div class="fg"><label class="fl">Valor residual (USD)</label><input class="fi" type="number" id="ac-residual" placeholder="0 (opcional)" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
       </div>
@@ -1461,7 +1480,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <option value="otros">📦 Otros</option>
         </select>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
         <div class="fg"><label class="fl">Importe USD *</label><input class="fi" type="number" id="ge-importe" placeholder="Ej: 1500" min="0" step="0.01"/></div>
         <div class="fg">
           <label class="fl">Frecuencia *</label>
@@ -1472,7 +1491,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           </select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
         <div class="fg"><label class="fl">Desde *</label><input class="fi" type="date" id="ge-fecha-ini"/></div>
         <div class="fg" id="ge-fecha-fin-wrap"><label class="fl">Hasta (opcional)</label><input class="fi" type="date" id="ge-fecha-fin"/></div>
       </div>
@@ -3229,12 +3248,12 @@ async function cargarTodo() {
   try {
     var p = resP.status==='fulfilled' ? resP.value.data : null
     var nombre = (p && p.nombre) ? p.nombre : (usuario.email||'').split('@')[0]
-    var primerNom = (nombre.split(' ')[0]||'')
-    var primerNomCap = primerNom ? (primerNom.charAt(0).toUpperCase() + primerNom.slice(1).toLowerCase()) : primerNom
+    var nombreCap = _capNombreCompleto(nombre)
+    var primerNomCap = (nombreCap.split(' ')[0]||'')
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
-    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=primerNomCap.charAt(0).toUpperCase()
-    var dNm=document.getElementById('d-nm'); if(dNm) dNm.textContent=nombre
+    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=(primerNomCap.charAt(0)||'').toUpperCase()
+    var dNm=document.getElementById('d-nm'); if(dNm) dNm.textContent=nombreCap
     var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=sal+', '+primerNomCap+' 👋'
     var dFec=document.getElementById('d-fecha'); if(dFec) dFec.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
   } catch(e) {}
@@ -12317,6 +12336,17 @@ function fFechaCorta(f) {
 }
 function etapaLabel(e) {
   return {barbecho:'Barbecho',siembra:'Siembra',vegetativo:'Vegetativo',floracion:'Floración',llenado:'Llenado',maduracion:'Maduración'}[e]||e||'—'
+}
+
+// ── Capitalización de nombres de usuario ──
+// Convierte "ignacio manterola" o "JUAN PEREZ" → "Ignacio Manterola" / "Juan Perez".
+// Se usa en el saludo, avatar y sidebar. Idempotente y seguro con strings vacíos.
+window._capNombreCompleto = function(s) {
+  if (!s) return s || ''
+  return String(s).trim().split(/\s+/).map(function(w){
+    if (!w) return w
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  }).join(' ')
 }
 
 // ── TOAST ──

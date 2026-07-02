@@ -118,6 +118,82 @@ Reglas para el bot:
 
 Lectura desde el frontend: cuando el bot inserta, la app del usuario verá los nuevos compromisos en la próxima carga (`cargarTodo` o al abrir el tab Pagos vía `_refrescarPagosVistaActual`).
 
+## Módulo Estructura (activos_amortizables + gastos_estructura)
+
+Nueva sección en el nav entre **Rentabilidad** e **Insumos** para cargar costos que NO son de un campo específico sino de la empresa productor. Son 2 tablas RLS owner-only:
+
+### `activos_amortizables`
+Vehículos, herramientas, maquinaria, construcciones (silos, galpones). Se carga una sola vez el activo (`valor_compra_usd`, `fecha_compra`, `vida_util_anos`, `valor_residual_usd`). El sistema calcula automáticamente la amortización anual = `(valor − residual) / vida_util`. Durante el período `[fecha_compra, fecha_compra + vida_util_anos]` esa cuota anual prorrateada por días se suma al costo. Cuando termina la vida útil deja de sumar.
+
+Columnas: `id`, `owner_id`, `descripcion`, `tipo` (`vehiculo|herramienta|maquinaria|construccion|otros`), `valor_compra_usd`, `fecha_compra`, `vida_util_anos`, `valor_residual_usd`, `distribuir_modo` (`por_hectareas|igualitario|personalizado`), `distribuir_config`, `notas`, timestamps.
+
+### `gastos_estructura`
+Sueldos, honorarios (contador/agrónomo), seguros (ART, agrícola, flota), oficina, combustible general. Recurrentes o únicos.
+
+Columnas: `id`, `owner_id`, `descripcion`, `tipo` (`sueldo|honorarios|seguro|oficina|combustible|otros`), `importe_usd`, `frecuencia` (`unico|mensual|anual`), `fecha_inicio`, `fecha_fin` (nullable — null = indefinido), `distribuir_modo`, `distribuir_config`, `notas`, timestamps.
+
+### Cálculos (helpers globales en `index.html`)
+
+- `_estCuotaAnual(a)` → (valor − residual) / vida_util.
+- `_estCostoActivoEnRango(a, dStart, dEnd)` → prorrateo por días del período de vida útil que intersecta el rango.
+- `_estCostoGastoEnRango(g, dStart, dEnd)` → continuo, por días. Único = importe si fecha ∈ rango. Mensual = (importe/30) × días. Anual = (importe/365) × días.
+- `_estructuraTotalEnRango(dStart, dEnd)` → total de activos + gastos en el rango.
+- `_estructuraCostoPorCampo(campoId, dStart, dEnd)` → prorrateo por hectáreas entre todos los campos.
+
+### Integración en Rentabilidad Total
+- Nueva fila `(−) Estructura` en el P&L (fondo rojo más oscuro, `#b91c1c`) con USD/ha, USD total y % del ingreso.
+- Métrica "Costos totales" incluye estructura + subtexto `"incluye USD X de estructura"`.
+- Cards por campo separan **Costos directos** y **↳ Estructura (prorrateo)** en dashed itálica.
+- PDF de Rentabilidad Total (`exportarPDFTotal`) también incluye estructura con caja explicativa de composición debajo del TOTALES.
+
+### OCR desde foto/PDF
+- Edge function `ocr-activo` (deploy activo) — lee factura de vehículo/máquina y devuelve `{descripcion, tipo, valor_compra_usd, fecha_compra}`.
+- Edge function `ocr-gasto-estr` (deploy activo) — lee recibo de sueldo / factura de contador / póliza de seguro / alquiler y devuelve `{descripcion, tipo, importe_usd, frecuencia, fecha_inicio, fecha_fin}`.
+- Ambas requieren `ANTHROPIC_API_KEY` como secret en Edge Functions — hasta que se setee, el frontend detecta el error específico y muestra un mensaje amigable.
+
+## Pipeline automatizado de precios (BCR cereales + BNA dólar)
+
+Sistema de scraping server-side con cron para tener siempre la cotización fresca sin depender del navegador del usuario.
+
+### Tablas
+- `precios_pizarra` (histórica) — soja/maiz/trigo/girasol/sorgo. RLS pública de lectura (writes solo desde service_role).
+- `precios_dolar` (nueva) — 4 cotizaciones: `billete_compra`, `billete_venta`, `divisa_compra`, `divisa_venta`. Con timestamp preciso.
+
+### Edge Functions
+- `precios-scrape-bcr` — scrapea `mercados.ambito.com/mercados/commodities` (Chicago) y aplica retenciones ARG (Soja 24%, Maíz 8.5%, Trigo 7.5%, Girasol 4.5%, Sorgo 8.5%) para calcular la pizarra local. Upsert por fecha en `precios_pizarra`.
+- `precios-fetch-dolar` — scrapea el HTML del cotizador público del BNA. Maneja los dos formatos numéricos que usa el BNA en la misma página (billete usa coma AR `"1460,00"`, divisa usa punto US `"1480.0000"`). Fallback a `dolarapi.com/v1/dolares/oficial` si el scrape del BNA falla.
+
+### Cron jobs (pg_cron, hora Argentina UTC-3)
+- **19:00 lun-vie** → `precios-scrape-bcr` (cierre pizarra).
+- **Cada 30 min entre 10:00-15:00 lun-vie** → `precios-fetch-dolar` (horario de mercado).
+- **19:00 lun-vie** → `precios-fetch-dolar` (cotización de cierre).
+
+### Vistas SQL con filtros de sanity
+- `v_precio_dolar_actual` → última fila con `divisa_compra` y `divisa_venta` between 100 and 100000 (excluye valores absurdos).
+- `v_precio_cereales_actual` → última fila de `precios_pizarra`.
+
+### Frontend: helpers de conversión USD ↔ ARS
+En `index.html`:
+- `window._dolarCompra()` → divisa comprador (~1480). **Usar en INGRESOS** (venta de cereal, el banco compra USD al productor).
+- `window._dolarVenta()` → divisa vendedor (~1489). **Usar en EGRESOS/COSTOS** (compra de insumos, Mi Plan, pagos, gastos).
+- `precios.bna` sigue existiendo como alias legacy de `divisa_venta` para no romper código viejo. Nuevos usos van con los helpers explícitos.
+- Strip del dashboard tiene 2 celdas separadas: `USD Compra · BNA` y `USD Venta · BNA` con el timestamp de "Cierre pizarra: DD-mmm".
+- Mi Plan hace `actualizarPrecios(true)` al abrir para forzar fetch fresco + muestra timestamp "Recién actualizado" / "Hace X min".
+
+## Límites por plan + whitelist de admin
+
+Los planes tienen límite de campos aplicado en `window.guardarCampo`:
+- **Gratis** → 1 campo
+- **Semilla** → 3 campos
+- **Corporativo** → ilimitado
+
+Excepción admin: whitelist `USUARIOS_ADMIN_ILIMITADOS` (array de UUIDs en `index.html`). Los que están ahí tienen acceso ilimitado sin importar su plan. Hoy contiene solo el UUID de Ignacio (`ea80343b-b31d-4cba-a43e-00c3f0a3fa39`) para poder seguir probando la app sin bloquearse. Extensible: para agregar otro admin, sumar su UUID al array.
+
+Helpers globales:
+- `window._esAdminIlimitado()` — true si el user actual está en la whitelist.
+- `window._infoPlanActual()` — objeto `PLANES_INFO` del plan del user (default gratis).
+- `window._limiteCamposPlan()` — número con el límite (o `Infinity` para admin/corporativo).
+
 ## Catálogo de insumos predefinidos
 
 `INSUMOS_PREDEFINIDOS` (en `index.html`) contiene ~120 productos curados según uso en agricultura argentina (datos INTA/CASAFE/Aapresid). Aparece como autocompletado `<datalist>` en el modal de carga de insumo, filtrado por tipo. Semillas y "otros" quedan en carga manual.
@@ -131,14 +207,16 @@ Las 4 categorías predefinidas:
 ## Pendientes (roadmap corto)
 
 - [x] ~~Dominio `rindeagro.lat`~~ — Reemplazado por **rindeagro.app** (PR #39). El CNAME apunta ahí. Los redirects auth ahora son dinámicos (`window.location.origin + pathname`), funcionan en cualquier dominio sin hardcodear.
-- [ ] **Open Graph meta tags + imagen `assets/og-image.jpg`** — para previews al compartir links en WhatsApp/Twitter/etc.
-- [ ] **Migrar FKs de Supabase a `ON DELETE CASCADE`** — actualmente `gastos`, `lluvias`, `analisis_suelo`, `campanas`, `eventos`, `mensajes_wa` son `NO ACTION`. Esto facilita borrar usuarios limpiamente sin transacciones manuales.
-- [ ] **Habilitar RLS en tabla `precios_pizarra`** — security advisor lo marca como crítico.
+- [x] ~~Open Graph meta tags~~ — Aplicado. Meta tags og:/twitter: en el `<head>` + imagen SVG en `assets/og-image.svg` (1200×630). Se ve preview en WhatsApp/Facebook/LinkedIn/Slack/X. Si en algún momento un partner reporta que WhatsApp no lo renderiza bien (SVG spotty), convertir a PNG y actualizar la URL de `og:image`.
+- [x] ~~Migrar FKs de Supabase a `ON DELETE CASCADE`~~ — Aplicado (migración `fks_on_delete_cascade_cleanup`). Cambios: `*.usuario_id → perfiles(id)` pasa a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa. `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` pasan a `SET NULL` (mantienen registro histórico). Ahora un `auth.users DELETE` limpia todo en cascada sin transacciones manuales.
+- [x] ~~Habilitar RLS en tabla `precios_pizarra`~~ — Aplicado con la migración `precios_dolar_scrape_pipeline` (lectura pública para authenticated + anon, writes solo desde edge functions con service_role).
+- [x] ~~Confirmación de eliminación más fuerte~~ — Aplicado. 5 confirms simples (`eliminarTarea`, `eliminarGasto`, `eliminarCompromiso`, `eliminarActivo`, `eliminarGastoEstructura`) migrados al pattern **`_showToastUndo`**: delete optimista inmediato + toast con botón "Deshacer" 5s. Los 2 confirms que quedan son deliberados: `eliminarInsumo` cuando está vinculado a gastos (warning custom), y bulk delete de insumos (donde SÍ querés confirmación explícita).
 - [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
-- [ ] **OCR de facturas y pagos — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las edge functions `ocr-factura` (insumos) y `ocr-pago` (cheques + créditos) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado de modal o bulk import.
+- [ ] **OCR de facturas, pagos, activos y gastos de estructura — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las 4 edge functions (`ocr-factura`, `ocr-pago`, `ocr-activo`, `ocr-gasto-estr`) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado del modal correspondiente.
+- [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde.Agro. Requiere teléfono para la 2FA (esperando).
 - [ ] **Bot de WhatsApp insertando pagos**: cuando el bot esté listo, implementar el parser de comandos "cheque NNN a X vence DD/MM" y "crédito X N cuotas de NNN desde DD/MM" según el contrato documentado en "Módulo Pagos → Contrato WhatsApp → Pagos".
-- [ ] **Confirmación de eliminación más fuerte** — el delete actual usa `confirm()` simple, que en combinación con UI optimistic facilita borrados accidentales (un usuario reportó pérdida de todo el stock). Opciones: tipear "ELIMINAR" para confirmar, o agregar botón "Deshacer" en el toast por 5s.
+- [ ] **Mercado Pago para suscripciones**: cuando alguien alcanza el límite de plan, hoy lo mandamos a Mi Plan pero no hay flujo de pago. Es el bloqueador comercial más grande para monetizar.
 
 ## Cosas en curso
 
@@ -179,3 +257,8 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 5. `compromisos_pago_archivo_y_fuente.sql` — agrega `archivo_url`, `archivo_path`, `fuente` (manual|foto|whatsapp) a `compromisos_pago` + bucket `pagos-archivos` con 4 RLS de Storage.
 6. `compromisos_estado_pagado.sql` — renombra el value `'cobrado'` por `'pagado'` en `compromisos_pago.estado` (re-genera el CHECK constraint).
 7. `campos_ingresos_cultivos.sql` — agrega `ingresos_cultivos` y `hectareas_cultivo` (text nullable) a `campos`. El frontend ya las escribía pero el schema no las tenía, así que las ventas/forward del tab Ingresos y la asignación de ha por cultivo en campos mixtos no persistían a DB.
+8. `gastos_cultivo.sql` — agrega `gastos.cultivo` (text nullable). Cuando el gasto es específico de un cultivo se guarda ahí y no se reparte. Cuando es null se considera "compartido" y el frontend lo reparte proporcional a las ha de cada cultivo en campos mixtos.
+9. `precios_dolar_scrape_pipeline.sql` — pipeline automatizado de precios: crea tabla `precios_dolar` (billete_compra/venta + divisa_compra/venta), habilita RLS pública de lectura en `precios_pizarra`, instala extensiones `pg_cron` + `pg_net`, crea vistas `v_precio_dolar_actual` / `v_precio_cereales_actual` con filtros de sanity, y programa 3 cron jobs: BCR 19:00 lun-vie, BNA dólar cada 30 min entre 10-15 hs lun-vie, BNA dólar cierre 19:00 lun-vie.
+10. `gastos_factura_columns.sql` — agrega `factura_url`, `factura_path`, `factura_tipo` (factura|remito) a `gastos`. Reutiliza el bucket `insumos-facturas` (owner_id + timestamp en el path evita colisiones). Permite adjuntar factura/remito a cualquier gasto, no solo insumos.
+11. `estructura_activos_y_gastos_generales.sql` — nuevas tablas `activos_amortizables` (vehículos/maquinaria/herramientas/construcción con vida útil) y `gastos_estructura` (sueldos/honorarios/seguros/oficina con frecuencia mensual/anual/único). 4 RLS policies owner-only en cada una. Ver sección "Módulo Estructura" abajo.
+12. `fks_on_delete_cascade_cleanup.sql` — migra los `*.usuario_id → perfiles(id)` a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa (antes eran NO ACTION, rompía el borrado limpio de un `auth.users`). Además pone en `SET NULL`: `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` para preservar registros históricos cuando se elimina la referencia.

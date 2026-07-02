@@ -4666,20 +4666,61 @@ window._dibujarPoligonoCampo = function(campoId) {
     return
   }
 
-  // Toolbar flotante con instrucciones
+  // Toolbar flotante con instrucciones + contador en vivo + botón Terminar
   var bar = document.createElement('div')
   bar.id = '_draw-poly-bar'
   bar.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:1000;background:#fff;border:1.5px solid var(--verde);border-radius:12px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.22);display:flex;align-items:center;gap:10px;font-family:DM Sans,sans-serif;font-size:13px;max-width:92vw;flex-wrap:wrap'
   bar.innerHTML = ''
     + '<span style="color:var(--texto);font-weight:600">✏️ Dibujando: '+ (c.nombre||'campo') +'</span>'
-    + '<span style="color:var(--texto-suave);font-size:11px">Tocá en el mapa para marcar los vértices. Cerrá tocando el primer punto.</span>'
-    + '<button id="_btn-cancel-draw" style="font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>'
+    + '<span id="_draw-poly-ha" style="color:var(--verde);font-weight:700;font-size:13px;font-family:DM Mono,monospace;padding:3px 10px;background:var(--verde-pale);border-radius:6px">0 vértices</span>'
+    + '<span style="color:var(--texto-suave);font-size:11px;flex-basis:100%">Tocá en el mapa para marcar los vértices. Cuando termines, apretá <strong>✓ Terminar</strong>.</span>'
+    + '<button id="_btn-cancel-draw" style="font-size:12px;padding:7px 14px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>'
+    + '<button id="_btn-finish-draw" style="font-size:13px;padding:7px 16px;border-radius:7px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">✓ Terminar</button>'
   var mapEl = document.getElementById('mapa-lotes')
   if (mapEl && mapEl.parentElement) {
     mapEl.parentElement.style.position = 'relative'
     mapEl.parentElement.appendChild(bar)
   }
   document.getElementById('_btn-cancel-draw').onclick = _cancelarDibujoPoligono
+
+  // Actualiza el contador de vértices y hectáreas mientras el usuario dibuja.
+  function _updateDrawHaCounter() {
+    var el = document.getElementById('_draw-poly-ha')
+    if (!el || !_dibujandoHandler) return
+    var pts = []
+    try {
+      var markers = _dibujandoHandler._markers || []
+      pts = markers.map(function(m){ var ll = m.getLatLng(); return [ll.lat, ll.lng] })
+    } catch(e) {}
+    if (pts.length < 3) {
+      el.textContent = pts.length + ' vértice' + (pts.length!==1?'s':'') + ' · seguí marcando'
+      el.style.background = 'var(--crema)'
+      el.style.color = 'var(--texto-suave)'
+    } else {
+      var ha = _calcHaPoligono(pts)
+      el.textContent = pts.length + ' vértices · ' + (Math.round(ha*100)/100).toLocaleString('es-AR') + ' ha'
+      el.style.background = 'var(--verde-pale)'
+      el.style.color = 'var(--verde)'
+    }
+  }
+  mapInstance.on('draw:drawvertex', _updateDrawHaCounter)
+  mapInstance.on('draw:drawstart', _updateDrawHaCounter)
+
+  // Botón Terminar: cierra el polígono programáticamente (no depende de tocar el primer vértice).
+  document.getElementById('_btn-finish-draw').onclick = function() {
+    if (!_dibujandoHandler) return
+    try {
+      var markers = _dibujandoHandler._markers || []
+      if (markers.length < 3) {
+        showToast('⚠️ Necesitás al menos 3 vértices para cerrar el polígono','err')
+        return
+      }
+      _dibujandoHandler._finishShape()
+    } catch(e) {
+      console.error('finishShape err:', e)
+      showToast('⚠️ No se pudo cerrar el polígono: '+(e.message||''),'err')
+    }
+  }
 
   // Cuando el usuario termina de dibujar
   mapInstance.once('draw:created', async function(e) {
@@ -4724,7 +4765,7 @@ window._dibujarPoligonoCampo = function(campoId) {
     }
   })
 
-  showToast('✏️ Tocá los vértices del campo. Cerrá tocando el primer punto.','ok')
+  showToast('✏️ Tocá los vértices del campo. Después apretá ✓ Terminar.','ok')
 }
 
 function _cancelarDibujoPoligono() {
@@ -4732,6 +4773,8 @@ function _cancelarDibujoPoligono() {
     try { _dibujandoHandler.disable() } catch(e){}
     _dibujandoHandler = null
   }
+  // Remover listeners de eventos de dibujo para que no queden colgados
+  try { if (mapInstance) { mapInstance.off('draw:drawvertex'); mapInstance.off('draw:drawstart') } } catch(e) {}
   _dibujandoCampoId = null
   var bar = document.getElementById('_draw-poly-bar')
   if (bar) bar.remove()

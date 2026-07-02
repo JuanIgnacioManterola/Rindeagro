@@ -3612,9 +3612,10 @@ window.actualizarPrecios = async function(forzar) {
 }
 
 // ── DASHBOARD ──
-// Reloj: hora actual de Buenos Aires (UTC-3, sin DST). Se actualiza cada 30s
-// para minimizar el drift visual (el timer de 30s hace que a los pocos segundos
-// del cambio de minuto la UI ya lo refleje).
+// Reloj: hora actual de Buenos Aires (UTC-3, sin DST).
+// Se re-agenda al segundo exacto del próximo cambio de minuto para no
+// desalinearse: si son las 10:15:47, el próximo fire será a las 10:16:00 justo.
+// Es más preciso que un setInterval(30s) que iba drifteando hasta 30s.
 function _actualizarHoraArg() {
   var el = document.getElementById('d-hora-actual')
   if (!el) return
@@ -3625,10 +3626,19 @@ function _actualizarHoraArg() {
     })
   } catch(e) {}
 }
+function _scheduleRelojArg() {
+  var now = new Date()
+  var msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
+  if (msUntilNextMinute < 250) msUntilNextMinute += 60000  // borde: si estamos ya en el segundo 60 raro, esperar el siguiente
+  window._raRelojTimer = setTimeout(function() {
+    _actualizarHoraArg()
+    _scheduleRelojArg()
+  }, msUntilNextMinute)
+}
 window._actualizarHoraArg = _actualizarHoraArg  // expuesta para debugging
-_actualizarHoraArg()  // primer paint al cargar la página (antes de esperar 30s)
-if (typeof window._raRelojInterval === 'undefined') {
-  window._raRelojInterval = setInterval(_actualizarHoraArg, 30 * 1000)
+_actualizarHoraArg()  // primer paint al cargar la página
+if (typeof window._raRelojTimer === 'undefined') {
+  _scheduleRelojArg()
 }
 
 function renderDashboard() {
@@ -3886,7 +3896,17 @@ function renderRentabilidad() {
   tabs.innerHTML = campos.map((c,i)=>`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${c.id===campoRent?'var(--verde)':'var(--borde)'};background:${c.id===campoRent?'var(--verde)':'var(--blanco)'};color:${c.id===campoRent?'#fff':'var(--texto-mid)'};cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif" onclick="selCampoRent('${c.id}')"><div style="width:7px;height:7px;border-radius:50%;background:${c.id===campoRent?'rgba(255,255,255,.7)':COLORES[i%COLORES.length]}"></div>${c.nombre}</button>`).join('')+
   (campos.length>1?`<button style="font-size:12px;padding:6px 12px;border-radius:20px;border:.5px solid ${campoRent==='todos'?'var(--verde)':'var(--borde)'};background:${campoRent==='todos'?'var(--verde)':'var(--blanco)'};color:${campoRent==='todos'?'#fff':'var(--texto-mid)'};cursor:pointer;font-family:'DM Sans',sans-serif" onclick="selCampoRent('todos')">📊 Todos</button>`:'')
 
-  var gf = campoRent==='todos'?gastos:gastos.filter(g=>g.campo_id===campoRent)
+  // Filtramos también por campaña activa (misma convención que renderCampoRent
+  // y renderRentabilidadTotal). Antes acá agregaba gastos de todos los años.
+  var _campR_rr = getCampanaRange(campanaActivaId || 'actual')
+  function _enCampR_rr(g) {
+    if (!g.fecha) return false
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+    return d >= _campR_rr.start && d <= _campR_rr.end
+  }
+  var gf = campoRent==='todos'
+    ? gastos.filter(_enCampR_rr)
+    : gastos.filter(function(g){ return g.campo_id===campoRent && _enCampR_rr(g) })
   var campo = campos.find(c=>c.id===campoRent)||campos[0]
   var ha = campoRent==='todos'?campos.reduce((a,c)=>a+(c.hectareas||0),0):(campo?.hectareas||0)
   var cult = campo?.cultivo||'Soja'

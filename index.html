@@ -420,9 +420,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   .met-v{font-size:18px !important}
   .met-l{font-size:10px !important}
   .met-s{font-size:10px !important}
-  /* Nombre del campo en el detalle (Don Juan): más chico para que quepa */
-  #det-campo-nombre{font-size:22px !important}
-  #det-campo-meta{font-size:11px !important}
+  /* Nombre del campo en el detalle (Don Juan) — más chico en mobile pero grande igual */
+  #det-campo-nombre{font-size:26px !important}
+  #det-campo-meta{font-size:12px !important}
 }
 @media print {
   body * { visibility: hidden }
@@ -791,9 +791,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:11px;color:rgba(250,247,240,.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Campo seleccionado</div>
-          <div style="font-size:22px;font-weight:700;color:#fff;font-family:'Playfair Display',serif" id="det-campo-nombre">—</div>
-          <div style="font-size:12px;color:rgba(250,247,240,.65);margin-top:3px" id="det-campo-meta">—</div>
+          <div style="font-size:12px;color:rgba(250,247,240,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600">Campo seleccionado</div>
+          <div style="font-size:32px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;line-height:1.1" id="det-campo-nombre">—</div>
+          <div style="font-size:14px;color:rgba(250,247,240,.75);margin-top:6px;font-weight:500" id="det-campo-meta">—</div>
         </div>
         <div style="display:flex;gap:6px">
         <button onclick="editarCampoActual()" style="padding:7px 14px;border-radius:8px;border:.5px solid rgba(201,168,76,.5);background:rgba(201,168,76,.15);color:var(--dorado-light);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">✏️ Editar</button>
@@ -2220,6 +2220,25 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="conv-l">USD total</div><div class="conv-v" id="cv-usd">—</div></div>
       <div><div class="conv-l">USD/ha</div><div class="conv-v" id="cv-usdha">—</div></div>
       <div><div class="conv-l">qq/ha equiv.</div><div class="conv-v" id="cv-qq" style="color:var(--dorado)">—</div></div>
+    </div>
+
+    <!-- Adjuntar factura / remito -->
+    <div class="fg" style="margin-top:14px">
+      <label class="fl" style="display:flex;align-items:center;gap:6px">📎 Adjuntar factura o remito <span style="font-size:11px;color:var(--texto-suave);font-weight:400">(opcional)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+        <select class="fi" id="g-factura-tipo" style="width:110px;padding:9px 12px;font-size:12px">
+          <option value="">Tipo…</option>
+          <option value="factura">Factura</option>
+          <option value="remito">Remito</option>
+        </select>
+        <label id="g-factura-label" style="flex:1;min-width:180px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border:1.5px dashed var(--borde);border-radius:9px;background:var(--crema);color:var(--texto-mid);font-size:12px;font-weight:600;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif" onmouseover="this.style.borderColor='var(--verde)';this.style.color='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)';this.style.color='var(--texto-mid)'">
+          <span id="g-factura-btn-label">Elegir foto / PDF</span>
+          <input type="file" id="g-factura-input" accept="image/*,.pdf" style="display:none" onchange="window._gastoSubirFactura(this)"/>
+        </label>
+      </div>
+      <input type="hidden" id="g-factura-url" value=""/>
+      <input type="hidden" id="g-factura-path" value=""/>
+      <div id="g-factura-preview" style="display:none;margin-top:8px"></div>
     </div>
 
     </div>
@@ -8229,6 +8248,11 @@ window.openModalGasto = function() {
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
   if(c?.hectareas) document.getElementById('g-ha-aplicadas').value = c.hectareas
+  // Reset factura fields
+  document.getElementById('g-factura-url').value = ''
+  document.getElementById('g-factura-path').value = ''
+  document.getElementById('g-factura-tipo').value = ''
+  _refrescarPreviewFacturaGasto()
   // Reset rubro chips to unselected state
   document.querySelectorAll('.rubro-chip-btn').forEach(function(b) {
     b.style.background = 'var(--crema)'
@@ -8401,6 +8425,9 @@ window.guardarGasto = async function() {
     var editId = document.getElementById('g-edit-id')?.value||''
     var isEdit = !!editId
     var descVal = document.getElementById('g-desc')?.value?.trim()||null
+    var facUrlG = document.getElementById('g-factura-url')?.value || null
+    var facPathG = document.getElementById('g-factura-path')?.value || null
+    var facTipoG = document.getElementById('g-factura-tipo')?.value || null
     var _p = {
       rubro: rubro,
       fecha: fecha,
@@ -8409,7 +8436,10 @@ window.guardarGasto = async function() {
       qq_ha: qqHa,
       precio_cereal: prCereal,
       descripcion: descVal,
-      insumo_id: insumoId
+      insumo_id: insumoId,
+      factura_url: facUrlG,
+      factura_path: facPathG,
+      factura_tipo: facTipoG
     }
     if(gastoSubTipo) { _p.sub_tipo = gastoSubTipo; _p.subtipo = gastoSubTipo } // ambos nombres por compatibilidad
     if(cantidad) _p.cantidad = cantidad
@@ -8570,6 +8600,11 @@ window.editarGasto = function(id) {
   document.getElementById('g-precio-unit').value = g.precio_unitario||''
   document.getElementById('g-ha-aplicadas').value = g.ha_aplicadas||''
   document.getElementById('g-precio').value = g.precio_cereal||precios.soja
+  // Factura adjunta
+  document.getElementById('g-factura-url').value = g.factura_url||''
+  document.getElementById('g-factura-path').value = g.factura_path||''
+  document.getElementById('g-factura-tipo').value = g.factura_tipo||''
+  _refrescarPreviewFacturaGasto()
   if(g.unidad) document.getElementById('g-unidad').value = g.unidad
   gastoSubTipo = g.subtipo||null
   if(g.subtipo) {
@@ -8829,6 +8864,54 @@ window._insumoSubirFactura = async function(input) {
   } catch(e) {
     console.error(e); showToast('⚠️ Error: '+(e.message||'no se pudo subir'),'err')
     if (lbl) lbl.textContent = 'Adjuntar foto / PDF'
+  } finally { input.value = '' }
+}
+
+// ── Adjuntar factura/remito a un gasto (reusa el bucket insumos-facturas) ──
+function _refrescarPreviewFacturaGasto() {
+  var url = document.getElementById('g-factura-url')?.value || ''
+  var prev = document.getElementById('g-factura-preview')
+  var lbl = document.getElementById('g-factura-btn-label')
+  if (!prev) return
+  if (url) {
+    var isImg = /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url)
+    prev.style.display = ''
+    prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--borde);border-radius:7px">'
+      + (isImg ? '<img src="'+url+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;cursor:zoom-in" onclick="window._abrirArchivo(\''+url+'\',\'factura\',\'image/jpeg\')">' : '<span style="font-size:24px">📄</span>')
+      + '<div style="flex:1;min-width:0;font-size:12px"><a href="'+url+'" target="_blank" style="color:var(--verde);font-weight:500">Ver archivo</a></div>'
+      + '<button type="button" onclick="window._gastoQuitarFactura()" style="background:transparent;color:var(--rojo);border:1px solid var(--borde);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">Quitar</button>'
+      + '</div>'
+    if (lbl) lbl.textContent = 'Cambiar archivo'
+  } else {
+    prev.style.display = 'none'
+    prev.innerHTML = ''
+    if (lbl) lbl.textContent = 'Elegir foto / PDF'
+  }
+}
+
+window._gastoQuitarFactura = function() {
+  document.getElementById('g-factura-url').value = ''
+  document.getElementById('g-factura-path').value = ''
+  document.getElementById('g-factura-tipo').value = ''
+  _refrescarPreviewFacturaGasto()
+}
+
+window._gastoSubirFactura = async function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB', 'err'); input.value = ''; return }
+  var lbl = document.getElementById('g-factura-btn-label')
+  if (lbl) lbl.textContent = 'Subiendo…'
+  try {
+    var up = await _subirArchivoStorageBucket(f, 'insumos-facturas')
+    document.getElementById('g-factura-url').value = up.url
+    document.getElementById('g-factura-path').value = up.path
+    if (!document.getElementById('g-factura-tipo').value) document.getElementById('g-factura-tipo').value = 'factura'
+    _refrescarPreviewFacturaGasto()
+    showToast('✓ Factura adjuntada','ok')
+  } catch(e) {
+    console.error(e); showToast('⚠️ Error: '+(e.message||'no se pudo subir'),'err')
+    if (lbl) lbl.textContent = 'Elegir foto / PDF'
   } finally { input.value = '' }
 }
 
@@ -13256,9 +13339,11 @@ function _refreshCrAcordeon() {
 function renderCampoRent() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
-  // Helper de formato según monedaGlobal (USD default | ARS con conversión al BNA)
+  // Helper de formato según monedaGlobal.
+  // Rentabilidad mezcla ingresos + gastos → usamos divisa vendedor como TC único
+  // (más conservador; para separar por partida hay que ver el reporte por campo).
   var _enARSrc = monedaGlobal === 'ARS'
-  var _tcRC = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
+  var _tcRC = _dolarVenta()
   function _fmtM(usd, opts){
     opts = opts || {}
     var v = _enARSrc ? Math.round(usd * _tcRC) : Math.round(usd)
@@ -14130,7 +14215,7 @@ function renderDetGastos() {
   // Filtrar por campaña global
   var campR = getCampanaRange(campanaActivaId)
   gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= campR.start && new Date(g.fecha) <= campR.end })
-  var tcambio = precios.bna || 1300
+  var tcambio = _dolarVenta()  // gastos → divisa vendedor (productor compra USD)
   var enARS = monedaGlobal === 'ARS'
   function fmtMonto(usd) {
     if (enARS) return '$ ' + Math.round(usd * tcambio).toLocaleString('es-AR')
@@ -14189,6 +14274,9 @@ function renderDetGastos() {
       var sub = g.subtipo ? ' · '+(SUBS[g.subtipo]||g.subtipo) : ''
       var cant = g.cantidad&&g.unidad ? g.cantidad+' '+(g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad) : ''
       var montoStr = fmtMonto(g.total_de_usd||0)
+      var facturaBtn = g.factura_url
+        ? '<button onclick="window._abrirArchivo(\''+g.factura_url+'\',\''+(g.factura_tipo||'factura')+'\')" title="Ver '+(g.factura_tipo||'factura')+' adjunta" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:16px;padding:3px 5px" aria-label="Ver factura">📎</button>'
+        : ''
       return '<div class="gasto-row">' +
         '<span class="gtag r-'+(g.rubro||'otros')+'" style="font-size:12px;padding:3px 9px">'+(RUBS[g.rubro]||g.rubro||'Otros')+sub+'</span>' +
         '<div style="flex:1;min-width:0">' +
@@ -14198,6 +14286,7 @@ function renderDetGastos() {
         '<div style="text-align:right;min-width:110px">' +
           '<div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:var(--texto)">'+montoStr+'</div>' +
         '</div>' +
+        facturaBtn +
         '<button data-gid="'+g.id+'" onclick="editarGasto(this.dataset.gid)" style="background:none;border:.5px solid #1a5fa8;border-radius:6px;cursor:pointer;color:#1a5fa8;font-size:12px;padding:4px 9px;margin-left:6px">✏️</button>' +
         '<button onclick="eliminarGasto(\''+g.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:15px;padding:3px 5px">🗑</button>' +
       '</div>'

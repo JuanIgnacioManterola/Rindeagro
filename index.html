@@ -1266,6 +1266,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div><div class="mod-titulo">🏢 Estructura</div><div class="mod-sub">Costos generales que se reparten entre TODOS los campos (amortizaciones de vehículos y herramientas, sueldos de empleados, contador, seguros).</div></div>
     </div>
 
+    <!-- Buscador -->
+    <div style="margin-bottom:12px">
+      <input type="text" id="est-search" placeholder="🔍 Buscar por descripción, tipo o notas..." oninput="renderEstructura()" style="width:100%;max-width:500px;padding:9px 14px;border:1px solid var(--borde);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff"/>
+    </div>
+
     <!-- Tabs -->
     <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
       <button class="est-tab-btn active" id="est-tab-amort" onclick="_estSwitchTab('amort')" style="padding:9px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px">🚜 <span>Amortizaciones</span></button>
@@ -5711,19 +5716,27 @@ window.iniciarTarea = async function(id) {
   }
 }
 
-window.eliminarTarea = async function(id) {
-  if (!confirm('¿Eliminar esta tarea?')) return
-  // Optimistic delete
-  var prev = tareas.slice()
-  tareas = tareas.filter(function(t){ return t.id !== id })
+window.eliminarTarea = function(id) {
+  // Delete con Undo: optimistic remove + toast "Deshacer" 5s. Si el timer
+  // expira sin undo, ejecutamos el DELETE contra la DB con REST fallback.
+  var t = tareas.find(function(x){return x.id===id})
+  if (!t) return
+  var snapshot = Object.assign({}, t)
+  tareas = tareas.filter(function(x){return x.id!==id})
   renderTareas()
-  showToast('✓ Eliminada', 'ok')
-  try {
-    await _dbMutate({method:'delete', table:'tareas', filter:{col:'id', val:id}})
-  } catch(e) {
-    tareas = prev; renderTareas()
-    showToast('⚠️ No se pudo eliminar en la nube — restaurado: '+e.message, 'err')
-  }
+  var deshacer = false
+  _showToastUndo('Tarea eliminada · Deshacer', function(){
+    deshacer = true
+    tareas.unshift(snapshot); renderTareas()
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    try { await _dbMutate({method:'delete', table:'tareas', filter:{col:'id', val:id}, timeout: 6000}) }
+    catch(e) {
+      tareas.unshift(snapshot); renderTareas()
+      showToast('⚠️ No se pudo eliminar en la nube — restaurado', 'err')
+    }
+  }, 5000)
 }
 
 // ── CRUD CAMPOS ──
@@ -8204,6 +8217,17 @@ window.exportarPDFTotal = function() {
     })
     return {c: c, ha: ha, costo: costo, costoHa: costoHa, ingTotal: ingTotal, ingHa: ingHa, mgTotal: mgTotal, mgHa: mgHa, porRubroCampo: porRubroCampo, ingDetalle: ingDetalle, gf: gf, cultivosList: cultivosList}
   })
+  // Costo de estructura (amortizaciones + gastos generales) para la campaña vigente.
+  // Reflejamos lo mismo que se muestra en pantalla en Rentabilidad Total.
+  var _estCostoTotal = 0
+  try {
+    var _campRtPDF = getCampanaRange(window._rtCampanaActivaId || 'actual')
+    if (typeof window._estructuraTotalEnRango === 'function') {
+      _estCostoTotal = window._estructuraTotalEnRango(_campRtPDF.start, _campRtPDF.end) || 0
+    }
+  } catch(e) {}
+  var costoOperativo = totalCosto
+  totalCosto += _estCostoTotal
   var mgGlobal = totalIngreso - totalCosto
   var mgHaGlobal = totalHa > 0 ? mgGlobal / totalHa : 0
   var rentPct = totalIngreso > 0 ? Math.round(Math.abs(mgGlobal) / totalIngreso * 100) : 0
@@ -8344,7 +8368,7 @@ window.exportarPDFTotal = function() {
   html += '<div class="kpi-grid">'
     +'<div class="kpi"><div class="kpi-bar" style="background:#1a5fa8"></div><div class="kpi-label">Ha totales</div><div class="kpi-value" style="color:#1a5fa8">'+totalHa.toLocaleString('es-AR')+'</div><div class="kpi-sub">'+campos.length+' campo'+(campos.length!==1?'s: ':'')+'</div></div>'
     +'<div class="kpi"><div class="kpi-bar" style="background:#1a7a52"></div><div class="kpi-label">Ingresos brutos</div><div class="kpi-value" style="color:#1a7a52">'+fmtUSD(totalIngreso)+'</div><div class="kpi-sub">'+fmtUSD(totalHa>0?totalIngreso/totalHa:0)+' / ha prom.</div></div>'
-    +'<div class="kpi"><div class="kpi-bar" style="background:#c0392b"></div><div class="kpi-label">Costos totales</div><div class="kpi-value" style="color:#c0392b">'+fmtUSD(totalCosto)+'</div><div class="kpi-sub">'+fmtUSD(totalHa>0?totalCosto/totalHa:0)+' / ha prom.</div></div>'
+    +'<div class="kpi"><div class="kpi-bar" style="background:#c0392b"></div><div class="kpi-label">Costos totales</div><div class="kpi-value" style="color:#c0392b">'+fmtUSD(totalCosto)+'</div><div class="kpi-sub">'+(_estCostoTotal>0 ? 'incluye '+fmtUSD(_estCostoTotal)+' estructura' : fmtUSD(totalHa>0?totalCosto/totalHa:0)+' / ha prom.')+'</div></div>'
     +'<div class="kpi kpi-mg"><div class="kpi-bar" style="background:'+mc+'"></div><div class="kpi-label">Margen neto</div><div class="kpi-value" style="color:'+mc+'">'+(mgGlobal>=0?'+':'−')+fmtUSD(Math.abs(mgGlobal))+'</div><div class="kpi-sub" style="color:'+mc+'">'+(mgHaGlobal>=0?'+':'−')+fmtUSD(Math.abs(mgHaGlobal))+'/ha &middot; '+rentPct+'% del ingreso</div></div>'
     +'</div>'
 
@@ -8436,6 +8460,16 @@ window.exportarPDFTotal = function() {
     +'<td class="r" style="color:'+mc+'">'+rentPct+'%</td>'
     +'</tr>'
     +'</tbody></table>'
+
+  // Detalle de la composición del costo total (operativo + estructura)
+  if (_estCostoTotal > 0) {
+    html += '<div style="margin-top:-14px;margin-bottom:22px;padding:10px 14px;background:#fdf2f2;border-left:3px solid #b91c1c;border-radius:0 6px 6px 0;font-size:11px;color:#555;line-height:1.5">'
+      + '<strong style="color:#b91c1c">Composición del costo total:</strong> '
+      + fmtUSD(costoOperativo) + ' operativos por campo '
+      + '· <strong>' + fmtUSD(_estCostoTotal) + ' estructura</strong> (amortizaciones + sueldos + honorarios + seguros, distribuidos por hectáreas). '
+      + 'Los datos de estructura corresponden a la campaña seleccionada en Rentabilidad Total.'
+      + '</div>'
+  }
 
   // ── SECCIÓN 4: GASTOS POR RUBRO + COMPARATIVA ──
   html += '<div class="two-col">'
@@ -9063,28 +9097,35 @@ window.editarGasto = function(id) {
   }
   calcConv()
 }
-window.eliminarGasto = async function(id) {
-  if(!confirm('¿Eliminás este gasto?'))return
+window.eliminarGasto = function(id) {
   var g = gastos.find(function(x){return x.id===id})
-  // Optimistic: borrar local YA + reponer stock si tenía insumo
-  var prev = gastos.slice()
+  if (!g) return
+  var snapshot = Object.assign({}, g)
   gastos = gastos.filter(function(x){return x.id!==id})
   _guardarCache()
   if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
-  showToast('Gasto eliminado','ok')
-  ;(async function(){
+  var deshacer = false
+  _showToastUndo('Gasto eliminado · Deshacer', function(){
+    deshacer = true
+    gastos.unshift(snapshot); _guardarCache()
+    if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    // Aplicar el delete + reponer stock si estaba vinculado a un insumo
     try {
-      await _dbMutate({method:'delete', table:'gastos', filter:{col:'id', val:id}})
-      if(g && g.insumo_id) {
+      await _dbMutate({method:'delete', table:'gastos', filter:{col:'id', val:id}, timeout: 6000})
+      if(g.insumo_id) {
         var consumido = _gastoConsumoInsumo(g)
         if(consumido > 0) await _ajustarStockInsumo(g.insumo_id, consumido)
       }
     } catch(e) {
       console.error('eliminar gasto (bg):', e)
-      gastos = prev; _guardarCache(); renderRentabilidad(); renderDashboard()
-      showToast('⚠️ No se pudo borrar — restaurado: '+e.message,'err')
+      gastos.unshift(snapshot); _guardarCache()
+      if(campoDet) renderDetGastos(); renderRentabilidad(); renderDashboard()
+      showToast('⚠️ No se pudo borrar — restaurado: '+(e.message||''),'err')
     }
-  })()
+  }, 5000)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -10323,22 +10364,30 @@ window.editarCheque = function(id) {
   document.getElementById('ch-notas').value = p.notas||''
 }
 
-window.eliminarCompromiso = async function(id) {
+window.eliminarCompromiso = function(id) {
   // Llamado desde el modal cheque (sin arg) → usa edit-id
   if (!id) id = document.getElementById('ch-edit-id').value
   if (!id) return
   var p = pagos.find(function(x){return x.id===id})
   if (!p) return
-  if (!confirm('¿Eliminar este compromiso?')) return
-  var prev = pagos.slice()
+  var snapshot = Object.assign({}, p)
   pagos = pagos.filter(function(x){return x.id!==id})
   _guardarCache(); renderPagos(); _actualizarBadgePagos()
   try { closeModalCheque() } catch(e){}
-  showToast('Eliminado','ok')
-  ;(async function(){
-    try { await _dbMutate({method:'delete', table:'compromisos_pago', filter:{col:'id', val:id}}) }
-    catch(e){ console.error('eliminar pago (bg):', e); pagos = prev; _guardarCache(); renderPagos(); showToast('⚠️ No se eliminó en la nube — restaurado','err') }
-  })()
+  var deshacer = false
+  _showToastUndo('Compromiso eliminado · Deshacer', function(){
+    deshacer = true
+    pagos.unshift(snapshot); _guardarCache(); renderPagos(); _actualizarBadgePagos()
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    try { await _dbMutate({method:'delete', table:'compromisos_pago', filter:{col:'id', val:id}, timeout: 6000}) }
+    catch(e) {
+      console.error('eliminar pago (bg):', e)
+      pagos.unshift(snapshot); _guardarCache(); renderPagos(); _actualizarBadgePagos()
+      showToast('⚠️ No se eliminó en la nube — restaurado','err')
+    }
+  }, 5000)
 }
 
 window.marcarPagoPagado = async function(id) {
@@ -11142,7 +11191,12 @@ function _renderEstructuraAmort() {
   var el = document.getElementById('est-amort-lista')
   var res = document.getElementById('est-amort-resumen')
   if (!el) return
-  var lista = activosAmort||[]
+  var q = (document.getElementById('est-search')?.value||'').trim().toLowerCase()
+  var todos = activosAmort||[]
+  var lista = q ? todos.filter(function(a){
+    var t = ((a.descripcion||'')+' '+(a.tipo||'')+' '+(TIPOS_ACTIVO_LBL[a.tipo]||'')+' '+(a.notas||'')).toLowerCase()
+    return t.indexOf(q) !== -1
+  }) : todos
   var totalActivos = lista.reduce(function(a,x){ return a + (parseFloat(x.valor_compra_usd)||0) },0)
   var totalCuotaAnual = lista.reduce(function(a,x){ return a + _estCuotaAnual(x) },0)
   if (res) res.innerHTML = lista.length
@@ -11179,7 +11233,12 @@ function _renderEstructuraGastos() {
   var el = document.getElementById('est-gastos-lista')
   var res = document.getElementById('est-gastos-resumen')
   if (!el) return
-  var lista = gastosEstructura||[]
+  var q = (document.getElementById('est-search')?.value||'').trim().toLowerCase()
+  var todos = gastosEstructura||[]
+  var lista = q ? todos.filter(function(g){
+    var t = ((g.descripcion||'')+' '+(g.tipo||'')+' '+(TIPOS_GESTR_LBL[g.tipo]||'')+' '+(g.notas||'')).toLowerCase()
+    return t.indexOf(q) !== -1
+  }) : todos
   // Estimación anual: mensual*12 + anual + único (los únicos ya son un cargo puntual)
   var totalAnual = lista.reduce(function(a,g){
     var imp = parseFloat(g.importe_usd)||0
@@ -11306,18 +11365,33 @@ window.guardarActivo = async function() {
   }
 }
 
-window.eliminarActivo = async function() {
+window.eliminarActivo = function() {
   var id = document.getElementById('ac-edit-id').value
   if (!id) return
-  if (!confirm('¿Eliminar este activo? La amortización dejará de aparecer en la rentabilidad.')) return
-  try {
-    await _dbMutate({method:'delete', table:'activos_amortizables', filter:{col:'id', val:id}})
-    activosAmort = activosAmort.filter(function(x){return x.id!==id})
-    _guardarCache(); renderEstructura(); closeModalActivo()
+  var a = activosAmort.find(function(x){return x.id===id})
+  if (!a) return
+  var snapshot = Object.assign({}, a)
+  activosAmort = activosAmort.filter(function(x){return x.id!==id})
+  _guardarCache(); renderEstructura(); closeModalActivo()
+  try { renderRentabilidad() } catch(e) {}
+  try { renderRentabilidadTotal() } catch(e) {}
+  var deshacer = false
+  _showToastUndo('Activo eliminado · Deshacer', function(){
+    deshacer = true
+    activosAmort.unshift(snapshot); _guardarCache(); renderEstructura()
     try { renderRentabilidad() } catch(e) {}
     try { renderRentabilidadTotal() } catch(e) {}
-    showToast('✓ Activo eliminado','ok')
-  } catch(e) { showToast('⚠️ '+(e.message||'No se pudo eliminar'),'err') }
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    try { await _dbMutate({method:'delete', table:'activos_amortizables', filter:{col:'id', val:id}, timeout: 6000}) }
+    catch(e) {
+      activosAmort.unshift(snapshot); _guardarCache(); renderEstructura()
+      try { renderRentabilidad() } catch(_) {}
+      try { renderRentabilidadTotal() } catch(_) {}
+      showToast('⚠️ No se pudo eliminar — restaurado','err')
+    }
+  }, 5000)
 }
 
 // ── OCR de activos: cargar desde foto/PDF ──
@@ -11496,18 +11570,33 @@ window.guardarGastoEstructura = async function() {
   }
 }
 
-window.eliminarGastoEstructura = async function() {
+window.eliminarGastoEstructura = function() {
   var id = document.getElementById('ge-edit-id').value
   if (!id) return
-  if (!confirm('¿Eliminar este gasto de estructura? Va a dejar de aparecer en la rentabilidad.')) return
-  try {
-    await _dbMutate({method:'delete', table:'gastos_estructura', filter:{col:'id', val:id}})
-    gastosEstructura = gastosEstructura.filter(function(x){return x.id!==id})
-    _guardarCache(); renderEstructura(); closeModalGastoEstructura()
+  var g = gastosEstructura.find(function(x){return x.id===id})
+  if (!g) return
+  var snapshot = Object.assign({}, g)
+  gastosEstructura = gastosEstructura.filter(function(x){return x.id!==id})
+  _guardarCache(); renderEstructura(); closeModalGastoEstructura()
+  try { renderRentabilidad() } catch(e) {}
+  try { renderRentabilidadTotal() } catch(e) {}
+  var deshacer = false
+  _showToastUndo('Gasto de estructura eliminado · Deshacer', function(){
+    deshacer = true
+    gastosEstructura.unshift(snapshot); _guardarCache(); renderEstructura()
     try { renderRentabilidad() } catch(e) {}
     try { renderRentabilidadTotal() } catch(e) {}
-    showToast('✓ Gasto eliminado','ok')
-  } catch(e) { showToast('⚠️ '+(e.message||'No se pudo eliminar'),'err') }
+  })
+  setTimeout(async function(){
+    if (deshacer) return
+    try { await _dbMutate({method:'delete', table:'gastos_estructura', filter:{col:'id', val:id}, timeout: 6000}) }
+    catch(e) {
+      gastosEstructura.unshift(snapshot); _guardarCache(); renderEstructura()
+      try { renderRentabilidad() } catch(_) {}
+      try { renderRentabilidadTotal() } catch(_) {}
+      showToast('⚠️ No se pudo eliminar — restaurado','err')
+    }
+  }, 5000)
 }
 
 // ── OCR de gastos de estructura: cargar desde foto/PDF ──
@@ -12330,7 +12419,9 @@ window.descargarBackupJSON = function() {
     insumos: insumos || [],
     pagos: pagos || [],
     tareas: tareas || [],
-    campanas: window.campanas || []
+    campanas: window.campanas || [],
+    activos_amortizables: activosAmort || [],
+    gastos_estructura: gastosEstructura || []
   }
   var json = JSON.stringify(payload, null, 2)
   var blob = new Blob([json], {type: 'application/json'})
@@ -12470,6 +12561,27 @@ window.descargarBackupCSV = function() {
       { header: 'Precio venta USD/tn', value: function(c){ return c.precio_venta||'' } },
       { header: 'Tipo de cambio', value: function(c){ return c.tipo_cambio||'' } },
       { header: 'Notas',      value: function(c){ return c.notas||'' } }
+    ]},
+    { archivo: 'Estructura-Activos', data: activosAmort||[], cols: [
+      { header: 'Descripción',           value: function(a){ return a.descripcion||'' } },
+      { header: 'Tipo',                  value: function(a){ return (TIPOS_ACTIVO_LBL && TIPOS_ACTIVO_LBL[a.tipo]) || a.tipo || '' } },
+      { header: 'Fecha compra',          value: function(a){ return _fmtFecha(a.fecha_compra) } },
+      { header: 'Valor compra USD',      value: function(a){ return a.valor_compra_usd||'' } },
+      { header: 'Vida útil (años)',      value: function(a){ return a.vida_util_anos||'' } },
+      { header: 'Valor residual USD',    value: function(a){ return a.valor_residual_usd||'' } },
+      { header: 'Amortización anual USD',value: function(a){ return Math.round(_estCuotaAnual(a)) } },
+      { header: 'Distribución',          value: function(a){ return a.distribuir_modo==='igualitario'?'Igualitaria':'Por hectáreas' } },
+      { header: 'Notas',                 value: function(a){ return a.notas||'' } }
+    ]},
+    { archivo: 'Estructura-Gastos-Generales', data: gastosEstructura||[], cols: [
+      { header: 'Descripción',   value: function(g){ return g.descripcion||'' } },
+      { header: 'Tipo',          value: function(g){ return (TIPOS_GESTR_LBL && TIPOS_GESTR_LBL[g.tipo]) || g.tipo || '' } },
+      { header: 'Importe USD',   value: function(g){ return g.importe_usd||'' } },
+      { header: 'Frecuencia',    value: function(g){ return (FREQ_LBL && FREQ_LBL[g.frecuencia]) || g.frecuencia || '' } },
+      { header: 'Desde',         value: function(g){ return _fmtFecha(g.fecha_inicio) } },
+      { header: 'Hasta',         value: function(g){ return _fmtFecha(g.fecha_fin) } },
+      { header: 'Distribución',  value: function(g){ return g.distribuir_modo==='igualitario'?'Igualitaria':'Por hectáreas' } },
+      { header: 'Notas',         value: function(g){ return g.notas||'' } }
     ]}
   ]
 

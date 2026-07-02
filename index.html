@@ -14855,12 +14855,22 @@ var _RT_RUBS_LBL = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas
 function _rtGetCampoFiltro() {
   var sel = document.getElementById('rt-campo-sel')
   var campoId = sel ? sel.value : 'todos'
+  // Filtrar SIEMPRE por la campaña seleccionada en el selector de arriba —
+  // antes los pie charts sumaban gastos de TODAS las campañas juntas, lo cual
+  // no coincidía con el P&L (que sí filtra por rango) ni con lo que el user
+  // esperaba visualmente.
+  var campR = getCampanaRange(window._rtCampanaActivaId || 'actual')
+  function _dentroDeCampana(g) {
+    if (!g.fecha) return false
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+    return d >= campR.start && d <= campR.end
+  }
   if (campoId === 'todos' || !campoId) {
-    return { gastos: gastos.slice(), nombre: 'todos los campos', todos: true }
+    return { gastos: gastos.filter(_dentroDeCampana), nombre: 'todos los campos', todos: true }
   }
   var c = campos.find(function(x){return x.id===campoId})
   return {
-    gastos: gastos.filter(function(g){return g.campo_id===campoId}),
+    gastos: gastos.filter(function(g){ return g.campo_id===campoId && _dentroDeCampana(g) }),
     nombre: c ? c.nombre : 'campo',
     todos: false
   }

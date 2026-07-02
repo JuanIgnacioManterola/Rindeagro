@@ -3707,8 +3707,23 @@ async function _renderDashEquipo() {
   if (card) card.style.display = ''
 
   try {
-    var { data } = await sb.from('equipo').select('id,nombre_display,permisos,creado_en')
-      .eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false })
+    // Estrategia 1: usar _equipoCache que ya cargó cargarTodo (rápido, sin SDK)
+    var data = null
+    if (Array.isArray(window._equipoCache)) {
+      data = window._equipoCache.filter(function(m){
+        return m.owner_id === usuario.id && m.activo === true
+      }).sort(function(a,b){ return String(b.creado_en||'').localeCompare(String(a.creado_en||'')) })
+    }
+    // Estrategia 2: si no hay cache, fetch REST directo (evita el SDK deadlock)
+    if (!data) {
+      try {
+        var uid = encodeURIComponent(usuario.id)
+        data = await _restGet('/equipo?select=id,nombre_display,permisos,creado_en,owner_id,activo&owner_id=eq.'+uid+'&activo=eq.true&order=creado_en.desc')
+      } catch(eRest) {
+        console.warn('[dash-equipo] REST también falló:', eRest.message)
+        data = []
+      }
+    }
 
     if (!data || !data.length) {
       el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;gap:16px;flex-wrap:wrap">'

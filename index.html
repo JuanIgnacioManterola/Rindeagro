@@ -594,6 +594,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
       <button class="anl" id="nav-insumos" onclick="showModulo('stock-insumos')"><span>🧪</span><span>Insumos</span></button>
       <button class="anl" id="nav-pagos" onclick="showModulo('pagos')"><span>💰</span><span id="pagos-badge">Pagos</span></button>
+      <button class="anl" id="nav-estructura" onclick="showModulo('estructura')"><span>🏢</span><span>Estructura</span></button>
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
@@ -1259,6 +1260,147 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div id="pagos-lista"></div>
   </div>
 
+  <!-- ══════ ESTRUCTURA (activos amortizables + gastos generales) ══════ -->
+  <div class="modulo" id="mod-estructura">
+    <div class="mod-header">
+      <div><div class="mod-titulo">🏢 Estructura</div><div class="mod-sub">Costos generales que se reparten entre TODOS los campos (amortizaciones de vehículos y herramientas, sueldos de empleados, contador, seguros).</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="est-tab-btn active" id="est-tab-amort" onclick="_estSwitchTab('amort')" style="padding:9px 16px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px">🚜 <span>Amortizaciones</span></button>
+      <button class="est-tab-btn" id="est-tab-gastos" onclick="_estSwitchTab('gastos')" style="padding:9px 16px;border-radius:9px;border:1.5px solid var(--borde);background:#fff;color:var(--texto-mid);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px">💼 <span>Sueldos y gastos generales</span></button>
+    </div>
+
+    <!-- Tab: Amortizaciones -->
+    <div id="est-sec-amort">
+      <div style="background:#fef3c7;border-left:4px solid #c97a14;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#8a5a08;line-height:1.5">
+        <strong>¿Qué va acá?</strong> Bienes que usás en varios campos y se pagan una vez pero se amortizan en años: camioneta (5 años), sembradora (10 años), silo (15 años). El sistema calcula solo cuánto suma cada año.
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div id="est-amort-resumen" style="font-size:13px;color:var(--texto-mid)"></div>
+        <button onclick="openModalActivo()" class="pagos-hdr-btn pagos-hdr-btn-primary">+ <span>Nuevo activo</span></button>
+      </div>
+      <div id="est-amort-lista"></div>
+    </div>
+
+    <!-- Tab: Gastos generales -->
+    <div id="est-sec-gastos" style="display:none">
+      <div style="background:#dbeafe;border-left:4px solid #1a5fa8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a4a8a;line-height:1.5">
+        <strong>¿Qué va acá?</strong> Costos que se pagan periódicamente pero no son de un campo puntual: sueldo del encargado que trabaja en varios campos, honorarios del contador o ingeniero, seguros, oficina, combustible general.
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div id="est-gastos-resumen" style="font-size:13px;color:var(--texto-mid)"></div>
+        <button onclick="openModalGastoEstructura()" class="pagos-hdr-btn pagos-hdr-btn-primary">+ <span>Nuevo gasto</span></button>
+      </div>
+      <div id="est-gastos-lista"></div>
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<!-- MODAL ACTIVO (amortización) -->
+<div class="overlay" id="ov-activo">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalActivo()">✕</button>
+      <div class="m-tit" id="activo-modal-tit">🚜 Nuevo activo amortizable</div>
+      <div class="m-sub" style="margin-bottom:0">Se carga una sola vez. El sistema calcula la cuota anual automática y la suma al costo de cada campaña.</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ac-edit-id" value=""/>
+      <div class="fg"><label class="fl">Descripción *</label><input class="fi" type="text" id="ac-desc" placeholder="Ej: Toyota Hilux 2024, Sembradora Agrometal, Silo aéreo"/></div>
+      <div class="fg">
+        <label class="fl">Tipo *</label>
+        <select class="fi" id="ac-tipo" style="cursor:pointer">
+          <option value="">Seleccioná</option>
+          <option value="vehiculo">🚙 Vehículo (5 años sugerido)</option>
+          <option value="herramienta">🔧 Herramienta / implemento (10 años)</option>
+          <option value="maquinaria">🚜 Maquinaria pesada (10 años)</option>
+          <option value="construccion">🏗️ Construcción / silo (15 años)</option>
+          <option value="otros">📦 Otros</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Valor de compra (USD) *</label><input class="fi" type="number" id="ac-valor" placeholder="Ej: 30000" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
+        <div class="fg"><label class="fl">Fecha de compra *</label><input class="fi" type="date" id="ac-fecha"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
+        <div class="fg"><label class="fl">Valor residual (USD)</label><input class="fi" type="number" id="ac-residual" placeholder="0 (opcional)" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
+      </div>
+      <div class="conv-box" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+        <div><div class="conv-l">Cuota anual</div><div class="conv-v" id="ac-cuota-anual">—</div></div>
+        <div><div class="conv-l">Cuota mensual</div><div class="conv-v" id="ac-cuota-mensual" style="color:var(--dorado)">—</div></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Distribución entre campos</label>
+        <select class="fi" id="ac-dist-modo" style="cursor:pointer">
+          <option value="por_hectareas">Por hectáreas (recomendado)</option>
+          <option value="igualitario">Igualitario entre todos los campos</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Notas</label><textarea class="fi" id="ac-notas" placeholder="Cualquier detalle..." rows="2" style="font-family:'DM Sans',sans-serif;resize:vertical"></textarea></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
+      <button id="btn-ac-eliminar" onclick="eliminarActivo()" style="display:none;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar</button>
+      <button class="fb" id="btn-guardar-activo" onclick="guardarActivo()" style="flex:1">Guardar activo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GASTO ESTRUCTURA -->
+<div class="overlay" id="ov-gasto-estr">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalGastoEstructura()">✕</button>
+      <div class="m-tit" id="gest-modal-tit">💼 Nuevo gasto de estructura</div>
+      <div class="m-sub" style="margin-bottom:0">Se prorratea entre todos los campos automáticamente.</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ge-edit-id" value=""/>
+      <div class="fg"><label class="fl">Descripción *</label><input class="fi" type="text" id="ge-desc" placeholder="Ej: Sueldo Carlos, Honorarios contador, Seguro flota"/></div>
+      <div class="fg">
+        <label class="fl">Tipo *</label>
+        <select class="fi" id="ge-tipo" style="cursor:pointer">
+          <option value="">Seleccioná</option>
+          <option value="sueldo">👷 Sueldo empleado</option>
+          <option value="honorarios">📋 Honorarios (contador, agrónomo)</option>
+          <option value="seguro">🛡️ Seguro (ART, agrícola, flota)</option>
+          <option value="oficina">🏢 Oficina / gastos administrativos</option>
+          <option value="combustible">⛽ Combustible general</option>
+          <option value="otros">📦 Otros</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Importe USD *</label><input class="fi" type="number" id="ge-importe" placeholder="Ej: 1500" min="0" step="0.01"/></div>
+        <div class="fg">
+          <label class="fl">Frecuencia *</label>
+          <select class="fi" id="ge-freq" style="cursor:pointer" onchange="_geUpdateFrecuencia()">
+            <option value="mensual">Mensual (todos los meses)</option>
+            <option value="anual">Anual (una vez por año)</option>
+            <option value="unico">Único (una sola vez)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Desde *</label><input class="fi" type="date" id="ge-fecha-ini"/></div>
+        <div class="fg" id="ge-fecha-fin-wrap"><label class="fl">Hasta (opcional)</label><input class="fi" type="date" id="ge-fecha-fin"/></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Distribución entre campos</label>
+        <select class="fi" id="ge-dist-modo" style="cursor:pointer">
+          <option value="por_hectareas">Por hectáreas (recomendado)</option>
+          <option value="igualitario">Igualitario entre todos los campos</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Notas</label><textarea class="fi" id="ge-notas" placeholder="Cualquier detalle..." rows="2" style="font-family:'DM Sans',sans-serif;resize:vertical"></textarea></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
+      <button id="btn-ge-eliminar" onclick="eliminarGastoEstructura()" style="display:none;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar</button>
+      <button class="fb" id="btn-guardar-gest" onclick="guardarGastoEstructura()" style="flex:1">Guardar gasto</button>
+    </div>
   </div>
 </div>
 
@@ -2611,6 +2753,9 @@ var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
 var pagos = []                       // compromisos_pago (cheques + cuotas)
+var activosAmort = []                // activos_amortizables (Estructura)
+var gastosEstructura = []            // gastos_estructura (Estructura)
+var _estTabActivo = 'amort'          // 'amort' | 'gastos'
 window.campanas = []                  // histórico de cultivos + rendimientos + precios por campo/año
 var pagosFiltroEstado = 'proximos' // proximos | vencidos | pagados
 var pagosFiltroTipo   = ''           // '' | 'cheque' | 'cuota_credito'
@@ -2976,7 +3121,7 @@ async function cargarTodo() {
                         function(e){ return {status:'rejected', reason:e} })
   }
 
-  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa, resAA, resGE] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     _selectConFallback('gastos',           {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
@@ -2986,7 +3131,9 @@ async function cargarTodo() {
     _selectConFallback('equipo',           {col:'owner_id',   val:uid, col2:'activo', val2:true}),
     _selectConFallback('stock_insumos',    {col:'owner_id',   val:uid, order:{col:'created_at', asc:false}}),
     _selectConFallback('compromisos_pago', {col:'owner_id',   val:uid, order:{col:'fecha_cobro', asc:true}}),
-    _selectConFallback('campanas',         {col:'usuario_id', val:uid, order:{col:'anio', asc:false}})
+    _selectConFallback('campanas',         {col:'usuario_id', val:uid, order:{col:'anio', asc:false}}),
+    _selectConFallback('activos_amortizables', {col:'owner_id', val:uid, order:{col:'created_at', asc:false}}),
+    _selectConFallback('gastos_estructura',    {col:'owner_id', val:uid, order:{col:'created_at', asc:false}})
   ])
 
   // Perfil → nombre/saludo
@@ -3037,6 +3184,13 @@ async function cargarTodo() {
   // Campanas (histórico de cultivos + rendimientos + precios por campo/año, para comparativas)
   var freshCampanas = (resCa && resCa.status==='fulfilled' && resCa.value && Array.isArray(resCa.value.data)) ? resCa.value.data : null
   if (freshCampanas !== null) window.campanas = freshCampanas
+  // Estructura (activos amortizables + gastos generales)
+  var freshActivosA = (resAA && resAA.status==='fulfilled' && resAA.value && Array.isArray(resAA.value.data)) ? resAA.value.data : null
+  if (freshActivosA !== null) activosAmort = freshActivosA
+  var freshGE = (resGE && resGE.status==='fulfilled' && resGE.value && Array.isArray(resGE.value.data)) ? resGE.value.data : null
+  if (freshGE !== null) gastosEstructura = freshGE
+  var modEst = document.getElementById('mod-estructura')
+  if (modEst && modEst.classList.contains('active')) { try { renderEstructura() } catch(e) {} }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
 
@@ -3117,7 +3271,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','pagos','tareas','mapa']
+  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','pagos','estructura','tareas','mapa']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
@@ -3144,6 +3298,10 @@ window.showModulo = function(mod) {
   if (mod === 'pagos') {
     renderPagos()
     _refrescarPagosVistaActual()
+  }
+  if (mod === 'estructura') {
+    renderEstructura()
+    _estSwitchTab(_estTabActivo)
   }
 }
 
@@ -10723,6 +10881,369 @@ window.exportarPDFLluviasCampo = function() {
   closeModalExportLluvias()
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// MÓDULO ESTRUCTURA: activos amortizables + gastos generales
+// ══════════════════════════════════════════════════════════════════════════
+// Los cálculos se hacen por días para permitir cualquier rango de fechas
+// (una campaña puede ser 8 meses, 12 meses o cruzar años).
+//   - Amortización: prorratea la cuota anual proporcional a los días que el
+//     activo está vigente dentro del rango.
+//   - Gasto mensual: importe/30 * días_dentro_del_rango.
+//   - Gasto anual: importe/365 * días_dentro_del_rango.
+//   - Gasto único: importe completo si fecha_inicio cae en el rango.
+
+var TIPOS_ACTIVO_LBL = {vehiculo:'🚙 Vehículo', herramienta:'🔧 Herramienta', maquinaria:'🚜 Maquinaria', construccion:'🏗️ Construcción', otros:'📦 Otros'}
+var TIPOS_GESTR_LBL  = {sueldo:'👷 Sueldo', honorarios:'📋 Honorarios', seguro:'🛡️ Seguro', oficina:'🏢 Oficina', combustible:'⛽ Combustible', otros:'📦 Otros'}
+var FREQ_LBL         = {mensual:'mensual', anual:'anual', unico:'único'}
+
+function _parseFechaLocal(str) {
+  if (!str) return null
+  return new Date(str + 'T00:00:00')
+}
+function _fFecha(str) {
+  if (!str) return '—'
+  var d = _parseFechaLocal(str); if (!d || isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'})
+}
+
+function _estCuotaAnual(activo) {
+  var val = parseFloat(activo.valor_compra_usd)||0
+  var res = parseFloat(activo.valor_residual_usd)||0
+  var vida = parseInt(activo.vida_util_anos)||1
+  return Math.max(0, (val - res) / vida)
+}
+
+// Días de overlap entre [aStart, aEnd] y [bStart, bEnd]. Ambos endpoints inclusivos.
+function _diasOverlap(aStart, aEnd, bStart, bEnd) {
+  if (!aStart || !bStart) return 0
+  var start = Math.max(aStart.getTime(), bStart.getTime())
+  var end = Math.min((aEnd||new Date(9999,0,1)).getTime(), (bEnd||new Date(9999,0,1)).getTime())
+  if (end < start) return 0
+  return (end - start) / (1000 * 60 * 60 * 24) + 1
+}
+
+function _estCostoActivoEnRango(activo, dStart, dEnd) {
+  var fCompra = _parseFechaLocal(activo.fecha_compra); if (!fCompra) return 0
+  var fFin = new Date(fCompra); fFin.setFullYear(fFin.getFullYear() + (parseInt(activo.vida_util_anos)||0))
+  var dias = _diasOverlap(fCompra, fFin, dStart, dEnd)
+  if (dias <= 0) return 0
+  var cuotaAnual = _estCuotaAnual(activo)
+  return cuotaAnual * (dias / 365)
+}
+
+function _estCostoGastoEnRango(g, dStart, dEnd) {
+  var fIni = _parseFechaLocal(g.fecha_inicio); if (!fIni) return 0
+  var fFin = _parseFechaLocal(g.fecha_fin) || null  // null = indefinido
+  var imp = parseFloat(g.importe_usd)||0
+  if (g.frecuencia === 'unico') {
+    if (fIni >= dStart && fIni <= dEnd) return imp
+    return 0
+  }
+  var dias = _diasOverlap(fIni, fFin, dStart, dEnd)
+  if (dias <= 0) return 0
+  if (g.frecuencia === 'anual')   return (imp / 365) * dias
+  return (imp / 30) * dias  // 'mensual' (default)
+}
+
+// Total estructura en un rango de fechas (activos + gastos).
+window._estructuraTotalEnRango = function(dStart, dEnd) {
+  if (!dStart || !dEnd) return 0
+  var tot = 0
+  ;(activosAmort||[]).forEach(function(a){ tot += _estCostoActivoEnRango(a, dStart, dEnd) })
+  ;(gastosEstructura||[]).forEach(function(g){ tot += _estCostoGastoEnRango(g, dStart, dEnd) })
+  return tot
+}
+
+// Prorrateo entre campos: por hectáreas por default.
+// Devuelve el costo asignado a UN campo específico durante el rango.
+window._estructuraCostoPorCampo = function(campoId, dStart, dEnd) {
+  if (!campoId || !dStart || !dEnd) return 0
+  var total = window._estructuraTotalEnRango(dStart, dEnd)
+  if (total === 0) return 0
+  var totHa = (campos||[]).reduce(function(a,c){ return a + (parseFloat(c.hectareas)||0) }, 0)
+  var camp  = (campos||[]).find(function(c){ return c.id === campoId })
+  if (!camp || !totHa) return 0
+  var ha = parseFloat(camp.hectareas)||0
+  return total * (ha / totHa)
+}
+
+// ── RENDER ──
+function renderEstructura() {
+  _renderEstructuraAmort()
+  _renderEstructuraGastos()
+}
+
+window._estSwitchTab = function(tab) {
+  _estTabActivo = tab
+  document.getElementById('est-sec-amort').style.display  = (tab==='amort')  ? '' : 'none'
+  document.getElementById('est-sec-gastos').style.display = (tab==='gastos') ? '' : 'none'
+  var bA = document.getElementById('est-tab-amort'), bG = document.getElementById('est-tab-gastos')
+  if (bA) { bA.style.background = (tab==='amort')?'var(--verde)':'#fff'; bA.style.color=(tab==='amort')?'#fff':'var(--texto-mid)'; bA.style.borderColor=(tab==='amort')?'var(--verde)':'var(--borde)' }
+  if (bG) { bG.style.background = (tab==='gastos')?'var(--verde)':'#fff'; bG.style.color=(tab==='gastos')?'#fff':'var(--texto-mid)'; bG.style.borderColor=(tab==='gastos')?'var(--verde)':'var(--borde)' }
+}
+
+function _renderEstructuraAmort() {
+  var el = document.getElementById('est-amort-lista')
+  var res = document.getElementById('est-amort-resumen')
+  if (!el) return
+  var lista = activosAmort||[]
+  var totalActivos = lista.reduce(function(a,x){ return a + (parseFloat(x.valor_compra_usd)||0) },0)
+  var totalCuotaAnual = lista.reduce(function(a,x){ return a + _estCuotaAnual(x) },0)
+  if (res) res.innerHTML = lista.length
+    ? '<strong>'+lista.length+' activo'+(lista.length!==1?'s':'')+'</strong> · Valor total: <strong>USD '+Math.round(totalActivos).toLocaleString('es-AR')+'</strong> · Amortización anual: <strong style="color:var(--rojo)">USD '+Math.round(totalCuotaAnual).toLocaleString('es-AR')+'/año</strong>'
+    : ''
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-i">🚜</div><div class="empty-t">Sin activos cargados</div><div class="empty-s">Cargá tus vehículos, herramientas o construcciones para prorratearlos automáticamente.</div></div>'
+    return
+  }
+  el.innerHTML = lista.map(function(a){
+    var cuotaAnual = _estCuotaAnual(a)
+    var fCompra = _parseFechaLocal(a.fecha_compra)
+    var fFin = fCompra ? new Date(fCompra) : null
+    if (fFin) fFin.setFullYear(fFin.getFullYear() + (parseInt(a.vida_util_anos)||0))
+    var vigente = fCompra && fFin && new Date() >= fCompra && new Date() <= fFin
+    var badge = vigente
+      ? '<span style="font-size:10px;background:#d4edda;color:#1a5c38;padding:2px 8px;border-radius:10px;font-weight:700">EN AMORTIZACIÓN</span>'
+      : '<span style="font-size:10px;background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:10px;font-weight:700">AMORTIZADO</span>'
+    return '<div class="card" style="margin-bottom:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:200px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="font-size:15px;font-weight:700;color:var(--texto)">'+(a.descripcion||'—')+'</div>'+badge+'</div>'
+      +'<div style="font-size:11px;color:var(--texto-suave)">'+(TIPOS_ACTIVO_LBL[a.tipo]||a.tipo)+' · Comprado el '+_fFecha(a.fecha_compra)+' · Vida útil '+a.vida_util_anos+' año'+(a.vida_util_anos!==1?'s':'')+' · Reparto '+(a.distribuir_modo==='igualitario'?'igualitario':'por ha')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;min-width:140px">'
+      +'<div style="font-size:11px;color:var(--texto-suave)">USD '+Math.round(parseFloat(a.valor_compra_usd)).toLocaleString('es-AR')+' compra</div>'
+      +'<div style="font-size:16px;font-weight:800;color:var(--rojo);font-family:DM Mono,monospace">USD '+Math.round(cuotaAnual).toLocaleString('es-AR')+'/año</div>'
+      +'</div>'
+      +'<button onclick="openModalActivo(\''+a.id+'\')" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">✏️ Editar</button>'
+      +'</div>'
+  }).join('')
+}
+
+function _renderEstructuraGastos() {
+  var el = document.getElementById('est-gastos-lista')
+  var res = document.getElementById('est-gastos-resumen')
+  if (!el) return
+  var lista = gastosEstructura||[]
+  // Estimación anual: mensual*12 + anual + único (los únicos ya son un cargo puntual)
+  var totalAnual = lista.reduce(function(a,g){
+    var imp = parseFloat(g.importe_usd)||0
+    if (g.frecuencia==='mensual') return a + imp*12
+    if (g.frecuencia==='anual')   return a + imp
+    return a  // único no se suma a la corrida anual
+  },0)
+  if (res) res.innerHTML = lista.length
+    ? '<strong>'+lista.length+' gasto'+(lista.length!==1?'s':'')+' cargado'+(lista.length!==1?'s':'')+'</strong> · Estimado anual (mensuales × 12 + anuales): <strong style="color:var(--rojo)">USD '+Math.round(totalAnual).toLocaleString('es-AR')+'/año</strong>'
+    : ''
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-i">💼</div><div class="empty-t">Sin gastos generales</div><div class="empty-s">Cargá sueldos, contador, seguros, oficina y todo lo que sirva a varios campos.</div></div>'
+    return
+  }
+  el.innerHTML = lista.map(function(g){
+    var imp = parseFloat(g.importe_usd)||0
+    var freq = g.frecuencia||'mensual'
+    var freqLbl = FREQ_LBL[freq]||freq
+    var subFecha = 'Desde '+_fFecha(g.fecha_inicio) + (g.fecha_fin ? ' hasta '+_fFecha(g.fecha_fin) : ' (sin fecha de fin)')
+    return '<div class="card" style="margin-bottom:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:200px">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">'+(g.descripcion||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--texto-suave)">'+(TIPOS_GESTR_LBL[g.tipo]||g.tipo)+' · '+subFecha+' · Reparto '+(g.distribuir_modo==='igualitario'?'igualitario':'por ha')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;min-width:140px">'
+      +'<div style="font-size:16px;font-weight:800;color:var(--rojo);font-family:DM Mono,monospace">USD '+Math.round(imp).toLocaleString('es-AR')+'</div>'
+      +'<div style="font-size:11px;color:var(--texto-suave)">'+freqLbl+'</div>'
+      +'</div>'
+      +'<button onclick="openModalGastoEstructura(\''+g.id+'\')" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">✏️ Editar</button>'
+      +'</div>'
+  }).join('')
+}
+
+// ── MODAL ACTIVO ──
+window.openModalActivo = function(id) {
+  var a = id ? activosAmort.find(function(x){return x.id===id}) : null
+  document.getElementById('activo-modal-tit').textContent = a ? '✏️ Editar activo' : '🚜 Nuevo activo amortizable'
+  document.getElementById('btn-guardar-activo').textContent = a ? 'Guardar cambios' : 'Guardar activo'
+  document.getElementById('btn-ac-eliminar').style.display = a ? '' : 'none'
+  document.getElementById('ac-edit-id').value = a ? a.id : ''
+  document.getElementById('ac-desc').value = a ? (a.descripcion||'') : ''
+  document.getElementById('ac-tipo').value = a ? (a.tipo||'') : ''
+  document.getElementById('ac-valor').value = a ? a.valor_compra_usd : ''
+  document.getElementById('ac-fecha').value = a ? (a.fecha_compra||'') : new Date().toISOString().split('T')[0]
+  document.getElementById('ac-vida').value = a ? a.vida_util_anos : ''
+  document.getElementById('ac-residual').value = a ? (a.valor_residual_usd||'') : ''
+  document.getElementById('ac-dist-modo').value = a ? (a.distribuir_modo||'por_hectareas') : 'por_hectareas'
+  document.getElementById('ac-notas').value = a ? (a.notas||'') : ''
+  _acCalcCuota()
+  document.getElementById('ov-activo').classList.add('open')
+}
+window.closeModalActivo = function() { document.getElementById('ov-activo').classList.remove('open') }
+window._acCalcCuota = function() {
+  var val = parseFloat(document.getElementById('ac-valor').value)||0
+  var res = parseFloat(document.getElementById('ac-residual').value)||0
+  var vida = parseInt(document.getElementById('ac-vida').value)||0
+  if (!val || !vida) {
+    document.getElementById('ac-cuota-anual').textContent = '—'
+    document.getElementById('ac-cuota-mensual').textContent = '—'
+    return
+  }
+  var anual = Math.max(0, (val - res) / vida)
+  document.getElementById('ac-cuota-anual').textContent = 'USD ' + Math.round(anual).toLocaleString('es-AR')
+  document.getElementById('ac-cuota-mensual').textContent = 'USD ' + Math.round(anual/12).toLocaleString('es-AR')
+}
+
+window.guardarActivo = async function() {
+  var desc = document.getElementById('ac-desc').value.trim()
+  var tipo = document.getElementById('ac-tipo').value
+  var val = parseFloat(document.getElementById('ac-valor').value)||0
+  var fecha = document.getElementById('ac-fecha').value
+  var vida = parseInt(document.getElementById('ac-vida').value)||0
+  var res  = parseFloat(document.getElementById('ac-residual').value)||0
+  var dist = document.getElementById('ac-dist-modo').value||'por_hectareas'
+  var notas = document.getElementById('ac-notas').value.trim()||null
+  if(!desc){showToast('⚠️ Poné una descripción','err');return}
+  if(!tipo){showToast('⚠️ Elegí el tipo','err');return}
+  if(!val||val<=0){showToast('⚠️ Ingresá el valor de compra','err');return}
+  if(!fecha){showToast('⚠️ Ingresá la fecha de compra','err');return}
+  if(!vida||vida<=0){showToast('⚠️ Ingresá la vida útil','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  var btn = document.getElementById('btn-guardar-activo')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var editId = document.getElementById('ac-edit-id').value
+  var payload = {
+    descripcion: desc, tipo: tipo, valor_compra_usd: val, fecha_compra: fecha,
+    vida_util_anos: vida, valor_residual_usd: res, distribuir_modo: dist, notas: notas
+  }
+  try {
+    if (editId) {
+      var r = await _dbMutate({method:'update', table:'activos_amortizables', filter:{col:'id', val:editId}, payload:payload})
+      var idx = activosAmort.findIndex(function(x){return x.id===editId})
+      if (idx >= 0) activosAmort[idx] = Object.assign({}, activosAmort[idx], payload, r && r[0] ? r[0] : {})
+      showToast('✓ Activo actualizado','ok')
+    } else {
+      payload.owner_id = usuario.id
+      var r2 = await _dbMutate({method:'insert', table:'activos_amortizables', payload:payload})
+      var inserted = (r2 && r2[0]) ? r2[0] : Object.assign({id:crypto.randomUUID(), created_at:new Date().toISOString()}, payload)
+      activosAmort.unshift(inserted)
+      showToast('✓ Activo cargado','ok')
+    }
+    _guardarCache()
+    renderEstructura()
+    closeModalActivo()
+    try { renderRentabilidad() } catch(e) {}
+    try { renderRentabilidadTotal() } catch(e) {}
+  } catch(e) {
+    showToast('⚠️ '+(e.message||'Error al guardar'),'err')
+  } finally {
+    btn.disabled = false; btn.textContent = editId ? 'Guardar cambios' : 'Guardar activo'
+  }
+}
+
+window.eliminarActivo = async function() {
+  var id = document.getElementById('ac-edit-id').value
+  if (!id) return
+  if (!confirm('¿Eliminar este activo? La amortización dejará de aparecer en la rentabilidad.')) return
+  try {
+    await _dbMutate({method:'delete', table:'activos_amortizables', filter:{col:'id', val:id}})
+    activosAmort = activosAmort.filter(function(x){return x.id!==id})
+    _guardarCache(); renderEstructura(); closeModalActivo()
+    try { renderRentabilidad() } catch(e) {}
+    try { renderRentabilidadTotal() } catch(e) {}
+    showToast('✓ Activo eliminado','ok')
+  } catch(e) { showToast('⚠️ '+(e.message||'No se pudo eliminar'),'err') }
+}
+
+// ── MODAL GASTO ESTRUCTURA ──
+window.openModalGastoEstructura = function(id) {
+  var g = id ? gastosEstructura.find(function(x){return x.id===id}) : null
+  document.getElementById('gest-modal-tit').textContent = g ? '✏️ Editar gasto de estructura' : '💼 Nuevo gasto de estructura'
+  document.getElementById('btn-guardar-gest').textContent = g ? 'Guardar cambios' : 'Guardar gasto'
+  document.getElementById('btn-ge-eliminar').style.display = g ? '' : 'none'
+  document.getElementById('ge-edit-id').value = g ? g.id : ''
+  document.getElementById('ge-desc').value = g ? (g.descripcion||'') : ''
+  document.getElementById('ge-tipo').value = g ? (g.tipo||'') : ''
+  document.getElementById('ge-importe').value = g ? g.importe_usd : ''
+  document.getElementById('ge-freq').value = g ? (g.frecuencia||'mensual') : 'mensual'
+  document.getElementById('ge-fecha-ini').value = g ? (g.fecha_inicio||'') : new Date().toISOString().split('T')[0]
+  document.getElementById('ge-fecha-fin').value = g ? (g.fecha_fin||'') : ''
+  document.getElementById('ge-dist-modo').value = g ? (g.distribuir_modo||'por_hectareas') : 'por_hectareas'
+  document.getElementById('ge-notas').value = g ? (g.notas||'') : ''
+  _geUpdateFrecuencia()
+  document.getElementById('ov-gasto-estr').classList.add('open')
+}
+window.closeModalGastoEstructura = function() { document.getElementById('ov-gasto-estr').classList.remove('open') }
+window._geUpdateFrecuencia = function() {
+  var freq = document.getElementById('ge-freq').value
+  var wrap = document.getElementById('ge-fecha-fin-wrap')
+  var lblIni = document.querySelector('#ge-fecha-ini')?.parentElement?.querySelector('.fl')
+  if (freq === 'unico') {
+    if (wrap) wrap.style.display = 'none'
+    if (lblIni) lblIni.textContent = 'Fecha *'
+  } else {
+    if (wrap) wrap.style.display = ''
+    if (lblIni) lblIni.textContent = 'Desde *'
+  }
+}
+
+window.guardarGastoEstructura = async function() {
+  var desc = document.getElementById('ge-desc').value.trim()
+  var tipo = document.getElementById('ge-tipo').value
+  var imp = parseFloat(document.getElementById('ge-importe').value)||0
+  var freq = document.getElementById('ge-freq').value||'mensual'
+  var fIni = document.getElementById('ge-fecha-ini').value
+  var fFin = document.getElementById('ge-fecha-fin').value||null
+  var dist = document.getElementById('ge-dist-modo').value||'por_hectareas'
+  var notas = document.getElementById('ge-notas').value.trim()||null
+  if(!desc){showToast('⚠️ Poné una descripción','err');return}
+  if(!tipo){showToast('⚠️ Elegí el tipo','err');return}
+  if(!imp||imp<=0){showToast('⚠️ Ingresá el importe','err');return}
+  if(!fIni){showToast('⚠️ Ingresá la fecha','err');return}
+  if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  if(freq==='unico') fFin = null  // los únicos no tienen fin
+  var btn = document.getElementById('btn-guardar-gest')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var editId = document.getElementById('ge-edit-id').value
+  var payload = {
+    descripcion: desc, tipo: tipo, importe_usd: imp, frecuencia: freq,
+    fecha_inicio: fIni, fecha_fin: fFin, distribuir_modo: dist, notas: notas
+  }
+  try {
+    if (editId) {
+      var r = await _dbMutate({method:'update', table:'gastos_estructura', filter:{col:'id', val:editId}, payload:payload})
+      var idx = gastosEstructura.findIndex(function(x){return x.id===editId})
+      if (idx >= 0) gastosEstructura[idx] = Object.assign({}, gastosEstructura[idx], payload, r && r[0] ? r[0] : {})
+      showToast('✓ Gasto actualizado','ok')
+    } else {
+      payload.owner_id = usuario.id
+      var r2 = await _dbMutate({method:'insert', table:'gastos_estructura', payload:payload})
+      var inserted = (r2 && r2[0]) ? r2[0] : Object.assign({id:crypto.randomUUID(), created_at:new Date().toISOString()}, payload)
+      gastosEstructura.unshift(inserted)
+      showToast('✓ Gasto cargado','ok')
+    }
+    _guardarCache()
+    renderEstructura()
+    closeModalGastoEstructura()
+    try { renderRentabilidad() } catch(e) {}
+    try { renderRentabilidadTotal() } catch(e) {}
+  } catch(e) {
+    showToast('⚠️ '+(e.message||'Error al guardar'),'err')
+  } finally {
+    btn.disabled = false; btn.textContent = editId ? 'Guardar cambios' : 'Guardar gasto'
+  }
+}
+
+window.eliminarGastoEstructura = async function() {
+  var id = document.getElementById('ge-edit-id').value
+  if (!id) return
+  if (!confirm('¿Eliminar este gasto de estructura? Va a dejar de aparecer en la rentabilidad.')) return
+  try {
+    await _dbMutate({method:'delete', table:'gastos_estructura', filter:{col:'id', val:id}})
+    gastosEstructura = gastosEstructura.filter(function(x){return x.id!==id})
+    _guardarCache(); renderEstructura(); closeModalGastoEstructura()
+    try { renderRentabilidad() } catch(e) {}
+    try { renderRentabilidadTotal() } catch(e) {}
+    showToast('✓ Gasto eliminado','ok')
+  } catch(e) { showToast('⚠️ '+(e.message||'No se pudo eliminar'),'err') }
+}
+
 // ── PAGOS: Exportar PDF por rango de fechas ──
 window.openModalExportPagos = function() {
   var hoy = new Date(); hoy.setHours(0,0,0,0)
@@ -13780,13 +14301,21 @@ window.renderRentabilidadTotal = function() {
         ingTotal += rend * pre * ha
       })
     }
+    var costoEstrCampo = 0
+    try { costoEstrCampo = _estructuraCostoPorCampo(c.id, campRt.start, campRt.end) } catch(e) {}
+    var costoTotalCampo = costo + costoEstrCampo
+    var costoHaTotal = ha>0 ? costoTotalCampo/ha : 0
     var ingHa = ha>0 ? ingTotal/ha : 0
-    var mgHa = ingHa-costoHa
+    var mgHa = ingHa - costoHaTotal
     totalHa+=ha; totalCosto+=costo; totalIngreso+=ingTotal
     gf.forEach(function(g){var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubroGlobal[r]=(porRubroGlobal[r]||0)+(g.total_de_usd||0)})
-    return {c:c, ha:ha, costo:costo, costoHa:costoHa, ingHa:ingHa, mgHa:mgHa}
+    return {c:c, ha:ha, costo:costo, costoEstr:costoEstrCampo, costoTotal:costoTotalCampo, costoHa:costoHaTotal, ingHa:ingHa, mgHa:mgHa}
   })
-  var mgTotal = totalIngreso-totalCosto
+  // Costo de estructura global (amortizaciones + gastos generales) para el rango de la campaña
+  var costoEstructuraGlobal = 0
+  try { costoEstructuraGlobal = _estructuraTotalEnRango(campRt.start, campRt.end) } catch(e) {}
+  var costoTotalConEstr = totalCosto + costoEstructuraGlobal
+  var mgTotal = totalIngreso - costoTotalConEstr
   var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
   var mc = mgHaGlobal>=0?'#1a7a52':'#c0392b'
 
@@ -13795,10 +14324,12 @@ window.renderRentabilidadTotal = function() {
   if(casEl) {
     var ingPerHa = totalHa>0 ? totalIngreso/totalHa : 0
     var cosPerHa = totalHa>0 ? totalCosto/totalHa : 0
+    var estrPerHa = totalHa>0 ? costoEstructuraGlobal/totalHa : 0
     var mgPerHa  = mgHaGlobal
-    var roiPct = totalCosto>0 ? (mgTotal/totalCosto)*100 : 0
+    var roiPct = costoTotalConEstr>0 ? (mgTotal/costoTotalConEstr)*100 : 0
     var mgPctIng = totalIngreso>0 ? (mgTotal/totalIngreso)*100 : 0
     var cosPctIng = totalIngreso>0 ? (totalCosto/totalIngreso)*100 : 0
+    var estrPctIng = totalIngreso>0 ? (costoEstructuraGlobal/totalIngreso)*100 : 0
     var mgPositivo = mgTotal >= 0
     function _miles(v) { return Math.round(v).toLocaleString('es-AR') }
     function _money(v) { var s = (v<0?'(':''); return s + 'USD ' + _miles(Math.abs(v)) + (v<0?')':'') }
@@ -13835,13 +14366,23 @@ window.renderRentabilidadTotal = function() {
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">100.0%</div>'
       +     '</div>'
 
-      //   Costos (fondo rojo · texto NEGRO)
+      //   Costos operativos (fondo rojo · texto NEGRO)
       +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:16px 26px;align-items:baseline;background:'+bgCostos+'">'
       +       '<div><div style="font-size:14px;color:'+text+';font-weight:800">(−) Costos operativos</div><div style="font-size:11px;color:rgba(0,0,0,.78);margin-top:2px;font-weight:600">Insumos · labores · arriendo · flete</div></div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">'+_perHa(cosPerHa)+'</div>'
       +       '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_miles(totalCosto)+')</div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:700">'+cosPctIng.toFixed(1)+'%</div>'
       +     '</div>'
+
+      //   Costos de estructura (fondo rojo más oscuro · solo si hay)
+      + (costoEstructuraGlobal > 0
+        ? '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:16px 26px;align-items:baseline;background:#b91c1c;color:#fff">'
+        +   '<div><div style="font-size:14px;color:#fff;font-weight:800">(−) Estructura</div><div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:2px;font-weight:600">Amortizaciones · sueldos · honorarios · seguros</div></div>'
+        +   '<div style="text-align:right;font-size:12px;color:#fff;font-variant-numeric:tabular-nums;font-weight:700">'+_perHa(estrPerHa)+'</div>'
+        +   '<div style="text-align:right;font-size:18px;color:#fff;font-weight:800;font-variant-numeric:tabular-nums">('+_miles(costoEstructuraGlobal)+')</div>'
+        +   '<div style="text-align:right;font-size:12px;color:#fff;font-variant-numeric:tabular-nums;font-weight:700">'+estrPctIng.toFixed(1)+'%</div>'
+        + '</div>'
+        : '')
 
       //   Margen Neto (fondo verde más claro · texto NEGRO)
       +     '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 0.6fr;gap:14px;padding:18px 26px;align-items:baseline;background:'+bgMargen+'">'
@@ -13867,7 +14408,7 @@ window.renderRentabilidadTotal = function() {
   if(mEl) mEl.innerHTML = [
     {l:'Hectáreas totales',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
     {l:'Ingresos totales',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a7a52'},
-    {l:'Costos totales',v:'USD '+Math.round(totalCosto/1000)+'k',s:'USD '+Math.round(totalHa>0?totalCosto/totalHa:0)+'/ha promedio',c:'#c0392b'},
+    {l:'Costos totales',v:'USD '+Math.round(costoTotalConEstr/1000)+'k',s:(costoEstructuraGlobal>0?'incluye USD '+Math.round(costoEstructuraGlobal/1000)+'k de estructura':'USD '+Math.round(totalHa>0?costoTotalConEstr/totalHa:0)+'/ha promedio'),c:'#c0392b'},
     {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
@@ -13878,13 +14419,19 @@ window.renderRentabilidadTotal = function() {
     var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
     cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
       var ingTot=Math.round(d.ingHa*d.ha)
-      var cosTot=Math.round(d.costo)
+      var cosDir=Math.round(d.costo)
+      var cosEstr=Math.round(d.costoEstr||0)
+      var cosTot=cosDir+cosEstr
       var mgTot=ingTot-cosTot
       var mgHaRound=Math.round(d.mgHa)
       // Colores SOLO en los números (no en el fondo de la fila)
       var colIngresos = '#15803d'   // verde oscuro
       var colCostos   = '#dc2626'   // rojo
       var colMargen   = mgTot>=0 ? '#16a34a' : '#dc2626'   // verde más claro / rojo si negativo
+      var filaEstr = cosEstr > 0
+        ? '<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 14px;border-top:.5px dashed var(--borde);color:var(--texto-suave)">'+
+          '<span style="font-style:italic">↳ Estructura (prorrateo)</span><span style="font-family:DM Mono,monospace">USD '+cosEstr.toLocaleString('es-AR')+'</span></div>'
+        : ''
       return '<div class="card" style="cursor:pointer;margin-bottom:0;padding:0;overflow:hidden" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
         '<div style="padding:14px 14px 10px">'+
         '<div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
@@ -13892,7 +14439,8 @@ window.renderRentabilidadTotal = function() {
         '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
         '<span style="color:#000;font-weight:500">Ingresos</span><span style="font-family:DM Mono,monospace;color:'+colIngresos+';font-weight:700">USD '+ingTot.toLocaleString('es-AR')+'</span></div>'+
         '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="color:#000;font-weight:500">Costos</span><span style="font-family:DM Mono,monospace;color:'+colCostos+';font-weight:700">USD '+cosTot.toLocaleString('es-AR')+'</span></div>'+
+        '<span style="color:#000;font-weight:500">Costos directos</span><span style="font-family:DM Mono,monospace;color:'+colCostos+';font-weight:700">USD '+cosDir.toLocaleString('es-AR')+'</span></div>'+
+        filaEstr +
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:.5px solid var(--borde)">'+
         '<span style="font-size:12px;font-weight:700;color:#000">Margen neto</span>'+
         '<div style="text-align:right">'+

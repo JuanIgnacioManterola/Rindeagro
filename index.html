@@ -6186,14 +6186,41 @@ window.renderMiPlan = async function() {
   var estadoEl = document.getElementById('mp-estado-plan')
   if (planActual === 'gratis') estadoEl.textContent = 'Plan gratuito'
   else estadoEl.textContent = 'USD ' + info.precio_usd + '/año + IVA'
+  // Render inmediato con el valor cacheado para no dejar la UI en blanco.
   renderTarjetasPlanes()
+  // Forzar refresh del dólar en background para asegurar cotización fresca
+  // (el cron actualiza precios_dolar cada 30 min en horario de mercado; acá
+  // hacemos un fetch nuevo desde Supabase por si el cache local es viejo).
+  try {
+    await window.actualizarPrecios(true)
+    renderTarjetasPlanes()
+  } catch(e) {}
   // Cargar preferencias de WhatsApp en paralelo
   try { _waCargarPrefs() } catch(e) {}
 }
 
 function renderTarjetasPlanes() {
   var planActual = usuario?.user_metadata?.plan || 'gratis'
-  var bna = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
+  // Uso _dolarVenta() (divisa vendedor BNA) — es el TC correcto para el pago
+  // de suscripción porque el productor debe conseguir USD para pagar el plan.
+  // Valor se actualiza automáticamente via el cron en Supabase (cada 30 min
+  // entre 10-15 hs ARG lun-vie + cierre 19 hs).
+  var bna = (typeof window._dolarVenta === 'function') ? window._dolarVenta() : ((precios && precios.bna) || 1300)
+
+  // Etiqueta de última actualización — le da confianza al usuario de que la
+  // cotización mostrada está fresca.
+  var etiquetaTs = ''
+  try {
+    var ts = precios && precios.timestamp_dolar
+    if (ts) {
+      var dTs = new Date(ts)
+      var diffMin = Math.round((Date.now() - dTs.getTime()) / 60000)
+      if (diffMin < 5)       etiquetaTs = ' · <span style="font-size:11px;color:var(--verde);font-weight:600">✓ Recién actualizado</span>'
+      else if (diffMin < 60) etiquetaTs = ' · <span style="font-size:11px;color:var(--texto-suave)">Hace '+diffMin+' min</span>'
+      else if (diffMin < 60*24) etiquetaTs = ' · <span style="font-size:11px;color:var(--texto-suave)">Hace '+Math.round(diffMin/60)+' h</span>'
+      else etiquetaTs = ' · <span style="font-size:11px;color:var(--texto-suave)">'+dTs.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})+'</span>'
+    }
+  } catch(e) {}
 
   // Info compacta arriba (mecánica de facturación) — con badge prominente arriba
   var infoHtml = '<div style="text-align:center;margin-bottom:14px">'
@@ -6203,7 +6230,7 @@ function renderTarjetasPlanes() {
     + '<div class="mp-info-box">'
     + '<div class="mp-info-tit">📄 Detalle de facturación</div>'
     + '<div class="mp-info-body">'
-    +   'Precios en <strong>USD sin IVA</strong> (se suma 21% al facturar) · Se abona en <strong>pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día · Hoy: USD 1 = <strong>$' + Math.round(bna).toLocaleString('es-AR') + '</strong>'
+    +   'Precios en <strong>USD sin IVA</strong> (se suma 21% al facturar) · Se abona en <strong>pesos</strong> al <strong>dólar oficial vendedor del Banco Nación</strong> del día · Hoy: USD 1 = <strong>$' + Math.round(bna).toLocaleString('es-AR') + '</strong>' + etiquetaTs
     + '</div></div>'
 
   // Reutilizo las clases .plan / .pn / .ps / .pp / .pf / .pfi / .p-btn del landing.

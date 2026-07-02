@@ -14027,31 +14027,50 @@ function _haParaCultivo(c, cult, cultivosList) {
 
 function _ingSafeId(s){ return s.replace(/[^a-zA-Z0-9]/g,'_') }
 
+// Guarda las toneladas cosechadas por cultivo. Es el "stock" inicial que
+// después cada venta va descontando. Se puede cargar cero (no cosechado
+// todavía) y las ventas se pueden hacer igual (para el caso forward).
+window._ingCosechadas = {}  // { cult: number }
+
 function _ingInitCult(cult, savedData, c) {
   var d = savedData[cult] || {}
+  // Toneladas cosechadas: preferí el valor guardado, si no derivá de rendimiento × ha
+  if (d.tn_cosechadas != null && d.tn_cosechadas !== '') {
+    window._ingCosechadas[cult] = parseFloat(d.tn_cosechadas)||0
+  } else {
+    var _hcmInit={}; try{_hcmInit=JSON.parse(c.hectareas_cultivo||'{}')}catch(e){}
+    var haInit = parseFloat(_hcmInit[cult]||d.hectareas||c.hectareas||0)
+    var rndInit = parseFloat(d.rendimiento||0)
+    window._ingCosechadas[cult] = (haInit>0 && rndInit>0) ? Math.round(rndInit*haInit*10)/10 : ''
+  }
   if(Array.isArray(d.ventas) && d.ventas.length) {
-    window._ingVentas[cult] = d.ventas.map(function(v){return Object.assign({concepto:'Spot',fecha:''},v)})
+    window._ingVentas[cult] = d.ventas.map(function(v){return Object.assign({concepto:'Spot',fecha:'',comprador:''},v)})
   } else if(d.rendimiento || d.precio_venta) {
     var _hcm3={}; try{_hcm3=JSON.parse(c.hectareas_cultivo||'{}')}catch(e){}
-  var ha2 = parseFloat(_hcm3[cult]||d.hectareas||c.hectareas||0)
+    var ha2 = parseFloat(_hcm3[cult]||d.hectareas||c.hectareas||0)
     var rnd = parseFloat(d.rendimiento||0)
     var tn = ha2>0&&rnd>0 ? Math.round(rnd*ha2*10)/10 : ''
-    window._ingVentas[cult] = [{tn: tn, precio: d.precio_venta||'', concepto:'Spot', fecha:''}]
+    window._ingVentas[cult] = [{tn: tn, precio: d.precio_venta||'', concepto:'Spot', fecha:'', comprador:''}]
   } else {
-    window._ingVentas[cult] = [{tn:'', precio:'', concepto:'Spot', fecha:''}]
+    window._ingVentas[cult] = []  // arranca vacío — el usuario carga si vendió algo
   }
 }
 
 window._ingAgregarVenta = function(cult) {
   if(!window._ingVentas[cult]) window._ingVentas[cult] = []
-  window._ingVentas[cult].push({tn:'', precio:'', concepto:'Spot', fecha:''})
+  window._ingVentas[cult].push({tn:'', precio:'', concepto:'Spot', fecha:'', comprador:''})
   renderIngresosTab()
 }
 
 window._ingEliminarVenta = function(cult, idx) {
   if(window._ingVentas[cult]) window._ingVentas[cult].splice(idx, 1)
-  if(!window._ingVentas[cult].length) window._ingVentas[cult] = [{tn:'',precio:'',concepto:'Spot',fecha:''}]
   renderIngresosTab()
+}
+
+// Setter llamado desde el input "Toneladas cosechadas"
+window._ingSetCosechadas = function(cult, val) {
+  window._ingCosechadas[cult] = val === '' ? '' : (parseFloat(val)||0)
+  calcIngresosLive()
 }
 
 window._ingUpdateVenta = function() { calcIngresosLive() }
@@ -14064,6 +14083,7 @@ window.renderIngresosTab = function() {
   if(window._ingVentasCampoId !== campoDet) {
     window._ingVentasCampoId = campoDet
     window._ingVentas = {}
+    window._ingCosechadas = {}
     var savedData = {}
     try { savedData = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
     // backward compat single crop
@@ -14089,12 +14109,16 @@ window.renderIngresosTab = function() {
       ? window._ingVentas[cult][0]._ha : haFP
     var ventas = window._ingVentas[cult] || [{tn:'',precio:'',concepto:'Spot',fecha:''}]
 
+    var cosVal = window._ingCosechadas[cult] != null ? window._ingCosechadas[cult] : ''
+
     var ventasHtml = ventas.map(function(v,i){
-      return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">'
+      return '<div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap">'
         +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Toneladas</div>'
-        +'<input id="ing-tn-'+sid+'-'+i+'" type="number" placeholder="Ej: 500" value="'+(v.tn||'')+'" min="0" step="0.1" oninput="_ingUpdateVenta()" style="'+INP+';width:80px" /></div>'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">USD/t</div>'
-        +'<input id="ing-pr-'+sid+'-'+i+'" type="number" placeholder="Ej: 285" value="'+(v.precio||'')+'" min="0" step="1" oninput="_ingUpdateVenta()" style="'+INP+';width:80px" /></div>'
+        +'<input id="ing-tn-'+sid+'-'+i+'" type="number" placeholder="Ej: 200" value="'+(v.tn||'')+'" min="0" step="0.1" oninput="_ingUpdateVenta()" style="'+INP+';width:80px" /></div>'
+        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">USD/t <span style="color:rgba(250,247,240,.4)">(o dejar vacío = a fijar)</span></div>'
+        +'<input id="ing-pr-'+sid+'-'+i+'" type="number" placeholder="A fijar" value="'+(v.precio||'')+'" min="0" step="1" oninput="_ingUpdateVenta()" style="'+INP+';width:100px" /></div>'
+        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Comprador</div>'
+        +'<input id="ing-cm-'+sid+'-'+i+'" type="text" placeholder="Ej: Cargill" value="'+(v.comprador||'')+'" oninput="_ingUpdateVenta()" style="'+INP+';width:120px;font-family:DM Sans,sans-serif" /></div>'
         +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Tipo</div>'
         +'<select id="ing-co-'+sid+'-'+i+'" onchange="_ingUpdateVenta()" style="'+INP+';cursor:pointer;width:100px">'
         +'<option value="Spot"'+(v.concepto==='Spot'||!v.concepto?' selected':'')+'>Spot</option>'
@@ -14104,21 +14128,28 @@ window.renderIngresosTab = function() {
         +'</select></div>'
         +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Mes</div>'
         +'<input id="ing-fe-'+sid+'-'+i+'" type="month" value="'+(v.fecha||'')+'" oninput="_ingUpdateVenta()" style="'+INP+';width:130px" /></div>'
-        +(ventas.length>1 ? '<button onclick="_ingEliminarVenta(\''+cult+'\','+i+')" style="background:none;border:none;cursor:pointer;color:rgba(255,100,100,.8);font-size:20px;padding:0 4px;margin-top:14px" title="Eliminar venta">\xd7</button>' : '')
+        +'<button onclick="_ingEliminarVenta(\''+cult+'\','+i+')" style="background:none;border:none;cursor:pointer;color:rgba(255,100,100,.8);font-size:20px;padding:0 4px" title="Eliminar venta">\xd7</button>'
         +'</div>'
     }).join('')
 
+    var noHayVentas = !ventas.length
+      ? '<div style="font-size:12px;color:rgba(250,247,240,.55);padding:8px 0;font-style:italic">Todavía no cargaste ventas de este cultivo.</div>'
+      : ''
+
     return '<div data-cult="'+cult+'" style="margin-bottom:12px;padding:14px;background:rgba(255,255,255,.08);border-radius:11px;border-left:3px solid '+color+'">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">'
       +'<span style="font-size:18px">'+icon+'</span>'
       +'<span style="font-size:14px;font-weight:700;color:#fff">'+cult+'</span>'
-      +'<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'
-      +'<span style="font-size:11px;color:rgba(250,247,240,.6)">Hect\xe1reas:</span>'
+      +'<div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:rgba(250,247,240,.6)">Hect\xe1reas:</span>'
       +'<input id="cr-ha-'+sid+'" type="number" placeholder="'+haFP+'" min="0" value="'+haFP+'" oninput="_ingUpdateVenta()" style="'+INP_HA+';width:90px;font-size:14px" /></div>'
-      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:rgba(250,247,240,.6)">Toneladas cosechadas:</span>'
+      +'<input id="cr-cos-'+sid+'" type="number" placeholder="Ej: 500" min="0" step="0.1" value="'+cosVal+'" oninput="_ingSetCosechadas(\''+cult+'\',this.value)" style="'+INP_HA+';width:110px;font-size:14px" /></div>'
+      +'</div></div>'
+      +'<div id="ing-stock-'+sid+'" style="margin-bottom:10px"></div>'
       +'<div style="font-size:10px;font-weight:600;color:rgba(250,247,240,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Ventas</div>'
-      + ventasHtml
-      +'<button onclick="_ingAgregarVenta(\''+cult+'\')" style="margin-top:6px;padding:5px 12px;border-radius:7px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.8);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">+ Agregar venta</button>'
+      + ventasHtml + noHayVentas
+      +'<button onclick="_ingAgregarVenta(\''+cult+'\')" style="margin-top:6px;padding:6px 14px;border-radius:7px;border:1.5px solid var(--dorado);background:rgba(201,168,76,.2);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">+ Agregar venta</button>'
       +'<div id="ing-preview-'+sid+'" style="margin-top:10px;font-size:11px;color:rgba(250,247,240,.6)"></div>'
       +'</div>'
   }).join('')
@@ -14134,19 +14165,23 @@ window.calcIngresosLive = function() {
   var enARS = monedaGlobal==='ARS', tcambio = _dolarCompra()  // ingresos → divisa comprador
   var CULT_ICONS = {'Soja':'🌱','Ma\xedz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Man\xed':'🥜'}
 
-  // Sync _ingVentas from DOM inputs
+  // Sync _ingVentas y _ingCosechadas from DOM inputs
   cultivos.forEach(function(cult){
     var sid = _ingSafeId(cult)
+    var cosEl = document.getElementById('cr-cos-'+sid)
+    if (cosEl) window._ingCosechadas[cult] = cosEl.value === '' ? '' : (parseFloat(cosEl.value)||0)
     var ventas = window._ingVentas[cult] || []
     ventas.forEach(function(v, i){
       var tnEl = document.getElementById('ing-tn-'+sid+'-'+i)
       var prEl = document.getElementById('ing-pr-'+sid+'-'+i)
       var coEl = document.getElementById('ing-co-'+sid+'-'+i)
       var feEl = document.getElementById('ing-fe-'+sid+'-'+i)
+      var cmEl = document.getElementById('ing-cm-'+sid+'-'+i)
       if(tnEl) v.tn = tnEl.value
       if(prEl) v.precio = prEl.value
       if(coEl) v.concepto = coEl.value
       if(feEl) v.fecha = feEl.value
+      if(cmEl) v.comprador = cmEl.value
     })
   })
 
@@ -14155,17 +14190,56 @@ window.calcIngresosLive = function() {
     var haEl = document.getElementById('cr-ha-'+sid)
     var ha = haEl ? (parseFloat(haEl.value)||0) : (c.hectareas||0)
     var ventas = window._ingVentas[cult] || []
-    var totalTn = ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)},0)
-    var totalUSD = ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
+    // Separar ventas con precio (confirmadas) vs sin precio (pendientes)
+    var tnConfirmadas = 0, usdConfirmado = 0, tnPendientes = 0
+    ventas.forEach(function(v){
+      var tn = parseFloat(v.tn||0)
+      var pr = parseFloat(v.precio||0)
+      if (tn <= 0) return
+      if (pr > 0) { tnConfirmadas += tn; usdConfirmado += tn*pr }
+      else        { tnPendientes  += tn }
+    })
+    var totalTn = tnConfirmadas + tnPendientes
+    var totalUSD = usdConfirmado
     var ingHa = ha>0 ? totalUSD/ha : 0
     var ingFmt = enARS ? '$ '+Math.round(totalUSD*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(totalUSD).toLocaleString('es-AR')
-    // Update preview in tab
+
+    // Actualizar el bloque de stock arriba de las ventas
+    var cosechadas = parseFloat(window._ingCosechadas[cult])||0
+    var stockRestante = cosechadas > 0 ? Math.max(0, cosechadas - totalTn) : 0
+    var sobreVendido = cosechadas > 0 && totalTn > cosechadas + 0.01
+    var stockEl = document.getElementById('ing-stock-'+sid)
+    if (stockEl) {
+      var chips = ''
+      if (tnConfirmadas > 0) {
+        chips += '<div style="background:rgba(26,122,82,.25);border:1px solid rgba(163,232,194,.5);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#a3e8c2"><span>✅</span> '+tnConfirmadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t vendidas con precio · <strong>'+ingFmt+'</strong></div>'
+      }
+      if (tnPendientes > 0) {
+        chips += '<div style="background:rgba(201,168,76,.25);border:1px solid rgba(232,201,122,.5);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#e8c97a"><span>⏳</span> '+tnPendientes.toLocaleString('es-AR',{maximumFractionDigits:1})+' t vendidas · precio a fijar</div>'
+      }
+      if (cosechadas > 0) {
+        if (sobreVendido) {
+          var exceso = totalTn - cosechadas
+          chips += '<div style="background:rgba(192,57,43,.28);border:1px solid rgba(245,181,176,.55);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#f5b5b0">⚠️ Vendiste '+exceso.toLocaleString('es-AR',{maximumFractionDigits:1})+' t más que las '+cosechadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t cosechadas</div>'
+        } else {
+          chips += '<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff">📦 '+stockRestante.toLocaleString('es-AR',{maximumFractionDigits:1})+' t en stock (sin vender) · de '+cosechadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t cosechadas</div>'
+        }
+      }
+      stockEl.innerHTML = chips ? '<div style="display:flex;gap:6px;flex-wrap:wrap">'+chips+'</div>' : ''
+    }
+
+    // Preview inline abajo del bloque
     var prev = document.getElementById('ing-preview-'+sid)
-    if(prev && (totalTn||totalUSD)) {
-      var prom = totalTn>0 ? Math.round(totalUSD/totalTn) : 0
-      prev.innerHTML = totalTn.toLocaleString('es-AR',{maximumFractionDigits:1})+' t \xb7 prom USD '+prom+'/t \xb7 <strong>'+ingFmt+'</strong>'+(ha>0?' ('+( enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(ingHa).toLocaleString('es-AR') )+'/ha)':'')
-    } else if(prev) { prev.innerHTML = '' }
-    return {cult:cult, ha:ha, ventas:ventas, totalTn:totalTn, totalUSD:totalUSD, ingHa:ingHa, ingFmt:ingFmt}
+    if(prev) {
+      if (totalUSD > 0) {
+        var prom = tnConfirmadas>0 ? Math.round(usdConfirmado/tnConfirmadas) : 0
+        var subPend = tnPendientes > 0 ? ' · '+tnPendientes.toLocaleString('es-AR',{maximumFractionDigits:1})+' t pendientes de precio' : ''
+        prev.innerHTML = 'Ingreso confirmado: <strong>'+ingFmt+'</strong> · '+tnConfirmadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t a prom USD '+prom+'/t'+subPend+(ha>0?' · ('+( enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(ingHa).toLocaleString('es-AR') )+'/ha)':'')
+      } else {
+        prev.innerHTML = ''
+      }
+    }
+    return {cult:cult, ha:ha, ventas:ventas, totalTn:totalTn, totalUSD:totalUSD, tnConfirmadas:tnConfirmadas, tnPendientes:tnPendientes, ingHa:ingHa, ingFmt:ingFmt}
   })
 
   var alguno = rows.some(function(r){return r.totalUSD>0})
@@ -15136,6 +15210,8 @@ window.guardarRendCampo = function() {
     var sid = _ingSafeId(cult)
     var haEl = document.getElementById('cr-ha-'+sid)
     var ha2 = haEl ? (parseFloat(haEl.value)||0) : (c.hectareas||0)
+    var cosEl = document.getElementById('cr-cos-'+sid)
+    var tnCosechadas = cosEl && cosEl.value !== '' ? (parseFloat(cosEl.value)||0) : (parseFloat(window._ingCosechadas[cult])||0)
     // Sync ventas from DOM before saving
     var ventas = window._ingVentas[cult] || []
     ventas.forEach(function(v, i){
@@ -15143,21 +15219,45 @@ window.guardarRendCampo = function() {
       var prEl = document.getElementById('ing-pr-'+sid+'-'+i)
       var coEl = document.getElementById('ing-co-'+sid+'-'+i)
       var feEl = document.getElementById('ing-fe-'+sid+'-'+i)
+      var cmEl = document.getElementById('ing-cm-'+sid+'-'+i)
       if(tnEl) v.tn = tnEl.value
       if(prEl) v.precio = prEl.value
       if(coEl) v.concepto = coEl.value
       if(feEl) v.fecha = feEl.value
+      if(cmEl) v.comprador = cmEl.value
     })
-    var ventasConDatos = ventas.filter(function(v){return parseFloat(v.tn||0)>0||parseFloat(v.precio||0)>0})
-    if(ventasConDatos.length) hayDato = true
-    // weighted avg for backward compat
-    var totalTn = ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)},0)
-    var totalUSD = ventas.reduce(function(a,v){return a+parseFloat(v.tn||0)*parseFloat(v.precio||0)},0)
-    var precioMed = totalTn>0 ? Math.round(totalUSD/totalTn) : 0
-    var rendHa = ha2>0&&totalTn>0 ? Math.round(totalTn/ha2*10)/10 : 0
-    ingrData[cult] = {hectareas:ha2, ventas:ventas.map(function(v){return {tn:parseFloat(v.tn||0),precio:parseFloat(v.precio||0),concepto:v.concepto||'Spot',fecha:v.fecha||''}}), rendimiento:rendHa, precio_venta:precioMed}
+    var hayVenta = ventas.some(function(v){ return parseFloat(v.tn||0)>0 })
+    if(hayVenta || tnCosechadas > 0) hayDato = true
+    // Solo ventas con precio real cuentan para el ingreso confirmado
+    var totalTnConfirm = ventas.reduce(function(a,v){
+      var tn=parseFloat(v.tn||0), pr=parseFloat(v.precio||0)
+      return a + (tn>0 && pr>0 ? tn : 0)
+    },0)
+    var totalUSDConfirm = ventas.reduce(function(a,v){
+      var tn=parseFloat(v.tn||0), pr=parseFloat(v.precio||0)
+      return a + (tn>0 && pr>0 ? tn*pr : 0)
+    },0)
+    var precioMed = totalTnConfirm>0 ? Math.round(totalUSDConfirm/totalTnConfirm) : 0
+    // Rendimiento: preferimos tn_cosechadas si esta cargado, sino usamos el total vendido
+    var tnParaRend = tnCosechadas > 0 ? tnCosechadas : totalTnConfirm
+    var rendHa = ha2>0 && tnParaRend>0 ? Math.round(tnParaRend/ha2*10)/10 : 0
+    ingrData[cult] = {
+      hectareas: ha2,
+      tn_cosechadas: tnCosechadas || 0,
+      ventas: ventas.map(function(v){
+        return {
+          tn: parseFloat(v.tn||0),
+          precio: parseFloat(v.precio||0),  // 0 = venta "a fijar precio"
+          concepto: v.concepto||'Spot',
+          fecha: v.fecha||'',
+          comprador: v.comprador||''
+        }
+      }),
+      rendimiento: rendHa,
+      precio_venta: precioMed
+    }
   })
-  if(!hayDato){showToast('\u26a0\ufe0f Ingresá al menos una venta con toneladas y precio','err');return}
+  if(!hayDato){showToast('\u26a0\ufe0f Cargá las toneladas cosechadas o al menos una venta con toneladas','err');return}
   var ingrJson = JSON.stringify(ingrData)
   var idx = campos.findIndex(function(f){return f.id===campoDet})
   if(idx>=0) {

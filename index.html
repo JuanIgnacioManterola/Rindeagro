@@ -14131,47 +14131,110 @@ window.renderIngresosTab = function() {
 
     var cosVal = window._ingCosechadas[cult] != null ? window._ingCosechadas[cult] : ''
 
+    // Estilos reutilizables
+    var LBL_SMALL = 'font-size:10px;color:rgba(250,247,240,.55);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px'
+    var INP_VENTA = 'background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;padding:9px 11px;font-size:14px;font-family:DM Mono,monospace;outline:none;box-sizing:border-box;width:100%'
+    var INP_VENTA_TXT = INP_VENTA.replace('font-family:DM Mono,monospace','font-family:\'DM Sans\',sans-serif')
+
+    // Ventas → cards limpias, no filas apretadas
     var ventasHtml = ventas.map(function(v,i){
-      return '<div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap">'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Toneladas</div>'
-        +'<input id="ing-tn-'+sid+'-'+i+'" type="number" placeholder="Ej: 200" value="'+(v.tn||'')+'" min="0" step="0.1" oninput="_ingUpdateVenta()" style="'+INP+';width:80px" /></div>'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">USD/t <span style="color:rgba(250,247,240,.4)">(o dejar vacío = a fijar)</span></div>'
-        +'<input id="ing-pr-'+sid+'-'+i+'" type="number" placeholder="A fijar" value="'+(v.precio||'')+'" min="0" step="1" oninput="_ingUpdateVenta()" style="'+INP+';width:100px" /></div>'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Comprador</div>'
-        +'<input id="ing-cm-'+sid+'-'+i+'" type="text" placeholder="Ej: Cargill" value="'+(v.comprador||'')+'" oninput="_ingUpdateVenta()" style="'+INP+';width:120px;font-family:DM Sans,sans-serif" /></div>'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Tipo</div>'
-        +'<select id="ing-co-'+sid+'-'+i+'" onchange="_ingUpdateVenta()" style="'+INP+';cursor:pointer;width:100px">'
-        +'<option value="Spot"'+(v.concepto==='Spot'||!v.concepto?' selected':'')+'>Spot</option>'
-        +'<option value="Forward"'+(v.concepto==='Forward'?' selected':'')+'>Forward</option>'
-        +'<option value="Precio fijo"'+(v.concepto==='Precio fijo'?' selected':'')+'>Precio fijo</option>'
-        +'<option value="Canje"'+(v.concepto==='Canje'?' selected':'')+'>Canje</option>'
-        +'</select></div>'
-        +'<div><div style="font-size:9px;color:rgba(250,247,240,.5);margin-bottom:3px">Mes</div>'
-        +'<input id="ing-fe-'+sid+'-'+i+'" type="month" value="'+(v.fecha||'')+'" oninput="_ingUpdateVenta()" style="'+INP+';width:130px" /></div>'
-        +'<button onclick="_ingEliminarVenta(\''+cult+'\','+i+')" style="background:none;border:none;cursor:pointer;color:rgba(255,100,100,.8);font-size:20px;padding:0 4px" title="Eliminar venta">\xd7</button>'
+      var tn = parseFloat(v.tn||0), pr = parseFloat(v.precio||0)
+      var esConfirmada = tn > 0 && pr > 0
+      var esPendiente = tn > 0 && !(pr > 0)
+      var badge, borderCol
+      if (esConfirmada) {
+        badge = '<span style="background:rgba(26,122,82,.4);color:#a3e8c2;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">✅ Confirmada</span>'
+        borderCol = 'rgba(163,232,194,.6)'
+      } else if (esPendiente) {
+        badge = '<span style="background:rgba(201,168,76,.35);color:#e8c97a;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">⏳ Precio a fijar</span>'
+        borderCol = 'rgba(232,201,122,.6)'
+      } else {
+        badge = '<span style="background:rgba(255,255,255,.08);color:rgba(250,247,240,.55);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600">— Sin datos</span>'
+        borderCol = 'rgba(255,255,255,.15)'
+      }
+      var totalVenta = esConfirmada
+        ? '<div style="text-align:right"><div style="font-size:10px;color:rgba(250,247,240,.55);font-weight:600">Ingreso</div><div style="font-size:15px;font-weight:800;color:#a3e8c2;font-family:DM Mono,monospace">USD '+Math.round(tn*pr).toLocaleString('es-AR')+'</div></div>'
+        : ''
+      return ''
+        +'<div style="background:rgba(255,255,255,.05);border:1.5px solid '+borderCol+';border-radius:12px;padding:12px 14px;margin-bottom:8px">'
+        +  '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">'
+        +    '<div style="display:flex;align-items:center;gap:10px">'+badge+'<span style="font-size:11px;color:rgba(250,247,240,.5);font-weight:500">Venta #'+(i+1)+'</span></div>'
+        +    '<div style="display:flex;align-items:center;gap:12px">'+totalVenta+'<button onclick="_ingEliminarVenta(\''+cult+'\','+i+')" style="background:transparent;border:1px solid rgba(255,100,100,.35);color:rgba(255,120,120,.9);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif" title="Eliminar venta">Eliminar</button></div>'
+        +  '</div>'
+        +  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">'
+        +    '<div><div style="'+LBL_SMALL+'">Toneladas</div>'
+        +      '<input id="ing-tn-'+sid+'-'+i+'" type="number" placeholder="Ej: 200" value="'+(v.tn||'')+'" min="0" step="0.1" oninput="_ingUpdateVenta()" style="'+INP_VENTA+'" /></div>'
+        +    '<div><div style="'+LBL_SMALL+'">USD por tonelada</div>'
+        +      '<input id="ing-pr-'+sid+'-'+i+'" type="number" placeholder="A fijar" value="'+(v.precio||'')+'" min="0" step="1" oninput="_ingUpdateVenta()" style="'+INP_VENTA+'" /></div>'
+        +    '<div><div style="'+LBL_SMALL+'">Comprador</div>'
+        +      '<input id="ing-cm-'+sid+'-'+i+'" type="text" placeholder="Ej: Cargill" value="'+(v.comprador||'')+'" oninput="_ingUpdateVenta()" style="'+INP_VENTA_TXT+'" /></div>'
+        +    '<div><div style="'+LBL_SMALL+'">Tipo</div>'
+        +      '<select id="ing-co-'+sid+'-'+i+'" onchange="_ingUpdateVenta()" style="'+INP_VENTA+';cursor:pointer">'
+        +        '<option value="Spot"'+(v.concepto==='Spot'||!v.concepto?' selected':'')+'>Spot</option>'
+        +        '<option value="Forward"'+(v.concepto==='Forward'?' selected':'')+'>Forward</option>'
+        +        '<option value="Precio fijo"'+(v.concepto==='Precio fijo'?' selected':'')+'>Precio fijo</option>'
+        +        '<option value="Canje"'+(v.concepto==='Canje'?' selected':'')+'>Canje</option>'
+        +      '</select></div>'
+        +    '<div><div style="'+LBL_SMALL+'">Mes de venta</div>'
+        +      '<input id="ing-fe-'+sid+'-'+i+'" type="month" value="'+(v.fecha||'')+'" oninput="_ingUpdateVenta()" style="'+INP_VENTA+'" /></div>'
+        +  '</div>'
         +'</div>'
     }).join('')
 
-    var noHayVentas = !ventas.length
-      ? '<div style="font-size:12px;color:rgba(250,247,240,.55);padding:8px 0;font-style:italic">Todavía no cargaste ventas de este cultivo.</div>'
+    var emptyVentas = !ventas.length
+      ? '<div style="background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.2);border-radius:12px;padding:22px;text-align:center">'
+        +'<div style="font-size:28px;margin-bottom:6px">📥</div>'
+        +'<div style="font-size:13px;color:rgba(250,247,240,.75);font-weight:600;margin-bottom:2px">Todavía no cargaste ninguna venta</div>'
+        +'<div style="font-size:11px;color:rgba(250,247,240,.5)">Cuando vendas, apretá <strong>+ Agregar venta</strong> abajo y completá los datos.</div>'
+        +'</div>'
       : ''
 
-    return '<div data-cult="'+cult+'" style="margin-bottom:12px;padding:14px;background:rgba(255,255,255,.08);border-radius:11px;border-left:3px solid '+color+'">'
-      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">'
-      +'<span style="font-size:18px">'+icon+'</span>'
-      +'<span style="font-size:14px;font-weight:700;color:#fff">'+cult+'</span>'
-      +'<div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
-      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:rgba(250,247,240,.6)">Hect\xe1reas:</span>'
-      +'<input id="cr-ha-'+sid+'" type="number" placeholder="'+haFP+'" min="0" value="'+haFP+'" oninput="_ingUpdateVenta()" style="'+INP_HA+';width:90px;font-size:14px" /></div>'
-      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:rgba(250,247,240,.6)">Toneladas cosechadas:</span>'
-      +'<input id="cr-cos-'+sid+'" type="number" placeholder="Ej: 500" min="0" step="0.1" value="'+cosVal+'" oninput="_ingSetCosechadas(\''+cult+'\',this.value)" style="'+INP_HA+';width:110px;font-size:14px" /></div>'
-      +'</div></div>'
-      +'<div id="ing-stock-'+sid+'" style="margin-bottom:10px"></div>'
-      +'<div style="font-size:10px;font-weight:600;color:rgba(250,247,240,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Ventas</div>'
-      + ventasHtml + noHayVentas
-      +'<button onclick="_ingAgregarVenta(\''+cult+'\')" style="margin-top:6px;padding:6px 14px;border-radius:7px;border:1.5px solid var(--dorado);background:rgba(201,168,76,.2);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">+ Agregar venta</button>'
-      +'<div id="ing-preview-'+sid+'" style="margin-top:10px;font-size:11px;color:rgba(250,247,240,.6)"></div>'
-      +'</div>'
+    return ''
+      +'<div data-cult="'+cult+'" style="margin-bottom:18px;padding:18px;background:rgba(255,255,255,.08);border-radius:14px;border-left:4px solid '+color+'">'
+      // Header: ícono + nombre + hectáreas chip
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'
+      +   '<div style="display:flex;align-items:center;gap:10px">'
+      +     '<span style="font-size:26px">'+icon+'</span>'
+      +     '<div><div style="font-size:19px;font-weight:800;color:#fff;font-family:\'Playfair Display\',serif">'+cult+'</div>'
+      +     '<div style="font-size:11px;color:rgba(250,247,240,.55);margin-top:2px">Balance de cosecha y ventas</div></div>'
+      +   '</div>'
+      +   '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:5px 12px;border-radius:22px">'
+      +     '<span style="font-size:12px;color:rgba(250,247,240,.65);font-weight:600">📐 Superficie:</span>'
+      +     '<input id="cr-ha-'+sid+'" type="number" placeholder="'+haFP+'" min="0" value="'+haFP+'" oninput="_ingUpdateVenta()" style="background:transparent;border:none;color:#fff;font-size:15px;font-weight:700;font-family:DM Mono,monospace;outline:none;width:60px;text-align:right" />'
+      +     '<span style="font-size:12px;color:rgba(250,247,240,.65);font-weight:600">ha</span>'
+      +   '</div>'
+      + '</div>'
+
+      // Balance: 3 columnas grandes — Cosechadas / Vendidas / Por vender
+      + '<div style="background:rgba(0,0,0,.2);border-radius:12px;padding:16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2px">'
+      +   '<div style="text-align:center;padding:0 10px;border-right:1px solid rgba(255,255,255,.08)">'
+      +     '<div style="'+LBL_SMALL+'">Cosechadas</div>'
+      +     '<input id="cr-cos-'+sid+'" type="number" placeholder="0" min="0" step="0.1" value="'+cosVal+'" oninput="_ingSetCosechadas(\''+cult+'\',this.value)" style="background:transparent;border:none;color:#fff;font-size:32px;font-weight:800;font-family:DM Mono,monospace;text-align:center;width:100%;outline:none;padding:0" />'
+      +     '<div style="font-size:11px;color:rgba(250,247,240,.5);margin-top:2px">toneladas totales</div>'
+      +   '</div>'
+      +   '<div style="text-align:center;padding:0 10px;border-right:1px solid rgba(255,255,255,.08)">'
+      +     '<div style="'+LBL_SMALL+'">Vendidas</div>'
+      +     '<div id="cr-vendidas-'+sid+'" style="font-size:32px;font-weight:800;font-family:DM Mono,monospace;color:#a3e8c2;padding:0">0</div>'
+      +     '<div id="cr-vendidas-sub-'+sid+'" style="font-size:11px;color:rgba(250,247,240,.5);margin-top:2px">t vendidas</div>'
+      +   '</div>'
+      +   '<div style="text-align:center;padding:0 10px">'
+      +     '<div style="'+LBL_SMALL+'">Por vender</div>'
+      +     '<div id="cr-porvender-'+sid+'" style="font-size:32px;font-weight:800;font-family:DM Mono,monospace;color:#e8c97a;padding:0">0</div>'
+      +     '<div id="cr-porvender-sub-'+sid+'" style="font-size:11px;color:rgba(250,247,240,.5);margin-top:2px">t en stock</div>'
+      +   '</div>'
+      + '</div>'
+
+      // Banner ingreso confirmado / alertas
+      + '<div id="cr-ingreso-'+sid+'" style="display:none;margin-bottom:14px"></div>'
+
+      // Sección Ventas
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">'
+      +   '<div style="font-size:12px;font-weight:700;color:rgba(250,247,240,.65);text-transform:uppercase;letter-spacing:.06em">Ventas del cultivo</div>'
+      +   '<button onclick="_ingAgregarVenta(\''+cult+'\')" style="padding:8px 16px;border-radius:8px;border:1.5px solid var(--dorado);background:var(--dorado);color:var(--verde);font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:inline-flex;align-items:center;gap:6px">+ Agregar venta</button>'
+      + '</div>'
+      + ventasHtml + emptyVentas
+      + '<div id="ing-preview-'+sid+'" style="display:none"></div>'
+      + '</div>'
   }).join('')
 
   var el = document.getElementById('cr-cultivos-inputs')
@@ -14224,39 +14287,64 @@ window.calcIngresosLive = function() {
     var ingHa = ha>0 ? totalUSD/ha : 0
     var ingFmt = enARS ? '$ '+Math.round(totalUSD*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(totalUSD).toLocaleString('es-AR')
 
-    // Actualizar el bloque de stock arriba de las ventas
+    // Llenar el balance de 3 columnas: Vendidas (grande) + subtexto, Por vender (grande) + subtexto
     var cosechadas = parseFloat(window._ingCosechadas[cult])||0
-    var stockRestante = cosechadas > 0 ? Math.max(0, cosechadas - totalTn) : 0
     var sobreVendido = cosechadas > 0 && totalTn > cosechadas + 0.01
-    var stockEl = document.getElementById('ing-stock-'+sid)
-    if (stockEl) {
-      var chips = ''
-      if (tnConfirmadas > 0) {
-        chips += '<div style="background:rgba(26,122,82,.25);border:1px solid rgba(163,232,194,.5);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#a3e8c2"><span>✅</span> '+tnConfirmadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t vendidas con precio · <strong>'+ingFmt+'</strong></div>'
-      }
-      if (tnPendientes > 0) {
-        chips += '<div style="background:rgba(201,168,76,.25);border:1px solid rgba(232,201,122,.5);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#e8c97a"><span>⏳</span> '+tnPendientes.toLocaleString('es-AR',{maximumFractionDigits:1})+' t vendidas · precio a fijar</div>'
-      }
-      if (cosechadas > 0) {
-        if (sobreVendido) {
-          var exceso = totalTn - cosechadas
-          chips += '<div style="background:rgba(192,57,43,.28);border:1px solid rgba(245,181,176,.55);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#f5b5b0">⚠️ Vendiste '+exceso.toLocaleString('es-AR',{maximumFractionDigits:1})+' t más que las '+cosechadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t cosechadas</div>'
-        } else {
-          chips += '<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff">📦 '+stockRestante.toLocaleString('es-AR',{maximumFractionDigits:1})+' t en stock (sin vender) · de '+cosechadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t cosechadas</div>'
-        }
-      }
-      stockEl.innerHTML = chips ? '<div style="display:flex;gap:6px;flex-wrap:wrap">'+chips+'</div>' : ''
+    var stockRestante = Math.max(0, cosechadas - totalTn)
+    var fmtT = function(n){ return n.toLocaleString('es-AR',{maximumFractionDigits:1}) }
+
+    var vendEl = document.getElementById('cr-vendidas-'+sid)
+    var vendSubEl = document.getElementById('cr-vendidas-sub-'+sid)
+    if (vendEl) vendEl.textContent = fmtT(totalTn)
+    if (vendSubEl) {
+      if (totalTn === 0) vendSubEl.textContent = 'sin ventas todavía'
+      else if (tnConfirmadas > 0 && tnPendientes > 0) vendSubEl.textContent = fmtT(tnConfirmadas)+' con precio · '+fmtT(tnPendientes)+' a fijar'
+      else if (tnPendientes > 0) vendSubEl.textContent = 'todas con precio a fijar'
+      else vendSubEl.textContent = 'todas con precio confirmado'
     }
 
-    // Preview inline abajo del bloque
-    var prev = document.getElementById('ing-preview-'+sid)
-    if(prev) {
-      if (totalUSD > 0) {
-        var prom = tnConfirmadas>0 ? Math.round(usdConfirmado/tnConfirmadas) : 0
-        var subPend = tnPendientes > 0 ? ' · '+tnPendientes.toLocaleString('es-AR',{maximumFractionDigits:1})+' t pendientes de precio' : ''
-        prev.innerHTML = 'Ingreso confirmado: <strong>'+ingFmt+'</strong> · '+tnConfirmadas.toLocaleString('es-AR',{maximumFractionDigits:1})+' t a prom USD '+prom+'/t'+subPend+(ha>0?' · ('+( enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(ingHa).toLocaleString('es-AR') )+'/ha)':'')
+    var stockEl = document.getElementById('cr-porvender-'+sid)
+    var stockSubEl = document.getElementById('cr-porvender-sub-'+sid)
+    if (stockEl) {
+      if (sobreVendido) {
+        stockEl.textContent = '−' + fmtT(totalTn - cosechadas)
+        stockEl.style.color = '#f5b5b0'
       } else {
-        prev.innerHTML = ''
+        stockEl.textContent = fmtT(stockRestante)
+        stockEl.style.color = cosechadas > 0 ? '#e8c97a' : 'rgba(255,255,255,.4)'
+      }
+    }
+    if (stockSubEl) {
+      if (sobreVendido) stockSubEl.textContent = '⚠️ vendiste de más'
+      else if (cosechadas === 0) stockSubEl.textContent = 'cargá cosechadas primero'
+      else if (stockRestante === 0 && totalTn > 0) stockSubEl.textContent = '✓ todo vendido'
+      else stockSubEl.textContent = 't en stock'
+    }
+
+    // Banner de ingreso confirmado + pendiente
+    var bannerEl = document.getElementById('cr-ingreso-'+sid)
+    if (bannerEl) {
+      if (totalUSD > 0 || tnPendientes > 0) {
+        var prom = tnConfirmadas>0 ? Math.round(usdConfirmado/tnConfirmadas) : 0
+        var linea1 = ''
+        if (totalUSD > 0) {
+          linea1 = '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+            +'<div><div style="font-size:11px;color:rgba(163,232,194,.75);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Ingreso confirmado</div>'
+            +'<div style="font-size:22px;font-weight:800;font-family:DM Mono,monospace;color:#a3e8c2;margin-top:2px">'+ingFmt+'</div></div>'
+            +'<div style="text-align:right;font-size:11px;color:rgba(250,247,240,.65);line-height:1.5">'+fmtT(tnConfirmadas)+' t · prom USD '+prom+'/t'+(ha>0?'<br>'+( enARS ? '$ '+Math.round(ingHa*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(ingHa).toLocaleString('es-AR') )+'/ha':'')+'</div>'
+            +'</div>'
+        }
+        var linea2 = ''
+        if (tnPendientes > 0) {
+          linea2 = '<div style="'+(totalUSD>0?'border-top:1px solid rgba(232,201,122,.25);margin-top:10px;padding-top:10px;':'')+'display:flex;align-items:center;gap:8px;font-size:12px;color:#e8c97a;font-weight:600">'
+            +'⏳ '+fmtT(tnPendientes)+' t vendidas todavía sin precio fijado — se suman al ingreso cuando completes el USD/t.'
+            +'</div>'
+        }
+        bannerEl.innerHTML = '<div style="background:rgba(26,122,82,.18);border:1px solid rgba(163,232,194,.3);border-radius:10px;padding:14px 16px">'+linea1+linea2+'</div>'
+        bannerEl.style.display = ''
+      } else {
+        bannerEl.style.display = 'none'
+        bannerEl.innerHTML = ''
       }
     }
     return {cult:cult, ha:ha, ventas:ventas, totalTn:totalTn, totalUSD:totalUSD, tnConfirmadas:tnConfirmadas, tnPendientes:tnPendientes, ingHa:ingHa, ingFmt:ingFmt}

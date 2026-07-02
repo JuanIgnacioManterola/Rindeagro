@@ -1279,7 +1279,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <div id="est-amort-resumen" style="font-size:13px;color:var(--texto-mid)"></div>
-        <button onclick="openModalActivo()" class="pagos-hdr-btn pagos-hdr-btn-primary">+ <span>Nuevo activo</span></button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="openModalActivoFoto()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 <span>Desde foto/PDF</span></button>
+          <button onclick="openModalActivo()" class="pagos-hdr-btn pagos-hdr-btn-primary">+ <span>Nuevo activo</span></button>
+        </div>
       </div>
       <div id="est-amort-lista"></div>
     </div>
@@ -1313,13 +1316,13 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="fg"><label class="fl">Descripción *</label><input class="fi" type="text" id="ac-desc" placeholder="Ej: Toyota Hilux 2024, Sembradora Agrometal, Silo aéreo"/></div>
       <div class="fg">
         <label class="fl">Tipo *</label>
-        <select class="fi" id="ac-tipo" style="cursor:pointer">
+        <select class="fi" id="ac-tipo" style="cursor:pointer" onchange="_acAjustarSugerenciaVida()">
           <option value="">Seleccioná</option>
-          <option value="vehiculo">🚙 Vehículo (5 años sugerido)</option>
-          <option value="herramienta">🔧 Herramienta / implemento (10 años)</option>
-          <option value="maquinaria">🚜 Maquinaria pesada (10 años)</option>
-          <option value="construccion">🏗️ Construcción / silo (15 años)</option>
-          <option value="otros">📦 Otros</option>
+          <option value="vehiculo" data-vida="5">🚙 Vehículo (5 años sugerido)</option>
+          <option value="herramienta" data-vida="10">🔧 Herramienta / implemento (10 años)</option>
+          <option value="maquinaria" data-vida="10">🚜 Maquinaria pesada (10 años)</option>
+          <option value="construccion" data-vida="15">🏗️ Construcción / silo (15 años)</option>
+          <option value="otros" data-vida="5">📦 Otros</option>
         </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1330,9 +1333,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
         <div class="fg"><label class="fl">Valor residual (USD)</label><input class="fi" type="number" id="ac-residual" placeholder="0 (opcional)" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
       </div>
-      <div class="conv-box" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
-        <div><div class="conv-l">Cuota anual</div><div class="conv-v" id="ac-cuota-anual">—</div></div>
-        <div><div class="conv-l">Cuota mensual</div><div class="conv-v" id="ac-cuota-mensual" style="color:var(--dorado)">—</div></div>
+      <div class="conv-box" style="grid-template-columns:1fr;margin-bottom:14px">
+        <div><div class="conv-l">Amortización anual</div><div class="conv-v" id="ac-cuota-anual">—</div></div>
       </div>
       <div class="fg">
         <label class="fl">Distribución entre campos</label>
@@ -1346,6 +1348,45 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
       <button id="btn-ac-eliminar" onclick="eliminarActivo()" style="display:none;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar</button>
       <button class="fb" id="btn-guardar-activo" onclick="guardarActivo()" style="flex:1">Guardar activo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTIVO — CARGAR DESDE FOTO / PDF -->
+<div class="overlay" id="ov-activo-foto">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalActivoFoto()">✕</button>
+      <div class="m-tit">📄 Cargar activo desde foto o PDF</div>
+      <div class="m-sub" style="margin-bottom:0">Subí una foto de la factura o del ticket de compra. Leemos descripción, valor y fecha. El resto (vida útil, valor residual) lo cargás vos.</div>
+    </div>
+    <div class="modal-body">
+      <!-- Paso 1: upload -->
+      <div id="af-step-1">
+        <div class="fg" style="margin-bottom:12px">
+          <label for="af-file-input" style="display:block;padding:26px 14px;border:2px dashed var(--verde);border-radius:12px;background:var(--verde-pale);color:var(--verde);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif" onmouseover="this.style.background='#e8f5ec'" onmouseout="this.style.background='var(--verde-pale)'">
+            <div style="font-size:38px;margin-bottom:6px">📸</div>
+            <div style="font-size:14px;font-weight:700">Elegir foto / PDF de la compra</div>
+            <div style="font-size:11px;color:var(--texto-suave);margin-top:3px">JPG, PNG, WEBP o PDF · máx. 10 MB</div>
+          </label>
+          <input type="file" id="af-file-input" accept="image/*,.pdf" style="display:none" onchange="window._afProcesarSeleccion(this)"/>
+        </div>
+        <div id="af-preview" style="display:none;margin-top:10px"></div>
+        <button class="fb" id="btn-af-procesar" onclick="window._afProcesarOCR()" style="margin-top:10px;display:none">🔍 Leer datos del archivo</button>
+      </div>
+      <!-- Paso 2: loading -->
+      <div id="af-step-2" style="display:none;text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:14px">🔍</div>
+        <div style="font-size:15px;font-weight:600;color:var(--texto)">Leyendo el documento…</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:6px">Puede tardar 5-15 segundos.</div>
+        <div style="margin-top:18px;height:4px;background:var(--crema);border-radius:2px;overflow:hidden"><div style="height:100%;background:var(--verde);width:30%;animation:facBar 1.6s ease-in-out infinite"></div></div>
+      </div>
+      <!-- Paso 3: error -->
+      <div id="af-step-err" style="display:none;text-align:center;padding:30px 20px">
+        <div style="font-size:40px;margin-bottom:14px">⚠️</div>
+        <div id="af-err-msg" style="font-size:14px;color:var(--texto);line-height:1.5"></div>
+        <button onclick="window._afReset()" style="margin-top:18px;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Volver a intentar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -11080,14 +11121,27 @@ window._acCalcCuota = function() {
   var val = parseFloat(document.getElementById('ac-valor').value)||0
   var res = parseFloat(document.getElementById('ac-residual').value)||0
   var vida = parseInt(document.getElementById('ac-vida').value)||0
-  if (!val || !vida) {
-    document.getElementById('ac-cuota-anual').textContent = '—'
-    document.getElementById('ac-cuota-mensual').textContent = '—'
-    return
-  }
+  var elAnual = document.getElementById('ac-cuota-anual')
+  if (!val || !vida) { if (elAnual) elAnual.textContent = '—'; return }
   var anual = Math.max(0, (val - res) / vida)
-  document.getElementById('ac-cuota-anual').textContent = 'USD ' + Math.round(anual).toLocaleString('es-AR')
-  document.getElementById('ac-cuota-mensual').textContent = 'USD ' + Math.round(anual/12).toLocaleString('es-AR')
+  if (elAnual) elAnual.textContent = 'USD ' + Math.round(anual).toLocaleString('es-AR')
+}
+
+// Ajusta el placeholder de "Vida útil" según el tipo elegido, y autocompleta
+// el input SÓLO si estaba vacío (el usuario puede sobrescribir a mano).
+window._acAjustarSugerenciaVida = function() {
+  var sel = document.getElementById('ac-tipo')
+  if (!sel) return
+  var opt = sel.options[sel.selectedIndex]
+  var vidaSug = (opt && opt.getAttribute('data-vida')) || ''
+  var vidaEl = document.getElementById('ac-vida')
+  if (!vidaEl) return
+  if (vidaSug) vidaEl.placeholder = 'Ej: ' + vidaSug
+  else vidaEl.placeholder = 'Ej: 5'
+  if (vidaSug && !vidaEl.value) {
+    vidaEl.value = vidaSug
+    _acCalcCuota()
+  }
 }
 
 window.guardarActivo = async function() {
@@ -11149,6 +11203,103 @@ window.eliminarActivo = async function() {
     try { renderRentabilidadTotal() } catch(e) {}
     showToast('✓ Activo eliminado','ok')
   } catch(e) { showToast('⚠️ '+(e.message||'No se pudo eliminar'),'err') }
+}
+
+// ── OCR de activos: cargar desde foto/PDF ──
+// Requiere edge function `ocr-activo` desplegada + ANTHROPIC_API_KEY seteado
+// en Supabase Edge Functions secrets. Si falta la key el modal muestra un
+// mensaje amigable en vez de colgarse.
+var _afFile = null, _afFileMime = null
+window.openModalActivoFoto = function() {
+  _afReset()
+  document.getElementById('ov-activo-foto').classList.add('open')
+}
+window.closeModalActivoFoto = function() {
+  document.getElementById('ov-activo-foto').classList.remove('open')
+}
+window._afReset = function() {
+  _afFile = null; _afFileMime = null
+  document.getElementById('af-file-input').value = ''
+  document.getElementById('af-preview').style.display = 'none'
+  document.getElementById('af-preview').innerHTML = ''
+  document.getElementById('btn-af-procesar').style.display = 'none'
+  document.getElementById('af-step-1').style.display = ''
+  document.getElementById('af-step-2').style.display = 'none'
+  document.getElementById('af-step-err').style.display = 'none'
+}
+window._afProcesarSeleccion = function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB','err'); input.value = ''; return }
+  _afFile = f; _afFileMime = f.type||''
+  var prev = document.getElementById('af-preview')
+  var isImg = /^image\//.test(_afFileMime)
+  if (isImg) {
+    var reader = new FileReader()
+    reader.onload = function(e){
+      prev.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border:1px solid var(--borde);border-radius:8px"><img src="'+e.target.result+'" style="width:60px;height:60px;object-fit:cover;border-radius:6px"><div style="flex:1;min-width:0;font-size:12px"><div style="font-weight:600;color:var(--texto)">'+(f.name||'imagen').substring(0,40)+'</div><div style="color:var(--texto-suave)">'+Math.round(f.size/1024)+' KB</div></div></div>'
+    }
+    reader.readAsDataURL(f)
+  } else {
+    prev.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border:1px solid var(--borde);border-radius:8px"><div style="font-size:32px">📄</div><div style="flex:1;min-width:0;font-size:12px"><div style="font-weight:600;color:var(--texto)">'+(f.name||'documento').substring(0,40)+'</div><div style="color:var(--texto-suave)">PDF · '+Math.round(f.size/1024)+' KB</div></div></div>'
+  }
+  prev.style.display = ''
+  document.getElementById('btn-af-procesar').style.display = ''
+}
+window._afProcesarOCR = async function() {
+  if (!_afFile) { showToast('⚠️ Subí un archivo primero','err'); return }
+  if (!usuario) { showToast('⚠️ Sesión expirada','err'); return }
+  document.getElementById('af-step-1').style.display = 'none'
+  document.getElementById('af-step-2').style.display = ''
+  function _withTimeout(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Se pasó de tiempo: '+label+' (>'+Math.round(ms/1000)+'s)')) }, ms) })
+    ])
+  }
+  try {
+    var b64 = await _withTimeout(_fileToBase64(_afFile), 8000, 'preparar archivo')
+    var sbUrl = SB_URL
+    var endpoint = sbUrl.replace(/\/$/,'') + '/functions/v1/ocr-activo'
+    var sess = (await sb.auth.getSession()).data.session
+    var token = sess && sess.access_token
+    var r = await _withTimeout(fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+(token||'') },
+      body: JSON.stringify({ image_base64: b64, mime_type: _afFileMime })
+    }), 30000, 'leer con OCR')
+    if (!r.ok) {
+      var txt = await r.text().catch(function(){return ''})
+      if (r.status === 404) throw new Error('OCR todavía no está activado. Podés cargar el activo a mano mientras tanto.')
+      if (r.status === 401) throw new Error('Sesión inválida. Volvé a entrar.')
+      var msg = ''
+      try { var j = JSON.parse(txt); msg = j.error||j.message||'' } catch(_) { msg = txt }
+      if (msg && msg.indexOf('ANTHROPIC_API_KEY') !== -1) {
+        throw new Error('El OCR todavía no está activado. Estamos en desarrollo — mientras tanto cargá el activo con "+ Nuevo activo".')
+      }
+      throw new Error('OCR error '+r.status+': '+(msg||'sin detalle'))
+    }
+    var resp = await r.json()
+    if (!resp.ok || !resp.data) throw new Error('No pude leer los datos. Probá con una foto más clara.')
+    var d = resp.data
+    closeModalActivoFoto()
+    openModalActivo()
+    // Pre-llenar los campos que sí puede detectar el OCR
+    if (d.descripcion) document.getElementById('ac-desc').value = d.descripcion
+    if (d.tipo) {
+      document.getElementById('ac-tipo').value = d.tipo
+      _acAjustarSugerenciaVida()
+    }
+    if (d.valor_compra_usd) document.getElementById('ac-valor').value = d.valor_compra_usd
+    if (d.fecha_compra) document.getElementById('ac-fecha').value = d.fecha_compra
+    _acCalcCuota()
+    showToast('✓ Datos extraídos. Completá vida útil y guardá.','ok')
+  } catch(e) {
+    console.error('OCR activo error:', e)
+    document.getElementById('af-step-2').style.display = 'none'
+    document.getElementById('af-step-err').style.display = ''
+    document.getElementById('af-err-msg').innerHTML = (e.message || 'No se pudo leer el documento.') + '<br/><br/><span style="color:var(--texto-suave);font-size:12px">Podés cargar el activo a mano con "+ Nuevo activo".</span>'
+  }
 }
 
 // ── MODAL GASTO ESTRUCTURA ──

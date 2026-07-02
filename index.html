@@ -620,8 +620,12 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
   <!-- ── DASHBOARD ── -->
   <div class="modulo active" id="mod-dashboard">
-    <div class="mod-header">
+    <div class="mod-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
+      <div style="text-align:right;min-width:0">
+        <div id="d-hora-actual" style="font-size:34px;font-weight:800;font-family:'DM Mono',monospace;color:var(--verde);letter-spacing:.02em;line-height:1">—</div>
+        <div style="font-size:10px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-top:4px">Buenos Aires · Argentina</div>
+      </div>
     </div>
     <div class="precio-strip">
       <div class="pi"><div class="pi-l">Soja · Rosario</div><div class="pi-v" id="ps-soja">—</div><div class="pi-d" id="ps-soja-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
@@ -629,7 +633,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="pi"><div class="pi-l">Trigo · Rosario</div><div class="pi-v" id="ps-trigo">—</div><div class="pi-d" id="ps-trigo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Girasol · Rosario</div><div class="pi-v" id="ps-girasol">—</div><div class="pi-d" id="ps-girasol-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div class="pi"><div class="pi-l">Sorgo · Rosario</div><div class="pi-v" id="ps-sorgo">—</div><div class="pi-d" id="ps-sorgo-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
-      <div class="pi" style="border-right:none" title="Divisa BNA — Compra: se usa al convertir ingresos por venta de cereal. Venta: se usa al convertir costos de insumos en USD."><div class="pi-l">Dólar BNA divisa</div><div class="pi-v" id="ps-bna" style="font-size:13px;line-height:1.15">C <span id="ps-usd-c">—</span> · V <span id="ps-usd-v">—</span></div><div class="pi-d" id="ps-bna-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi" title="Divisa comprador del BNA — se usa para convertir ingresos por venta de cereal (el banco te compra USD)"><div class="pi-l">USD Compra · BNA</div><div class="pi-v" id="ps-usd-compra">—</div><div class="pi-d" id="ps-usd-compra-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
+      <div class="pi" style="border-right:none" title="Divisa vendedor del BNA — se usa para convertir egresos y costos en USD (el banco te vende USD)"><div class="pi-l">USD Venta · BNA</div><div class="pi-v" id="ps-usd-venta">—</div><div class="pi-d" id="ps-usd-venta-d" style="color:rgba(250,247,240,.6)">cargando...</div></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <div style="display:flex;gap:6px">
           <button onclick="actualizarPrecios(true)" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">↻ Actualizar</button>
@@ -3219,12 +3224,14 @@ function _mostrarPrecios(fuente) {
     if(el) el.textContent='USD '+Math.round(precios[g])
     if(dEl){dEl.style.color='rgba(250,247,240,.6)';dEl.textContent=fuente||'BCR · BNA'}
   })
-  // Dólar: mostrar Compra y Venta separadas en la misma celda.
-  var elC=document.getElementById('ps-usd-c'), elV=document.getElementById('ps-usd-v')
-  if(elC) elC.textContent='$'+Math.round(_dolarCompra()).toLocaleString('es-AR')
-  if(elV) elV.textContent='$'+Math.round(_dolarVenta()).toLocaleString('es-AR')
-  var dBna=document.getElementById('ps-bna-d')
-  if(dBna){dBna.style.color='rgba(250,247,240,.6)';dBna.textContent='C: ingresos · V: insumos'}
+  // Dólar: dos celdas independientes, mismo look que las de cultivos.
+  var elC=document.getElementById('ps-usd-compra'), elV=document.getElementById('ps-usd-venta')
+  if(elC) elC.textContent='$ '+Math.round(_dolarCompra()).toLocaleString('es-AR')
+  if(elV) elV.textContent='$ '+Math.round(_dolarVenta()).toLocaleString('es-AR')
+  var dC=document.getElementById('ps-usd-compra-d')
+  if(dC){dC.style.color='rgba(250,247,240,.6)';dC.textContent='Ingresos (cereal)'}
+  var dV=document.getElementById('ps-usd-venta-d')
+  if(dV){dV.style.color='rgba(250,247,240,.6)';dV.textContent='Insumos (USD)'}
   var horaEl=document.getElementById('ps-hora')
   if(horaEl){
     var etiquetaFecha=''
@@ -3337,6 +3344,25 @@ window.actualizarPrecios = async function(forzar) {
 }
 
 // ── DASHBOARD ──
+// Reloj: hora actual de Buenos Aires (UTC-3, sin DST). Se actualiza cada 30s
+// para minimizar el drift visual (el timer de 30s hace que a los pocos segundos
+// del cambio de minuto la UI ya lo refleje).
+function _actualizarHoraArg() {
+  var el = document.getElementById('d-hora-actual')
+  if (!el) return
+  try {
+    el.textContent = new Date().toLocaleTimeString('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    })
+  } catch(e) {}
+}
+window._actualizarHoraArg = _actualizarHoraArg  // expuesta para debugging
+_actualizarHoraArg()  // primer paint al cargar la página (antes de esperar 30s)
+if (typeof window._raRelojInterval === 'undefined') {
+  window._raRelojInterval = setInterval(_actualizarHoraArg, 30 * 1000)
+}
+
 function renderDashboard() {
   try { if(mapaIniciado) { renderPoligonosMapa(); renderMapaCamposInfo() } } catch(e) {}
   try { _renderBannerColaborador() } catch(e) {}
@@ -3345,6 +3371,7 @@ function renderDashboard() {
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
   try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
   try { _renderDashPagos() } catch(e) { console.error('dash pagos:', e) }
+  try { _actualizarHoraArg() } catch(e) {}
 }
 
 // Alerta prominente arriba del dashboard cuando hay pagos vencidos o próximos.

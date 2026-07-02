@@ -592,9 +592,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl active" onclick="showModulo('dashboard')"><span>🏠</span><span>Inicio</span></button>
       <button class="anl" id="nav-campos" onclick="showModulo('campos')"><span>🌾</span><span>Campos</span></button>
       <button class="anl" id="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span>📊</span><span>Rentabilidad</span></button>
+      <button class="anl" id="nav-estructura" onclick="showModulo('estructura')"><span>🏢</span><span>Estructura</span></button>
       <button class="anl" id="nav-insumos" onclick="showModulo('stock-insumos')"><span>🧪</span><span>Insumos</span></button>
       <button class="anl" id="nav-pagos" onclick="showModulo('pagos')"><span>💰</span><span id="pagos-badge">Pagos</span></button>
-      <button class="anl" id="nav-estructura" onclick="showModulo('estructura')"><span>🏢</span><span>Estructura</span></button>
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
@@ -3354,7 +3354,7 @@ window.showModulo = function(mod) {
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
   document.getElementById('mod-' + mod)?.classList.add('active')
   var btns = document.querySelectorAll('.anl')
-  var mods = ['dashboard','campos','rentabilidad-total','stock-insumos','pagos','estructura','tareas','mapa']
+  var mods = ['dashboard','campos','rentabilidad-total','estructura','stock-insumos','pagos','tareas','mapa']
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)

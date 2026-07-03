@@ -845,7 +845,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <button id="btn-camp-actual" onclick="setCampanaGlobal('actual',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--dorado);background:var(--dorado);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campaña actual</button>
           <button id="btn-camp-ant" onclick="toggleCampanasAnteriores()" style="padding:5px 13px;border-radius:20px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(250,247,240,.7);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campañas anteriores ▾</button>
           <div id="panel-campanas-ant" style="display:none;position:absolute;z-index:50;margin-top:36px;background:#fff;border:.5px solid var(--borde);border-radius:10px;box-shadow:var(--sombra-md);padding:6px;min-width:160px"></div>
-          <button onclick="abrirModalCampana()" style="padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.55);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" title="Cerrar campaña y empezar nueva">⚑ Cerrar campaña</button>
+          <button onclick="abrirModalCampanaCampo()" style="padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.55);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" title="Cerrar la campaña de este campo (los demás campos siguen abiertos)">⚑ Cerrar campaña de este campo</button>
         </div>
         <!-- Toggle moneda -->
         <div style="display:flex;gap:3px;background:rgba(0,0,0,.2);border-radius:20px;padding:3px">
@@ -2597,7 +2597,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <button class="m-close" onclick="closeModalCampana()">✕</button>
-      <div class="m-tit">Cerrar campaña agrícola</div>
+      <div class="m-tit" id="camp-modal-tit">Cerrar campaña agrícola</div>
       <div class="m-sub" id="camp-modal-sub" style="margin-bottom:0">Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".</div>
     </div>
     <div class="modal-body">
@@ -2621,15 +2621,24 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
       </div>
 
+      <!-- Descarga PDF de rentabilidad (solo modo campo) -->
+      <label id="camp-pdf-wrap" style="display:none;align-items:flex-start;gap:12px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:1rem">
+        <input type="checkbox" id="camp-descargar-pdf" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--verde);cursor:pointer;flex-shrink:0"/>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px">📄 Descargar PDF de rentabilidad antes de cerrar</div>
+          <div style="font-size:12px;color:var(--texto-mid);line-height:1.45">Se genera el PDF con los ingresos, gastos y margen de este campo para la campaña actual. Te queda como respaldo del cierre.</div>
+        </div>
+      </label>
+
       <!-- Toggle: preparar campos para la próxima campaña -->
       <label style="display:flex;align-items:flex-start;gap:12px;background:var(--dorado-pale);border:1.5px solid var(--dorado);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:1rem">
         <input type="checkbox" id="camp-reset-campos" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--verde);cursor:pointer;flex-shrink:0"/>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px">🌱 Preparar campos para la próxima campaña</div>
-          <div style="font-size:12px;color:var(--texto-mid);line-height:1.45">
+          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px" id="camp-reset-tit">🌱 Preparar campos para la próxima campaña</div>
+          <div style="font-size:12px;color:var(--texto-mid);line-height:1.45" id="camp-reset-desc">
             Se van a mantener los <strong>polígonos, hectáreas, ubicación y datos generales</strong> de cada campo. Se van a <strong>vaciar solo</strong>: cultivo asignado, hectáreas por cultivo, ingresos por venta, rendimientos y precios. Los <strong>gastos y lluvias históricos quedan intactos</strong> como registro de la campaña anterior.
           </div>
-          <div style="font-size:11px;color:var(--dorado);font-weight:700;margin-top:6px">💡 Después de cerrar la campaña cada campo va a mostrar una alerta hasta que le cargues el cultivo nuevo.</div>
+          <div style="font-size:11px;color:var(--dorado);font-weight:700;margin-top:6px" id="camp-reset-alerta">💡 Después de cerrar la campaña cada campo va a mostrar una alerta hasta que le cargues el cultivo nuevo.</div>
         </div>
       </label>
 
@@ -7872,58 +7881,119 @@ function getCampanaCustomNombre(id) {
   return found ? found.nombre : null
 }
 
-// Abre el modal de cerrar campaña
-window.abrirModalCampana = function() {
+// Abre el modal de cerrar campaña.
+// contexto: 'todos' (default) → cierra la campaña para todos los campos.
+//           'campo'           → cierra solo el campo actualmente abierto (campoDet).
+window.abrirModalCampana = function(contexto) {
+  contexto = contexto === 'campo' ? 'campo' : 'todos'
+  window._campanaCierreContexto = contexto
   var r = getCampanaRange('actual')
   var hoy = new Date().toISOString().slice(0,10)
-  // Pre-llenar nombre con el label actual
   document.getElementById('camp-nombre').value = r.label
   document.getElementById('camp-inicio').value = r.start.toISOString().slice(0,10)
   document.getElementById('camp-fin').value = hoy
+  // Ajustar títulos y textos según contexto
+  var tit  = document.getElementById('camp-modal-tit')
+  var sub  = document.getElementById('camp-modal-sub')
+  var rTit = document.getElementById('camp-reset-tit')
+  var rDes = document.getElementById('camp-reset-desc')
+  var rAle = document.getElementById('camp-reset-alerta')
+  var pdfWrap = document.getElementById('camp-pdf-wrap')
+  if (contexto === 'campo') {
+    var c = campos.find(function(f){return f.id===campoDet})
+    var nomC = c ? c.nombre : 'este campo'
+    if (tit) tit.textContent = 'Cerrar campaña de ' + nomC
+    if (sub) sub.innerHTML = 'Se cierra la campaña <strong>solo para este campo</strong>. Los demás campos siguen abiertos.'
+    if (rTit) rTit.innerHTML = '🌱 Preparar <em>este campo</em> para la próxima campaña'
+    if (rDes) rDes.innerHTML = 'Se van a mantener el <strong>polígono, hectáreas y datos generales</strong> del campo. Se van a <strong>vaciar solo</strong>: cultivo asignado, hectáreas por cultivo, ingresos por venta, rendimientos y precios. Los <strong>gastos y lluvias históricos</strong> del campo quedan intactos como registro.'
+    if (rAle) rAle.textContent = '💡 Después de cerrar, el campo va a mostrar una alerta hasta que le cargues el cultivo nuevo.'
+    if (pdfWrap) pdfWrap.style.display = 'flex'
+    var pdfChk = document.getElementById('camp-descargar-pdf')
+    if (pdfChk) pdfChk.checked = true
+  } else {
+    if (tit) tit.textContent = 'Cerrar campaña agrícola'
+    if (sub) sub.textContent = 'Guardá la campaña actual con un nombre personalizado. Quedará disponible en "Campañas anteriores".'
+    if (rTit) rTit.textContent = '🌱 Preparar campos para la próxima campaña'
+    if (rDes) rDes.innerHTML = 'Se van a mantener los <strong>polígonos, hectáreas, ubicación y datos generales</strong> de cada campo. Se van a <strong>vaciar solo</strong>: cultivo asignado, hectáreas por cultivo, ingresos por venta, rendimientos y precios. Los <strong>gastos y lluvias históricos quedan intactos</strong> como registro de la campaña anterior.'
+    if (rAle) rAle.textContent = '💡 Después de cerrar la campaña cada campo va a mostrar una alerta hasta que le cargues el cultivo nuevo.'
+    if (pdfWrap) pdfWrap.style.display = 'none'
+  }
   document.getElementById('ov-campana').classList.add('open')
+}
+// Helper: cierra la campaña del campo abierto en el detalle.
+window.abrirModalCampanaCampo = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  window.abrirModalCampana('campo')
 }
 window.closeModalCampana = function() {
   document.getElementById('ov-campana').classList.remove('open')
 }
 
-// Guarda el cierre de campaña
+// Guarda el cierre de campaña. Soporta dos modos:
+//   'todos' → resetea todos los campos.
+//   'campo' → resetea solo el campo abierto (campoDet) y opcionalmente descarga
+//             el PDF de rentabilidad antes del reset.
 window.guardarCierrecamp = async function() {
   var nombre = (document.getElementById('camp-nombre')?.value||'').trim()
   var inicio = document.getElementById('camp-inicio')?.value
   var fin    = document.getElementById('camp-fin')?.value
   var notas  = (document.getElementById('camp-notas')?.value||'').trim()
   var resetCampos = !!document.getElementById('camp-reset-campos')?.checked
+  var descargarPdf = !!document.getElementById('camp-descargar-pdf')?.checked
+  var contexto = window._campanaCierreContexto === 'campo' ? 'campo' : 'todos'
 
   if(!nombre){ showToast('⚠️ Ingresá un nombre para la campaña','err'); return }
   if(!inicio||!fin){ showToast('⚠️ Completá las fechas','err'); return }
   if(new Date(fin) < new Date(inicio)){ showToast('⚠️ El fin debe ser posterior al inicio','err'); return }
 
-  // Confirmación fuerte si va a resetear (protege de accidentes)
+  // Determinar qué campos van a resetearse
+  var camposAResetear = []
   if (resetCampos) {
-    var cant = (campos||[]).length
-    if (cant > 0 && !confirm('¿Confirmás cerrar la campaña "'+nombre+'"?\n\nSe van a vaciar cultivo, hectáreas por cultivo, ingresos, rendimiento y precio de venta de los '+cant+' campo'+(cant!==1?'s':'')+' que tenés cargados. Los polígonos, gastos y lluvias históricos se mantienen.\n\nNo se puede deshacer, pero podés volver a cargar los datos manualmente.')) {
-      return
+    if (contexto === 'campo') {
+      if (!campoDet) { showToast('⚠️ No hay campo abierto','err'); return }
+      var cActual = campos.find(function(f){return f.id===campoDet})
+      if (cActual) camposAResetear = [cActual]
+    } else {
+      camposAResetear = (campos||[]).slice()
     }
   }
 
-  // Generar id único a partir del nombre (sin espacios especiales)
+  // Confirmación fuerte si va a resetear (protege de accidentes)
+  if (resetCampos && camposAResetear.length > 0) {
+    var msgConfirm = ''
+    if (contexto === 'campo') {
+      var nomC = camposAResetear[0].nombre
+      msgConfirm = '¿Confirmás cerrar la campaña "'+nombre+'" del campo "'+nomC+'"?\n\nSe van a vaciar cultivo, hectáreas por cultivo, ingresos, rendimiento y precio de venta de ese campo. Los demás campos no se tocan. Los polígonos, gastos y lluvias históricos se mantienen.\n\nNo se puede deshacer, pero podés volver a cargar los datos manualmente.'
+    } else {
+      var cant = camposAResetear.length
+      msgConfirm = '¿Confirmás cerrar la campaña "'+nombre+'"?\n\nSe van a vaciar cultivo, hectáreas por cultivo, ingresos, rendimiento y precio de venta de los '+cant+' campo'+(cant!==1?'s':'')+' que tenés cargados. Los polígonos, gastos y lluvias históricos se mantienen.\n\nNo se puede deshacer, pero podés volver a cargar los datos manualmente.'
+    }
+    if (!confirm(msgConfirm)) return
+  }
+
+  // Descargar PDF antes del reset (solo en modo campo, con datos aún cargados)
+  if (contexto === 'campo' && descargarPdf) {
+    try {
+      if (typeof window.exportarPDF === 'function') {
+        window.exportarPDF()
+      }
+    } catch(e) { console.warn('PDF campo falló:', e && e.message) }
+  }
+
+  // Guardar entrada en Campañas anteriores (localStorage)
   var id = nombre.trim().replace(/\s+/g,'-').toLowerCase().slice(0,30)
   var saved = cargarCampanasGuardadas()
-
-  // Evitar duplicados: si ya existe, actualizar
   var existIdx = saved.findIndex(function(c){ return c.id === id })
   var entry = { id:id, nombre:nombre, startDate:inicio, endDate:fin, notas:notas, creadaEn:new Date().toISOString() }
   if(existIdx >= 0) saved[existIdx] = entry
   else saved.push(entry)
-
   saved.sort(function(a,b){ return new Date(b.startDate)-new Date(a.startDate) })
   guardarCampanasEnStorage(saved)
 
-  // Reset masivo de los campos si el usuario lo pidió
-  if (resetCampos && (campos||[]).length) {
+  // Reset de los campos según el contexto
+  if (resetCampos && camposAResetear.length) {
     var btn = document.getElementById('btn-campana')
     if (btn) { btn.disabled = true; btn.textContent = 'Preparando campos...' }
-    var camposIds = campos.map(function(c){ return c.id })
     var payloadReset = {
       cultivo: '',
       ingresos_cultivos: null,
@@ -7931,8 +8001,8 @@ window.guardarCierrecamp = async function() {
       rendimiento: null,
       precio_venta: null
     }
-    // Optimistic local: vaciar todo en memoria + cache
-    campos.forEach(function(c){
+    // Optimistic local: vaciar en memoria + cache
+    camposAResetear.forEach(function(c){
       c.cultivo = ''
       c.ingresos_cultivos = null
       c.hectareas_cultivo = null
@@ -7942,17 +8012,17 @@ window.guardarCierrecamp = async function() {
     try { _guardarCache() } catch(e) {}
     // DB en background: un UPDATE por campo, con fallback REST
     var errores = 0
-    for (var i = 0; i < camposIds.length; i++) {
+    for (var i = 0; i < camposAResetear.length; i++) {
       try {
         await _dbMutate({
           method: 'update',
           table: 'campos',
-          filter: { col: 'id', val: camposIds[i] },
+          filter: { col: 'id', val: camposAResetear[i].id },
           payload: payloadReset,
           timeout: 6000
         })
       } catch(e) {
-        console.warn('reset campo '+camposIds[i]+':', e.message)
+        console.warn('reset campo '+camposAResetear[i].id+':', e.message)
         errores++
       }
     }
@@ -7963,12 +8033,24 @@ window.guardarCierrecamp = async function() {
   }
 
   closeModalCampana()
-  showToast('✓ Campaña "'+nombre+'" guardada en Campañas anteriores'+(resetCampos?' · Campos listos para la nueva campaña':''),'ok')
-  // Limpiar notas
+  var msgOK = contexto === 'campo'
+    ? '✓ Campaña "'+nombre+'" cerrada para este campo'+(resetCampos?' · Listo para la próxima':'')
+    : '✓ Campaña "'+nombre+'" guardada en Campañas anteriores'+(resetCampos?' · Campos listos para la nueva campaña':'')
+  showToast(msgOK,'ok')
   document.getElementById('camp-notas').value = ''
-  // Refrescar UI para mostrar la alerta "Falta cargar cultivo"
+  // Refrescar UI: si estoy en detalle de campo, re-render de la vista
   try { renderCamposLista() } catch(e) {}
   try { renderDashboard() } catch(e) {}
+  if (contexto === 'campo' && campoDet) {
+    try {
+      var cUpd = campos.find(function(f){return f.id===campoDet})
+      if (cUpd) {
+        document.getElementById('det-campo-meta').textContent = (cUpd.hectareas||0).toLocaleString('es-AR') + ' ha · ' + (cUpd.cultivo||'Sin cultivo') + ' · ' + (cUpd.tenencia||'propio') + (cUpd.provincia?' · '+cUpd.provincia:'')
+      }
+      if (typeof renderCampoRent === 'function') renderCampoRent()
+      if (typeof renderIngresosTab === 'function') renderIngresosTab()
+    } catch(e) {}
+  }
 }
 
 // ── PERIODO GASTOS (mantener por compatibilidad) ──

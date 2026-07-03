@@ -933,7 +933,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <div style="font-size:11px;color:#3B6D11;opacity:.8" id="rent-pdf-resumen">—</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="openModalExportCampanas()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📈 Comparar campañas</button>
+          <button onclick="openModalExportCampanas('campo')" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px" title="Comparar las campañas de este campo">📈 Comparar campañas</button>
           <button onclick="exportarPDF()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
         </div>
       </div>
@@ -10720,7 +10720,13 @@ window._limpiarBusquedaPagos = function() {
 }
 
 // ── COMPARATIVA CAMPAÑAS: Modal + Exportar PDF ──
-window.openModalExportCampanas = function() {
+// contexto: 'todos' (default) → permite elegir varios campos (usado en Rentabilidad Total).
+//           'campo'           → solo compara el campo abierto (campoDet), oculta el
+//                                bloque de "Campos a incluir" y ajusta los textos.
+window.openModalExportCampanas = function(contexto) {
+  contexto = contexto === 'campo' ? 'campo' : 'todos'
+  window._expcContexto = contexto
+
   // 1) Detectar campañas disponibles (de gastos, lluvias, campanas table, y actual)
   var hoy = new Date()
   var yActual = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear()-1
@@ -10743,14 +10749,34 @@ window.openModalExportCampanas = function() {
       +'</label>'
   }).join('')
 
+  // 2) Bloque "Campos a incluir": solo si contexto === 'todos'
   var elF = document.getElementById('expc-campos-list')
-  var camposOrd = (campos||[]).slice().sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'','es') })
-  elF.innerHTML = camposOrd.map(function(c){
-    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">'
-      +'<input type="checkbox" class="expc-campo-chk" value="'+c.id+'" checked style="width:16px;height:16px"/>'
-      +'<span><strong>'+c.nombre+'</strong> · '+(c.cultivo||'—')+' · '+(c.hectareas||0)+' ha</span>'
-      +'</label>'
-  }).join('')
+  var elFgWrap = elF ? elF.closest('.fg') : null
+  var elSub = document.querySelector('#ov-export-campanas .m-sub')
+  var elTit = document.querySelector('#ov-export-campanas .m-tit')
+  if (contexto === 'campo') {
+    var cActual = (campos||[]).find(function(f){ return f.id === campoDet })
+    if (!cActual) { showToast('⚠️ Abrí un campo primero','err'); return }
+    // Ocultar el bloque de selección múltiple
+    if (elFgWrap) elFgWrap.style.display = 'none'
+    // Poner un único checkbox oculto con el campo actual pre-marcado
+    elF.innerHTML = '<label style="display:flex;align-items:center;gap:8px;font-size:13px">'
+      +'<input type="checkbox" class="expc-campo-chk" value="'+cActual.id+'" checked/>'
+      +'<span><strong>'+cActual.nombre+'</strong></span></label>'
+    if (elTit) elTit.textContent = '📈 Comparar campañas de ' + cActual.nombre
+    if (elSub) elSub.textContent = 'Elegí el rango de campañas a comparar para este campo. Generamos un PDF con la evolución de rentabilidad, ingresos y costos.'
+  } else {
+    if (elFgWrap) elFgWrap.style.display = ''
+    var camposOrd = (campos||[]).slice().sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'','es') })
+    elF.innerHTML = camposOrd.map(function(c){
+      return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">'
+        +'<input type="checkbox" class="expc-campo-chk" value="'+c.id+'" checked style="width:16px;height:16px"/>'
+        +'<span><strong>'+c.nombre+'</strong> · '+(c.cultivo||'—')+' · '+(c.hectareas||0)+' ha</span>'
+        +'</label>'
+    }).join('')
+    if (elTit) elTit.textContent = '📈 Comparar campañas'
+    if (elSub) elSub.textContent = 'Elegí el rango de campañas y los campos a incluir. Generamos un PDF con la evolución de rentabilidad, ingresos y costos.'
+  }
 
   document.getElementById('ov-export-campanas').classList.add('open')
 }

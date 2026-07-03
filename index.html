@@ -14527,15 +14527,18 @@ window.renderCultivoTimeline = function() {
       html += '<div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);width:2px;height:calc(100% - 44px);background:linear-gradient(to bottom, '+ev.color+'44, var(--borde));z-index:1"></div>'
     }
     html += '</div>'
-    var subLine = ev.subLabel ? ' · '+ev.subLabel : ''
+    // Título inline: subLabel + descripción del gasto (semilla, herbicida, etc.)
+    // en la misma línea. Ej: "Siembra · Soja RR1" o "Barbecho · Herbicida · Glifosato 48".
+    var extras = []
+    if (ev.subLabel) extras.push(ev.subLabel)
+    if (ev.descripcion) extras.push(ev.descripcion)
+    var subLine = extras.length ? ' · '+extras.join(' · ') : ''
     var badgeCompart = ev.esCompartido ? '<span style="margin-left:6px;font-size:10px;font-weight:700;color:var(--dorado);background:var(--dorado-pale);padding:2px 6px;border-radius:5px;letter-spacing:.04em">COMPARTIDO</span>' : ''
-    var desc = ev.descripcion ? '<div style="font-size:13px;color:var(--texto-mid);margin-top:4px;line-height:1.45">'+ev.descripcion+'</div>' : ''
     html += '<div style="flex:1;background:#fff;border:1px solid var(--borde);border-left:4px solid '+ev.color+';border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
     html += '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">'
-    html += '<div style="font-size:15px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif">'+ev.titulo+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)">'+subLine+'</span>'+badgeCompart+'</div>'
+    html += '<div style="font-size:15px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif;line-height:1.35">'+ev.titulo+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)">'+subLine+'</span>'+badgeCompart+'</div>'
     html += '<div style="font-size:12px;font-weight:700;color:'+ev.color+';font-family:DM Mono,monospace">'+fmtFecha(ev.fecha)+'</div>'
     html += '</div>'
-    html += desc
     html += '</div>'
     html += '</div>'
   })

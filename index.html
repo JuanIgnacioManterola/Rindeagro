@@ -2964,15 +2964,22 @@ async function init() {
     // Cerrar modal de bienvenida de invitación si llegó a abrirse por race
     try { document.getElementById('ov-invitacion').classList.remove('open') } catch(e) {}
     try { localStorage.setItem('ra_email', user.email) } catch(e) {}
-    // Mostrar nombre del email inmediatamente (antes de queries a DB)
-    var emailNom = (user.email||'').split('@')[0]
-    var emailNomCap = emailNom ? (emailNom.charAt(0).toUpperCase() + emailNom.slice(1).toLowerCase()) : emailNom
+    // Nombre para el saludo: cache local del último perfil > user_metadata > null.
+    // NO caer al prefix del email — se ve horrible (ignamanterola00). Si no hay
+    // nombre real, mostrar el saludo sin nombre; cargarTodo() lo actualiza cuando
+    // llega el perfil de la DB.
+    var meta = user.user_metadata || {}
+    var nombreCache = null
+    try { nombreCache = localStorage.getItem('ra_nombre_'+user.id) || null } catch(e) {}
+    var nombreInmediato = nombreCache || meta.nombre || meta.full_name || meta.name || ''
+    var nombreCapI = nombreInmediato ? (typeof window._capNombreCompleto === 'function' ? window._capNombreCompleto(nombreInmediato) : nombreInmediato) : ''
+    var primerNomI = (nombreCapI.split(' ')[0] || '')
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
     try {
-      var dNm = document.getElementById('d-nm'); if(dNm) dNm.textContent = emailNomCap
-      var dAv = document.getElementById('d-av'); if(dAv) dAv.textContent = emailNomCap.charAt(0).toUpperCase()
-      var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = sal + ', ' + emailNomCap + ' 👋'
+      var dNm = document.getElementById('d-nm'); if(dNm) dNm.textContent = nombreCapI || ''
+      var dAv = document.getElementById('d-av'); if(dAv) dAv.textContent = (primerNomI.charAt(0) || '·').toUpperCase()
+      var dSal = document.getElementById('d-saludo'); if(dSal) dSal.textContent = primerNomI ? (sal+', '+primerNomI+' 👋') : (sal+' 👋')
       var dFec = document.getElementById('d-fecha'); if(dFec) dFec.textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
     } catch(e) {}
     hideLoading()
@@ -3268,17 +3275,23 @@ async function cargarTodo() {
     _selectConFallback('gastos_estructura',    {col:'owner_id', val:uid, order:{col:'created_at', asc:false}})
   ])
 
-  // Perfil → nombre/saludo
+  // Perfil → nombre/saludo. Preferencia: perfil.nombre → user_metadata → nada.
+  // Nunca caer al prefix del email (queda feo: ignamanterola00).
   try {
     var p = resP.status==='fulfilled' ? resP.value.data : null
-    var nombre = (p && p.nombre) ? p.nombre : (usuario.email||'').split('@')[0]
-    var nombreCap = _capNombreCompleto(nombre)
+    var meta2 = (usuario && usuario.user_metadata) || {}
+    var nombre = (p && p.nombre) ? p.nombre : (meta2.nombre || meta2.full_name || meta2.name || '')
+    var nombreCap = nombre ? _capNombreCompleto(nombre) : ''
     var primerNomCap = (nombreCap.split(' ')[0]||'')
+    // Cachear para que el próximo login lo muestre al toque en _entrarApp
+    try {
+      if (nombreCap && usuario && usuario.id) localStorage.setItem('ra_nombre_'+usuario.id, nombreCap)
+    } catch(e) {}
     var h = new Date().getHours()
     var sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'
-    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=(primerNomCap.charAt(0)||'').toUpperCase()
+    var dAv=document.getElementById('d-av'); if(dAv) dAv.textContent=(primerNomCap.charAt(0)||'·').toUpperCase()
     var dNm=document.getElementById('d-nm'); if(dNm) dNm.textContent=nombreCap
-    var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=sal+', '+primerNomCap+' 👋'
+    var dSal=document.getElementById('d-saludo'); if(dSal) dSal.textContent=primerNomCap ? (sal+', '+primerNomCap+' 👋') : (sal+' 👋')
     var dFec=document.getElementById('d-fecha'); if(dFec) dFec.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
   } catch(e) {}
 
@@ -5043,9 +5056,10 @@ function _tarjArchivos(t) {
   var imgs = archivos.filter(function(a){ return (a.tipo||'').startsWith('image/') })
   var docs = archivos.filter(function(a){ return !(a.tipo||'').startsWith('image/') })
   var html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
-  imgs.slice(0,4).forEach(function(a, ai) {
+  imgs.slice(0,4).forEach(function(a) {
     var tId = t.id || ''
     if (!a.url) return  // skip broken (old uploads sin URL)
+    var ai = archivos.indexOf(a)  // índice REAL en archivos (no en imgs)
     html += '<a href="javascript:void(0)" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="'+a.nombre+'" style="display:block;width:110px;height:110px;border-radius:8px;overflow:hidden;flex-shrink:0;border:1px solid var(--borde);cursor:zoom-in;box-shadow:0 2px 6px rgba(0,0,0,.08);background:#f5f5f4">'
       +'<img src="'+a.url+'" loading="lazy" onerror="this.parentElement.style.display=\'none\'" style="width:100%;height:100%;object-fit:cover;image-rendering:-webkit-optimize-contrast"></a>'
   })
@@ -5053,7 +5067,17 @@ function _tarjArchivos(t) {
     html += '<div style="width:110px;height:110px;border-radius:8px;background:var(--crema);border:1px solid var(--borde);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--verde)">+'+( imgs.length-4)+'</div>'
   }
   if (docs.length) {
-    html += '<span style="font-size:11px;color:var(--texto-suave);display:flex;align-items:center;gap:3px;background:var(--crema);padding:3px 7px;border-radius:5px;border:.5px solid var(--borde)">📎 '+docs.length+' archivo'+(docs.length>1?'s':'')+'</span>'
+    docs.forEach(function(a) {
+      if (!a.url) return
+      var ai = archivos.indexOf(a)
+      var nomTxt = (a.nombre || 'archivo')
+      var nomCorto = nomTxt.length > 22 ? nomTxt.slice(0, 20) + '…' : nomTxt
+      var nomAttr = nomTxt.replace(/"/g,'&quot;')
+      var tId = t.id || ''
+      html += '<button type="button" onclick="window._abrirArchivoTarea(\''+tId+'\','+ai+')" title="Descargar '+nomAttr+'" '
+        + 'style="font-size:11px;color:var(--verde);font-weight:600;display:inline-flex;align-items:center;gap:4px;background:var(--crema);padding:4px 9px;border:.5px solid var(--borde);border-radius:5px;cursor:pointer;font-family:DM Sans,sans-serif">'
+        + '📎 '+nomCorto+'</button>'
+    })
   }
   html += '</div>'
   return html

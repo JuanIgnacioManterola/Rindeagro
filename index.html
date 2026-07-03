@@ -150,6 +150,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .pago-unico-badge{display:inline-block;background:var(--dorado);color:var(--verde);font-size:12px;font-weight:800;letter-spacing:.05em;padding:6px 14px;border-radius:20px;margin:8px 0;box-shadow:0 2px 8px rgba(201,168,76,.35);text-align:center;white-space:nowrap}
 .plan.pop .pago-unico-badge{background:#fff;color:var(--verde)}
 /* Botones grandes del header de Pagos: más visibles que los 12px + padding chico anterior */
+/* Modal editar precios — cards de input con icono */
+.ep-input-wrap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--borde);border-radius:11px;padding:10px 14px;cursor:text;transition:all .15s;position:relative}
+.ep-input-wrap:hover{border-color:var(--verde);box-shadow:0 2px 8px rgba(26,74,46,.08)}
+.ep-input-wrap:focus-within{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+.ep-input-wrap .ep-icono{grid-column:1;font-size:22px;line-height:1}
+.ep-input-wrap .ep-label{grid-column:2;font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em}
+.ep-input-wrap .ep-inp{grid-column:2;grid-row:2;background:transparent;border:none;color:var(--texto);font-size:19px;font-weight:800;font-family:'DM Mono',monospace;padding:0;outline:none;width:100%;letter-spacing:-.02em}
+.ep-input-wrap .ep-inp::placeholder{color:rgba(122,122,110,.4);font-weight:600}
+.ep-input-wrap .ep-suf{grid-column:3;grid-row:1/3;align-self:center;font-size:11px;font-weight:700;color:var(--texto-suave);letter-spacing:.04em}
 .pagos-hdr-btn{padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .pagos-hdr-btn span{font-weight:700}
 .pagos-hdr-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
@@ -3416,13 +3425,14 @@ window.showModulo = function(mod) {
 }
 
 window.openModalPrecios = function() {
-  // Precargar con valores actuales
-  document.getElementById('ep-soja').value = precios.soja || ''
-  document.getElementById('ep-maiz').value = precios.maiz || ''
-  document.getElementById('ep-trigo').value = precios.trigo || ''
+  // Precargar con valores actuales. Para el BNA preferimos divisa_venta
+  // (es lo que el productor debería ver: TC para pagar cosas).
+  document.getElementById('ep-soja').value    = precios.soja || ''
+  document.getElementById('ep-maiz').value    = precios.maiz || ''
+  document.getElementById('ep-trigo').value   = precios.trigo || ''
   document.getElementById('ep-girasol').value = precios.girasol || ''
-  document.getElementById('ep-sorgo').value = precios.sorgo || ''
-  document.getElementById('ep-bna').value = precios.bna || ''
+  document.getElementById('ep-sorgo').value   = precios.sorgo || ''
+  document.getElementById('ep-bna').value     = precios.dolar_divisa_venta || precios.bna || ''
   document.getElementById('ov-precios').classList.add('open')
 }
 
@@ -3439,8 +3449,9 @@ window.guardarPrecios = async function() {
     bna:     parseFloat(document.getElementById('ep-bna').value) || precios.bna,
   }
 
-  // Actualizar en memoria
+  // Actualizar en memoria — el bna editado se aplica a divisa_venta también.
   Object.assign(precios, nuevos)
+  if (nuevos.bna) precios.dolar_divisa_venta = nuevos.bna
 
   // Actualizar el strip visualmente
   var cereales = ['soja','maiz','trigo','girasol','sorgo']
@@ -16244,20 +16255,78 @@ init()
 </script>
   <!-- ── MODAL EDITAR PRECIOS ── -->
   <div class="overlay" id="ov-precios">
-    <div class="modal" style="max-width:420px">
-      <button class="m-close" onclick="document.getElementById('ov-precios').classList.remove('open')">✕</button>
-      <div class="m-tit">✏️ Actualizar precios pizarra</div>
-      <div class="m-sub">Ingresá los precios del día · Fuente: BCR / CAC Rosario</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem">
-        <div class="fg"><label class="fl">Soja (USD/t)</label><input class="fi" type="number" id="ep-soja" placeholder="341" min="0"/></div>
-        <div class="fg"><label class="fl">Maíz (USD/t)</label><input class="fi" type="number" id="ep-maiz" placeholder="181" min="0"/></div>
-        <div class="fg"><label class="fl">Trigo (USD/t)</label><input class="fi" type="number" id="ep-trigo" placeholder="183" min="0"/></div>
-        <div class="fg"><label class="fl">Girasol (USD/t)</label><input class="fi" type="number" id="ep-girasol" placeholder="390" min="0"/></div>
-        <div class="fg"><label class="fl">Sorgo (USD/t)</label><input class="fi" type="number" id="ep-sorgo" placeholder="189" min="0"/></div>
-        <div class="fg"><label class="fl">Dólar BNA divisa</label><input class="fi" type="number" id="ep-bna" placeholder="1385" min="0"/></div>
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <button class="m-close" onclick="document.getElementById('ov-precios').classList.remove('open')">✕</button>
+        <div class="m-tit">✏️ Editar precios del día</div>
+        <div class="m-sub" style="margin-bottom:0">Modificalos manualmente si necesitás ajustar algún valor. El sistema los actualiza solo todos los días a las 19:00 (BCR + BNA).</div>
       </div>
-      <div style="font-size:11px;color:var(--texto-suave);margin-top:8px">💡 Precio pizarra Rosario · con retenciones descontadas · en USD/tonelada</div>
-      <button id="btn-guardar-precios" onclick="guardarPrecios()" style="margin-top:1.5rem;width:100%;padding:13px;border-radius:11px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;box-shadow:0 4px 16px rgba(26,74,46,.3);transition:all .2s" onmouseover="this.style.background='var(--verde-mid)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='var(--verde)';this.style.transform='none'">✓ Guardar precios del día</button>
+      <div class="modal-body">
+
+        <!-- Cereales · Pizarra BCR Rosario -->
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="font-size:22px">🌾</div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:var(--verde);letter-spacing:-.01em">Pizarra de cereales · Rosario</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">Con retenciones descontadas · en USD/tonelada</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+            <label class="ep-input-wrap">
+              <span class="ep-icono">🌱</span>
+              <span class="ep-label">Soja</span>
+              <input class="ep-inp" type="number" id="ep-soja" placeholder="341" min="0" step="1"/>
+              <span class="ep-suf">USD/t</span>
+            </label>
+            <label class="ep-input-wrap">
+              <span class="ep-icono">🌽</span>
+              <span class="ep-label">Maíz</span>
+              <input class="ep-inp" type="number" id="ep-maiz" placeholder="181" min="0" step="1"/>
+              <span class="ep-suf">USD/t</span>
+            </label>
+            <label class="ep-input-wrap">
+              <span class="ep-icono">🌾</span>
+              <span class="ep-label">Trigo</span>
+              <input class="ep-inp" type="number" id="ep-trigo" placeholder="207" min="0" step="1"/>
+              <span class="ep-suf">USD/t</span>
+            </label>
+            <label class="ep-input-wrap">
+              <span class="ep-icono">🌻</span>
+              <span class="ep-label">Girasol</span>
+              <input class="ep-inp" type="number" id="ep-girasol" placeholder="390" min="0" step="1"/>
+              <span class="ep-suf">USD/t</span>
+            </label>
+            <label class="ep-input-wrap">
+              <span class="ep-icono">🌿</span>
+              <span class="ep-label">Sorgo</span>
+              <input class="ep-inp" type="number" id="ep-sorgo" placeholder="189" min="0" step="1"/>
+              <span class="ep-suf">USD/t</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Dólar oficial BNA -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="font-size:22px">💵</div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:var(--verde);letter-spacing:-.01em">Dólar oficial BNA</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">Divisa vendedor — se usa para convertir gastos, insumos y suscripción a pesos</div>
+            </div>
+          </div>
+          <label class="ep-input-wrap" style="max-width:280px">
+            <span class="ep-icono">🏦</span>
+            <span class="ep-label">Divisa vendedor</span>
+            <input class="ep-inp" type="number" id="ep-bna" placeholder="1489" min="0" step="0.5"/>
+            <span class="ep-suf">$/USD</span>
+          </label>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button id="btn-guardar-precios" onclick="guardarPrecios()" class="fb" style="width:100%">✓ Guardar precios del día</button>
+      </div>
     </div>
   </div>
 

@@ -988,7 +988,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <div class="campo-seccion" id="sec-cultivo">
       <div style="background:linear-gradient(135deg,var(--verde-pale),#f5faec);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:14px;border:1px solid rgba(151,196,89,.3)">
         <div style="font-size:11px;font-weight:700;color:var(--verde);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">🌿 Cronología del cultivo</div>
-        <div style="font-size:14px;color:var(--texto-mid);line-height:1.5">Línea de tiempo con siembra, pulverizaciones, fertilizaciones y cosecha. Los eventos se cargan automáticamente desde cada gasto que registres.</div>
+        <div style="font-size:14px;color:var(--texto-mid);line-height:1.5">Línea de tiempo con siembra, pulverizaciones, fertilizaciones, cosecha y lluvias del campo. Los eventos se cargan automáticamente desde los gastos y lluvias que registres.</div>
       </div>
       <div class="card">
         <div id="cultivo-timeline"></div>
@@ -14388,7 +14388,8 @@ window.renderCultivoTimeline = function() {
   if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🌿</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver su timeline.</div></div>'; return }
   var campR = getCampanaRange(campanaActivaId)
   var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+campR.label+')' : 'Campaña '+campanaActivaId
-  var eventos = (gastos||[]).filter(function(g){
+  // Gastos agronómicos
+  var eventosGastos = (gastos||[]).filter(function(g){
     if (g.campo_id !== campoDet) return false
     if (!g.fecha) return false
     var d = new Date(g.fecha)
@@ -14397,11 +14398,33 @@ window.renderCultivoTimeline = function() {
     var ev = _clasificarEventoGasto(g)
     if (!ev) return null
     return Object.assign(ev, { fecha: g.fecha, descripcion: g.descripcion || '', gastoId: g.id })
-  }).filter(Boolean).sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
+  }).filter(Boolean)
+  // Lluvias del campo en la misma campaña
+  var eventosLluvias = (lluvias||[]).filter(function(l){
+    if (l.campo_id !== campoDet) return false
+    if (!l.fecha) return false
+    var d = new Date(l.fecha)
+    return d >= campR.start && d <= campR.end
+  }).map(function(l){
+    var mm = Number(l.mm) || 0
+    var desc = l.descripcion || l.observaciones || l.notas || ''
+    return {
+      key: 'lluvia',
+      titulo: mm.toFixed(mm % 1 ? 1 : 0) + ' mm de lluvia',
+      subLabel: '',
+      icono: '🌧️',
+      color: '#1a5fa8',
+      fecha: l.fecha,
+      descripcion: desc,
+      lluviaId: l.id
+    }
+  })
+  var eventos = eventosGastos.concat(eventosLluvias)
+    .sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
 
   var hdr = '<div style="font-size:11px;color:var(--verde);font-weight:600;margin-bottom:14px;padding:5px 8px;background:var(--verde-pale);border-radius:7px;display:inline-block">📅 '+campLabel+' · '+eventos.length+' evento'+(eventos.length!==1?'s':'')+'</div>'
   if (!eventos.length) {
-    cont.innerHTML = hdr + '<div class="empty"><div class="empty-i">🌱</div><div class="empty-t">Sin eventos todavía</div><div class="empty-s">Cargá un gasto de siembra, pulverización, fertilización o cosecha desde el tab Gastos y va a aparecer acá.</div></div>'
+    cont.innerHTML = hdr + '<div class="empty"><div class="empty-i">🌱</div><div class="empty-t">Sin eventos todavía</div><div class="empty-s">Cargá un gasto de siembra, pulverización, fertilización o cosecha desde el tab Gastos, o registrá una lluvia desde el tab Lluvias, y va a aparecer acá.</div></div>'
     return
   }
   function fmtFecha(f) {

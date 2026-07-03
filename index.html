@@ -150,15 +150,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .pago-unico-badge{display:inline-block;background:var(--dorado);color:var(--verde);font-size:12px;font-weight:800;letter-spacing:.05em;padding:6px 14px;border-radius:20px;margin:8px 0;box-shadow:0 2px 8px rgba(201,168,76,.35);text-align:center;white-space:nowrap}
 .plan.pop .pago-unico-badge{background:#fff;color:var(--verde)}
 /* Botones grandes del header de Pagos: más visibles que los 12px + padding chico anterior */
-/* Modal editar precios — cards de input con icono */
-.ep-input-wrap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--borde);border-radius:11px;padding:10px 14px;cursor:text;transition:all .15s;position:relative}
+/* Modal editar precios — cards de input con icono (layout con sufijo absoluto para no cortar el número) */
+.ep-input-wrap{display:block;background:#fff;border:1.5px solid var(--borde);border-radius:11px;padding:10px 14px;cursor:text;transition:all .15s;position:relative}
 .ep-input-wrap:hover{border-color:var(--verde);box-shadow:0 2px 8px rgba(26,74,46,.08)}
 .ep-input-wrap:focus-within{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(201,168,76,.18)}
-.ep-input-wrap .ep-icono{grid-column:1;font-size:22px;line-height:1}
-.ep-input-wrap .ep-label{grid-column:2;font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em}
-.ep-input-wrap .ep-inp{grid-column:2;grid-row:2;background:transparent;border:none;color:var(--texto);font-size:19px;font-weight:800;font-family:'DM Mono',monospace;padding:0;outline:none;width:100%;letter-spacing:-.02em}
+.ep-input-wrap .ep-header{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.ep-input-wrap .ep-icono{font-size:20px;line-height:1;flex-shrink:0}
+.ep-input-wrap .ep-label{font-size:10px;font-weight:800;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.06em;line-height:1.15}
+.ep-input-wrap .ep-inp-row{position:relative}
+.ep-input-wrap .ep-inp{background:transparent;border:none;color:var(--texto);font-size:20px;font-weight:800;font-family:'DM Mono',monospace;padding:2px 46px 0 0;outline:none;width:100%;letter-spacing:-.02em;-moz-appearance:textfield}
+.ep-input-wrap .ep-inp::-webkit-outer-spin-button,.ep-input-wrap .ep-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .ep-input-wrap .ep-inp::placeholder{color:rgba(122,122,110,.4);font-weight:600}
-.ep-input-wrap .ep-suf{grid-column:3;grid-row:1/3;align-self:center;font-size:11px;font-weight:700;color:var(--texto-suave);letter-spacing:.04em}
+.ep-input-wrap .ep-suf{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:10px;font-weight:800;color:var(--texto-suave);letter-spacing:.04em;pointer-events:none}
 .pagos-hdr-btn{padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .pagos-hdr-btn span{font-weight:700}
 .pagos-hdr-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
@@ -2613,12 +2616,25 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           <input class="fi" type="date" id="camp-fin"/>
         </div>
       </div>
-      <div class="fg" style="margin-bottom:1.25rem">
+      <div class="fg" style="margin-bottom:1rem">
         <label class="fl">Notas (opcional)</label>
         <input class="fi" type="text" id="camp-notas" placeholder="Ej: Buen año, buena lluvia..."/>
       </div>
+
+      <!-- Toggle: preparar campos para la próxima campaña -->
+      <label style="display:flex;align-items:flex-start;gap:12px;background:var(--dorado-pale);border:1.5px solid var(--dorado);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:1rem">
+        <input type="checkbox" id="camp-reset-campos" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--verde);cursor:pointer;flex-shrink:0"/>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px">🌱 Preparar campos para la próxima campaña</div>
+          <div style="font-size:12px;color:var(--texto-mid);line-height:1.45">
+            Se van a mantener los <strong>polígonos, hectáreas, ubicación y datos generales</strong> de cada campo. Se van a <strong>vaciar solo</strong>: cultivo asignado, hectáreas por cultivo, ingresos por venta, rendimientos y precios. Los <strong>gastos y lluvias históricos quedan intactos</strong> como registro de la campaña anterior.
+          </div>
+          <div style="font-size:11px;color:var(--dorado);font-weight:700;margin-top:6px">💡 Después de cerrar la campaña cada campo va a mostrar una alerta hasta que le cargues el cultivo nuevo.</div>
+        </div>
+      </label>
+
       <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;font-size:13px;color:var(--verde)">
-        ✓ Al guardar, la campaña aparecerá en el menú <strong>Campañas anteriores</strong> y podrás consultar todos sus datos cuando quieras.
+        ✓ La campaña queda guardada en <strong>Campañas anteriores</strong> con todos sus datos para consultar cuando quieras.
       </div>
     </div>
     <div class="modal-footer">
@@ -3424,14 +3440,13 @@ window.showModulo = function(mod) {
 }
 
 window.openModalPrecios = function() {
-  // Precargar con valores actuales. Para el BNA preferimos divisa_venta
-  // (es lo que el productor debería ver: TC para pagar cosas).
-  document.getElementById('ep-soja').value    = precios.soja || ''
-  document.getElementById('ep-maiz').value    = precios.maiz || ''
-  document.getElementById('ep-trigo').value   = precios.trigo || ''
-  document.getElementById('ep-girasol').value = precios.girasol || ''
-  document.getElementById('ep-sorgo').value   = precios.sorgo || ''
-  document.getElementById('ep-bna').value     = precios.dolar_divisa_venta || precios.bna || ''
+  document.getElementById('ep-soja').value       = precios.soja || ''
+  document.getElementById('ep-maiz').value       = precios.maiz || ''
+  document.getElementById('ep-trigo').value      = precios.trigo || ''
+  document.getElementById('ep-girasol').value    = precios.girasol || ''
+  document.getElementById('ep-sorgo').value      = precios.sorgo || ''
+  document.getElementById('ep-bna-compra').value = precios.dolar_divisa_compra || ''
+  document.getElementById('ep-bna').value        = precios.dolar_divisa_venta || precios.bna || ''
   document.getElementById('ov-precios').classList.add('open')
 }
 
@@ -3447,10 +3462,12 @@ window.guardarPrecios = async function() {
     sorgo:   parseFloat(document.getElementById('ep-sorgo').value) || precios.sorgo,
     bna:     parseFloat(document.getElementById('ep-bna').value) || precios.bna,
   }
+  var nuevoBnaCompra = parseFloat(document.getElementById('ep-bna-compra').value) || 0
 
   // Actualizar en memoria — el bna editado se aplica a divisa_venta también.
   Object.assign(precios, nuevos)
-  if (nuevos.bna) precios.dolar_divisa_venta = nuevos.bna
+  if (nuevos.bna)      precios.dolar_divisa_venta  = nuevos.bna
+  if (nuevoBnaCompra)  precios.dolar_divisa_compra = nuevoBnaCompra
 
   // Actualizar el strip visualmente
   var cereales = ['soja','maiz','trigo','girasol','sorgo']
@@ -7870,15 +7887,24 @@ window.closeModalCampana = function() {
 }
 
 // Guarda el cierre de campaña
-window.guardarCierrecamp = function() {
+window.guardarCierrecamp = async function() {
   var nombre = (document.getElementById('camp-nombre')?.value||'').trim()
   var inicio = document.getElementById('camp-inicio')?.value
   var fin    = document.getElementById('camp-fin')?.value
   var notas  = (document.getElementById('camp-notas')?.value||'').trim()
+  var resetCampos = !!document.getElementById('camp-reset-campos')?.checked
 
   if(!nombre){ showToast('⚠️ Ingresá un nombre para la campaña','err'); return }
   if(!inicio||!fin){ showToast('⚠️ Completá las fechas','err'); return }
   if(new Date(fin) < new Date(inicio)){ showToast('⚠️ El fin debe ser posterior al inicio','err'); return }
+
+  // Confirmación fuerte si va a resetear (protege de accidentes)
+  if (resetCampos) {
+    var cant = (campos||[]).length
+    if (cant > 0 && !confirm('¿Confirmás cerrar la campaña "'+nombre+'"?\n\nSe van a vaciar cultivo, hectáreas por cultivo, ingresos, rendimiento y precio de venta de los '+cant+' campo'+(cant!==1?'s':'')+' que tenés cargados. Los polígonos, gastos y lluvias históricos se mantienen.\n\nNo se puede deshacer, pero podés volver a cargar los datos manualmente.')) {
+      return
+    }
+  }
 
   // Generar id único a partir del nombre (sin espacios especiales)
   var id = nombre.trim().replace(/\s+/g,'-').toLowerCase().slice(0,30)
@@ -7893,10 +7919,56 @@ window.guardarCierrecamp = function() {
   saved.sort(function(a,b){ return new Date(b.startDate)-new Date(a.startDate) })
   guardarCampanasEnStorage(saved)
 
+  // Reset masivo de los campos si el usuario lo pidió
+  if (resetCampos && (campos||[]).length) {
+    var btn = document.getElementById('btn-campana')
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparando campos...' }
+    var camposIds = campos.map(function(c){ return c.id })
+    var payloadReset = {
+      cultivo: '',
+      ingresos_cultivos: null,
+      hectareas_cultivo: null,
+      rendimiento: null,
+      precio_venta: null
+    }
+    // Optimistic local: vaciar todo en memoria + cache
+    campos.forEach(function(c){
+      c.cultivo = ''
+      c.ingresos_cultivos = null
+      c.hectareas_cultivo = null
+      c.rendimiento = null
+      c.precio_venta = null
+    })
+    try { _guardarCache() } catch(e) {}
+    // DB en background: un UPDATE por campo, con fallback REST
+    var errores = 0
+    for (var i = 0; i < camposIds.length; i++) {
+      try {
+        await _dbMutate({
+          method: 'update',
+          table: 'campos',
+          filter: { col: 'id', val: camposIds[i] },
+          payload: payloadReset,
+          timeout: 6000
+        })
+      } catch(e) {
+        console.warn('reset campo '+camposIds[i]+':', e.message)
+        errores++
+      }
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '⚑ Cerrar y guardar campaña' }
+    if (errores > 0) {
+      showToast('⚠️ '+errores+' campo'+(errores!==1?'s':'')+' no se sincronizó en la DB, refrescá si querés reintentar','err')
+    }
+  }
+
   closeModalCampana()
-  showToast('✓ Campaña "'+nombre+'" guardada en Campañas anteriores','ok')
+  showToast('✓ Campaña "'+nombre+'" guardada en Campañas anteriores'+(resetCampos?' · Campos listos para la nueva campaña':''),'ok')
   // Limpiar notas
   document.getElementById('camp-notas').value = ''
+  // Refrescar UI para mostrar la alerta "Falta cargar cultivo"
+  try { renderCamposLista() } catch(e) {}
+  try { renderDashboard() } catch(e) {}
 }
 
 // ── PERIODO GASTOS (mantener por compatibilidad) ──
@@ -12772,7 +12844,9 @@ window.renderCamposLista = function() {
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
   var camposOrdenados = campos.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"","es") })
   camposOrdenados.forEach(function(c,i) {
-    var ha = c.hectareas||0, cult = c.cultivo||'Soja'
+    var ha = c.hectareas||0
+    var faltaCultivo = !c.cultivo || String(c.cultivo).trim() === ''
+    var cult = faltaCultivo ? '' : c.cultivo
     var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var cHa = ha>0?gc/ha:0
     var ingTotal = _ingRealParaCampo(c)
@@ -12791,24 +12865,34 @@ window.renderCamposLista = function() {
     var nG = gastos.filter(function(g){return g.campo_id===c.id}).length
     var nA = analisisS.filter(function(a){return a.campo_id===c.id}).length
     var col = COLS[i%COLS.length]
-    html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')">'
-    html += '<div style="height:5px;background:'+col+'"></div>'
+    var borderExtra = faltaCultivo ? ';border:2px solid var(--dorado);box-shadow:0 4px 14px rgba(201,168,76,.15)' : ''
+    html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')" style="border-radius:12px'+borderExtra+'">'
+    html += '<div style="height:5px;background:'+(faltaCultivo?'var(--dorado)':col)+'"></div>'
     html += '<div style="padding:1.1rem 1.25rem">'
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'
     html += '<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;color:var(--verde)">'+c.nombre+'</div></div>'
     html += '<button onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)" ' + 'data-id="'+c.id+'" data-nom="'+c.nombre.replace(/"/g,'')+'" ' + 'style="background:#c0392b;border:none;border-radius:7px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;padding:6px 12px" onmouseover="this.style.opacity=.7" onmouseout="this.style.opacity=1">🗑 Eliminar</button>'
     html += '</div>'
-    var tieneGastos=gastos.filter(function(g){return g.campo_id===c.id}).length>0
-    var tieneIngresos=ingTotal>0
-    var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
-    var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
-    var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
-    var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
-    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
-    html += '<span style="background:'+cultivoBg+';color:'+cultivoColor+';font-size:10px;padding:3px 9px;border-radius:6px;font-weight:600">'+cult+'</span>'
-    html += '<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:'+estadoColor+';display:inline-block"></span><span style="font-size:11px;color:'+estadoColor+'">'+estadoTxt+'</span></span>'
-    if(c.rendimiento) html += '<span style="font-size:11px;color:var(--texto-suave);margin-left:auto">Rinde: <strong style="color:#1a7a52">'+c.rendimiento+' t/ha</strong></span>'
-    html += '</div>'
+    // Banner de alerta cuando falta cargar el cultivo (post cierre de campaña)
+    if (faltaCultivo) {
+      html += '<div style="background:var(--dorado-pale);border:1.5px solid var(--dorado);border-radius:9px;padding:9px 12px;margin-bottom:.75rem;display:flex;align-items:center;gap:8px">'
+      html += '<span style="font-size:18px">⚠️</span>'
+      html += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--verde)">Falta cargar cultivo</div>'
+      html += '<div style="font-size:11px;color:var(--texto-mid);margin-top:1px">Tocá para elegir qué se siembra esta campaña</div></div>'
+      html += '</div>'
+    } else {
+      var tieneGastos=gastos.filter(function(g){return g.campo_id===c.id}).length>0
+      var tieneIngresos=ingTotal>0
+      var estadoColor=tieneGastos&&tieneIngresos?'#639922':tieneGastos?'#c9a84c':'#c0392b'
+      var estadoTxt=tieneGastos&&tieneIngresos?'Con datos':tieneGastos?'Sin ingresos':'Sin gastos'
+      var cultivoBg=cult==='Maíz'?'#FAEEDA':cult==='Trigo'?'#FDF3E3':'#EAF3DE'
+      var cultivoColor=cult==='Maíz'?'#633806':cult==='Trigo'?'#854F0B':'#3B6D11'
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
+      html += '<span style="background:'+cultivoBg+';color:'+cultivoColor+';font-size:10px;padding:3px 9px;border-radius:6px;font-weight:600">'+cult+'</span>'
+      html += '<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:'+estadoColor+';display:inline-block"></span><span style="font-size:11px;color:'+estadoColor+'">'+estadoTxt+'</span></span>'
+      if(c.rendimiento) html += '<span style="font-size:11px;color:var(--texto-suave);margin-left:auto">Rinde: <strong style="color:#1a7a52">'+c.rendimiento+' t/ha</strong></span>'
+      html += '</div>'
+    }
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
     html += '<div style="color:var(--texto-suave)">Hectáreas</div><div style="font-weight:500">'+ha.toLocaleString('es-AR')+' ha</div>'
     html += '<div style="color:var(--texto-suave)">Tenencia</div><div style="font-weight:500">'+(c.tenencia||'Propio')+'</div>'
@@ -16273,34 +16357,24 @@ init()
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
             <label class="ep-input-wrap">
-              <span class="ep-icono">🌱</span>
-              <span class="ep-label">Soja</span>
-              <input class="ep-inp" type="number" id="ep-soja" placeholder="341" min="0" step="1"/>
-              <span class="ep-suf">USD/t</span>
+              <div class="ep-header"><span class="ep-icono">🌱</span><span class="ep-label">Soja</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-soja" placeholder="341" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
-              <span class="ep-icono">🌽</span>
-              <span class="ep-label">Maíz</span>
-              <input class="ep-inp" type="number" id="ep-maiz" placeholder="181" min="0" step="1"/>
-              <span class="ep-suf">USD/t</span>
+              <div class="ep-header"><span class="ep-icono">🌽</span><span class="ep-label">Maíz</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-maiz" placeholder="181" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
-              <span class="ep-icono">🌾</span>
-              <span class="ep-label">Trigo</span>
-              <input class="ep-inp" type="number" id="ep-trigo" placeholder="207" min="0" step="1"/>
-              <span class="ep-suf">USD/t</span>
+              <div class="ep-header"><span class="ep-icono">🌾</span><span class="ep-label">Trigo</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-trigo" placeholder="207" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
-              <span class="ep-icono">🌻</span>
-              <span class="ep-label">Girasol</span>
-              <input class="ep-inp" type="number" id="ep-girasol" placeholder="390" min="0" step="1"/>
-              <span class="ep-suf">USD/t</span>
+              <div class="ep-header"><span class="ep-icono">🌻</span><span class="ep-label">Girasol</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-girasol" placeholder="390" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
-              <span class="ep-icono">🌿</span>
-              <span class="ep-label">Sorgo</span>
-              <input class="ep-inp" type="number" id="ep-sorgo" placeholder="189" min="0" step="1"/>
-              <span class="ep-suf">USD/t</span>
+              <div class="ep-header"><span class="ep-icono">🌿</span><span class="ep-label">Sorgo</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-sorgo" placeholder="189" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
             </label>
           </div>
         </div>
@@ -16311,15 +16385,23 @@ init()
             <div style="font-size:22px">💵</div>
             <div>
               <div style="font-size:14px;font-weight:800;color:var(--verde);letter-spacing:-.01em">Dólar oficial BNA</div>
-              <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">Divisa vendedor — se usa para convertir gastos, insumos y suscripción a pesos</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">Los dos tipos de cambio del Banco Nación</div>
             </div>
           </div>
-          <label class="ep-input-wrap" style="max-width:280px">
-            <span class="ep-icono">🏦</span>
-            <span class="ep-label">Divisa vendedor</span>
-            <input class="ep-inp" type="number" id="ep-bna" placeholder="1489" min="0" step="0.5"/>
-            <span class="ep-suf">$/USD</span>
-          </label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">
+            <label class="ep-input-wrap">
+              <div class="ep-header"><span class="ep-icono">🏦</span><span class="ep-label">Divisa compra</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-bna-compra" placeholder="1480" min="0" step="0.5"/><span class="ep-suf">$/USD</span></div>
+            </label>
+            <label class="ep-input-wrap">
+              <div class="ep-header"><span class="ep-icono">🏦</span><span class="ep-label">Divisa venta</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-bna" placeholder="1489" min="0" step="0.5"/><span class="ep-suf">$/USD</span></div>
+            </label>
+          </div>
+          <div style="background:var(--crema);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--texto-mid);line-height:1.5">
+            💡 <strong>Divisa compra</strong> se usa para convertir <strong>ingresos por venta de cereal</strong> a pesos.<br>
+            💡 <strong>Divisa venta</strong> se usa para convertir <strong>gastos, insumos y la suscripción</strong> a pesos.
+          </div>
         </div>
 
       </div>

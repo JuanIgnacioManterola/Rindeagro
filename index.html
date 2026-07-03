@@ -2193,6 +2193,28 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <input class="fi" type="hidden" id="c-cult" value=""/>
     </div>
+
+    <!-- Distribución por cultivo (aparece apenas seleccionás 2+ cultivos) -->
+    <div id="zonas-cultivo-section" style="display:none;margin-bottom:1rem;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:1rem 1.15rem">
+      <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:4px">🗺️ Hectáreas por cultivo</div>
+      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:12px">Ingresá cuántas hectáreas se siembran de cada cultivo. Si querés, después podés marcar la zona exacta en el mapa.</div>
+      <div id="zonas-cultivo-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+      <!-- Hint mientras se dibuja (aparece si el user clickea "Marcar en el mapa") -->
+      <div id="zona-dibujo-hint" style="display:none;background:#fff;border:1px solid var(--verde);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--verde);margin-top:4px">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div>✏️ <strong id="zona-dibujo-cultivo-txt">Dibujando zona</strong> — hacé clic en el mapa para marcar puntos</div>
+            <div id="zona-dibujo-pts" style="font-size:11px;margin-top:3px;opacity:.75">0 puntos — necesitás al menos 3</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+            <button id="btn-confirmar-zona" type="button" onclick="finalizarZonaCultivo()" disabled
+              style="padding:5px 13px;border-radius:7px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'DM Sans',sans-serif;opacity:.4">✓ Confirmar</button>
+            <button type="button" onclick="cancelarZonaCultivo()"
+              style="padding:5px 10px;border-radius:7px;border:1.5px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- País -->
     <div class="fg">
       <label class="fl">País *</label>
@@ -2269,29 +2291,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="font-size:11px;font-weight:600;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Superficie calculada</div>
         <div style="font-size:32px;font-weight:800;color:var(--verde);font-family:'DM Mono',monospace;line-height:1"><span id="campo-ha-valor">0</span> <span style="font-size:16px;font-weight:600">ha</span></div>
         <div id="campo-coords-txt" style="font-size:11px;color:var(--texto-suave);margin-top:4px"></div>
-      </div>
-    </div>
-
-    <!-- Zonas por cultivo (aparece cuando hay 2+ cultivos) -->
-    <div id="zonas-cultivo-section" style="display:none;margin-bottom:1rem;border:.5px solid var(--borde);border-radius:12px;padding:1rem">
-      <div style="font-size:13px;font-weight:600;color:var(--verde);margin-bottom:4px">🗺️ Distribución por cultivo</div>
-      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:12px">Ingresá las hectáreas de cada cultivo y/o dibujá la zona en el mapa.</div>
-      <!-- Tabla de cultivos con ha + botón zona -->
-      <div id="zonas-cultivo-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
-      <!-- Hint mientras se dibuja -->
-      <div id="zona-dibujo-hint" style="display:none;background:var(--verde-pale);border:1px solid var(--verde);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--verde);margin-top:4px">
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <div style="flex:1">
-            <div>✏️ <strong id="zona-dibujo-cultivo-txt">Dibujando zona</strong> — hacé clic en el mapa para marcar puntos</div>
-            <div id="zona-dibujo-pts" style="font-size:11px;margin-top:3px;opacity:.75">0 puntos — necesitás al menos 3</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
-            <button id="btn-confirmar-zona" type="button" onclick="finalizarZonaCultivo()" disabled
-              style="padding:5px 13px;border-radius:7px;border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'DM Sans',sans-serif;opacity:.4">✓ Confirmar</button>
-            <button type="button" onclick="cancelarZonaCultivo()"
-              style="padding:5px 10px;border-radius:7px;border:1.5px solid var(--verde);background:transparent;color:var(--verde);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
-          </div>
-        </div>
       </div>
     </div>
 

@@ -13130,6 +13130,8 @@ window.abrirCampo = function(id) {
   // Reset acordeón al abrir un campo distinto
   _crAcSt = {cultivoOpen:null, rubroActivo:null, ingOpen:false, gasOpen:false}
   window._crAcordeonData = null
+  // Reset selector de cultivo del tab Cultivo — que el picker aparezca de nuevo
+  window._cultivoTimelineActivo = null
   // Reset flag del dropdown de cultivo del análisis de suelo — así se auto-selecciona
   // según el cultivo del campo recién abierto (usuario puede overrideear después).
   try { var _sc = document.getElementById('det-suelo-cultivo'); if (_sc) delete _sc.dataset.userChanged } catch(e) {}
@@ -14382,24 +14384,96 @@ function _clasificarPulverizacion(g, rubroOSub) {
   else if (mp === 'postemergente') titulo = 'Postemergente'
   return { key:'pulverizacion', titulo: titulo, subLabel: subLabel, icono:'💧', color:'#0891b2' }
 }
+// Estado del selector de cultivo dentro del tab Cultivo. null = sin cultivo
+// seleccionado en un campo multi-cultivo (mostrar picker). String = cultivo activo.
+window._cultivoTimelineActivo = null
+window.seleccionarCultivoTimeline = function(cult) {
+  window._cultivoTimelineActivo = cult
+  window.renderCultivoTimeline()
+}
+window.volverCultivoTimeline = function() {
+  window._cultivoTimelineActivo = null
+  window.renderCultivoTimeline()
+}
 window.renderCultivoTimeline = function() {
   var cont = document.getElementById('cultivo-timeline')
   if (!cont) return
   if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🌿</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver su timeline.</div></div>'; return }
+  var c = campos.find(function(x){ return x.id === campoDet })
+  if (!c) { cont.innerHTML = ''; return }
+  var CULT_ICONS = {'Soja':'🌱','Maíz':'🌽','Trigo':'🌾','Girasol':'🌻','Sorgo':'🌿','Cebada':'🌾','Maní':'🥜'}
+  var cultivosDeCampo = (c.cultivo||'').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var esMultiCultivo = cultivosDeCampo.length > 1
+  var cultivoActivo = window._cultivoTimelineActivo
+  // Reset silencioso si el cultivo activo ya no existe (edit del campo)
+  if (cultivoActivo && cultivosDeCampo.indexOf(cultivoActivo) === -1) {
+    window._cultivoTimelineActivo = null
+    cultivoActivo = null
+  }
   var campR = getCampanaRange(campanaActivaId)
   var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+campR.label+')' : 'Campaña '+campanaActivaId
-  // Gastos agronómicos
+
+  // ── Multi-cultivo sin selección: mostrar picker ──
+  if (esMultiCultivo && !cultivoActivo) {
+    var pickerHtml = '<div style="font-size:11px;color:var(--verde);font-weight:600;margin-bottom:14px;padding:5px 8px;background:var(--verde-pale);border-radius:7px;display:inline-block">📅 '+campLabel+'</div>'
+    pickerHtml += '<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">Elegí un cultivo</div>'
+    pickerHtml += '<div style="font-size:12px;color:var(--texto-suave);margin-bottom:16px">Este campo tiene '+cultivosDeCampo.length+' cultivos. Seleccioná uno para ver su línea de tiempo.</div>'
+    pickerHtml += '<div style="display:grid;gap:10px">'
+    cultivosDeCampo.forEach(function(cult) {
+      var color = (typeof CULT_COLORES !== 'undefined' && CULT_COLORES[cult]) || '#16a34a'
+      var icon = CULT_ICONS[cult] || '🌱'
+      // Conteo aproximado: gastos agronómicos de ese cultivo (+ compartidos) + lluvias del campo
+      var gEse = (gastos||[]).filter(function(g){
+        if (g.campo_id !== campoDet) return false
+        if (!g.fecha) return false
+        var d = new Date(g.fecha)
+        if (d < campR.start || d > campR.end) return false
+        if (g.cultivo && g.cultivo !== cult) return false
+        return !!_clasificarEventoGasto(g)
+      }).length
+      var lEse = (lluvias||[]).filter(function(l){
+        if (l.campo_id !== campoDet) return false
+        if (!l.fecha) return false
+        var d = new Date(l.fecha)
+        return d >= campR.start && d <= campR.end
+      }).length
+      var totalEse = gEse + lEse
+      var safeCult = cult.replace(/'/g,"\\'")
+      pickerHtml += '<div onclick="seleccionarCultivoTimeline(\''+safeCult+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--crema);border-radius:13px;border-left:4px solid '+color+';cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 14px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">'
+        + '<div style="display:flex;align-items:center;gap:12px">'
+        +   '<span style="font-size:26px">'+icon+'</span>'
+        +   '<div><div style="font-size:16px;font-weight:700;color:var(--texto)">'+cult+'</div>'
+        +   '<div style="font-size:12px;color:var(--texto-suave)">'+totalEse+' evento'+(totalEse!==1?'s':'')+' en esta campaña</div></div>'
+        + '</div>'
+        + '<span style="font-size:20px;color:var(--texto-suave)">›</span>'
+        + '</div>'
+    })
+    pickerHtml += '</div>'
+    cont.innerHTML = pickerHtml
+    return
+  }
+
+  // ── Timeline: single-cultivo o cultivo activo seleccionado ──
+  // Gastos agronómicos: específicos del cultivo activo + compartidos (cultivo null)
   var eventosGastos = (gastos||[]).filter(function(g){
     if (g.campo_id !== campoDet) return false
     if (!g.fecha) return false
     var d = new Date(g.fecha)
-    return d >= campR.start && d <= campR.end
+    if (d < campR.start || d > campR.end) return false
+    if (cultivoActivo && g.cultivo && g.cultivo !== cultivoActivo) return false
+    return true
   }).map(function(g){
     var ev = _clasificarEventoGasto(g)
     if (!ev) return null
-    return Object.assign(ev, { fecha: g.fecha, descripcion: g.descripcion || '', gastoId: g.id })
+    var compartido = cultivoActivo && !g.cultivo
+    return Object.assign(ev, {
+      fecha: g.fecha,
+      descripcion: g.descripcion || '',
+      gastoId: g.id,
+      esCompartido: compartido
+    })
   }).filter(Boolean)
-  // Lluvias del campo en la misma campaña
+  // Lluvias del campo (comunes a todos los cultivos)
   var eventosLluvias = (lluvias||[]).filter(function(l){
     if (l.campo_id !== campoDet) return false
     if (!l.fecha) return false
@@ -14422,7 +14496,20 @@ window.renderCultivoTimeline = function() {
   var eventos = eventosGastos.concat(eventosLluvias)
     .sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
 
-  var hdr = '<div style="font-size:11px;color:var(--verde);font-weight:600;margin-bottom:14px;padding:5px 8px;background:var(--verde-pale);border-radius:7px;display:inline-block">📅 '+campLabel+' · '+eventos.length+' evento'+(eventos.length!==1?'s':'')+'</div>'
+  // Header con badge de campaña + chip del cultivo si aplica + botón volver si multi
+  var chip = ''
+  if (esMultiCultivo && cultivoActivo) {
+    var colorC = (typeof CULT_COLORES !== 'undefined' && CULT_COLORES[cultivoActivo]) || '#16a34a'
+    var iconC = CULT_ICONS[cultivoActivo] || '🌱'
+    chip = '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:5px 10px;background:'+colorC+'22;color:'+colorC+';border:1px solid '+colorC+'55;border-radius:7px;font-weight:700">'+iconC+' '+cultivoActivo+'</span>'
+  }
+  var volver = esMultiCultivo && cultivoActivo
+    ? '<button onclick="volverCultivoTimeline()" style="margin-left:8px;padding:5px 12px;border-radius:7px;border:1.5px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">← Cambiar cultivo</button>'
+    : ''
+  var hdr = '<div style="display:flex;flex-wrap:wrap;align-items:center;margin-bottom:14px">'
+    + '<div style="font-size:11px;color:var(--verde);font-weight:600;padding:5px 8px;background:var(--verde-pale);border-radius:7px">📅 '+campLabel+' · '+eventos.length+' evento'+(eventos.length!==1?'s':'')+'</div>'
+    + chip + volver + '</div>'
+
   if (!eventos.length) {
     cont.innerHTML = hdr + '<div class="empty"><div class="empty-i">🌱</div><div class="empty-t">Sin eventos todavía</div><div class="empty-s">Cargá un gasto de siembra, pulverización, fertilización o cosecha desde el tab Gastos, o registrá una lluvia desde el tab Lluvias, y va a aparecer acá.</div></div>'
     return
@@ -14434,19 +14521,18 @@ window.renderCultivoTimeline = function() {
   eventos.forEach(function(ev, i) {
     var esUltimo = i === eventos.length - 1
     html += '<div style="position:relative;display:flex;gap:14px;padding-bottom:'+(esUltimo?'6px':'22px')+'">'
-    // Columna izquierda: ícono + línea
     html += '<div style="position:relative;flex-shrink:0;width:44px">'
     html += '<div style="width:44px;height:44px;border-radius:50%;background:'+ev.color+';display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;z-index:2;color:#fff">'+ev.icono+'</div>'
     if (!esUltimo) {
       html += '<div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);width:2px;height:calc(100% - 44px);background:linear-gradient(to bottom, '+ev.color+'44, var(--borde));z-index:1"></div>'
     }
     html += '</div>'
-    // Columna derecha: card
     var subLine = ev.subLabel ? ' · '+ev.subLabel : ''
+    var badgeCompart = ev.esCompartido ? '<span style="margin-left:6px;font-size:10px;font-weight:700;color:var(--dorado);background:var(--dorado-pale);padding:2px 6px;border-radius:5px;letter-spacing:.04em">COMPARTIDO</span>' : ''
     var desc = ev.descripcion ? '<div style="font-size:13px;color:var(--texto-mid);margin-top:4px;line-height:1.45">'+ev.descripcion+'</div>' : ''
     html += '<div style="flex:1;background:#fff;border:1px solid var(--borde);border-left:4px solid '+ev.color+';border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
     html += '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">'
-    html += '<div style="font-size:15px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif">'+ev.titulo+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)">'+subLine+'</span></div>'
+    html += '<div style="font-size:15px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif">'+ev.titulo+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)">'+subLine+'</span>'+badgeCompart+'</div>'
     html += '<div style="font-size:12px;font-weight:700;color:'+ev.color+';font-family:DM Mono,monospace">'+fmtFecha(ev.fecha)+'</div>'
     html += '</div>'
     html += desc

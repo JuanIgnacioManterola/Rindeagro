@@ -858,6 +858,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button class="campo-tab active" id="tab-rentabilidad-campo" onclick="switchCampoTab('rentabilidad',this)">📊 Rentabilidad</button>
         <button class="campo-tab" id="tab-ingresos-campo" onclick="switchCampoTab('ingresos',this)">💵 Ingresos</button>
         <button class="campo-tab" id="tab-gastos-campo" onclick="switchCampoTab('gastos',this)">💰 Gastos</button>
+        <button class="campo-tab" id="tab-cultivo-campo" onclick="switchCampoTab('cultivo',this)">🌿 Cultivo</button>
         <button class="campo-tab" id="tab-lluvias-campo" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" id="tab-suelo-campo" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
       </div>
@@ -980,6 +981,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           </div>
         </div>
         <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo-r"></table></div>
+      </div>
+    </div>
+
+    <!-- TAB: CULTIVO (línea de tiempo de eventos agronómicos) -->
+    <div class="campo-seccion" id="sec-cultivo">
+      <div style="background:linear-gradient(135deg,var(--verde-pale),#f5faec);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:14px;border:1px solid rgba(151,196,89,.3)">
+        <div style="font-size:11px;font-weight:700;color:var(--verde);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">🌿 Cronología del cultivo</div>
+        <div style="font-size:14px;color:var(--texto-mid);line-height:1.5">Línea de tiempo con siembra, pulverizaciones, fertilizaciones y cosecha. Los eventos se cargan automáticamente desde cada gasto que registres.</div>
+      </div>
+      <div class="card">
+        <div id="cultivo-timeline"></div>
       </div>
     </div>
 
@@ -2367,6 +2379,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button class="sub-tipo-btn" onclick="selSubTipo(this,'fertilizacion')">⚗️ Fertilización</button>
         <button class="sub-tipo-btn" onclick="selSubTipo(this,'labranza')">🚜 Labranza</button>
       </div>
+    </div>
+
+    <!-- Momento de la pulverización (solo herb/fung/insect) -->
+    <div id="momento-pulv" style="display:none;margin-bottom:.9rem">
+      <label class="fl">Momento de la pulverización</label>
+      <select class="fi" id="g-momento-pulv" style="cursor:pointer">
+        <option value="">— Sin especificar —</option>
+        <option value="barbecho">Barbecho</option>
+        <option value="presiembra">Presiembra</option>
+        <option value="postemergente">Postemergente</option>
+        <option value="aplicacion">Aplicación</option>
+      </select>
+      <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Este campo alimenta la línea de tiempo del tab <strong>Cultivo</strong>.</div>
     </div>
 
     <!-- Campos específicos de riego -->
@@ -7245,6 +7270,7 @@ window.onRubroChange = function() {
   var riegoDiv = document.getElementById('riego-campos')
   var fleteDiv = document.getElementById('flete-campos')
   var empDiv = document.getElementById('empleados-campos')
+  var momPulvDiv = document.getElementById('momento-pulv')
   var normalFields = document.getElementById('gasto-main-fields')
   var colUnidad = document.getElementById('gasto-col-unidad')
   var colCantidad = document.getElementById('gasto-col-cantidad')
@@ -7260,12 +7286,17 @@ window.onRubroChange = function() {
   if(riegoDiv) riegoDiv.style.display = 'none'
   if(fleteDiv) fleteDiv.style.display = 'none'
   if(empDiv) empDiv.style.display = 'none'
+  if(momPulvDiv) momPulvDiv.style.display = 'none'
   var arrDiv2 = document.getElementById('arrendamiento-campos'); if(arrDiv2) arrDiv2.style.display = 'none'
   if(normalFields) normalFields.style.display = 'block'
   if(colUnidad) colUnidad.style.display = ''
   if(colCantidad) colCantidad.style.display = ''
   if(gridCols) gridCols.style.gridTemplateColumns = '1fr 1fr 1fr'
   if(rubro !== 'laboreo') { gastoSubTipo = null; document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active')) }
+  // Momento pulverización: solo herb/fung/insect
+  if(momPulvDiv && (rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas')) {
+    momPulvDiv.style.display = 'block'
+  }
 
   if(rubro === 'riego') {
     if(riegoDiv) riegoDiv.style.display = 'block'
@@ -7853,6 +7884,7 @@ function renderTodosLosTabsCampo() {
   if (id === 'sec-rentabilidad') renderCampoRent()
   if (id === 'sec-suelo')        renderDetSuelo()
   if (id === 'sec-lluvias')      renderDetLluvias()
+  if (id === 'sec-cultivo')      renderCultivoTimeline()
 }
 
 // ══════════════════════════════
@@ -8996,6 +9028,11 @@ window.guardarGasto = async function() {
     var facUrlG = document.getElementById('g-factura-url')?.value || null
     var facPathG = document.getElementById('g-factura-path')?.value || null
     var facTipoG = document.getElementById('g-factura-tipo')?.value || null
+    var momentoPulv = null
+    if (rubro==='herbicidas'||rubro==='fungicidas'||rubro==='insecticidas') {
+      var mpEl = document.getElementById('g-momento-pulv')
+      momentoPulv = (mpEl && mpEl.value) ? mpEl.value : null
+    }
     var _p = {
       rubro: rubro,
       fecha: fecha,
@@ -9007,7 +9044,8 @@ window.guardarGasto = async function() {
       insumo_id: insumoId,
       factura_url: facUrlG,
       factura_path: facPathG,
-      factura_tipo: facTipoG
+      factura_tipo: facTipoG,
+      momento_pulverizacion: momentoPulv
     }
     if(gastoSubTipo) { _p.sub_tipo = gastoSubTipo; _p.subtipo = gastoSubTipo } // ambos nombres por compatibilidad
     if(cantidad) _p.cantidad = cantidad
@@ -9120,7 +9158,7 @@ window.guardarGasto = async function() {
         } catch(e) { console.error('bg gasto insert wrapper:', e) }
       })()
     }
-    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva','g-insumo-sel'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
+    ;['g-rubro','g-desc','g-cantidad','g-precio-unit','g-ha-aplicadas','g-edit-id','g-riego-kva','g-riego-costo-kva','g-insumo-sel','g-momento-pulv'].forEach(id=>{var el=document.getElementById(id);if(el)el.value=''})
     var _giRow=document.getElementById('g-insumo-row'); if(_giRow) _giRow.style.display='none'
     var _giInfo=document.getElementById('g-insumo-info'); if(_giInfo) _giInfo.style.display='none'
     ;['cv-usd','cv-usdha','cv-qq'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='—'})
@@ -9222,6 +9260,11 @@ window.editarGasto = function(id) {
     var eempMontoLbl = document.getElementById('g-emp-monto-label'); if(eempMontoLbl) eempMontoLbl.textContent = _eempMon==='ars' ? 'Monto total (ARS)' : 'Monto total (USD)'
   }
   onRubroChange()
+  // Momento pulverización: precargar si existe
+  if(g.momento_pulverizacion) {
+    var mpEditEl = document.getElementById('g-momento-pulv')
+    if(mpEditEl) mpEditEl.value = g.momento_pulverizacion
+  }
   // Si el gasto tenía insumo vinculado, precargar el selector
   if(g.insumo_id) {
     var insSel = document.getElementById('g-insumo-sel')
@@ -12926,11 +12969,12 @@ window.abrirCampo = function(id) {
   document.querySelectorAll('.campo-seccion').forEach(function(s){s.classList.remove('active')})
   // Aplicar visibilidad de tabs según permisos
   _aplicarPermisosUI()
-  // Determinar primer tab visible y activarlo. Orden nuevo: Rentabilidad → Ingresos → Gastos → Lluvias → Suelo.
+  // Determinar primer tab visible y activarlo. Orden: Rentabilidad → Ingresos → Gastos → Cultivo → Lluvias → Suelo.
   var _tabOpts = [
     {id:'tab-rentabilidad-campo', sec:'sec-rentabilidad', mod:'rentabilidad_campo', render: function(){renderCampoRent()}},
     {id:'tab-ingresos-campo',     sec:'sec-ingresos',     mod:'ingresos', render: function(){renderIngresosTab()}},
     {id:'tab-gastos-campo',       sec:'sec-gastos',       mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
+    {id:'tab-cultivo-campo',      sec:'sec-cultivo',      mod:'gastos',   render: function(){renderCultivoTimeline()}},
     {id:'tab-lluvias-campo',      sec:'sec-lluvias',      mod:'lluvias',  render: function(){renderDetLluvias()}},
     {id:'tab-suelo-campo',        sec:'sec-suelo',        mod:'suelo',    render: function(){renderDetSuelo()}}
   ]
@@ -14123,8 +14167,95 @@ window.switchCampoTab = function(tab, btn) {
   if(tab==='ingresos') renderIngresosTab()
   if(tab==='gastos') { gastosCultivoActivo = null; renderDetGastos() }
   if(tab==='rentabilidad') renderCampoRent()
+  if(tab==='cultivo') renderCultivoTimeline()
   if(tab==='lluvias') renderDetLluvias()
   if(tab==='suelo') renderDetSuelo()
+}
+
+// ── TIMELINE DEL CULTIVO ─────────────────────────────────────────────────
+// Muestra los eventos agronómicos del campo abierto (siembra, pulverizaciones,
+// fertilizaciones, cosecha, laboreo, riego) en línea de tiempo ascendente por
+// fecha. No muestra importes: es un registro operativo, no financiero.
+// Los eventos se derivan de los gastos ya cargados en el tab Gastos.
+function _clasificarEventoGasto(g) {
+  var rubro = g.rubro || ''
+  var sub   = g.subtipo || g.sub_tipo || ''
+  // 1) Sub-tipos explícitos ganan sobre el rubro
+  if (sub === 'siembra')       return { key:'siembra',       titulo:'Siembra',       icono:'🌱', color:'#16a34a' }
+  if (sub === 'cosecha')       return { key:'cosecha',       titulo:'Cosecha',       icono:'🌾', color:'#c9a84c' }
+  if (sub === 'fertilizacion') return { key:'fertilizacion', titulo:'Fertilización', icono:'⚗️', color:'#8b5cf6' }
+  if (sub === 'labranza')      return { key:'labranza',      titulo:'Labranza',      icono:'🚜', color:'#78716c' }
+  if (sub === 'fumigacion')    return _clasificarPulverizacion(g, 'fumigacion')
+  // 2) Rubros
+  if (rubro === 'semillas')      return { key:'siembra',       titulo:'Siembra',       icono:'🌱', color:'#16a34a' }
+  if (rubro === 'fertilizantes') return { key:'fertilizacion', titulo:'Fertilización', icono:'⚗️', color:'#8b5cf6' }
+  if (rubro === 'laboreo')       return { key:'labranza',      titulo:'Labranza',      icono:'🚜', color:'#78716c' }
+  if (rubro === 'riego')         return { key:'riego',         titulo:'Riego',         icono:'💦', color:'#0ea5e9' }
+  if (rubro === 'herbicidas' || rubro === 'fungicidas' || rubro === 'insecticidas') {
+    return _clasificarPulverizacion(g, rubro)
+  }
+  return null  // arrendamiento, empleados, flete, otros → no van a timeline
+}
+function _clasificarPulverizacion(g, rubroOSub) {
+  var mp = g.momento_pulverizacion || ''
+  var RUBROS_TXT = { herbicidas:'Herbicida', fungicidas:'Fungicida', insecticidas:'Insecticida', fumigacion:'Fumigación' }
+  var subLabel = RUBROS_TXT[rubroOSub] || 'Pulverización'
+  var titulo = 'Pulverización'
+  if (mp === 'barbecho')       titulo = 'Barbecho'
+  else if (mp === 'presiembra')    titulo = 'Presiembra'
+  else if (mp === 'postemergente') titulo = 'Postemergente'
+  return { key:'pulverizacion', titulo: titulo, subLabel: subLabel, icono:'💧', color:'#0891b2' }
+}
+window.renderCultivoTimeline = function() {
+  var cont = document.getElementById('cultivo-timeline')
+  if (!cont) return
+  if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🌿</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver su timeline.</div></div>'; return }
+  var campR = getCampanaRange(campanaActivaId)
+  var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+campR.label+')' : 'Campaña '+campanaActivaId
+  var eventos = (gastos||[]).filter(function(g){
+    if (g.campo_id !== campoDet) return false
+    if (!g.fecha) return false
+    var d = new Date(g.fecha)
+    return d >= campR.start && d <= campR.end
+  }).map(function(g){
+    var ev = _clasificarEventoGasto(g)
+    if (!ev) return null
+    return Object.assign(ev, { fecha: g.fecha, descripcion: g.descripcion || '', gastoId: g.id })
+  }).filter(Boolean).sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
+
+  var hdr = '<div style="font-size:11px;color:var(--verde);font-weight:600;margin-bottom:14px;padding:5px 8px;background:var(--verde-pale);border-radius:7px;display:inline-block">📅 '+campLabel+' · '+eventos.length+' evento'+(eventos.length!==1?'s':'')+'</div>'
+  if (!eventos.length) {
+    cont.innerHTML = hdr + '<div class="empty"><div class="empty-i">🌱</div><div class="empty-t">Sin eventos todavía</div><div class="empty-s">Cargá un gasto de siembra, pulverización, fertilización o cosecha desde el tab Gastos y va a aparecer acá.</div></div>'
+    return
+  }
+  function fmtFecha(f) {
+    try { var d = new Date(f); return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' }) } catch(e) { return f }
+  }
+  var html = hdr + '<div style="position:relative;padding-left:8px">'
+  eventos.forEach(function(ev, i) {
+    var esUltimo = i === eventos.length - 1
+    html += '<div style="position:relative;display:flex;gap:14px;padding-bottom:'+(esUltimo?'6px':'22px')+'">'
+    // Columna izquierda: ícono + línea
+    html += '<div style="position:relative;flex-shrink:0;width:44px">'
+    html += '<div style="width:44px;height:44px;border-radius:50%;background:'+ev.color+';display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;z-index:2;color:#fff">'+ev.icono+'</div>'
+    if (!esUltimo) {
+      html += '<div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);width:2px;height:calc(100% - 44px);background:linear-gradient(to bottom, '+ev.color+'44, var(--borde));z-index:1"></div>'
+    }
+    html += '</div>'
+    // Columna derecha: card
+    var subLine = ev.subLabel ? ' · '+ev.subLabel : ''
+    var desc = ev.descripcion ? '<div style="font-size:13px;color:var(--texto-mid);margin-top:4px;line-height:1.45">'+ev.descripcion+'</div>' : ''
+    html += '<div style="flex:1;background:#fff;border:1px solid var(--borde);border-left:4px solid '+ev.color+';border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
+    html += '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+    html += '<div style="font-size:15px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif">'+ev.titulo+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)">'+subLine+'</span></div>'
+    html += '<div style="font-size:12px;font-weight:700;color:'+ev.color+';font-family:DM Mono,monospace">'+fmtFecha(ev.fecha)+'</div>'
+    html += '</div>'
+    html += desc
+    html += '</div>'
+    html += '</div>'
+  })
+  html += '</div>'
+  cont.innerHTML = html
 }
 
 window._ingVentas = {}          // {cult: [{tn,precio,concepto,fecha}]}

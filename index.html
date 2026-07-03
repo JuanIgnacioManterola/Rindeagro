@@ -3445,8 +3445,8 @@ window.openModalPrecios = function() {
   document.getElementById('ep-trigo').value      = precios.trigo || ''
   document.getElementById('ep-girasol').value    = precios.girasol || ''
   document.getElementById('ep-sorgo').value      = precios.sorgo || ''
-  document.getElementById('ep-bna-compra').value = precios.dolar_divisa_compra || ''
-  document.getElementById('ep-bna').value        = precios.dolar_divisa_venta || precios.bna || ''
+  document.getElementById('ep-bna-compra').value = precios.dolar_divisa_compra || precios.dolar_billete_compra || ''
+  document.getElementById('ep-bna').value        = precios.dolar_divisa_venta || precios.bna || precios.dolar_billete_venta || ''
   document.getElementById('ov-precios').classList.add('open')
 }
 
@@ -3546,10 +3546,19 @@ window.actualizarPrecios = async function(forzar) {
   if(btn){btn.textContent='⏳';btn.disabled=true}
   var hoy = new Date().toISOString().substring(0,10)
 
+  // Cleanup de claves viejas — quedaron obsoletas cuando agregamos divisa_compra
+  try { localStorage.removeItem('ra_precios_v4') } catch(e) {}
+
   // Cache local si es del día y no es forzado
   if(!forzar){
     try{
-      var c=JSON.parse(localStorage.getItem('ra_precios_v4')||'null')
+      var c=JSON.parse(localStorage.getItem('ra_precios_v5')||'null')
+      // Si el cache no trae divisa_compra pero se guardo hoy (cache pre-fix),
+      // invalidarlo y forzar refresh contra Supabase.
+      if(c&&c.fecha===hoy && (typeof c.dolar_divisa_compra === 'undefined' || c.dolar_divisa_compra === null)){
+        c = null
+        try { localStorage.removeItem('ra_precios_v5') } catch(e2) {}
+      }
       if(c&&c.fecha===hoy){
         ;['soja','maiz','trigo','girasol','sorgo'].forEach(function(k){ if(c[k]) precios[k]=c[k] })
         if(c.dolar_billete_compra) precios.dolar_billete_compra=c.dolar_billete_compra
@@ -3622,7 +3631,7 @@ window.actualizarPrecios = async function(forzar) {
 
   // Cache
   try{
-    localStorage.setItem('ra_precios_v4', JSON.stringify({
+    localStorage.setItem('ra_precios_v5', JSON.stringify({
       fecha:hoy,
       soja:precios.soja, maiz:precios.maiz, trigo:precios.trigo, girasol:precios.girasol, sorgo:precios.sorgo,
       dolar_billete_compra:precios.dolar_billete_compra,

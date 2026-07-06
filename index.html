@@ -1060,7 +1060,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
           <div class="fg" style="margin-bottom:0">
             <label class="fl">Buscar</label>
-            <input class="fi" type="text" id="fletes-q" placeholder="Patente, transporte, camionero..." oninput="renderFletes()"/>
+            <input class="fi" type="text" id="fletes-q" placeholder="Patente, CTG, N° carta de porte, transporte, camionero..." oninput="renderFletes()"/>
           </div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl">Destino</label>
@@ -1079,7 +1079,6 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
           </div>
         </div>
       </div>
-      <div class="grid4" id="fletes-mets" style="margin-bottom:14px"></div>
       <div class="card">
         <div class="card-hdr">
           <span class="card-tit">Cargas registradas</span>
@@ -14744,10 +14743,9 @@ function _fltEstadoLabel(e) {
 
 window.renderFletes = function() {
   var cont = document.getElementById('fletes-lista')
-  var metsEl = document.getElementById('fletes-mets')
   var countEl = document.getElementById('fletes-count')
   if (!cont) return
-  if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🚛</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver sus fletes.</div></div>'; if(metsEl) metsEl.innerHTML=''; if(countEl) countEl.textContent=''; return }
+  if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🚛</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver sus fletes.</div></div>'; if(countEl) countEl.textContent=''; return }
   var campR = getCampanaRange(campanaActivaId)
   var q = ((document.getElementById('fletes-q')||{}).value || '').trim().toLowerCase()
   var fDestino = ((document.getElementById('fletes-f-destino')||{}).value || '').trim().toLowerCase()
@@ -14769,20 +14767,7 @@ window.renderFletes = function() {
     return true
   }).sort(function(a,b){ return new Date(b.fecha) - new Date(a.fecha) })
 
-  // Métricas
-  var totalTn = lista.reduce(function(a,f){ return a + (parseFloat(f.toneladas)||0) }, 0)
   var totalCargas = lista.length
-  var cultivosSet = {}; lista.forEach(function(f){ if(f.cultivo) cultivosSet[f.cultivo]=true })
-  var empresasSet = {}; lista.forEach(function(f){ if(f.empresa_destino) empresasSet[f.empresa_destino]=true })
-  var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+campR.label+')' : 'Campaña '+campanaActivaId
-  if (metsEl) {
-    metsEl.innerHTML = [
-      {l:'Cargas',   v: totalCargas, s: campLabel, c:'#c9a84c'},
-      {l:'Toneladas',v: _fltFmtTon(totalTn) + ' tn', s:'Total transportado', c:'#0891b2'},
-      {l:'Cultivos', v: Object.keys(cultivosSet).length, s: Object.keys(cultivosSet).join(', ') || '—', c:'#16a34a'},
-      {l:'Empresas', v: Object.keys(empresasSet).length, s: 'Compradoras únicas', c:'#8b5cf6'}
-    ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+';font-size:16px">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
-  }
   if (countEl) countEl.textContent = totalCargas ? (totalCargas + ' de ' + (fletes||[]).filter(function(f){return f.campo_id===campoDet}).length + ' totales del campo') : ''
 
   if (!lista.length) {

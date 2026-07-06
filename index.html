@@ -1418,7 +1418,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </select>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-        <div class="fg"><label class="fl">Valor de compra (USD) *</label><input class="fi" type="number" id="ac-valor" placeholder="Ej: 30000" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
+        <div class="fg"><label class="fl">Valor de compra (USD) *</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="ac-valor" placeholder="Ej: 30.000" oninput="_acCalcCuota()"/></div>
         <div class="fg"><label class="fl">Fecha de compra *</label><input class="fi" type="date" id="ac-fecha"/></div>
       </div>
       <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
@@ -1549,7 +1549,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </select>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-        <div class="fg"><label class="fl">Importe USD *</label><input class="fi" type="number" id="ge-importe" placeholder="Ej: 1500" min="0" step="0.01"/></div>
+        <div class="fg"><label class="fl">Importe USD *</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="ge-importe" placeholder="Ej: 1.500"/></div>
         <div class="fg">
           <label class="fl">Frecuencia *</label>
           <select class="fi" id="ge-freq" style="cursor:pointer" onchange="_geUpdateFrecuencia()">
@@ -2444,11 +2444,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg">
           <label class="fl">Consumo (kVA)</label>
-          <input class="fi" type="number" id="g-riego-kva" placeholder="Ej: 450" min="0" step="0.1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-riego-kva" placeholder="Ej: 450" min="0" step="0.1" oninput="calcConv()"/>
         </div>
         <div class="fg">
           <label class="fl">Costo por kVA (USD)</label>
-          <input class="fi" type="number" id="g-riego-costo-kva" placeholder="Ej: 0.08" min="0" step="0.001" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-riego-costo-kva" placeholder="Ej: 0.08" min="0" step="0.001" oninput="calcConv()"/>
         </div>
       </div>
     </div>
@@ -2467,17 +2467,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
         <div class="fg" id="g-flete-tc-row" style="display:none">
           <label class="fl">Tipo de cambio (ARS/USD)</label>
-          <input class="fi" type="number" id="g-flete-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-flete-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg">
           <label class="fl">Toneladas</label>
-          <input class="fi" type="number" id="g-flete-tons" placeholder="Ej: 30" min="0" step="0.1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-flete-tons" placeholder="Ej: 30" min="0" step="0.1" oninput="calcConv()"/>
         </div>
         <div class="fg">
           <label class="fl" id="g-flete-precio-label">Precio por tonelada (USD/tn)</label>
-          <input class="fi" type="number" id="g-flete-precio" placeholder="Ej: 25" min="0" step="0.01" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-flete-precio" placeholder="Ej: 25" min="0" step="0.01" oninput="calcConv()"/>
         </div>
       </div>
     </div>
@@ -2496,12 +2496,12 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
         <div class="fg" id="g-emp-tc-row" style="display:none">
           <label class="fl">Tipo de cambio (ARS/USD)</label>
-          <input class="fi" type="number" id="g-emp-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-emp-tc" placeholder="Ej: 1100" min="0" step="1" oninput="calcConv()"/>
         </div>
       </div>
       <div class="fg">
         <label class="fl" id="g-emp-monto-label">Monto total (USD)</label>
-        <input class="fi" type="number" id="g-emp-monto" placeholder="Ej: 500" min="0" step="0.01" oninput="calcConv()"/>
+        <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-emp-monto" placeholder="Ej: 500" min="0" step="0.01" oninput="calcConv()"/>
       </div>
     </div>
 
@@ -2512,11 +2512,11 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg">
           <label class="fl">Quintales de soja / ha (qq/ha)</label>
-          <input class="fi" type="number" id="g-arr-qq" placeholder="Ej: 9" min="0" step="0.1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-arr-qq" placeholder="Ej: 9" min="0" step="0.1" oninput="calcConv()"/>
         </div>
         <div class="fg">
           <label class="fl">Precio soja (USD/tn)</label>
-          <input class="fi" type="number" id="g-arr-precio-soja" placeholder="Ej: 300" min="0" step="1" oninput="calcConv()"/>
+          <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-arr-precio-soja" placeholder="Ej: 300" min="0" step="1" oninput="calcConv()"/>
         </div>
       </div>
     </div>
@@ -2548,7 +2548,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div class="fg" id="gasto-col-precio">
         <label class="fl" id="g-precio-unit-label">Precio (USD/L)</label>
-        <input class="fi" type="number" id="g-precio-unit" placeholder="Ej: 3.2" min="0" step="0.01" oninput="calcConv()"/>
+        <input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="g-precio-unit" placeholder="Ej: 3.2" min="0" step="0.01" oninput="calcConv()"/>
       </div>
     </div>
 
@@ -2632,7 +2632,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <!-- Carga y destino -->
       <div style="background:#fef3e0;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:12px;color:var(--dorado);font-weight:600">📦 Carga y destino</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
-        <div class="fg" style="margin-bottom:0"><label class="fl">Toneladas *</label><input class="fi" type="number" id="fl-toneladas" placeholder="Ej: 28.50" min="0" step="0.01"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Toneladas *</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-toneladas" placeholder="Ej: 28.50" min="0" step="0.01"/></div>
         <div class="fg" style="margin-bottom:0"><label class="fl">Estado</label>
           <select class="fi" id="fl-estado" style="cursor:pointer">
             <option value="cargado">Cargado</option>
@@ -2660,22 +2660,22 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <details style="margin-bottom:.9rem;background:var(--crema);border-radius:10px;padding:.75rem 1rem">
         <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">⚖️ Peso y humedad (opcional)</summary>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.75rem;margin-bottom:.5rem">
-          <div class="fg" style="margin-bottom:0"><label class="fl">Peso bruto (kg)</label><input class="fi" type="number" id="fl-peso-bruto" placeholder="Ej: 45000" min="0" step="1"/></div>
-          <div class="fg" style="margin-bottom:0"><label class="fl">Tara (kg)</label><input class="fi" type="number" id="fl-peso-tara" placeholder="Ej: 16000" min="0" step="1"/></div>
-          <div class="fg" style="margin-bottom:0"><label class="fl">Neto (kg)</label><input class="fi" type="number" id="fl-peso-neto" placeholder="Auto" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Peso bruto (kg)</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-peso-bruto" placeholder="Ej: 45000" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Tara (kg)</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-peso-tara" placeholder="Ej: 16000" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Neto (kg)</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-peso-neto" placeholder="Auto" min="0" step="1"/></div>
         </div>
-        <div class="fg" style="margin-bottom:0"><label class="fl">Humedad %</label><input class="fi" type="number" id="fl-humedad" placeholder="Ej: 13.5" min="0" max="100" step="0.1"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Humedad %</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-humedad" placeholder="Ej: 13.5" min="0" max="100" step="0.1"/></div>
       </details>
 
       <!-- Costo del flete -->
       <details style="margin-bottom:.9rem;background:var(--crema);border-radius:10px;padding:.75rem 1rem">
         <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">💰 Costo del flete (opcional)</summary>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.75rem">
-          <div class="fg" style="margin-bottom:0"><label class="fl">Precio</label><input class="fi" type="number" id="fl-precio" placeholder="Ej: 25" min="0" step="0.01"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Precio</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-precio" placeholder="Ej: 25" min="0" step="0.01"/></div>
           <div class="fg" style="margin-bottom:0"><label class="fl">Moneda</label>
             <select class="fi" id="fl-precio-moneda" style="cursor:pointer"><option value="usd">USD</option><option value="ars">ARS</option></select>
           </div>
-          <div class="fg" style="margin-bottom:0"><label class="fl">Km recorridos</label><input class="fi" type="number" id="fl-km" placeholder="Ej: 320" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Km recorridos</label><input class="fi" type="text" inputmode="decimal" data-num-fmt="1" id="fl-km" placeholder="Ej: 320" min="0" step="1"/></div>
         </div>
       </details>
 
@@ -3082,6 +3082,62 @@ const sb = createClient(SB_URL, SB_KEY, {
     storageKey: 'rindeagro-auth'
   }
 })
+
+// ── FORMATO DE NÚMEROS EN INPUTS ──
+// Inputs con `data-num-fmt="1"` muestran puntos de miles automáticamente al
+// tipear (ej: 30000 → 30.000). Debe ser `type="text"` con `inputmode="decimal"`.
+// Para leer el valor limpio, usar `_leerNumero(input)` que parsea el formato AR.
+window._leerNumero = function(el) {
+  if (!el) return 0
+  var s = String(el.value || '').trim()
+  if (!s) return 0
+  // Quita puntos de miles y convierte coma decimal a punto
+  s = s.replace(/\./g, '').replace(',', '.')
+  var n = parseFloat(s)
+  return isNaN(n) ? 0 : n
+}
+window._fmtNumeroAR = function(n, opts) {
+  opts = opts || {}
+  var num = parseFloat(n) || 0
+  return num.toLocaleString('es-AR', { maximumFractionDigits: opts.maxDec != null ? opts.maxDec : 2 })
+}
+// Recorre inputs marcados dentro del contenedor y formatea su value crudo.
+// Se llama al abrir modales que populan valores numéricos guardados.
+window._reformatearInputsNum = function(container) {
+  var root = container || document
+  var nodes = root.querySelectorAll ? root.querySelectorAll('input[data-num-fmt]') : []
+  nodes.forEach(function(el) {
+    var raw = String(el.value || '').trim()
+    if (!raw) return
+    var num = parseFloat(raw.replace(/\./g, '').replace(',', '.'))
+    if (isNaN(num)) return
+    el.value = num.toLocaleString('es-AR', { maximumFractionDigits: 6 })
+  })
+}
+// Listener global: al tipear en un input marcado, formatea con puntos de miles.
+document.addEventListener('input', function(e) {
+  var el = e.target
+  if (!el || !el.matches || !el.matches('input[data-num-fmt]')) return
+  var raw = String(el.value || '')
+  // Solo dígitos, coma decimal, guión inicial. Quitar todo lo demás.
+  var cleaned = raw.replace(/[^\d,\-]/g, '')
+  // Guión solo al inicio
+  var neg = cleaned.startsWith('-')
+  cleaned = cleaned.replace(/-/g, '')
+  // Separar en entero/decimal por PRIMERA coma
+  var parts = cleaned.split(',')
+  var entero = parts[0].replace(/^0+(\d)/, '$1') || (parts[0] === '' ? '' : '0')
+  var decimal = parts.length > 1 ? ',' + parts.slice(1).join('').slice(0, 6) : ''
+  // Formatear entero con puntos cada 3 dígitos
+  if (entero) entero = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  var final = (neg ? '-' : '') + entero + decimal
+  if (final === raw) return
+  // Preservar cursor
+  var cursor = el.selectionStart
+  var diff = final.length - raw.length
+  el.value = final
+  try { el.setSelectionRange(Math.max(0, cursor + diff), Math.max(0, cursor + diff)) } catch(err) {}
+}, true)
 
 // ── ESTADO GLOBAL ──
 var usuario = null
@@ -3674,6 +3730,7 @@ window.openModalPrecios = function() {
   document.getElementById('ep-bna-compra').value = precios.dolar_divisa_compra || precios.dolar_billete_compra || ''
   document.getElementById('ep-bna').value        = precios.dolar_divisa_venta || precios.bna || precios.dolar_billete_venta || ''
   document.getElementById('ov-precios').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
 }
 
 window.guardarPrecios = async function() {
@@ -3681,14 +3738,14 @@ window.guardarPrecios = async function() {
   btn.disabled = true; btn.textContent = 'Guardando...'
 
   var nuevos = {
-    soja:    parseFloat(document.getElementById('ep-soja').value) || precios.soja,
-    maiz:    parseFloat(document.getElementById('ep-maiz').value) || precios.maiz,
-    trigo:   parseFloat(document.getElementById('ep-trigo').value) || precios.trigo,
-    girasol: parseFloat(document.getElementById('ep-girasol').value) || precios.girasol,
-    sorgo:   parseFloat(document.getElementById('ep-sorgo').value) || precios.sorgo,
-    bna:     parseFloat(document.getElementById('ep-bna').value) || precios.bna,
+    soja:    _leerNumero(document.getElementById('ep-soja')) || precios.soja,
+    maiz:    _leerNumero(document.getElementById('ep-maiz')) || precios.maiz,
+    trigo:   _leerNumero(document.getElementById('ep-trigo')) || precios.trigo,
+    girasol: _leerNumero(document.getElementById('ep-girasol')) || precios.girasol,
+    sorgo:   _leerNumero(document.getElementById('ep-sorgo')) || precios.sorgo,
+    bna:     _leerNumero(document.getElementById('ep-bna')) || precios.bna,
   }
-  var nuevoBnaCompra = parseFloat(document.getElementById('ep-bna-compra').value) || 0
+  var nuevoBnaCompra = _leerNumero(document.getElementById('ep-bna-compra')) || 0
 
   // Actualizar en memoria — el bna editado se aplica a divisa_venta también.
   Object.assign(precios, nuevos)
@@ -9170,6 +9227,7 @@ window.openModalLluviaRapida = function() {
 
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
   document.getElementById('g-precio').value = precios.soja || 280
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
@@ -9212,29 +9270,29 @@ window.calcConv = function() {
   var usdTotal = 0
 
   if(rubro === 'riego') {
-    var kva = parseFloat(document.getElementById('g-riego-kva')?.value)||0
-    var costoKva = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
+    var kva = _leerNumero(document.getElementById('g-riego-kva'))||0
+    var costoKva = _leerNumero(document.getElementById('g-riego-costo-kva'))||0
     usdTotal = kva * costoKva
   } else if(rubro === 'flete') {
-    var _fl_tons = parseFloat(document.getElementById('g-flete-tons')?.value)||0
-    var _fl_pr = parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _fl_tons = _leerNumero(document.getElementById('g-flete-tons'))||0
+    var _fl_pr = _leerNumero(document.getElementById('g-flete-precio'))||0
     var _fl_mon = document.getElementById('g-flete-moneda')?.value||'usd'
-    var _fl_tc = parseFloat(document.getElementById('g-flete-tc')?.value)||1
+    var _fl_tc = _leerNumero(document.getElementById('g-flete-tc'))||1
     if(_fl_tons && _fl_pr) usdTotal = _fl_mon==='ars' ? (_fl_tons * _fl_pr) / _fl_tc : _fl_tons * _fl_pr
   } else if(rubro === 'empleados') {
-    var _emp_monto = parseFloat(document.getElementById('g-emp-monto')?.value)||0
+    var _emp_monto = _leerNumero(document.getElementById('g-emp-monto'))||0
     var _emp_mon = document.getElementById('g-emp-moneda')?.value||'usd'
-    var _emp_tc = parseFloat(document.getElementById('g-emp-tc')?.value)||1
+    var _emp_tc = _leerNumero(document.getElementById('g-emp-tc'))||1
     if(_emp_monto) usdTotal = _emp_mon==='ars' ? _emp_monto / _emp_tc : _emp_monto
   } else if(rubro === 'arrendamiento') {
-    var _arr_qq = parseFloat(document.getElementById('g-arr-qq')?.value)||0
-    var _arr_ps = parseFloat(document.getElementById('g-arr-precio-soja')?.value)||precios.soja||300
+    var _arr_qq = _leerNumero(document.getElementById('g-arr-qq'))||0
+    var _arr_ps = _leerNumero(document.getElementById('g-arr-precio-soja'))||precios.soja||300
     var _arr_campo = campos.find(function(c){return c.id===(campoDet||campoRent)})
     ha = (_arr_campo?.hectareas) || ha
     if(_arr_qq && _arr_ps) usdTotal = _arr_qq * (_arr_ps / 10) * ha
   } else {
     var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||0
-    var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||0
+    var precioUnit = _leerNumero(document.getElementById('g-precio-unit'))||0
     var unidad = document.getElementById('g-unidad')?.value||'litros'
     if(unidad === 'usd_ha') {
       usdTotal = precioUnit * ha
@@ -9246,7 +9304,7 @@ window.calcConv = function() {
     document.getElementById('cv-usd').textContent = 'USD ' + usdTotal.toLocaleString('es-AR', {maximumFractionDigits:2})
     document.getElementById('cv-usdha').textContent = 'USD ' + (usdTotal/ha).toFixed(2) + '/ha'
     if(rubro === 'arrendamiento') {
-      var _arr_qq2 = parseFloat(document.getElementById('g-arr-qq')?.value)||0
+      var _arr_qq2 = _leerNumero(document.getElementById('g-arr-qq'))||0
       document.getElementById('cv-qq').textContent = _arr_qq2.toFixed(1) + ' qq/ha'
     } else {
       document.getElementById('cv-qq').textContent = ((usdTotal/ha)/prCereal*10).toFixed(2) + ' qq/ha'
@@ -9258,12 +9316,12 @@ window.guardarGasto = async function() {
   var fecha = document.getElementById('g-fecha').value
   var prCereal = parseFloat(document.getElementById('g-precio')?.value)||precios.soja
   var cantidad = parseFloat(document.getElementById('g-cantidad')?.value)||null
-  var precioUnit = parseFloat(document.getElementById('g-precio-unit')?.value)||null
+  var precioUnit = _leerNumero(document.getElementById('g-precio-unit'))||null
   var unidad = document.getElementById('g-unidad')?.value||'litros'
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||0
   // Riego
-  var kvaRiego = parseFloat(document.getElementById('g-riego-kva')?.value)||0
-  var costoKvaRiego = parseFloat(document.getElementById('g-riego-costo-kva')?.value)||0
+  var kvaRiego = _leerNumero(document.getElementById('g-riego-kva'))||0
+  var costoKvaRiego = _leerNumero(document.getElementById('g-riego-costo-kva'))||0
 
   if(!rubro){showToast('⚠️ Seleccioná el rubro','err');return}
   // sub-tipo de laboreo es opcional
@@ -9272,22 +9330,22 @@ window.guardarGasto = async function() {
     if(!kvaRiego||kvaRiego<=0){showToast('⚠️ Ingresá el consumo en kVA','err');return}
     if(!costoKvaRiego||costoKvaRiego<=0){showToast('⚠️ Ingresá el costo por kVA','err');return}
   } else if(rubro==='flete') {
-    var _flTons=parseFloat(document.getElementById('g-flete-tons')?.value)||0
-    var _flPr=parseFloat(document.getElementById('g-flete-precio')?.value)||0
+    var _flTons=_leerNumero(document.getElementById('g-flete-tons'))||0
+    var _flPr=_leerNumero(document.getElementById('g-flete-precio'))||0
     var _flMon=document.getElementById('g-flete-moneda')?.value||'usd'
-    var _flTc=parseFloat(document.getElementById('g-flete-tc')?.value)||0
+    var _flTc=_leerNumero(document.getElementById('g-flete-tc'))||0
     if(!_flTons||_flTons<=0){showToast('⚠️ Ingresá la cantidad de toneladas','err');return}
     if(!_flPr||_flPr<=0){showToast('⚠️ Ingresá el precio de flete','err');return}
     if(_flMon==='ars'&&(!_flTc||_flTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
   } else if(rubro==='empleados') {
     var _empMon=document.getElementById('g-emp-moneda')?.value||'usd'
-    var _empMonto=parseFloat(document.getElementById('g-emp-monto')?.value)||0
-    var _empTc=parseFloat(document.getElementById('g-emp-tc')?.value)||0
+    var _empMonto=_leerNumero(document.getElementById('g-emp-monto'))||0
+    var _empTc=_leerNumero(document.getElementById('g-emp-tc'))||0
     if(!_empMonto||_empMonto<=0){showToast('⚠️ Ingresá el monto del gasto','err');return}
     if(_empMon==='ars'&&(!_empTc||_empTc<=0)){showToast('⚠️ Ingresá el tipo de cambio','err');return}
   } else if(rubro==='arrendamiento') {
-    var _arrQq=parseFloat(document.getElementById('g-arr-qq')?.value)||0
-    var _arrPs=parseFloat(document.getElementById('g-arr-precio-soja')?.value)||0
+    var _arrQq=_leerNumero(document.getElementById('g-arr-qq'))||0
+    var _arrPs=_leerNumero(document.getElementById('g-arr-precio-soja'))||0
     if(!_arrQq||_arrQq<=0){showToast('⚠️ Ingresá los quintales de soja/ha','err');return}
     if(!_arrPs||_arrPs<=0){showToast('⚠️ Ingresá el precio de la soja','err');return}
   } else {
@@ -9522,6 +9580,7 @@ window.editarGasto = function(id) {
   var g = gastos.find(function(x){ return x.id===id })
   if(!g) return
   document.getElementById('ov-gasto').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
   document.getElementById('gasto-modal-tit').textContent = 'Editar gasto'
   document.getElementById('btn-gasto').textContent = 'Guardar cambios'
   document.getElementById('g-edit-id').value = g.id
@@ -11826,10 +11885,11 @@ window.openModalActivo = function(id) {
   document.getElementById('ac-notas').value = a ? (a.notas||'') : ''
   _acCalcCuota()
   document.getElementById('ov-activo').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
 }
 window.closeModalActivo = function() { document.getElementById('ov-activo').classList.remove('open') }
 window._acCalcCuota = function() {
-  var val = parseFloat(document.getElementById('ac-valor').value)||0
+  var val = _leerNumero(document.getElementById('ac-valor'))||0
   var vida = parseInt(document.getElementById('ac-vida').value)||0
   var elAnual = document.getElementById('ac-cuota-anual')
   if (!val || !vida) { if (elAnual) elAnual.textContent = '—'; return }
@@ -11857,7 +11917,7 @@ window._acAjustarSugerenciaVida = function() {
 window.guardarActivo = async function() {
   var desc = document.getElementById('ac-desc').value.trim()
   var tipo = document.getElementById('ac-tipo').value
-  var val = parseFloat(document.getElementById('ac-valor').value)||0
+  var val = _leerNumero(document.getElementById('ac-valor'))||0
   var fecha = document.getElementById('ac-fecha').value
   var vida = parseInt(document.getElementById('ac-vida').value)||0
   var res  = 0  // Amortización simple: valor / años. Sin residual.
@@ -12044,6 +12104,7 @@ window.openModalGastoEstructura = function(id) {
   document.getElementById('ge-notas').value = g ? (g.notas||'') : ''
   _geUpdateFrecuencia()
   document.getElementById('ov-gasto-estr').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
 }
 window.closeModalGastoEstructura = function() { document.getElementById('ov-gasto-estr').classList.remove('open') }
 window._geUpdateFrecuencia = function() {
@@ -12062,7 +12123,7 @@ window._geUpdateFrecuencia = function() {
 window.guardarGastoEstructura = async function() {
   var desc = document.getElementById('ge-desc').value.trim()
   var tipo = document.getElementById('ge-tipo').value
-  var imp = parseFloat(document.getElementById('ge-importe').value)||0
+  var imp = _leerNumero(document.getElementById('ge-importe'))||0
   var freq = document.getElementById('ge-freq').value||'mensual'
   var fIni = document.getElementById('ge-fecha-ini').value
   var fFin = document.getElementById('ge-fecha-fin').value||null
@@ -14826,6 +14887,7 @@ window.openModalFlete = function() {
   var prev = document.getElementById('fl-archivo-preview'); if(prev){prev.style.display='none';prev.innerHTML=''}
   var lbl = document.getElementById('fl-archivo-label'); if(lbl) lbl.childNodes[0].textContent = 'Elegir archivo'
   document.getElementById('ov-flete').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
 }
 window.closeModalFlete = function() {
   document.getElementById('ov-flete').classList.remove('open')
@@ -14872,15 +14934,15 @@ window.guardarFlete = async function() {
   var fecha = document.getElementById('fl-fecha').value
   var cultivo = document.getElementById('fl-cultivo').value
   var patCamion = document.getElementById('fl-patente-camion').value.trim().toUpperCase()
-  var toneladas = parseFloat(document.getElementById('fl-toneladas').value)
+  var toneladas = _leerNumero(document.getElementById('fl-toneladas'))
   if (!fecha) { showToast('⚠️ Ingresá la fecha','err'); return }
   if (!cultivo) { showToast('⚠️ Elegí el cultivo','err'); return }
   if (!patCamion) { showToast('⚠️ Ingresá la patente del camión','err'); return }
   if (!toneladas || toneladas <= 0) { showToast('⚠️ Ingresá las toneladas','err'); return }
 
-  var pesoBruto = parseFloat(document.getElementById('fl-peso-bruto').value) || null
-  var pesoTara  = parseFloat(document.getElementById('fl-peso-tara').value) || null
-  var pesoNeto  = parseFloat(document.getElementById('fl-peso-neto').value) || null
+  var pesoBruto = _leerNumero(document.getElementById('fl-peso-bruto')) || null
+  var pesoTara  = _leerNumero(document.getElementById('fl-peso-tara')) || null
+  var pesoNeto  = _leerNumero(document.getElementById('fl-peso-neto')) || null
   if (pesoBruto && pesoTara && !pesoNeto) pesoNeto = pesoBruto - pesoTara
 
   var payload = {
@@ -14900,10 +14962,10 @@ window.guardarFlete = async function() {
     peso_bruto_kg: pesoBruto,
     peso_tara_kg: pesoTara,
     peso_neto_kg: pesoNeto,
-    humedad_porcentaje: parseFloat(document.getElementById('fl-humedad').value) || null,
-    precio_flete_usd: parseFloat(document.getElementById('fl-precio').value) || null,
+    humedad_porcentaje: _leerNumero(document.getElementById('fl-humedad')) || null,
+    precio_flete_usd: _leerNumero(document.getElementById('fl-precio')) || null,
     precio_flete_moneda: document.getElementById('fl-precio-moneda').value || 'usd',
-    km_recorridos: parseFloat(document.getElementById('fl-km').value) || null,
+    km_recorridos: _leerNumero(document.getElementById('fl-km')) || null,
     estado: document.getElementById('fl-estado').value || 'cargado',
     archivo_url: document.getElementById('fl-archivo-url').value || null,
     archivo_path: document.getElementById('fl-archivo-path').value || null,
@@ -14984,6 +15046,7 @@ window.editarFlete = function(id) {
       + '</div>'
   } else if (prev) { prev.style.display='none'; prev.innerHTML='' }
   document.getElementById('ov-flete').classList.add('open')
+  try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
 }
 
 window.eliminarFlete = function(id) {
@@ -17388,23 +17451,23 @@ init()
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🌱</span><span class="ep-label">Soja</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-soja" placeholder="341" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-soja" placeholder="341"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🌽</span><span class="ep-label">Maíz</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-maiz" placeholder="181" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-maiz" placeholder="181"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🌾</span><span class="ep-label">Trigo</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-trigo" placeholder="207" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-trigo" placeholder="207"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🌻</span><span class="ep-label">Girasol</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-girasol" placeholder="390" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-girasol" placeholder="390"/><span class="ep-suf">USD/t</span></div>
             </label>
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🌿</span><span class="ep-label">Sorgo</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-sorgo" placeholder="189" min="0" step="1"/><span class="ep-suf">USD/t</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-sorgo" placeholder="189"/><span class="ep-suf">USD/t</span></div>
             </label>
           </div>
         </div>
@@ -17421,11 +17484,11 @@ init()
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🏦</span><span class="ep-label">Divisa compra</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-bna-compra" placeholder="1480" min="0" step="0.5"/><span class="ep-suf">$/USD</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-bna-compra" placeholder="1480"/><span class="ep-suf">$/USD</span></div>
             </label>
             <label class="ep-input-wrap">
               <div class="ep-header"><span class="ep-icono">🏦</span><span class="ep-label">Divisa venta</span></div>
-              <div class="ep-inp-row"><input class="ep-inp" type="number" id="ep-bna" placeholder="1489" min="0" step="0.5"/><span class="ep-suf">$/USD</span></div>
+              <div class="ep-inp-row"><input class="ep-inp" type="text" inputmode="decimal" data-num-fmt="1" id="ep-bna" placeholder="1489"/><span class="ep-suf">$/USD</span></div>
             </label>
           </div>
           <div style="background:var(--crema);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--texto-mid);line-height:1.5">

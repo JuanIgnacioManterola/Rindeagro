@@ -861,6 +861,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <button class="campo-tab" id="tab-cultivo-campo" onclick="switchCampoTab('cultivo',this)">🌿 Cultivo</button>
         <button class="campo-tab" id="tab-lluvias-campo" onclick="switchCampoTab('lluvias',this)">🌧️ Lluvias</button>
         <button class="campo-tab" id="tab-suelo-campo" onclick="switchCampoTab('suelo',this)">🔬 Suelo</button>
+        <button class="campo-tab" id="tab-fletes-campo" onclick="switchCampoTab('fletes',this)">🚛 Fletes</button>
       </div>
     </div>
 
@@ -1044,6 +1045,47 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="card-hdr"><span class="card-tit">Evolución por campaña</span></div>
         <div id="det-suelo-tabla" style="overflow-x:auto"></div>
         <div style="position:relative;height:240px;margin-top:14px"><canvas id="chart-det-suelo"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TAB: FLETES -->
+    <div class="campo-seccion" id="sec-fletes">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap">
+        <button onclick="openModalFleteFoto()" style="background:#fff;color:var(--dorado);border:1.5px solid var(--dorado);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Desde carta de porte</button>
+        <button onclick="openModalFlete()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">+ Registrar flete</button>
+        <button onclick="exportarPDFFletes()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+      </div>
+      <!-- Filtros de búsqueda -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Buscar</label>
+            <input class="fi" type="text" id="fletes-q" placeholder="Patente, transporte, camionero..." oninput="renderFletes()"/>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Destino</label>
+            <input class="fi" type="text" id="fletes-f-destino" placeholder="Rosario, San Lorenzo..." oninput="renderFletes()"/>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Empresa compradora</label>
+            <input class="fi" type="text" id="fletes-f-empresa" placeholder="Cargill, Bunge, ACA..." oninput="renderFletes()"/>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Cultivo</label>
+            <select class="fi" id="fletes-f-cultivo" onchange="renderFletes()">
+              <option value="">Todos</option>
+              <option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Cebada</option><option>Maní</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="grid4" id="fletes-mets" style="margin-bottom:14px"></div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-tit">Cargas registradas</span>
+          <span id="fletes-count" style="font-size:11px;color:var(--texto-suave);font-weight:500"></span>
+        </div>
+        <div id="fletes-lista"></div>
       </div>
     </div>
   </div>
@@ -2551,6 +2593,136 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL LLUVIA -->
+<!-- MODAL FLETE (registrar carga de camión) -->
+<div class="overlay" id="ov-flete">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalFlete()">✕</button>
+      <div class="m-tit" id="flete-modal-tit">Registrar flete</div>
+      <div class="m-sub" style="margin-bottom:0">Datos del camión que sale del campo con la carga de cereal</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="fl-edit-id"/>
+      <input type="hidden" id="fl-archivo-url"/>
+      <input type="hidden" id="fl-archivo-path"/>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg" style="margin-bottom:0"><label class="fl">Fecha *</label><input class="fi" type="date" id="fl-fecha"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Cultivo *</label>
+          <select class="fi" id="fl-cultivo" style="cursor:pointer">
+            <option value="">Seleccioná</option>
+            <option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option><option>Cebada</option><option>Maní</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Camión y transporte -->
+      <div style="background:var(--verde-pale);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:12px;color:var(--verde);font-weight:600">🚛 Datos del camión</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg" style="margin-bottom:0"><label class="fl">Patente camión *</label><input class="fi" type="text" id="fl-patente-camion" placeholder="AB123CD" maxlength="20" oninput="this.value=this.value.toUpperCase()"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Patente acoplado</label><input class="fi" type="text" id="fl-patente-acoplado" placeholder="AB123CD" maxlength="20" oninput="this.value=this.value.toUpperCase()"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg" style="margin-bottom:0"><label class="fl">Camionero</label><input class="fi" type="text" id="fl-camionero" placeholder="Nombre y apellido"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Transporte</label><input class="fi" type="text" id="fl-transporte" placeholder="Empresa transportista"/></div>
+      </div>
+
+      <!-- Carga y destino -->
+      <div style="background:#fef3e0;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:12px;color:var(--dorado);font-weight:600">📦 Carga y destino</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg" style="margin-bottom:0"><label class="fl">Toneladas *</label><input class="fi" type="number" id="fl-toneladas" placeholder="Ej: 28.50" min="0" step="0.01"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Estado</label>
+          <select class="fi" id="fl-estado" style="cursor:pointer">
+            <option value="cargado">Cargado</option>
+            <option value="entregado">Entregado</option>
+            <option value="pagado">Pagado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
+        <div class="fg" style="margin-bottom:0"><label class="fl">Destino</label><input class="fi" type="text" id="fl-destino" placeholder="Ej: Rosario, San Lorenzo, Puerto"/></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Empresa compradora</label><input class="fi" type="text" id="fl-empresa-destino" placeholder="Ej: Cargill, Bunge, ACA"/></div>
+      </div>
+
+      <!-- Trazabilidad -->
+      <details style="margin-bottom:.9rem;background:var(--crema);border-radius:10px;padding:.75rem 1rem">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">🔢 Trazabilidad AFIP (opcional)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem">
+          <div class="fg" style="margin-bottom:0"><label class="fl">CTG</label><input class="fi" type="text" id="fl-ctg" placeholder="Código de Trazabilidad"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Nº Carta de Porte</label><input class="fi" type="text" id="fl-cp-nro" placeholder="Ej: 20250715..."/></div>
+        </div>
+      </details>
+
+      <!-- Peso y humedad -->
+      <details style="margin-bottom:.9rem;background:var(--crema);border-radius:10px;padding:.75rem 1rem">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">⚖️ Peso y humedad (opcional)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.75rem;margin-bottom:.5rem">
+          <div class="fg" style="margin-bottom:0"><label class="fl">Peso bruto (kg)</label><input class="fi" type="number" id="fl-peso-bruto" placeholder="Ej: 45000" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Tara (kg)</label><input class="fi" type="number" id="fl-peso-tara" placeholder="Ej: 16000" min="0" step="1"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Neto (kg)</label><input class="fi" type="number" id="fl-peso-neto" placeholder="Auto" min="0" step="1"/></div>
+        </div>
+        <div class="fg" style="margin-bottom:0"><label class="fl">Humedad %</label><input class="fi" type="number" id="fl-humedad" placeholder="Ej: 13.5" min="0" max="100" step="0.1"/></div>
+      </details>
+
+      <!-- Costo del flete -->
+      <details style="margin-bottom:.9rem;background:var(--crema);border-radius:10px;padding:.75rem 1rem">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">💰 Costo del flete (opcional)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.75rem">
+          <div class="fg" style="margin-bottom:0"><label class="fl">Precio</label><input class="fi" type="number" id="fl-precio" placeholder="Ej: 25" min="0" step="0.01"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Moneda</label>
+            <select class="fi" id="fl-precio-moneda" style="cursor:pointer"><option value="usd">USD</option><option value="ars">ARS</option></select>
+          </div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Km recorridos</label><input class="fi" type="number" id="fl-km" placeholder="Ej: 320" min="0" step="1"/></div>
+        </div>
+      </details>
+
+      <!-- Adjunto de carta de porte -->
+      <div class="fg" style="margin-bottom:.9rem">
+        <label class="fl">📎 Adjuntar carta de porte (foto o PDF)</label>
+        <div id="fl-archivo-preview" style="display:none;margin-top:6px"></div>
+        <label id="fl-archivo-label" style="display:inline-block;margin-top:6px;padding:8px 14px;background:var(--crema);color:var(--verde);border:1.5px dashed var(--verde);border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif">Elegir archivo
+          <input type="file" accept="image/*,application/pdf" style="display:none" onchange="_fleteSubirArchivo(this)"/>
+        </label>
+      </div>
+
+      <div class="fg" style="margin-bottom:0"><label class="fl">Notas</label><input class="fi" type="text" id="fl-notas" placeholder="Observaciones libres..."/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-flete" onclick="guardarFlete()">Guardar flete</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FLETE DESDE FOTO/PDF (OCR carta de porte) -->
+<div class="overlay" id="ov-flete-foto">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalFleteFoto()">✕</button>
+      <div class="m-tit">📄 Cargar desde carta de porte</div>
+      <div class="m-sub" style="margin-bottom:0">Subí una foto o PDF de la carta de porte. Leemos los datos y prellenamos el formulario.</div>
+    </div>
+    <div class="modal-body">
+      <div id="fpf-step-1">
+        <div class="fg">
+          <label style="display:block;padding:20px;background:var(--crema);border:2px dashed var(--verde);border-radius:12px;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif">
+            <div style="font-size:32px;margin-bottom:6px">📤</div>
+            <div style="font-size:14px;font-weight:700;color:var(--verde);margin-bottom:2px">Elegir foto o PDF</div>
+            <div style="font-size:11px;color:var(--texto-suave)">JPG, PNG o PDF · hasta 10 MB</div>
+            <input type="file" accept="image/*,application/pdf" style="display:none" onchange="_fpfProcesar(this)"/>
+          </label>
+        </div>
+      </div>
+      <div id="fpf-step-2" style="display:none;text-align:center;padding:20px">
+        <div class="spinner" style="margin:0 auto 12px;border:3px solid var(--borde);border-top-color:var(--verde);border-radius:50%;width:36px;height:36px;animation:spin 1s linear infinite"></div>
+        <div style="font-size:14px;color:var(--texto-mid);font-weight:600">Leyendo la carta de porte...</div>
+        <div style="font-size:11px;color:var(--texto-suave);margin-top:6px">Puede tardar unos segundos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LLUVIA -->
 <div class="overlay" id="ov-lluvia">
   <div class="modal">
     <div class="modal-header">
@@ -2914,6 +3086,7 @@ var usuario = null
 var campos = []
 var gastos = []
 var lluvias = []
+var fletes = []
 var analisisS = []
 var insumos = []
 var insumosFiltroTipo = ''
@@ -3294,7 +3467,7 @@ async function cargarTodo() {
                         function(e){ return {status:'rejected', reason:e} })
   }
 
-  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa, resAA, resGE] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa, resAA, resGE, resFl] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     _selectConFallback('gastos',           {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
@@ -3306,7 +3479,8 @@ async function cargarTodo() {
     _selectConFallback('compromisos_pago', {col:'owner_id',   val:uid, order:{col:'fecha_cobro', asc:true}}),
     _selectConFallback('campanas',         {col:'usuario_id', val:uid, order:{col:'anio', asc:false}}),
     _selectConFallback('activos_amortizables', {col:'owner_id', val:uid, order:{col:'created_at', asc:false}}),
-    _selectConFallback('gastos_estructura',    {col:'owner_id', val:uid, order:{col:'created_at', asc:false}})
+    _selectConFallback('gastos_estructura',    {col:'owner_id', val:uid, order:{col:'created_at', asc:false}}),
+    _selectConFallback('fletes',           {col:'owner_id',   val:uid, order:{col:'fecha', asc:false}})
   ])
 
   // Perfil → nombre/saludo. Preferencia: perfil.nombre → user_metadata → nada.
@@ -3370,6 +3544,9 @@ async function cargarTodo() {
   if (freshActivosA !== null) activosAmort = freshActivosA
   var freshGE = (resGE && resGE.status==='fulfilled' && resGE.value && Array.isArray(resGE.value.data)) ? resGE.value.data : null
   if (freshGE !== null) gastosEstructura = freshGE
+  // Fletes
+  var freshFletes = (resFl && resFl.status==='fulfilled' && resFl.value && Array.isArray(resFl.value.data)) ? resFl.value.data : null
+  if (freshFletes !== null) fletes = freshFletes
   var modEst = document.getElementById('mod-estructura')
   if (modEst && modEst.classList.contains('active')) { try { renderEstructura() } catch(e) {} }
   // Cachear equipo para selector de asignados en tareas
@@ -7958,6 +8135,7 @@ function renderTodosLosTabsCampo() {
   if (id === 'sec-suelo')        renderDetSuelo()
   if (id === 'sec-lluvias')      renderDetLluvias()
   if (id === 'sec-cultivo')      renderCultivoTimeline()
+  if (id === 'sec-fletes')       renderFletes()
 }
 
 // ══════════════════════════════
@@ -13154,7 +13332,8 @@ window.abrirCampo = function(id) {
     {id:'tab-gastos-campo',       sec:'sec-gastos',       mod:'gastos',   render: function(){gastosCultivoActivo=null;renderDetGastos()}},
     {id:'tab-cultivo-campo',      sec:'sec-cultivo',      mod:'gastos',   render: function(){renderCultivoTimeline()}},
     {id:'tab-lluvias-campo',      sec:'sec-lluvias',      mod:'lluvias',  render: function(){renderDetLluvias()}},
-    {id:'tab-suelo-campo',        sec:'sec-suelo',        mod:'suelo',    render: function(){renderDetSuelo()}}
+    {id:'tab-suelo-campo',        sec:'sec-suelo',        mod:'suelo',    render: function(){renderDetSuelo()}},
+    {id:'tab-fletes-campo',       sec:'sec-fletes',       mod:'gastos',   render: function(){renderFletes()}}
   ]
   var _primerTab = null
   for (var _ti = 0; _ti < _tabOpts.length; _ti++) {
@@ -13430,12 +13609,14 @@ function _aplicarPermisosUI() {
   var tabSens     = document.getElementById('tab-sens-campo')
   var tabLluvias  = document.getElementById('tab-lluvias-campo')
   var tabSuelo    = document.getElementById('tab-suelo-campo')
+  var tabFletes   = document.getElementById('tab-fletes-campo')
   if (tabIngresos) tabIngresos.style.display = (esCol && !puedeVer('ingresos'))           ? 'none' : ''
   if (tabGastos)   tabGastos.style.display   = (esCol && !puedeVer('gastos'))             ? 'none' : ''
   if (tabRent)     tabRent.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
   if (tabSens)     tabSens.style.display     = (esCol && !puedeVer('rentabilidad_campo'))  ? 'none' : ''
   if (tabLluvias)  tabLluvias.style.display  = (esCol && !puedeVer('lluvias'))             ? 'none' : ''
   if (tabSuelo)    tabSuelo.style.display    = (esCol && !puedeVer('suelo'))               ? 'none' : ''
+  if (tabFletes)   tabFletes.style.display   = (esCol && !puedeVer('gastos'))              ? 'none' : ''
 
   // ── Botones de acción ──
   var btnAddCampoNav  = document.getElementById('btn-add-campo-nav')
@@ -14348,6 +14529,7 @@ window.switchCampoTab = function(tab, btn) {
   if(tab==='cultivo') renderCultivoTimeline()
   if(tab==='lluvias') renderDetLluvias()
   if(tab==='suelo') renderDetSuelo()
+  if(tab==='fletes') renderFletes()
 }
 
 // ── TIMELINE DEL CULTIVO ─────────────────────────────────────────────────
@@ -14544,6 +14726,435 @@ window.renderCultivoTimeline = function() {
   })
   html += '</div>'
   cont.innerHTML = html
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLETES — CRUD, filtros, upload de carta de porte, OCR (skeleton).
+// ═══════════════════════════════════════════════════════════════════════════
+function _fltFmtFecha(f) {
+  try { var d = new Date(f); return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' }) } catch(e) { return f }
+}
+function _fltFmtTon(t) { return (parseFloat(t)||0).toLocaleString('es-AR', { minimumFractionDigits:2, maximumFractionDigits:2 }) }
+function _fltEstadoColor(e) {
+  return e==='pagado' ? '#16a34a' : e==='entregado' ? '#0891b2' : e==='cancelado' ? '#dc2626' : '#c9a84c'
+}
+function _fltEstadoLabel(e) {
+  return e==='pagado' ? 'Pagado' : e==='entregado' ? 'Entregado' : e==='cancelado' ? 'Cancelado' : 'Cargado'
+}
+
+window.renderFletes = function() {
+  var cont = document.getElementById('fletes-lista')
+  var metsEl = document.getElementById('fletes-mets')
+  var countEl = document.getElementById('fletes-count')
+  if (!cont) return
+  if (!campoDet) { cont.innerHTML = '<div class="empty"><div class="empty-i">🚛</div><div class="empty-t">Sin campo</div><div class="empty-s">Abrí un campo para ver sus fletes.</div></div>'; if(metsEl) metsEl.innerHTML=''; if(countEl) countEl.textContent=''; return }
+  var campR = getCampanaRange(campanaActivaId)
+  var q = ((document.getElementById('fletes-q')||{}).value || '').trim().toLowerCase()
+  var fDestino = ((document.getElementById('fletes-f-destino')||{}).value || '').trim().toLowerCase()
+  var fEmpresa = ((document.getElementById('fletes-f-empresa')||{}).value || '').trim().toLowerCase()
+  var fCultivo = ((document.getElementById('fletes-f-cultivo')||{}).value || '')
+
+  var lista = (fletes||[]).filter(function(f){
+    if (f.campo_id !== campoDet) return false
+    if (!f.fecha) return false
+    var d = new Date(f.fecha)
+    if (d < campR.start || d > campR.end) return false
+    if (fCultivo && (f.cultivo||'') !== fCultivo) return false
+    if (fDestino && !(f.destino||'').toLowerCase().includes(fDestino)) return false
+    if (fEmpresa && !(f.empresa_destino||'').toLowerCase().includes(fEmpresa)) return false
+    if (q) {
+      var hay = (f.patente_camion||'')+' '+(f.patente_acoplado||'')+' '+(f.nombre_transporte||'')+' '+(f.nombre_camionero||'')+' '+(f.destino||'')+' '+(f.empresa_destino||'')+' '+(f.ctg||'')+' '+(f.carta_porte_nro||'')
+      if (!hay.toLowerCase().includes(q)) return false
+    }
+    return true
+  }).sort(function(a,b){ return new Date(b.fecha) - new Date(a.fecha) })
+
+  // Métricas
+  var totalTn = lista.reduce(function(a,f){ return a + (parseFloat(f.toneladas)||0) }, 0)
+  var totalCargas = lista.length
+  var cultivosSet = {}; lista.forEach(function(f){ if(f.cultivo) cultivosSet[f.cultivo]=true })
+  var empresasSet = {}; lista.forEach(function(f){ if(f.empresa_destino) empresasSet[f.empresa_destino]=true })
+  var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+campR.label+')' : 'Campaña '+campanaActivaId
+  if (metsEl) {
+    metsEl.innerHTML = [
+      {l:'Cargas',   v: totalCargas, s: campLabel, c:'#c9a84c'},
+      {l:'Toneladas',v: _fltFmtTon(totalTn) + ' tn', s:'Total transportado', c:'#0891b2'},
+      {l:'Cultivos', v: Object.keys(cultivosSet).length, s: Object.keys(cultivosSet).join(', ') || '—', c:'#16a34a'},
+      {l:'Empresas', v: Object.keys(empresasSet).length, s: 'Compradoras únicas', c:'#8b5cf6'}
+    ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+';font-size:16px">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+  }
+  if (countEl) countEl.textContent = totalCargas ? (totalCargas + ' de ' + (fletes||[]).filter(function(f){return f.campo_id===campoDet}).length + ' totales del campo') : ''
+
+  if (!lista.length) {
+    cont.innerHTML = '<div class="empty"><div class="empty-i">🚛</div><div class="empty-t">Sin fletes en esta campaña</div><div class="empty-s">Cargá un flete manualmente con "+ Registrar flete" o subí una carta de porte.</div></div>'
+    return
+  }
+  var html = ''
+  lista.forEach(function(f) {
+    var colE = _fltEstadoColor(f.estado||'cargado')
+    var lblE = _fltEstadoLabel(f.estado||'cargado')
+    var camion = (f.patente_camion||'—') + (f.patente_acoplado ? ' / '+f.patente_acoplado : '')
+    var transp = f.nombre_transporte || f.nombre_camionero || '—'
+    var destino = [f.destino, f.empresa_destino].filter(Boolean).join(' · ') || '—'
+    var adj = f.archivo_url
+      ? '<button onclick="window._abrirArchivo(\''+f.archivo_url+'\',\'carta-porte-'+(f.carta_porte_nro||f.id)+'\')" title="Ver carta de porte" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:16px;padding:3px 5px" aria-label="Ver carta de porte">📎</button>'
+      : ''
+    html += '<div style="display:flex;gap:10px;align-items:center;padding:12px 4px;border-bottom:.5px solid var(--borde);flex-wrap:wrap">'
+      + '<div style="font-size:11px;color:var(--texto-suave);min-width:70px;font-family:DM Mono,monospace">'+_fltFmtFecha(f.fecha)+'</div>'
+      + '<span style="font-size:11px;font-weight:700;color:'+colE+';background:'+colE+'22;padding:3px 8px;border-radius:5px;letter-spacing:.03em">'+lblE+'</span>'
+      + '<div style="flex:1;min-width:200px">'
+      +   '<div style="font-size:14px;font-weight:700;color:var(--texto);font-family:DM Sans,sans-serif">🚛 '+camion+'<span style="font-size:12px;font-weight:500;color:var(--texto-suave)"> · '+(f.cultivo||'—')+'</span></div>'
+      +   '<div style="font-size:12px;color:var(--texto-mid);margin-top:2px">'+transp+' → '+destino+'</div>'
+      + '</div>'
+      + '<div style="text-align:right;min-width:100px">'
+      +   '<div style="font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:var(--texto)">'+_fltFmtTon(f.toneladas)+' tn</div>'
+      +   (f.ctg ? '<div style="font-size:10px;color:var(--texto-suave)">CTG '+f.ctg+'</div>' : '')
+      + '</div>'
+      + adj
+      + '<button onclick="editarFlete(\''+f.id+'\')" style="background:none;border:.5px solid #1a5fa8;border-radius:6px;cursor:pointer;color:#1a5fa8;font-size:12px;padding:4px 9px">✏️</button>'
+      + '<button onclick="eliminarFlete(\''+f.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:15px;padding:3px 5px">🗑</button>'
+      + '</div>'
+  })
+  cont.innerHTML = html
+}
+
+window.openModalFlete = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  document.getElementById('flete-modal-tit').textContent = 'Registrar flete'
+  document.getElementById('btn-flete').textContent = 'Guardar flete'
+  // Reset
+  ;['fl-edit-id','fl-archivo-url','fl-archivo-path','fl-fecha','fl-cultivo','fl-patente-camion','fl-patente-acoplado','fl-camionero','fl-transporte','fl-toneladas','fl-destino','fl-empresa-destino','fl-ctg','fl-cp-nro','fl-peso-bruto','fl-peso-tara','fl-peso-neto','fl-humedad','fl-precio','fl-km','fl-notas'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''})
+  var estEl = document.getElementById('fl-estado'); if(estEl) estEl.value = 'cargado'
+  var monEl = document.getElementById('fl-precio-moneda'); if(monEl) monEl.value = 'usd'
+  // Prefill: fecha hoy, cultivo del campo si es único
+  document.getElementById('fl-fecha').value = new Date().toISOString().slice(0,10)
+  var c = campos.find(function(x){return x.id===campoDet})
+  if (c) {
+    var cults = (c.cultivo||'').split(',').map(function(s){return s.trim()}).filter(Boolean)
+    if (cults.length === 1) document.getElementById('fl-cultivo').value = cults[0]
+  }
+  // Reset preview archivo
+  var prev = document.getElementById('fl-archivo-preview'); if(prev){prev.style.display='none';prev.innerHTML=''}
+  var lbl = document.getElementById('fl-archivo-label'); if(lbl) lbl.childNodes[0].textContent = 'Elegir archivo'
+  document.getElementById('ov-flete').classList.add('open')
+}
+window.closeModalFlete = function() {
+  document.getElementById('ov-flete').classList.remove('open')
+}
+
+window._fleteSubirArchivo = async function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB', 'err'); input.value = ''; return }
+  var lbl = document.getElementById('fl-archivo-label')
+  if (lbl) lbl.childNodes[0].textContent = 'Subiendo...'
+  try {
+    var up = await _subirArchivoStorageBucket(f, 'fletes-cartas-porte')
+    document.getElementById('fl-archivo-url').value = up.url
+    document.getElementById('fl-archivo-path').value = up.path
+    var prev = document.getElementById('fl-archivo-preview')
+    if (prev) {
+      var isImg = /\.(jpe?g|png|webp|gif)(\?|$)/i.test(up.url)
+      prev.style.display = ''
+      prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--borde);border-radius:7px">'
+        + (isImg
+            ? '<img src="'+up.url+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;cursor:zoom-in" onclick="window._abrirArchivo(\''+up.url+'\',\'carta-porte\',\'image/jpeg\')">'
+            : '<span style="font-size:24px;cursor:pointer" title="Descargar" onclick="window._abrirArchivo(\''+up.url+'\',\'carta-porte.pdf\',\'application/pdf\')">📄</span>')
+        + '<div style="flex:1;min-width:0;font-size:12px"><a href="javascript:void(0)" onclick="window._abrirArchivo(\''+up.url+'\',\'carta-porte\')" style="color:var(--verde);font-weight:500">⬇ Descargar</a></div>'
+        + '<button type="button" onclick="_fleteQuitarArchivo()" style="background:transparent;color:var(--rojo);border:1px solid var(--borde);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">Quitar</button>'
+        + '</div>'
+    }
+    if (lbl) lbl.childNodes[0].textContent = 'Cambiar archivo'
+    showToast('✓ Carta de porte adjuntada','ok')
+  } catch(e) {
+    console.error(e); showToast('⚠️ Error: '+(e.message||'no se pudo subir'),'err')
+    if (lbl) lbl.childNodes[0].textContent = 'Elegir archivo'
+  } finally { input.value = '' }
+}
+window._fleteQuitarArchivo = function() {
+  document.getElementById('fl-archivo-url').value = ''
+  document.getElementById('fl-archivo-path').value = ''
+  var prev = document.getElementById('fl-archivo-preview'); if(prev){prev.style.display='none';prev.innerHTML=''}
+  var lbl = document.getElementById('fl-archivo-label'); if(lbl) lbl.childNodes[0].textContent = 'Elegir archivo'
+}
+
+window.guardarFlete = async function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var fecha = document.getElementById('fl-fecha').value
+  var cultivo = document.getElementById('fl-cultivo').value
+  var patCamion = document.getElementById('fl-patente-camion').value.trim().toUpperCase()
+  var toneladas = parseFloat(document.getElementById('fl-toneladas').value)
+  if (!fecha) { showToast('⚠️ Ingresá la fecha','err'); return }
+  if (!cultivo) { showToast('⚠️ Elegí el cultivo','err'); return }
+  if (!patCamion) { showToast('⚠️ Ingresá la patente del camión','err'); return }
+  if (!toneladas || toneladas <= 0) { showToast('⚠️ Ingresá las toneladas','err'); return }
+
+  var pesoBruto = parseFloat(document.getElementById('fl-peso-bruto').value) || null
+  var pesoTara  = parseFloat(document.getElementById('fl-peso-tara').value) || null
+  var pesoNeto  = parseFloat(document.getElementById('fl-peso-neto').value) || null
+  if (pesoBruto && pesoTara && !pesoNeto) pesoNeto = pesoBruto - pesoTara
+
+  var payload = {
+    campo_id: campoDet,
+    owner_id: usuario.id,
+    fecha: fecha,
+    cultivo: cultivo,
+    patente_camion: patCamion,
+    patente_acoplado: document.getElementById('fl-patente-acoplado').value.trim().toUpperCase() || null,
+    nombre_camionero: document.getElementById('fl-camionero').value.trim() || null,
+    nombre_transporte: document.getElementById('fl-transporte').value.trim() || null,
+    toneladas: toneladas,
+    destino: document.getElementById('fl-destino').value.trim() || null,
+    empresa_destino: document.getElementById('fl-empresa-destino').value.trim() || null,
+    ctg: document.getElementById('fl-ctg').value.trim() || null,
+    carta_porte_nro: document.getElementById('fl-cp-nro').value.trim() || null,
+    peso_bruto_kg: pesoBruto,
+    peso_tara_kg: pesoTara,
+    peso_neto_kg: pesoNeto,
+    humedad_porcentaje: parseFloat(document.getElementById('fl-humedad').value) || null,
+    precio_flete_usd: parseFloat(document.getElementById('fl-precio').value) || null,
+    precio_flete_moneda: document.getElementById('fl-precio-moneda').value || 'usd',
+    km_recorridos: parseFloat(document.getElementById('fl-km').value) || null,
+    estado: document.getElementById('fl-estado').value || 'cargado',
+    archivo_url: document.getElementById('fl-archivo-url').value || null,
+    archivo_path: document.getElementById('fl-archivo-path').value || null,
+    notas: document.getElementById('fl-notas').value.trim() || null
+  }
+  var btn = document.getElementById('btn-flete')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  var editId = document.getElementById('fl-edit-id').value || ''
+  try {
+    if (editId) {
+      // Optimistic update
+      var idx = fletes.findIndex(function(x){return x.id===editId})
+      var prev = idx>=0 ? Object.assign({}, fletes[idx]) : null
+      if (idx>=0) fletes[idx] = Object.assign({}, fletes[idx], payload)
+      closeModalFlete(); renderFletes()
+      showToast('✓ Flete actualizado','ok')
+      try {
+        await _dbMutate({method:'update', table:'fletes', filter:{col:'id', val:editId}, payload:payload, timeout:8000})
+      } catch(e) {
+        if (prev && idx>=0) { fletes[idx] = prev; renderFletes() }
+        showToast('⚠️ No se sincronizó: '+e.message,'err')
+      }
+    } else {
+      var nId = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() :
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
+      var local = Object.assign({}, payload, {id:nId, created_at:new Date().toISOString(), updated_at:new Date().toISOString()})
+      fletes.unshift(local)
+      closeModalFlete(); renderFletes()
+      showToast('✓ Flete registrado','ok')
+      try {
+        await _dbMutate({method:'insert', table:'fletes', payload:Object.assign({id:nId}, payload), timeout:8000})
+      } catch(e) {
+        fletes = fletes.filter(function(x){return x.id!==nId}); renderFletes()
+        showToast('⚠️ No se guardó: '+e.message,'err')
+      }
+    }
+  } finally { btn.disabled = false; btn.textContent = 'Guardar flete' }
+}
+
+window.editarFlete = function(id) {
+  var f = fletes.find(function(x){ return x.id===id })
+  if (!f) return
+  document.getElementById('flete-modal-tit').textContent = 'Editar flete'
+  document.getElementById('btn-flete').textContent = 'Guardar cambios'
+  document.getElementById('fl-edit-id').value = f.id
+  document.getElementById('fl-fecha').value = f.fecha || ''
+  document.getElementById('fl-cultivo').value = f.cultivo || ''
+  document.getElementById('fl-patente-camion').value = f.patente_camion || ''
+  document.getElementById('fl-patente-acoplado').value = f.patente_acoplado || ''
+  document.getElementById('fl-camionero').value = f.nombre_camionero || ''
+  document.getElementById('fl-transporte').value = f.nombre_transporte || ''
+  document.getElementById('fl-toneladas').value = f.toneladas != null ? f.toneladas : ''
+  document.getElementById('fl-destino').value = f.destino || ''
+  document.getElementById('fl-empresa-destino').value = f.empresa_destino || ''
+  document.getElementById('fl-ctg').value = f.ctg || ''
+  document.getElementById('fl-cp-nro').value = f.carta_porte_nro || ''
+  document.getElementById('fl-peso-bruto').value = f.peso_bruto_kg != null ? f.peso_bruto_kg : ''
+  document.getElementById('fl-peso-tara').value = f.peso_tara_kg != null ? f.peso_tara_kg : ''
+  document.getElementById('fl-peso-neto').value = f.peso_neto_kg != null ? f.peso_neto_kg : ''
+  document.getElementById('fl-humedad').value = f.humedad_porcentaje != null ? f.humedad_porcentaje : ''
+  document.getElementById('fl-precio').value = f.precio_flete_usd != null ? f.precio_flete_usd : ''
+  document.getElementById('fl-precio-moneda').value = f.precio_flete_moneda || 'usd'
+  document.getElementById('fl-km').value = f.km_recorridos != null ? f.km_recorridos : ''
+  document.getElementById('fl-estado').value = f.estado || 'cargado'
+  document.getElementById('fl-notas').value = f.notas || ''
+  document.getElementById('fl-archivo-url').value = f.archivo_url || ''
+  document.getElementById('fl-archivo-path').value = f.archivo_path || ''
+  var prev = document.getElementById('fl-archivo-preview')
+  if (prev && f.archivo_url) {
+    var isImg = /\.(jpe?g|png|webp|gif)(\?|$)/i.test(f.archivo_url)
+    prev.style.display = ''
+    prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--borde);border-radius:7px">'
+      + (isImg
+          ? '<img src="'+f.archivo_url+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;cursor:zoom-in" onclick="window._abrirArchivo(\''+f.archivo_url+'\',\'carta-porte\',\'image/jpeg\')">'
+          : '<span style="font-size:24px;cursor:pointer" title="Descargar" onclick="window._abrirArchivo(\''+f.archivo_url+'\',\'carta-porte.pdf\',\'application/pdf\')">📄</span>')
+      + '<div style="flex:1;min-width:0;font-size:12px"><a href="javascript:void(0)" onclick="window._abrirArchivo(\''+f.archivo_url+'\',\'carta-porte\')" style="color:var(--verde);font-weight:500">⬇ Descargar</a></div>'
+      + '<button type="button" onclick="_fleteQuitarArchivo()" style="background:transparent;color:var(--rojo);border:1px solid var(--borde);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">Quitar</button>'
+      + '</div>'
+  } else if (prev) { prev.style.display='none'; prev.innerHTML='' }
+  document.getElementById('ov-flete').classList.add('open')
+}
+
+window.eliminarFlete = function(id) {
+  var f = fletes.find(function(x){return x.id===id})
+  if (!f) return
+  var snapshot = Object.assign({}, f)
+  var idx = fletes.findIndex(function(x){return x.id===id})
+  fletes = fletes.filter(function(x){return x.id!==id})
+  renderFletes()
+  _showToastUndo('🗑 Flete eliminado', function(){
+    if (idx >= 0) fletes.splice(idx, 0, snapshot); else fletes.unshift(snapshot)
+    renderFletes()
+  }, function(){
+    ;(async function(){
+      try { await _dbMutate({method:'delete', table:'fletes', filter:{col:'id', val:id}, timeout:6000}) }
+      catch(e) {
+        if (idx>=0) fletes.splice(idx, 0, snapshot); else fletes.unshift(snapshot)
+        renderFletes()
+        showToast('⚠️ No se sincronizó: '+e.message,'err')
+      }
+    })()
+  })
+}
+
+// ── OCR de carta de porte (skeleton, mismo patrón que ocr-factura/pago) ──
+window.openModalFleteFoto = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  document.getElementById('fpf-step-1').style.display = ''
+  document.getElementById('fpf-step-2').style.display = 'none'
+  document.getElementById('ov-flete-foto').classList.add('open')
+}
+window.closeModalFleteFoto = function() {
+  document.getElementById('ov-flete-foto').classList.remove('open')
+}
+window._fpfProcesar = async function(input) {
+  var f = input.files && input.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB','err'); input.value=''; return }
+  document.getElementById('fpf-step-1').style.display = 'none'
+  document.getElementById('fpf-step-2').style.display = ''
+  try {
+    // Subir el archivo primero para conservarlo
+    var up = await _subirArchivoStorageBucket(f, 'fletes-cartas-porte')
+    // Llamar edge function ocr-carta-porte
+    var base64 = await new Promise(function(res, rej){
+      var r = new FileReader()
+      r.onload = function(){ res(r.result.split(',')[1]) }
+      r.onerror = rej
+      r.readAsDataURL(f)
+    })
+    var token = _getAccessTokenFromStorage()
+    var resp = await fetch(SB_URL + '/functions/v1/ocr-carta-porte', {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_base64: base64, mime_type: f.type })
+    })
+    if (resp.status === 500) { throw new Error('El OCR aún no está activo (falta la API key). Por ahora cargá el flete manualmente — te dejé el archivo adjunto en el modal.') }
+    if (!resp.ok) throw new Error('OCR '+resp.status)
+    var r = await resp.json()
+    if (!r.ok) throw new Error(r.error || 'no se pudo leer')
+    // Cerrar modal foto, abrir modal manual con datos prellenados
+    closeModalFleteFoto()
+    openModalFlete()
+    var d = r.data || {}
+    if (d.fecha) document.getElementById('fl-fecha').value = d.fecha
+    if (d.cultivo) document.getElementById('fl-cultivo').value = d.cultivo
+    if (d.patente_camion) document.getElementById('fl-patente-camion').value = String(d.patente_camion).toUpperCase()
+    if (d.patente_acoplado) document.getElementById('fl-patente-acoplado').value = String(d.patente_acoplado).toUpperCase()
+    if (d.nombre_camionero) document.getElementById('fl-camionero').value = d.nombre_camionero
+    if (d.nombre_transporte) document.getElementById('fl-transporte').value = d.nombre_transporte
+    if (d.toneladas) document.getElementById('fl-toneladas').value = d.toneladas
+    if (d.destino) document.getElementById('fl-destino').value = d.destino
+    if (d.empresa_destino) document.getElementById('fl-empresa-destino').value = d.empresa_destino
+    if (d.ctg) document.getElementById('fl-ctg').value = d.ctg
+    if (d.carta_porte_nro) document.getElementById('fl-cp-nro').value = d.carta_porte_nro
+    if (d.peso_bruto_kg) document.getElementById('fl-peso-bruto').value = d.peso_bruto_kg
+    if (d.peso_tara_kg) document.getElementById('fl-peso-tara').value = d.peso_tara_kg
+    if (d.peso_neto_kg) document.getElementById('fl-peso-neto').value = d.peso_neto_kg
+    if (d.humedad_porcentaje) document.getElementById('fl-humedad').value = d.humedad_porcentaje
+    document.getElementById('fl-archivo-url').value = up.url
+    document.getElementById('fl-archivo-path').value = up.path
+    showToast('✓ Datos leídos, revisá antes de guardar','ok')
+  } catch(e) {
+    console.error(e)
+    closeModalFleteFoto()
+    showToast('⚠️ '+(e.message||'error al leer la carta de porte'),'err')
+    // Igual dejar el flete abierto para carga manual con el archivo adjunto
+    try {
+      openModalFlete()
+      var upFallback = await _subirArchivoStorageBucket(f, 'fletes-cartas-porte').catch(function(){return null})
+      if (upFallback) {
+        document.getElementById('fl-archivo-url').value = upFallback.url
+        document.getElementById('fl-archivo-path').value = upFallback.path
+      }
+    } catch(e2) {}
+  } finally { input.value='' }
+}
+
+// ── Exportar PDF de fletes filtrados ──
+window.exportarPDFFletes = function() {
+  if (!campoDet) { showToast('⚠️ Abrí un campo primero','err'); return }
+  var c = campos.find(function(x){return x.id===campoDet})
+  if (!c) return
+  var campR = getCampanaRange(campanaActivaId)
+  var q = ((document.getElementById('fletes-q')||{}).value || '').trim().toLowerCase()
+  var fDestino = ((document.getElementById('fletes-f-destino')||{}).value || '').trim().toLowerCase()
+  var fEmpresa = ((document.getElementById('fletes-f-empresa')||{}).value || '').trim().toLowerCase()
+  var fCultivo = ((document.getElementById('fletes-f-cultivo')||{}).value || '')
+  var lista = (fletes||[]).filter(function(f){
+    if (f.campo_id !== campoDet) return false
+    if (!f.fecha) return false
+    var d = new Date(f.fecha)
+    if (d < campR.start || d > campR.end) return false
+    if (fCultivo && (f.cultivo||'') !== fCultivo) return false
+    if (fDestino && !(f.destino||'').toLowerCase().includes(fDestino)) return false
+    if (fEmpresa && !(f.empresa_destino||'').toLowerCase().includes(fEmpresa)) return false
+    if (q) {
+      var hay = (f.patente_camion||'')+' '+(f.patente_acoplado||'')+' '+(f.nombre_transporte||'')+' '+(f.nombre_camionero||'')+' '+(f.destino||'')+' '+(f.empresa_destino||'')+' '+(f.ctg||'')+' '+(f.carta_porte_nro||'')
+      if (!hay.toLowerCase().includes(q)) return false
+    }
+    return true
+  }).sort(function(a,b){ return new Date(a.fecha) - new Date(b.fecha) })
+  if (!lista.length) { showToast('⚠️ No hay fletes para exportar en esta campaña','err'); return }
+  if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') { showToast('⚠️ jsPDF no cargado','err'); return }
+  var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF
+  var doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' })
+  var pageW = doc.internal.pageSize.getWidth()
+  doc.setFont('helvetica','bold'); doc.setFontSize(16)
+  doc.text('Fletes de granos', 14, 15)
+  doc.setFont('helvetica','normal'); doc.setFontSize(10)
+  doc.text('Campo: '+c.nombre+' · Campaña: '+campR.label, 14, 22)
+  doc.text('Generado: '+new Date().toLocaleDateString('es-AR'), pageW - 14, 22, { align:'right' })
+  var totTn = lista.reduce(function(a,f){return a+(parseFloat(f.toneladas)||0)},0)
+  doc.text('Total: '+lista.length+' cargas · '+_fltFmtTon(totTn)+' tn', 14, 28)
+  var cols = ['Fecha','Cultivo','Camión','Acoplado','Transporte','Toneladas','Destino','Empresa','CTG','Estado']
+  var rows = lista.map(function(f){
+    return [
+      _fltFmtFecha(f.fecha),
+      f.cultivo || '—',
+      f.patente_camion || '—',
+      f.patente_acoplado || '—',
+      f.nombre_transporte || f.nombre_camionero || '—',
+      _fltFmtTon(f.toneladas),
+      f.destino || '—',
+      f.empresa_destino || '—',
+      f.ctg || '—',
+      _fltEstadoLabel(f.estado||'cargado')
+    ]
+  })
+  if (doc.autoTable) {
+    doc.autoTable({ startY: 34, head:[cols], body: rows, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[26,74,46],textColor:255,fontStyle:'bold'}, alternateRowStyles:{fillColor:[240,246,238]} })
+  } else {
+    var y = 34
+    doc.setFont('helvetica','bold'); doc.text(cols.join(' | '), 14, y); y+=6
+    doc.setFont('helvetica','normal')
+    rows.forEach(function(r){ doc.text(r.join(' | '), 14, y); y+=5 })
+  }
+  var fname = 'fletes-'+c.nombre.replace(/\s+/g,'-').toLowerCase()+'-'+campR.label.replace('/','-')+'.pdf'
+  doc.save(fname)
+  showToast('✓ PDF descargado','ok')
 }
 
 window._ingVentas = {}          // {cult: [{tn,precio,concepto,fecha}]}

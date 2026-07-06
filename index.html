@@ -11723,13 +11723,17 @@ function _diasOverlap(aStart, aEnd, bStart, bEnd) {
   return (end - start) / (1000 * 60 * 60 * 24) + 1
 }
 
+// Convención agrícola AR: la unidad temporal es la CAMPAÑA (Jul → Jun aprox).
+// Si el activo o gasto está vigente durante alguna parte de la campaña, se
+// imputa el importe anual COMPLETO — sin prorrateo por días. Alinea la cifra
+// del listado de Estructura ("USD 6.000/año") con la fila de Rentabilidad.
 function _estCostoActivoEnRango(activo, dStart, dEnd) {
   var fCompra = _parseFechaLocal(activo.fecha_compra); if (!fCompra) return 0
   var fFin = new Date(fCompra); fFin.setFullYear(fFin.getFullYear() + (parseInt(activo.vida_util_anos)||0))
-  var dias = _diasOverlap(fCompra, fFin, dStart, dEnd)
-  if (dias <= 0) return 0
-  var cuotaAnual = _estCuotaAnual(activo)
-  return cuotaAnual * (dias / 365)
+  // ¿Vigente en algún momento del rango? Sin overlap → 0.
+  if (fFin < dStart || fCompra > dEnd) return 0
+  // Vigente → cuota anual completa (convención campaña agrícola).
+  return _estCuotaAnual(activo)
 }
 
 function _estCostoGastoEnRango(g, dStart, dEnd) {
@@ -11740,10 +11744,12 @@ function _estCostoGastoEnRango(g, dStart, dEnd) {
     if (fIni >= dStart && fIni <= dEnd) return imp
     return 0
   }
-  var dias = _diasOverlap(fIni, fFin, dStart, dEnd)
-  if (dias <= 0) return 0
-  if (g.frecuencia === 'anual')   return (imp / 365) * dias
-  return (imp / 30) * dias  // 'mensual' (default)
+  // Recurrente (mensual o anual): ¿vigente en algún momento del rango?
+  if (fFin && fFin < dStart) return 0
+  if (fIni > dEnd) return 0
+  // Vigente → importe anualizado completo (convención campaña agrícola).
+  if (g.frecuencia === 'anual') return imp
+  return imp * 12  // 'mensual' → 12 meses por campaña
 }
 
 // Total estructura en un rango de fechas (activos + gastos).

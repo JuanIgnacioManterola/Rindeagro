@@ -15783,7 +15783,13 @@ function renderCampoRent() {
     var d = new Date(g.fecha)
     return d >= campR.start && d <= campR.end
   })
-  var costoUSD = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  var costoOperativo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+  // Estructura: prorrateo por hectáreas de activos + gastos generales.
+  // Se suma al costo del campo para que las métricas (costo/ha, margen, break-even)
+  // reflejen la realidad completa, igual que en Rentabilidad Total.
+  var costoEstr = 0
+  try { costoEstr = window._estructuraCostoPorCampo ? window._estructuraCostoPorCampo(campoDet, campR.start, campR.end) : 0 } catch(e) {}
+  var costoUSD = costoOperativo + costoEstr
   var costoHa = ha>0?costoUSD/ha:0
   // ingHa/mgHa preliminares — se recalculan con datos reales más abajo (ingHaReal)
   var ingHa = 0, mgHa = -costoHa
@@ -15817,9 +15823,11 @@ function renderCampoRent() {
 
   // ── Métricas ──
   var mEl=document.getElementById('cr-mets')
+  var costoSub = _fmtM(costoUSD)+' total'
+  if (costoEstr > 0) costoSub += ' · incluye '+_fmtM(costoEstr)+' estructura'
   if(mEl) mEl.innerHTML=[
     {l:'Ingreso bruto/ha',v:_fmtM(ingHaReal),s:totalIngUSD>0?_fmtM(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
-    {l:'Costo total/ha',v:_fmtM(costoHa),s:_fmtM(costoUSD)+' total',c:'#c0392b'},
+    {l:'Costo total/ha',v:_fmtM(costoHa),s:costoSub,c:'#c0392b'},
     {l:'Margen neto/ha',v:_fmtM(mgHaReal,{sign:true}),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
     {l:'Margen total',v:_fmtM(mgHaReal*ha,{sign:true}),s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
     {l:'En quintales/ha',v:(mgHaReal>=0?'+':'−')+(pr>0?Math.abs(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
@@ -15837,7 +15845,7 @@ function renderCampoRent() {
   var porRubro={}; rubrosArr.forEach(function(e){porRubro[e[1].label]=e[1].total})
 
   // ── Acordeón ──
-  window._crAcordeonData={c:c,gf:gf,ingRowsData:ingRowsData,totalIngUSD:totalIngUSD,costoUSD:costoUSD,costoHa:costoHa,porRubroMap:porRubroMap,rubrosArr:rubrosArr,ha:ha,ingHaReal:ingHaReal,mgHaReal:mgHaReal,pr:pr}
+  window._crAcordeonData={c:c,gf:gf,ingRowsData:ingRowsData,totalIngUSD:totalIngUSD,costoUSD:costoUSD,costoOperativo:costoOperativo,costoEstr:costoEstr,costoHa:costoHa,porRubroMap:porRubroMap,rubrosArr:rubrosArr,ha:ha,ingHaReal:ingHaReal,mgHaReal:mgHaReal,pr:pr}
   _refreshCrAcordeon()
 
   // ── Tortas ──

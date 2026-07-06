@@ -1421,12 +1421,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="fg"><label class="fl">Valor de compra (USD) *</label><input class="fi" type="number" id="ac-valor" placeholder="Ej: 30000" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
         <div class="fg"><label class="fl">Fecha de compra *</label><input class="fi" type="date" id="ac-fecha"/></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-        <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
-        <div class="fg"><label class="fl">Valor residual (USD)</label><input class="fi" type="number" id="ac-residual" placeholder="0 (opcional)" min="0" step="0.01" oninput="_acCalcCuota()"/></div>
-      </div>
-      <div class="conv-box" style="grid-template-columns:1fr;margin-bottom:14px">
-        <div><div class="conv-l">Amortización anual</div><div class="conv-v" id="ac-cuota-anual">—</div></div>
+      <div class="fg"><label class="fl">Vida útil (años) *</label><input class="fi" type="number" id="ac-vida" placeholder="Ej: 5" min="1" max="50" step="1" oninput="_acCalcCuota()"/></div>
+      <!-- Input oculto de residual (mantenido para retrocompatibilidad, no visible al usuario) -->
+      <input type="hidden" id="ac-residual" value=""/>
+      <div class="conv-box" style="grid-template-columns:1fr;margin-bottom:14px;background:var(--verde-pale);border:1.5px solid var(--verde)">
+        <div>
+          <div class="conv-l">Amortización anual</div>
+          <div class="conv-v" id="ac-cuota-anual" style="color:var(--verde);font-size:22px">—</div>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Valor de compra ÷ vida útil</div>
+        </div>
       </div>
       <div class="fg">
         <label class="fl">Distribución entre campos</label>
@@ -11644,10 +11647,12 @@ function _fFecha(str) {
 }
 
 function _estCuotaAnual(activo) {
+  // Amortización lineal simple: valor / años. El valor residual se ignora,
+  // aunque la columna sigue en DB para retrocompatibilidad con activos viejos.
   var val = parseFloat(activo.valor_compra_usd)||0
-  var res = parseFloat(activo.valor_residual_usd)||0
   var vida = parseInt(activo.vida_util_anos)||1
-  return Math.max(0, (val - res) / vida)
+  if (vida < 1) vida = 1
+  return Math.max(0, val / vida)
 }
 
 // Días de overlap entre [aStart, aEnd] y [bStart, bEnd]. Ambos endpoints inclusivos.
@@ -11825,11 +11830,10 @@ window.openModalActivo = function(id) {
 window.closeModalActivo = function() { document.getElementById('ov-activo').classList.remove('open') }
 window._acCalcCuota = function() {
   var val = parseFloat(document.getElementById('ac-valor').value)||0
-  var res = parseFloat(document.getElementById('ac-residual').value)||0
   var vida = parseInt(document.getElementById('ac-vida').value)||0
   var elAnual = document.getElementById('ac-cuota-anual')
   if (!val || !vida) { if (elAnual) elAnual.textContent = '—'; return }
-  var anual = Math.max(0, (val - res) / vida)
+  var anual = Math.max(0, val / vida)
   if (elAnual) elAnual.textContent = 'USD ' + Math.round(anual).toLocaleString('es-AR')
 }
 
@@ -11856,7 +11860,7 @@ window.guardarActivo = async function() {
   var val = parseFloat(document.getElementById('ac-valor').value)||0
   var fecha = document.getElementById('ac-fecha').value
   var vida = parseInt(document.getElementById('ac-vida').value)||0
-  var res  = parseFloat(document.getElementById('ac-residual').value)||0
+  var res  = 0  // Amortización simple: valor / años. Sin residual.
   var dist = document.getElementById('ac-dist-modo').value||'por_hectareas'
   var notas = document.getElementById('ac-notas').value.trim()||null
   if(!desc){showToast('⚠️ Poné una descripción','err');return}

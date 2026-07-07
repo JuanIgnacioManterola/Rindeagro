@@ -15901,15 +15901,26 @@ function renderCampoRent() {
 
   // ── Métricas ──
   var mEl=document.getElementById('cr-mets')
-  var costoSub = _fmtM(costoUSD)+' total'
-  if (costoEstr > 0) costoSub += ' · incluye '+_fmtM(costoEstr)+' estructura'
-  if(mEl) mEl.innerHTML=[
+  var hayEstructura = (activosAmort||[]).length > 0 || (gastosEstructura||[]).length > 0
+  var metricas = [
     {l:'Ingreso bruto/ha',v:_fmtM(ingHaReal),s:totalIngUSD>0?_fmtM(totalIngUSD)+' total':'Sin ingresos cargados',c:'#1a5fa8'},
-    {l:'Costo total/ha',v:_fmtM(costoHa),s:costoSub,c:'#c0392b'},
+    {l:'Costos operativos/ha',v:_fmtM(ha>0?costoOperativo/ha:0),s:_fmtM(costoOperativo)+' total',c:'#c0392b'}
+  ]
+  // Si hay estructura cargada, sumar métrica dedicada — así se ve inmediato el impacto por campo
+  if (hayEstructura) {
+    metricas.push({
+      l:'Estructura/ha',
+      v:_fmtM(ha>0?costoEstr/ha:0),
+      s:_fmtM(costoEstr)+' prorrateo del campo',
+      c:'#b91c1c'
+    })
+  }
+  metricas.push(
     {l:'Margen neto/ha',v:_fmtM(mgHaReal,{sign:true}),s:(ingHaReal>0?(mgHaReal/ingHaReal*100).toFixed(0):0)+'% del ingreso',c:mcReal},
     {l:'Margen total',v:_fmtM(mgHaReal*ha,{sign:true}),s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
-    {l:'En quintales/ha',v:(mgHaReal>=0?'+':'−')+(pr>0?Math.abs(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'},
-  ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+    {l:'En quintales/ha',v:(mgHaReal>=0?'+':'−')+(pr>0?Math.abs(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'}
+  )
+  if(mEl) mEl.innerHTML = metricas.map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // ── Gastos por rubro ──
   var porRubroMap={}

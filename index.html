@@ -2710,15 +2710,20 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="m-sub" style="margin-bottom:0">Estamos para ayudarte. Elegí cómo preferís que te contactemos.</div>
     </div>
     <div class="modal-body">
-      <a href="mailto:rindeagro.contacto@gmail.com?subject=Consulta%20desde%20Rinde.Agro" style="display:flex;align-items:center;gap:14px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:16px 18px;margin-bottom:12px;text-decoration:none;color:var(--verde);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 14px rgba(26,74,46,.15)'" onmouseout="this.style.boxShadow=''">
-        <div style="font-size:28px">✉️</div>
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:800;font-family:'DM Sans',sans-serif">Mandanos un mail</div>
-          <div style="font-size:12px;color:var(--texto-mid);margin-top:2px">rindeagro.contacto@gmail.com</div>
-          <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Te respondemos en menos de 24hs</div>
+      <div style="background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="font-size:22px">✉️</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:800;color:var(--verde);font-family:'DM Sans',sans-serif">Escribinos a nuestro mail</div>
+            <div style="font-size:12px;color:var(--texto-mid);word-break:break-all">rindeagro.contacto@gmail.com</div>
+          </div>
         </div>
-        <div style="font-size:18px;color:var(--verde);opacity:.6">›</div>
-      </a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="_ayudaAbrirGmail()" style="flex:1;min-width:140px;background:var(--verde);color:#fff;border:none;border-radius:9px;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 5px rgba(26,74,46,.2)">📮 Abrir en Gmail</button>
+          <button onclick="_ayudaCopiarMail()" style="flex:1;min-width:140px;background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:9px;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif" id="btn-copiar-mail">📋 Copiar email</button>
+        </div>
+        <a href="mailto:rindeagro.contacto@gmail.com?subject=Consulta%20desde%20Rinde.Agro" style="display:block;text-align:center;margin-top:8px;font-size:11px;color:var(--texto-suave);text-decoration:underline">o usar mi programa de mail (Outlook, Mail…)</a>
+      </div>
       <div style="display:flex;align-items:center;gap:14px;background:var(--crema);border:1.5px dashed var(--borde);border-radius:12px;padding:16px 18px;color:var(--texto-suave)">
         <div style="font-size:28px;opacity:.5">💬</div>
         <div style="flex:1">
@@ -7089,9 +7094,13 @@ window.contactarParaContratar = function(planId) {
     + (nombreUser ? '- Usuario: ' + nombreUser + '\n' : '')
     + (usuario && usuario.email ? '- Email de la cuenta: ' + usuario.email + '\n' : '')
     + '\nPor favor coordinemos el pago.\n\nGracias.'
-  var mailto = 'mailto:rindeagro.contacto@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body)
-  showToast('✉️ Abriendo tu mail con el plan ' + plan.nombre + '...','ok')
-  window.location.href = mailto
+  // Abrir Gmail en tab nueva (funciona sin cliente de mail configurado).
+  // Los que usen Outlook/Thunderbird pueden usar el link de mailto del modal Ayuda.
+  var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=rindeagro.contacto@gmail.com'
+    + '&su=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body)
+  showToast('✉️ Abriendo Gmail con el plan ' + plan.nombre + '...','ok')
+  window.open(gmailUrl, '_blank', 'noopener')
 }
 
 // ══════════════════════════════════════════════
@@ -7252,6 +7261,44 @@ window.openModalAyuda = function() {
 }
 window.closeModalAyuda = function() {
   document.getElementById('ov-ayuda').classList.remove('open')
+}
+// Abre Gmail en una tab nueva con el mail pre-armado. Funciona en cualquier
+// navegador sin depender de que el user tenga un cliente de mail configurado.
+window._ayudaAbrirGmail = function(subject, body) {
+  var s = subject || 'Consulta desde Rinde.Agro'
+  var b = body || 'Hola equipo de Rinde.Agro,\n\n'
+  var url = 'https://mail.google.com/mail/?view=cm&fs=1&to=rindeagro.contacto@gmail.com'
+    + '&su=' + encodeURIComponent(s)
+    + '&body=' + encodeURIComponent(b)
+  window.open(url, '_blank', 'noopener')
+}
+// Copia el mail al portapapeles y da feedback visual + toast.
+window._ayudaCopiarMail = function() {
+  var mail = 'rindeagro.contacto@gmail.com'
+  var done = function(ok) {
+    var btn = document.getElementById('btn-copiar-mail')
+    if (btn) {
+      var prev = btn.innerHTML
+      btn.innerHTML = ok ? '✓ Copiado' : '⚠️ No se pudo'
+      btn.style.background = ok ? 'var(--verde)' : '#dc2626'
+      btn.style.color = '#fff'
+      setTimeout(function(){ btn.innerHTML = prev; btn.style.background = ''; btn.style.color = 'var(--verde)' }, 1600)
+    }
+    if (ok) showToast('✓ Email copiado al portapapeles','ok')
+    else showToast('⚠️ No se pudo copiar. El mail es: '+mail,'err')
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(mail).then(function(){ done(true) }).catch(function(){ done(false) })
+  } else {
+    try {
+      var ta = document.createElement('textarea')
+      ta.value = mail; ta.style.position='fixed'; ta.style.opacity='0'
+      document.body.appendChild(ta); ta.select()
+      var ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      done(!!ok)
+    } catch(e) { done(false) }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════

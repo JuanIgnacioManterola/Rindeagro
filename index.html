@@ -2189,7 +2189,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 </div>
 
 <!-- MODAL NUEVA CONTRASEÑA (recovery) -->
-<div class="overlay" id="ov-nueva-pass">
+<!-- data-no-escape: el user vino de un link de mail, cerrar por Escape lo dejaria
+     sin poder terminar el flujo de recovery (se queda con contrasena vieja) -->
+<div class="overlay" id="ov-nueva-pass" data-no-escape>
   <div class="modal">
     <div class="modal-header">
       <div class="m-tit" style="font-size:18px;margin-bottom:.25rem">Rinde<span style="color:var(--dorado)">.</span>Agro</div>
@@ -17756,14 +17758,43 @@ window.openModalSueloCampo = function() {
   setTimeout(function(){if(campoDet)document.getElementById('s-campo').value=campoDet},50)
 }
 
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    closeModal()
-    closeModalCampo()
-    closeModalGasto()
-    closeModalLluvia()
-    closeModalSuelo()
+// Cerrar cualquier modal abierto con Escape o click en el fondo oscuro.
+// Estrategia: buscar el ultimo `.overlay.open` (el "top-most"), preferir clickear
+// su boton `.m-close` para respetar la logica de cleanup de cada modal
+// (algunos resetean variables o preguntan confirmacion). Si no tiene m-close,
+// hacemos classList.remove('open') directo.
+//
+// Modales bloqueados (data-no-escape): no cierran ni con Escape ni con backdrop.
+// Usar para flujos criticos donde perder el modal es data loss (recovery de
+// contrasena, guardando en medio de una request, etc). El HTML del modal debe
+// tener `data-no-escape` en el `.overlay`.
+window._cerrarOverlayTopMost = function() {
+  var abiertos = document.querySelectorAll('.overlay.open')
+  if (!abiertos.length) return false
+  var top = abiertos[abiertos.length - 1]
+  if (top.hasAttribute('data-no-escape')) return false
+  var closeBtn = top.querySelector('.m-close')
+  if (closeBtn) { closeBtn.click(); return true }
+  top.classList.remove('open')
+  return true
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    // No cerrar modal si el user esta escribiendo en un input tipo password
+    // dentro de un flujo critico (mejora la percepcion de seguridad)
+    if (window._cerrarOverlayTopMost()) e.preventDefault()
   }
+})
+// Backdrop click: el `.overlay` es el fondo; el `.modal` es la caja blanca.
+// Si el click hits exactamente al overlay (no burbujeado desde adentro), cerrar.
+document.addEventListener('click', function(e){
+  var target = e.target
+  if (!target || !target.classList || !target.classList.contains('overlay')) return
+  if (!target.classList.contains('open')) return
+  if (target.hasAttribute('data-no-escape')) return
+  var closeBtn = target.querySelector('.m-close')
+  if (closeBtn) closeBtn.click()
+  else target.classList.remove('open')
 })
 
 window.addEventListener('scroll',()=>{

@@ -599,6 +599,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="user-dropdown" id="user-dropdown">
           <button class="user-dropdown-item" id="btn-mi-equipo" onclick="event.stopPropagation();_closeUserDropdown();openModalMiEquipo()">👥 Mi equipo</button>
           <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();showModulo('mi-plan')">⭐ Mi plan</button>
+          <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();openModalCambiarPassword()">🔒 Cambiar contraseña</button>
+          <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();openModalAyuda()">💬 Ayuda / Contacto</button>
           <div class="user-dropdown-sep"></div>
           <button class="user-dropdown-item danger" onclick="event.stopPropagation();_closeUserDropdown();cerrarSesion()">🚪 Cerrar sesión</button>
         </div>
@@ -2682,6 +2684,68 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div style="font-size:14px;color:var(--texto-mid);font-weight:600">Leyendo la carta de porte...</div>
         <div style="font-size:11px;color:var(--texto-suave);margin-top:6px">Puede tardar unos segundos</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AYUDA / CONTACTO -->
+<div class="overlay" id="ov-ayuda">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalAyuda()">✕</button>
+      <div class="m-tit">💬 Ayuda &amp; Contacto</div>
+      <div class="m-sub" style="margin-bottom:0">Estamos para ayudarte. Elegí cómo preferís que te contactemos.</div>
+    </div>
+    <div class="modal-body">
+      <a href="mailto:rindeagro.contacto@gmail.com?subject=Consulta%20desde%20Rinde.Agro" style="display:flex;align-items:center;gap:14px;background:var(--verde-pale);border:1.5px solid var(--verde);border-radius:12px;padding:16px 18px;margin-bottom:12px;text-decoration:none;color:var(--verde);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 14px rgba(26,74,46,.15)'" onmouseout="this.style.boxShadow=''">
+        <div style="font-size:28px">✉️</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;font-family:'DM Sans',sans-serif">Mandanos un mail</div>
+          <div style="font-size:12px;color:var(--texto-mid);margin-top:2px">rindeagro.contacto@gmail.com</div>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Te respondemos en menos de 24hs</div>
+        </div>
+        <div style="font-size:18px;color:var(--verde);opacity:.6">›</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:14px;background:var(--crema);border:1.5px dashed var(--borde);border-radius:12px;padding:16px 18px;color:var(--texto-suave)">
+        <div style="font-size:28px;opacity:.5">💬</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;color:var(--texto-mid)">WhatsApp (próximamente)</div>
+          <div style="font-size:12px;margin-top:2px">Vamos a habilitar el canal de WhatsApp en las próximas semanas.</div>
+        </div>
+      </div>
+      <div style="background:#f5f0ff;border-radius:10px;padding:12px 14px;margin-top:14px;font-size:12px;color:#5b21b6;line-height:1.55">
+        💡 <strong>Tip:</strong> si podés, mandanos capturas de pantalla del problema. Nos ayuda muchísimo a entender qué está pasando.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="overlay" id="ov-cambiar-pw">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalCambiarPassword()">✕</button>
+      <div class="m-tit">🔒 Cambiar contraseña</div>
+      <div class="m-sub" style="margin-bottom:0">Elegí una nueva contraseña para tu cuenta.</div>
+    </div>
+    <div class="modal-body">
+      <div class="fg" style="margin-bottom:14px">
+        <label class="fl">Contraseña actual *</label>
+        <input class="fi" type="password" id="pw-actual" autocomplete="current-password" placeholder="Tu contraseña actual"/>
+      </div>
+      <div class="fg" style="margin-bottom:14px">
+        <label class="fl">Nueva contraseña *</label>
+        <input class="fi" type="password" id="pw-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres"/>
+        <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Al menos 8 caracteres. Ideal: mayúsculas, minúsculas y algún número.</div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Confirmar nueva contraseña *</label>
+        <input class="fi" type="password" id="pw-confirmar" autocomplete="new-password" placeholder="Repetir la nueva contraseña"/>
+      </div>
+      <div id="pw-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:10px 14px;margin-top:14px;font-size:12px;color:#991b1b"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="fb" id="btn-cambiar-pw" onclick="guardarCambioPassword()">Cambiar contraseña</button>
     </div>
   </div>
 </div>
@@ -7057,6 +7121,113 @@ window.cerrarSesion = function() {
   // Llamar signOut sin await — no bloquear UI si hay problemas de red
   try { sb.auth.signOut() } catch(e) {}
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODAL AYUDA / CONTACTO
+// ══════════════════════════════════════════════════════════════════════════
+window.openModalAyuda = function() {
+  document.getElementById('ov-ayuda').classList.add('open')
+}
+window.closeModalAyuda = function() {
+  document.getElementById('ov-ayuda').classList.remove('open')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CAMBIO DE CONTRASEÑA IN-APP
+// Usa sb.auth.updateUser. Valida password actual haciendo un signIn dummy
+// contra el mail del user con la password ingresada — si funciona,
+// procede con el updateUser de la password nueva.
+// ══════════════════════════════════════════════════════════════════════════
+window.openModalCambiarPassword = function() {
+  if (!usuario) { showToast('⚠️ No hay sesión activa','err'); return }
+  ;['pw-actual','pw-nueva','pw-confirmar'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = ''
+  })
+  var errEl = document.getElementById('pw-error')
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
+  document.getElementById('ov-cambiar-pw').classList.add('open')
+  setTimeout(function(){ try { document.getElementById('pw-actual').focus() } catch(e){} }, 100)
+}
+window.closeModalCambiarPassword = function() {
+  document.getElementById('ov-cambiar-pw').classList.remove('open')
+}
+function _mostrarErrorPassword(msg) {
+  var el = document.getElementById('pw-error')
+  if (!el) return
+  el.textContent = '⚠️ ' + msg
+  el.style.display = 'block'
+}
+window.guardarCambioPassword = async function() {
+  var actual = document.getElementById('pw-actual').value
+  var nueva = document.getElementById('pw-nueva').value
+  var confirmar = document.getElementById('pw-confirmar').value
+  var errEl = document.getElementById('pw-error')
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
+  if (!actual) { _mostrarErrorPassword('Ingresá tu contraseña actual'); return }
+  if (!nueva || nueva.length < 8) { _mostrarErrorPassword('La nueva contraseña debe tener al menos 8 caracteres'); return }
+  if (nueva !== confirmar) { _mostrarErrorPassword('Las contraseñas nuevas no coinciden'); return }
+  if (nueva === actual) { _mostrarErrorPassword('La nueva contraseña debe ser distinta a la actual'); return }
+  if (!usuario || !usuario.email) { _mostrarErrorPassword('No hay sesión activa'); return }
+  var btn = document.getElementById('btn-cambiar-pw')
+  btn.disabled = true; btn.textContent = 'Verificando...'
+  try {
+    // Verificar la contraseña actual haciendo un signIn (no rompe la sesión vigente)
+    var verifica = await sb.auth.signInWithPassword({ email: usuario.email, password: actual })
+    if (verifica && verifica.error) {
+      _mostrarErrorPassword('La contraseña actual no es correcta')
+      return
+    }
+    btn.textContent = 'Guardando...'
+    var upd = await sb.auth.updateUser({ password: nueva })
+    if (upd && upd.error) {
+      _mostrarErrorPassword(upd.error.message || 'No se pudo actualizar la contraseña')
+      return
+    }
+    closeModalCambiarPassword()
+    showToast('✓ Contraseña actualizada','ok')
+  } catch (e) {
+    _mostrarErrorPassword((e && e.message) || 'Error inesperado')
+  } finally {
+    btn.disabled = false; btn.textContent = 'Cambiar contraseña'
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MANEJO DE SESIÓN EXPIRADA
+// Envuelve _restRequest para detectar 401 y disparar el flujo de expiración.
+// Escucha el event global 'auth-expired' y muestra un toast + redirige.
+// ══════════════════════════════════════════════════════════════════════════
+window._sesionExpiradaHandler = function() {
+  if (window._sesionExpiradaEnCurso) return
+  window._sesionExpiradaEnCurso = true
+  try { showToast('⚠️ Tu sesión expiró. Volvé a iniciar sesión.', 'err') } catch(e) {}
+  // Limpiar estado local y volver a la landing con el modal de login
+  usuario = null; campos=[]; gastos=[]; lluvias=[]; analisisS=[]; window.CONTEXTO=null
+  try { sb.auth.signOut() } catch(e) {}
+  showScreen('landing')
+  try { initLanding() } catch(e) {}
+  setTimeout(function(){
+    try { openModal('ingreso') } catch(e) {}
+    window._sesionExpiradaEnCurso = false
+  }, 500)
+}
+// Listener global: cualquier lugar del código puede disparar la expiración
+window.addEventListener('rinde-auth-expired', window._sesionExpiradaHandler)
+
+// Auto-detect: cuando Supabase emite SIGNED_OUT inesperado (no fue por
+// cerrarSesion()) mientras había un usuario, tratarlo como expiración.
+try {
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (event === 'SIGNED_OUT' && usuario && !window._sesionExpiradaEnCurso) {
+      // usuario todavía existe en el estado local pero Supabase perdió la sesión
+      window._sesionExpiradaHandler()
+    }
+    if (event === 'TOKEN_REFRESHED') {
+      // Reset del flag por si el auto-refresh recuperó la sesión
+      window._sesionExpiradaEnCurso = false
+    }
+  })
+} catch(e) {}
 
 // ── PAÍSES Y PROVINCIAS ──
 var PROVINCIAS = {

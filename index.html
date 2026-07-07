@@ -16315,6 +16315,10 @@ window.renderRentabilidadTotal = function() {
   if(cEl) {
     if(!datosCampos.length){cEl.innerHTML='<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div></div>';return}
     var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+    // Si hay estructura cargada a nivel global, mostrar la línea en TODAS las
+    // cards (aunque el prorrateo del campo dé 0). Así el user ve claramente
+    // que la estructura impacta o no y de qué monto.
+    var hayEstructuraCargada = (activosAmort||[]).length > 0 || (gastosEstructura||[]).length > 0
     cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
       var ingTot=Math.round(d.ingHa*d.ha)
       var cosDir=Math.round(d.costo)
@@ -16326,7 +16330,7 @@ window.renderRentabilidadTotal = function() {
       var colIngresos = '#15803d'   // verde oscuro
       var colCostos   = '#dc2626'   // rojo
       var colMargen   = mgTot>=0 ? '#16a34a' : '#dc2626'   // verde más claro / rojo si negativo
-      var filaEstr = cosEstr > 0
+      var filaEstr = (cosEstr > 0 || hayEstructuraCargada)
         ? '<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 14px;border-top:.5px dashed var(--borde);color:var(--texto-suave)">'+
           '<span style="font-style:italic">↳ Estructura (prorrateo)</span><span style="font-family:DM Mono,monospace">USD '+cosEstr.toLocaleString('es-AR')+'</span></div>'
         : ''

@@ -4773,9 +4773,15 @@ function renderLluvias() {
   }
 }
 
-// ── SUELO ──
+// ── SUELO (modulo global — legacy) ──
+// Los IDs suelo-cultivo-sel / suelo-semaforo / suelo-recomendaciones / chart-suelo
+// no existen en el HTML: el modulo global de Suelo fue removido y solo queda el
+// detalle por campo (renderDetSuelo). Guard early para no crashear en el else
+// del switchModulo.
 window.renderSuelo = function() {
-  var cultivo = document.getElementById('suelo-cultivo-sel').value
+  var selEl = document.getElementById('suelo-cultivo-sel')
+  if (!selEl) return
+  var cultivo = selEl.value
   var RANGOS = {
     soja: {N:[150,280],P:[18,40],K:[250,400],S:[10,25],MO:[3.0,5.0],pH:[6.0,7.0],Zn:[1.0,3.0],B:[0.5,2.0]},
     maiz: {N:[180,300],P:[20,45],K:[280,450],S:[12,28],MO:[2.8,5.0],pH:[6.0,7.0],Zn:[1.2,3.0],B:[0.5,2.0]},
@@ -6314,7 +6320,7 @@ function _cerrarPoligonoReg(){
   _polyModoReg=false
   var btn=document.getElementById('btn-poly-reg')
   if(btn){btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'}
-  document.getElementById('poly-hint-reg').style.display='none'
+  var hint=document.getElementById('poly-hint-reg'); if(hint) hint.style.display='none'
   var ha=_calcHaDesdePoligono(_polyPuntosReg)
   var hv=document.getElementById('reg-ha-valor'); if(hv) hv.textContent=ha
   var hl=document.getElementById('reg-ha-label'); if(hl) hl.textContent='ha'
@@ -6323,12 +6329,13 @@ function _cerrarPoligonoReg(){
 window.togglePoligonoReg = function(){
   _polyModoReg=!_polyModoReg
   var btn=document.getElementById('btn-poly-reg'), hint=document.getElementById('poly-hint-reg')
+  if(!btn) return
   if(_polyModoReg){
     btn.textContent='⏹ Terminar'; btn.style.background='var(--verde)'; btn.style.color='#fff'
-    hint.style.display='inline'
+    if(hint) hint.style.display='inline'
   } else {
     if(_polyPuntosReg.length>=3) _cerrarPoligonoReg()
-    else { btn.textContent='✏️ Dibujar polígono'; btn.style.background='var(--verde-pale)'; btn.style.color='var(--verde)'; hint.style.display='none' }
+    else { btn.textContent='✏️ Dibujar polígono'; btn.style.background='var(--verde-pale)'; btn.style.color='var(--verde)'; if(hint) hint.style.display='none' }
   }
 }
 window.limpiarPoligonoReg = function(){
@@ -6338,8 +6345,8 @@ window.limpiarPoligonoReg = function(){
   _polyPuntosReg=[]; _polyModoReg=false; _regCoordsLat=null; _regCoordsLng=null
   var btn=document.getElementById('btn-poly-reg')
   if(btn){btn.textContent='✏️ Dibujar polígono';btn.style.background='var(--verde-pale)';btn.style.color='var(--verde)'}
-  document.getElementById('poly-hint-reg').style.display='none'
-  document.getElementById('reg-coords').style.display='none'
+  var hint=document.getElementById('poly-hint-reg'); if(hint) hint.style.display='none'
+  var coords=document.getElementById('reg-coords'); if(coords) coords.style.display='none'
 }
 var _timerBuscarReg
 window._debounceBuscarReg = function(){
@@ -7930,7 +7937,9 @@ window.guardarCampo = async function() {
             var r2 = await sb.from('campos').insert(minP)
             if(!r2.error) {
               // Intentar UPDATE con el resto de campos (sin bloquear)
-              sb.from('campos').update({...payloadBase, ...payloadExtra}).eq('id', newId).catch(function(){})
+              sb.from('campos').update({...payloadBase, ...payloadExtra}).eq('id', newId).then(function(rr){
+                if (rr && rr.error) console.warn('guardarCampo bg update extra error:', rr.error.message)
+              }).catch(function(e){ console.warn('guardarCampo bg update extra threw:', e && e.message) })
             } else {
               console.error('guardarCampo bg insert error:', r2.error.message)
               return
@@ -7938,7 +7947,9 @@ window.guardarCampo = async function() {
           } else {
             // Guardar campos extra en UPDATE
             var hasExtra = Object.values(payloadExtra).some(function(v){return v!=null})
-            if(hasExtra) sb.from('campos').update(payloadExtra).eq('id', newId).catch(function(){})
+            if(hasExtra) sb.from('campos').update(payloadExtra).eq('id', newId).then(function(rr){
+              if (rr && rr.error) console.warn('guardarCampo bg update extra error:', rr.error.message)
+            }).catch(function(e){ console.warn('guardarCampo bg update extra threw:', e && e.message) })
           }
           // Sincronizado OK: eliminar de pending localStorage
           try {
@@ -10531,25 +10542,33 @@ window._facProcesarOCR = async function() {
   document.getElementById('fac-step-1').style.display = 'none'
   document.getElementById('fac-step-2').style.display = ''
 
+  // Timeout wrapper: OCR de Claude puede tardar ~10-30s; cap 60s por si Anthropic
+  // se cuelga (evita spinner infinito en modal).
+  function _withTimeoutFac(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Timeout: '+label+' tardó más de '+ms+'ms')) }, ms) })
+    ])
+  }
   try {
     // 1) Subir el archivo a Storage para tener URL persistente
-    var up = await _subirArchivoStorageBucket(_facFile, 'insumos-facturas')
+    var up = await _withTimeoutFac(_subirArchivoStorageBucket(_facFile, 'insumos-facturas'), 15000, 'subir archivo')
     _facFacturaUrl = up.url
     _facFacturaPath = up.path
 
     // 2) Convertir a base64 para mandar al OCR (más confiable que URL pública por CDN cache)
-    var b64 = await _fileToBase64(_facFile)
+    var b64 = await _withTimeoutFac(_fileToBase64(_facFile), 8000, 'preparar archivo')
 
     // 3) Llamar al endpoint de OCR (Supabase Edge Function)
     var sbUrl = (window.SUPABASE_URL || '') || (sb && sb.supabaseUrl) || ''
     var endpoint = (sbUrl || '').replace(/\/$/,'') + '/functions/v1/ocr-factura'
     var sess = (await sb.auth.getSession()).data.session
     var token = sess && sess.access_token
-    var r = await fetch(endpoint, {
+    var r = await _withTimeoutFac(fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+(token||'') },
       body: JSON.stringify({ image_base64: b64, mime_type: _facFile.type || 'image/jpeg', tipo: tipo })
-    })
+    }), 60000, 'OCR factura')
     if (!r.ok) {
       var txt = await r.text().catch(function(){return ''})
       if (r.status === 404) throw new Error('OCR no configurado todavía. El admin tiene que desplegar la función ocr-factura.')
@@ -15617,22 +15636,29 @@ window._fpfProcesar = async function(input) {
   if (f.size > 10 * 1024 * 1024) { showToast('⚠️ Archivo > 10 MB','err'); input.value=''; return }
   document.getElementById('fpf-step-1').style.display = 'none'
   document.getElementById('fpf-step-2').style.display = ''
+  // Timeout wrapper: cap 60s a Claude para evitar spinner infinito
+  function _withTimeoutFpf(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('Timeout: '+label+' tardó más de '+ms+'ms')) }, ms) })
+    ])
+  }
   try {
     // Subir el archivo primero para conservarlo
-    var up = await _subirArchivoStorageBucket(f, 'fletes-cartas-porte')
+    var up = await _withTimeoutFpf(_subirArchivoStorageBucket(f, 'fletes-cartas-porte'), 15000, 'subir archivo')
     // Llamar edge function ocr-carta-porte
-    var base64 = await new Promise(function(res, rej){
+    var base64 = await _withTimeoutFpf(new Promise(function(res, rej){
       var r = new FileReader()
       r.onload = function(){ res(r.result.split(',')[1]) }
       r.onerror = rej
       r.readAsDataURL(f)
-    })
+    }), 8000, 'preparar archivo')
     var token = _getAccessTokenFromStorage()
-    var resp = await fetch(SB_URL + '/functions/v1/ocr-carta-porte', {
+    var resp = await _withTimeoutFpf(fetch(SB_URL + '/functions/v1/ocr-carta-porte', {
       method: 'POST',
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_base64: base64, mime_type: f.type })
-    })
+    }), 60000, 'OCR carta de porte')
     if (resp.status === 500) { throw new Error('El OCR aún no está activo (falta la API key). Por ahora cargá el flete manualmente — te dejé el archivo adjunto en el modal.') }
     if (!resp.ok) throw new Error('OCR '+resp.status)
     var r = await resp.json()
@@ -17136,10 +17162,17 @@ window.guardarRendCampo = function() {
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}
   var extraObj = Object.keys(haCultivoNew).length ? {hectareas_cultivo: JSON.stringify(haCultivoNew)} : {}
   sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson}, extraObj)).eq('id',campoDet).then(function(r){
-    if(r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
-      sb.from('campos').update(updateObj).eq('id',campoDet).catch(function(){})
+    if(r && r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
+      // La columna ingresos_cultivos no existe en el schema del user (migración vieja).
+      // Retry sin esa columna — con log del error para no silenciarlo del todo.
+      console.warn('guardarIngresos: columna ingresos_cultivos no disponible, retry sin JSON')
+      sb.from('campos').update(updateObj).eq('id',campoDet).then(function(rr){
+        if (rr && rr.error) console.warn('guardarIngresos retry error:', rr.error.message)
+      }).catch(function(e){ console.warn('guardarIngresos retry threw:', e && e.message) })
+    } else if (r && r.error) {
+      console.warn('guardarIngresos error:', r.error.message)
     }
-  }).catch(function(){})
+  }).catch(function(e){ console.warn('guardarIngresos threw:', e && e.message) })
 }
 
 window.seleccionarCultivoGastos = function(cult) {

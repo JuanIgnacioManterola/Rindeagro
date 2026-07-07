@@ -2142,7 +2142,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="m-tit2">Creá tu cuenta</div><div class="m-sub2">En segundos, sin tarjeta de crédito</div>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" id="r-nombre" placeholder="Juan García"/></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
-        <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
+        <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX" inputmode="tel" pattern="[+0-9\s\-\(\)]{7,}" title="Solo números, +, espacios y guiones"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
         <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres" oninput="_actualizarPassMeter('r-pass','r-pass-meter')"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div id="r-pass-meter" class="pass-meter" style="display:none"><div class="pass-meter-bar"><div class="pass-meter-fill"></div></div><div class="pass-meter-label"></div></div></div>
         <button class="fb" id="btn-reg" style="margin-top:0" onclick="regPaso3()">🌱 Crear mi cuenta en Rinde.Agro</button>
@@ -2151,7 +2151,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <!-- Inputs ocultos para que registrar() no crashee con getElementById -->
       <div style="display:none">
         <input id="r-campo" type="text" value=""/>
-        <input id="r-ha" type="number" value=""/>
+        <input id="r-ha" type="number" value="" min="0" step="0.01"/>
         <select id="r-cult"><option value="">—</option></select>
         <select id="r-ten"><option value="propio">Propio</option></select>
       </div>
@@ -2810,18 +2810,18 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
       <div class="form-row3" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175"/></div>
-        <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18"/></div>
-        <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260"/></div>
+        <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175" min="0" step="1"/></div>
+        <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18" min="0" step="1"/></div>
+        <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260" min="0" step="1"/></div>
       </div>
       <div class="form-row3" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10"/></div>
-        <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1"/></div>
-        <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1"/></div>
+        <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10" min="0" step="1"/></div>
+        <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1" min="0" max="100"/></div>
+        <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1" min="0" max="14"/></div>
       </div>
       <div class="form-row2" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1"/></div>
-        <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1"/></div>
+        <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1" min="0"/></div>
+        <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1" min="0"/></div>
       </div>
       <div class="fg" style="margin-bottom:.9rem">
         <label class="fl">Adjuntar informe (opcional)</label>

@@ -13880,18 +13880,20 @@ async function _dbMutate(opts) {
   var filter = opts.filter   // {col, val} for update/delete
   var payload = opts.payload
   var timeoutMs = opts.timeout || 3000
+  var result = null
   try {
     var sdkPromise
-    if (method === 'update') sdkPromise = sb.from(table).update(payload).eq(filter.col, filter.val)
-    else if (method === 'insert') sdkPromise = sb.from(table).insert(payload)
-    else if (method === 'delete') sdkPromise = sb.from(table).delete().eq(filter.col, filter.val)
+    if (method === 'update') sdkPromise = sb.from(table).update(payload).eq(filter.col, filter.val).select()
+    else if (method === 'insert') sdkPromise = sb.from(table).insert(payload).select()
+    else if (method === 'delete') sdkPromise = sb.from(table).delete().eq(filter.col, filter.val).select()
     else throw new Error('método inválido: '+method)
     var r = await Promise.race([
       sdkPromise,
       new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('SDK timeout')) }, timeoutMs) })
     ])
     if (r && r.error) throw r.error
-    return r
+    // El SDK devuelve {data: [...], error: null}. Extraigo data para normalizar.
+    result = r && r.data ? r.data : r
   } catch (eSdk) {
     console.warn('SDK '+method+' '+table+' falló, REST:', eSdk.message)
     var path
@@ -13899,8 +13901,15 @@ async function _dbMutate(opts) {
     else if (method === 'insert') path = '/'+table
     else if (method === 'delete') path = '/'+table+'?'+filter.col+'=eq.'+encodeURIComponent(filter.val)
     var restMethod = method === 'update' ? 'PATCH' : method === 'insert' ? 'POST' : 'DELETE'
-    return _restRequest(restMethod, path, payload)
+    result = await _restRequest(restMethod, path, payload)
   }
+  // Guard contra respuestas vacías silenciosas — pasa cuando RLS bloquea o
+  // la sesión está expirada. Sin este guard, la UI muestra "✓ Guardado"
+  // pero el registro nunca llega a DB.
+  if ((method === 'insert' || method === 'update') && Array.isArray(result) && result.length === 0) {
+    throw new Error('El servidor no confirmó la operación. Revisá tu sesión o los permisos.')
+  }
+  return result
 }
 
 async function _restRequest(method, path, body) {

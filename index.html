@@ -367,6 +367,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .pass-wrap{position:relative}
 .pass-wrap .fi{padding-right:2.8rem}
 .pass-eye{position:absolute;right:0;top:0;bottom:0;width:2.6rem;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--texto-suave);padding:0}
+.pass-meter{margin-top:6px}
+.pass-meter-bar{height:4px;background:#e5e7eb;border-radius:4px;overflow:hidden}
+.pass-meter-fill{height:100%;width:0;background:#dc2626;border-radius:4px;transition:width .25s ease, background-color .25s ease}
+.pass-meter-label{font-size:11px;margin-top:4px;color:var(--texto-suave);font-weight:600}
 .fi:focus{border-color:var(--verde)}
 .fi::placeholder{color:var(--texto-suave)}
 .fb{width:100%;padding:12px;border-radius:10px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.4rem;transition:all .2s}
@@ -612,6 +616,15 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     <span>Estás colaborando en la cuenta de <strong id="banner-col-nombre"></strong></span>
     <span style="margin-left:auto;color:#888;font-size:11px" id="banner-col-rol">Rol: Colaborador · El análisis de rentabilidad no está disponible en este modo</span>
     <button onclick="salirModoColaborador()" style="background:rgba(59,109,17,.12);border:1px solid rgba(59,109,17,.3);border-radius:7px;color:#3B6D11;font-size:11px;font-weight:700;padding:4px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:8px">← Volver a mi cuenta</button>
+  </div>
+
+  <!-- Banner trial (aparece solo si quedan ≤7 dias) -->
+  <div id="banner-trial" style="display:none;background:linear-gradient(90deg,#fef3c7,#fde68a);border-bottom:1px solid #f59e0b;padding:10px 24px;font-size:13px;color:#78350f;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:16px">⏰</span>
+    <strong id="banner-trial-msg">Tu período de prueba termina pronto</strong>
+    <span id="banner-trial-sub" style="color:#92400e;font-size:12px">Elegí un plan para no perder el acceso a tus campos.</span>
+    <button onclick="showModulo('mi-plan')" style="margin-left:auto;background:#b45309;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:800;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 6px rgba(180,83,9,.3);transition:transform .12s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">Elegir plan →</button>
+    <button onclick="_cerrarBannerTrial()" title="Ocultar por hoy" style="background:transparent;border:none;color:#78350f;font-size:16px;cursor:pointer;padding:2px 6px;opacity:.5" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">✕</button>
   </div>
 
   <!-- ── DASHBOARD ── -->
@@ -2131,7 +2144,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="r-email" placeholder="juan@email.com"/></div>
         <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
-        <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+        <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres" oninput="_actualizarPassMeter('r-pass','r-pass-meter')"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div id="r-pass-meter" class="pass-meter" style="display:none"><div class="pass-meter-bar"><div class="pass-meter-fill"></div></div><div class="pass-meter-label"></div></div></div>
         <button class="fb" id="btn-reg" style="margin-top:0" onclick="regPaso3()">🌱 Crear mi cuenta en Rinde.Agro</button>
         <div class="trial-pill"><strong>Plan gratuito para siempre</strong> · Sin tarjeta de crédito</div>
       </div>
@@ -2183,7 +2196,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="m-sub2" style="margin-bottom:0">Ingresá tu nueva contraseña</div>
     </div>
     <div class="modal-body">
-      <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <div class="fg"><label class="fl">Nueva contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass" placeholder="Mínimo 8 caracteres" oninput="_actualizarPassMeter('nueva-pass','nueva-pass-meter')"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div id="nueva-pass-meter" class="pass-meter" style="display:none"><div class="pass-meter-bar"><div class="pass-meter-fill"></div></div><div class="pass-meter-label"></div></div></div>
       <div class="fg"><label class="fl">Repetir contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="nueva-pass2" placeholder="Repetí la contraseña"/><button type="button" class="pass-eye" onclick="togglePass('nueva-pass2',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
     </div>
     <div class="modal-footer">
@@ -2735,7 +2748,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
       <div class="fg" style="margin-bottom:14px">
         <label class="fl">Nueva contraseña *</label>
-        <input class="fi" type="password" id="pw-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres"/>
+        <input class="fi" type="password" id="pw-nueva" autocomplete="new-password" placeholder="Mínimo 8 caracteres" oninput="_actualizarPassMeter('pw-nueva','pw-nueva-meter')"/>
+        <div id="pw-nueva-meter" class="pass-meter" style="display:none"><div class="pass-meter-bar"><div class="pass-meter-fill"></div></div><div class="pass-meter-label"></div></div>
         <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Al menos 8 caracteres. Ideal: mayúsculas, minúsculas y algún número.</div>
       </div>
       <div class="fg" style="margin-bottom:0">
@@ -3413,6 +3427,8 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
   document.getElementById('screen-' + name).classList.add('active')
   window.scrollTo(0, 0)
+  // Actualizar banner trial al entrar a la app
+  if (name === 'app') { try { window._actualizarBannerTrial && window._actualizarBannerTrial() } catch(e) {} }
 }
 
 // ── LANDING ──
@@ -6359,6 +6375,40 @@ window.togglePass = function(id, btn) {
       : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
   }
 }
+
+// Medidor de fortaleza de contraseña. Se llama desde oninput en los inputs
+// r-pass (registro), pw-nueva (cambio) y nueva-pass (recovery).
+// Score 0-4: longitud, mayúsculas, minúsculas, números, símbolos.
+window._passStrength = function(pass) {
+  if (!pass) return { score: 0, label: '', pct: 0, color: '#dc2626' }
+  var s = 0
+  if (pass.length >= 8) s++
+  if (pass.length >= 12) s++
+  if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) s++
+  if (/[0-9]/.test(pass)) s++
+  if (/[^A-Za-z0-9]/.test(pass)) s++
+  // Penalizar patrones débiles
+  if (/^(.)\1+$/.test(pass)) s = Math.min(s, 1) // todos iguales
+  if (/^(1234|abcd|qwer|password|contraseña|admin)/i.test(pass)) s = Math.min(s, 1)
+  s = Math.min(s, 4)
+  var labels = ['Muy débil','Débil','Regular','Buena','Muy fuerte']
+  var colors = ['#dc2626','#f97316','#eab308','#84cc16','#16a34a']
+  var pct = [10, 30, 55, 80, 100][s]
+  return { score: s, label: labels[s], pct: pct, color: colors[s] }
+}
+window._actualizarPassMeter = function(inputId, meterId) {
+  var inp = document.getElementById(inputId)
+  var meter = document.getElementById(meterId)
+  if (!inp || !meter) return
+  var pass = inp.value
+  if (!pass) { meter.style.display = 'none'; return }
+  var r = window._passStrength(pass)
+  meter.style.display = 'block'
+  var fill = meter.querySelector('.pass-meter-fill')
+  var label = meter.querySelector('.pass-meter-label')
+  if (fill) { fill.style.width = r.pct + '%'; fill.style.background = r.color }
+  if (label) { label.textContent = r.label; label.style.color = r.color }
+}
 window.registrar = async function() {
   var nombre=document.getElementById('r-nombre').value.trim()
   var email=document.getElementById('r-email').value.trim()
@@ -6611,11 +6661,13 @@ window.guardarNuevaPass = async function() {
 window.recuperarPass = async function() {
   var email=document.getElementById('l-email').value.trim()
   if(!email){showToast('⚠️ Ingresá tu email primero','err');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showToast('⚠️ Email inválido','err');return}
   try{
     var redirectTo = window.location.origin + window.location.pathname
-    await sb.auth.resetPasswordForEmail(email, {redirectTo})
-    showToast('✓ Email enviado — revisá tu bandeja de entrada','ok')
-  }catch(e){showToast('⚠️ Error al enviar email','err')}
+    const { error } = await sb.auth.resetPasswordForEmail(email, {redirectTo})
+    if (error) throw error
+    showToast('✓ Te enviamos un mail a ' + email + ' con el link para recuperar tu contraseña','ok')
+  }catch(e){showToast('⚠️ ' + (e.message || 'No pudimos enviar el mail. Intentá de nuevo.'),'err')}
 }
 // ── PLANES DE SUSCRIPCIÓN ──
 // Excepción admin — usuarios internos con acceso ilimitado sin importar el plan.
@@ -6645,6 +6697,58 @@ window._trialInfo = function() {
   if (ahora > fin) return { activo: false, fin: fin, diasRestantes: 0 }
   var diasRest = Math.max(0, Math.ceil((fin.getTime() - ahora.getTime()) / (24*60*60*1000)))
   return { activo: true, fin: fin, diasRestantes: diasRest }
+}
+
+// Banner de trial: aparece cuando quedan ≤ 7 dias en el plan gratis + trial.
+// Se auto-oculta si el user lo cerró hoy (localStorage con fecha) o si ya paga.
+window._cerrarBannerTrial = function() {
+  var el = document.getElementById('banner-trial')
+  if (el) el.style.display = 'none'
+  try {
+    var hoy = new Date().toISOString().slice(0,10)
+    localStorage.setItem('ra_banner_trial_oculto', hoy)
+  } catch(e) {}
+}
+window._actualizarBannerTrial = function() {
+  var el = document.getElementById('banner-trial')
+  if (!el) return
+  // Si el user tiene un plan pago (no 'gratis'), no mostrar
+  var planId = (usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis'
+  if (planId !== 'gratis') { el.style.display = 'none'; return }
+  // Si el user es admin ilimitado (Ignacio), no mostrar
+  if (window._esAdminIlimitado && window._esAdminIlimitado()) { el.style.display = 'none'; return }
+  var trial = window._trialInfo && window._trialInfo()
+  if (!trial) { el.style.display = 'none'; return }
+  // Si el user lo cerró hoy, respetar hasta mañana
+  try {
+    var oculto = localStorage.getItem('ra_banner_trial_oculto') || ''
+    var hoy = new Date().toISOString().slice(0,10)
+    if (oculto === hoy) { el.style.display = 'none'; return }
+  } catch(e) {}
+  // Trial expirado
+  if (!trial.activo) {
+    el.style.display = 'flex'
+    el.style.background = 'linear-gradient(90deg,#fecaca,#fca5a5)'
+    el.style.borderBottomColor = '#dc2626'
+    el.style.color = '#7f1d1d'
+    var msg = document.getElementById('banner-trial-msg')
+    var sub = document.getElementById('banner-trial-sub')
+    if (msg) msg.textContent = 'Tu período de prueba terminó'
+    if (sub) { sub.textContent = 'Elegí un plan para seguir usando la app.'; sub.style.color = '#991b1b' }
+    return
+  }
+  // Trial activo pero quedan pocos dias
+  if (trial.diasRestantes > 7) { el.style.display = 'none'; return }
+  el.style.display = 'flex'
+  var msgEl = document.getElementById('banner-trial-msg')
+  var subEl = document.getElementById('banner-trial-sub')
+  if (msgEl) {
+    var d = trial.diasRestantes
+    if (d === 0) msgEl.textContent = 'Tu período de prueba termina hoy'
+    else if (d === 1) msgEl.textContent = 'Te queda 1 día de prueba'
+    else msgEl.textContent = 'Te quedan ' + d + ' días de prueba'
+  }
+  if (subEl) subEl.textContent = 'Elegí un plan para no perder el acceso a tus campos.'
 }
 
 // Devuelve el límite de hectáreas totales permitido según el plan actual.
@@ -6944,32 +7048,50 @@ window.suscribirse = async function(planId) {
   if(!usuario) { showToast('⚠️ Debés estar logueado','err'); return }
   var plan = PLANES_INFO[planId]
   if (!plan) { showToast('⚠️ Plan inválido','err'); return }
-  var bna = (typeof precios !== 'undefined' && precios && precios.bna) ? precios.bna : 1300
-  var precioUsdIva = Math.round(plan.precio_usd * (1 + IVA_PCT/100))
-  var precioArsIva = Math.round(precioUsdIva * bna)
-  var arsStr = precioArsIva.toLocaleString('es-AR')
-  if (plan.precio_usd === 0) {
+  // Plan gratuito: cambio directo sin pasarela
+  if (plan.precio_mensual_usd === 0) {
     showToast('⏳ Cambiando al plan gratuito...', 'ok')
-  } else {
-    showToast('⏳ Generando link de pago... USD ' + precioUsdIva + ' (IVA incl.) = $' + arsStr + ' ARS', 'ok')
+    try {
+      const { error } = await sb.auth.updateUser({ data: { plan: 'gratis' } })
+      if (error) throw error
+      showToast('✓ Plan actualizado a Gratuito','ok')
+      setTimeout(function(){ try { renderMiPlan() } catch(e){} }, 500)
+    } catch(e) {
+      showToast('⚠️ ' + (e.message||'Error al cambiar de plan'),'err')
+    }
+    return
   }
-  try {
-    var r = await fetch(SERVER_URL + '/mp/crear-suscripcion', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        plan: planId, usuario_id: usuario.id, email: usuario.email,
-        anual: true, cuotas: 1,
-        precio_usd_sin_iva: plan.precio_usd,
-        precio_usd_con_iva: precioUsdIva,
-        precio_ars_con_iva: precioArsIva,
-        bna_vendedor: bna
-      })
-    })
-    var data = await r.json()
-    if(data.init_point) { window.open(data.init_point, '_blank') }
-    else { showToast('⚠️ Error: ' + (data.detail||'Intentá de nuevo'), 'err') }
-  } catch(e) { showToast('⚠️ Error de conexión', 'err') }
+  // Planes pagos: mientras no haya pasarela de pago habilitada, disparamos un
+  // mailto con el plan pre-armado al equipo de Rinde.Agro para que gestionen
+  // el alta manualmente.
+  contactarParaContratar(planId)
+}
+
+// Genera un mailto con el plan y el periodo pre-armados. Se usa desde las
+// cards de planes hasta que la pasarela de pago (MercadoPago) esté habilitada.
+window.contactarParaContratar = function(planId) {
+  var plan = PLANES_INFO[planId]
+  if (!plan) return
+  var periodo = window._mpPeriodo || 'anual'
+  var precioMensual = plan.precio_mensual_usd
+  var precioAnualDesc = Math.round(precioMensual * 12 * (1 - DESCUENTO_ANUAL_PCT/100))
+  var precioBase = periodo === 'anual' ? precioAnualDesc : precioMensual
+  var precioConIva = Math.round(precioBase * (1 + IVA_PCT/100))
+  var periodoTxt = periodo === 'anual' ? 'anual' : 'mensual'
+  var nombreUser = (usuario && (usuario.user_metadata?.nombre || usuario.email)) || ''
+  var subject = 'Quiero contratar el plan ' + plan.nombre + ' (' + periodoTxt + ') — Rinde.Agro'
+  var body = 'Hola equipo de Rinde.Agro,\n\n'
+    + 'Quiero contratar el plan ' + plan.nombre + '.\n\n'
+    + 'Detalles:\n'
+    + '- Plan: ' + plan.nombre + '\n'
+    + '- Facturación: ' + periodoTxt + '\n'
+    + '- Precio: USD ' + precioBase + ' (+ IVA 21% = USD ' + precioConIva + ')\n'
+    + (nombreUser ? '- Usuario: ' + nombreUser + '\n' : '')
+    + (usuario && usuario.email ? '- Email de la cuenta: ' + usuario.email + '\n' : '')
+    + '\nPor favor coordinemos el pago.\n\nGracias.'
+  var mailto = 'mailto:rindeagro.contacto@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body)
+  showToast('✉️ Abriendo tu mail con el plan ' + plan.nombre + '...','ok')
+  window.location.href = mailto
 }
 
 // ══════════════════════════════════════════════

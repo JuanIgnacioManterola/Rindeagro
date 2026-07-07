@@ -4198,11 +4198,22 @@ function renderRentabilidad() {
       if(detEl) detEl.style.display='none'
       return
     }
+    // Rango de campaña activa para filtrar gastos + calcular estructura
+    var _campR_sel = getCampanaRange(campanaActivaId || 'actual')
+    function _enCampR_sel(g) {
+      if (!g.fecha) return false
+      var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+      return d >= _campR_sel.start && d <= _campR_sel.end
+    }
     selEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
       campos.map(function(c,i){
         var ha=c.hectareas||0,cult=c.cultivo||'Soja'
-        var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        var cHa=ha>0?gc/ha:0
+        var gc=gastos.filter(function(g){return g.campo_id===c.id && _enCampR_sel(g)}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        // Estructura prorrateada por hectáreas al campo
+        var gEstr = 0
+        try { gEstr = window._estructuraCostoPorCampo ? window._estructuraCostoPorCampo(c.id, _campR_sel.start, _campR_sel.end) : 0 } catch(e) {}
+        var costoTotalCampo = gc + gEstr
+        var cHa=ha>0?costoTotalCampo/ha:0
         var ingTotal=_ingRealParaCampo(c), iHa=ha>0?ingTotal/ha:0
         var mg=iHa-cHa,mc=mg>=0?'#1a7a52':'#c0392b'
         var sel=c.id===campoRent
@@ -4248,7 +4259,17 @@ function renderRentabilidad() {
   var rend = campo?.rendimiento||rendEst   // solo para tabla de sensibilidad
   var prEst = cult==='Maíz'?precios.maiz:cult==='Trigo'?precios.trigo:precios.soja
   var pr = campo?.precio_venta||prEst      // solo para tabla de sensibilidad
-  var costoUSD = gf.reduce((a,g)=>a+(g.total_de_usd||0),0)
+  var costoOperativo = gf.reduce((a,g)=>a+(g.total_de_usd||0),0)
+  // Estructura: prorrateo por hectáreas del campo (o total si es 'todos')
+  var costoEstrRR = 0
+  try {
+    if (campoRent === 'todos') {
+      costoEstrRR = window._estructuraTotalEnRango ? window._estructuraTotalEnRango(_campR_rr.start, _campR_rr.end) : 0
+    } else if (campoRent) {
+      costoEstrRR = window._estructuraCostoPorCampo ? window._estructuraCostoPorCampo(campoRent, _campR_rr.start, _campR_rr.end) : 0
+    }
+  } catch(e) {}
+  var costoUSD = costoOperativo + costoEstrRR
   var costoHa = ha>0?costoUSD/ha:0
   // Ingresos reales únicamente (sin defaults)
   var _ingTotalReal = campoRent==='todos'
@@ -4278,17 +4299,24 @@ function renderRentabilidad() {
           var haCu=parseFloat((_safeJSON(c.hectareas_cultivo))[cu]||(cHa/cCults.length))
           return a + parseFloat(d.rendimiento||0)*parseFloat(d.precio_venta||0)*haCu
         },0)
-        var cGas = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
-        var cMg = cIng - cGas
-        return {nom:c.nombre, ha:cHa, ing:cIng, gas:cGas, mg:cMg}
+        var cGas = gastos.filter(function(g){return g.campo_id===c.id && _enCampR_rr(g)}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        // Estructura prorrateada por hectáreas del campo
+        var cEstr = 0
+        try { cEstr = window._estructuraCostoPorCampo ? window._estructuraCostoPorCampo(c.id, _campR_rr.start, _campR_rr.end) : 0 } catch(e) {}
+        var cMg = cIng - cGas - cEstr
+        return {nom:c.nombre, ha:cHa, ing:cIng, gas:cGas, estr:cEstr, mg:cMg}
       })
       var totIng = allRows.reduce(function(a,r){return a+r.ing},0)
       var totGas = allRows.reduce(function(a,r){return a+r.gas},0)
-      var totMg  = totIng - totGas
+      var totEstr = allRows.reduce(function(a,r){return a+r.estr},0)
+      var totMg  = totIng - totGas - totEstr
       var totCol = totMg>=0?'#1a7a52':'#c0392b'
-      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:.5px solid var(--borde)">'
+      var hayEstrRR = totEstr > 0 || (activosAmort||[]).length > 0 || (gastosEstructura||[]).length > 0
+      var colsGrid = hayEstrRR ? 'repeat(4,1fr)' : 'repeat(3,1fr)'
+      html += '<div style="display:grid;grid-template-columns:'+colsGrid+';border-bottom:.5px solid var(--borde)">'
         +'<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">💰 Ingreso bruto</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(totIng)+'</div></div>'
-        +'<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📋 Gastos</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(totGas)+'</div></div>'
+        +'<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📋 Gastos operativos</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(totGas)+'</div></div>'
+        + (hayEstrRR ? '<div style="padding:16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏛️ Estructura</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:#b91c1c">'+fU(totEstr)+'</div></div>' : '')
         +'<div style="padding:16px;background:'+(totMg>=0?'rgba(26,122,82,.05)':'rgba(192,57,43,.05)')+'"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📈 Margen neto</div><div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:'+totCol+'">'+(totMg>=0?'+':'')+fU(totMg)+'</div></div>'
         +'</div>'
       if(allRows.length > 1) {
@@ -4296,6 +4324,7 @@ function renderRentabilidad() {
           +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campo</th>'
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Ingreso</th>'
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Gastos</th>'
+          + (hayEstrRR ? '<th style="padding:8px 12px;text-align:right;font-size:11px;color:#b91c1c;font-weight:600">Estructura</th>' : '')
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600">Margen neto</th>'
           +'</tr></thead><tbody>'
           +allRows.map(function(r){
@@ -4304,6 +4333,7 @@ function renderRentabilidad() {
               +'<td style="padding:10px 12px;font-weight:600;color:var(--texto)">'+r.nom+'<br><span style="font-size:10px;font-weight:400;color:var(--texto-suave)">'+r.ha+' ha</span></td>'
               +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(r.ing)+'</td>'
               +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;color:#c0392b">'+fU(r.gas)+'</td>'
+              + (hayEstrRR ? '<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;color:#b91c1c">'+fU(r.estr)+'</td>' : '')
               +'<td style="padding:10px 12px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:'+mc3+'">'+(r.mg>=0?'+':'')+fU(r.mg)+'</td>'
               +'</tr>'
           }).join('')
@@ -4364,9 +4394,12 @@ function renderRentabilidad() {
       var ingS = ingHa*ha, gasS = costoUSD, mgS = ingS-gasS
       var mgSCol = mgS>=0?'#1a7a52':'#c0392b'
       var mgSPct = ingS>0?(mgS/ingS*100).toFixed(1):'0'
-      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr)">'
+      var hayEstrSingle = costoEstrRR > 0 || (activosAmort||[]).length > 0 || (gastosEstructura||[]).length > 0
+      var colsSingle = hayEstrSingle ? 'repeat(4,1fr)' : 'repeat(3,1fr)'
+      html += '<div style="display:grid;grid-template-columns:'+colsSingle+'">'
         +'<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💰 Ingreso bruto</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">'+fU(ingS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(ingHa)+'/ha</div></div>'
-        +'<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Gastos</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(gasS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(costoHa)+'/ha</div></div>'
+        +'<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Gastos operativos</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#c0392b">'+fU(costoOperativo)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(ha>0?costoOperativo/ha:0)+'/ha</div></div>'
+        + (hayEstrSingle ? '<div style="padding:20px 16px;border-right:.5px solid var(--borde)"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🏛️ Estructura</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:#b91c1c">'+fU(costoEstrRR)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+fU(ha>0?costoEstrRR/ha:0)+'/ha</div></div>' : '')
         +'<div style="padding:20px 16px;background:'+(mgS>=0?'rgba(26,122,82,.05)':'rgba(192,57,43,.05)')+'"><div style="font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📈 Margen neto</div><div style="font-size:24px;font-weight:700;font-family:DM Mono,monospace;color:'+mgSCol+'">'+(mgS>=0?'+':'')+fU(mgS)+'</div><div style="font-size:11px;color:var(--texto-suave);margin-top:5px">'+mgSPct+'% del ingreso</div></div>'
         +'</div>'
     }

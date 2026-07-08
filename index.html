@@ -571,7 +571,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="footer-top">
         <div><div class="footer-logo">Rinde<span class="d">.</span>Agro</div><div class="footer-desc">La plataforma agropecuaria argentina para productores que quieren saber cuánto rinde su campaña.</div></div>
         <div><div class="footer-col-tit">Producto</div><div class="footer-links"><a href="#features">Funcionalidades</a><a href="#planes">Precios</a></div></div>
-        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="mailto:rindeagro.contacto@gmail.com">rindeagro.contacto@gmail.com</a><a href="javascript:void(0)">Términos</a><a href="javascript:void(0)">Privacidad</a></div></div>
+        <div><div class="footer-col-tit">Contacto</div><div class="footer-links"><a href="mailto:rindeagro.contacto@gmail.com">rindeagro.contacto@gmail.com</a><a href="javascript:void(0)" onclick="openModalTerminos()">Términos</a><a href="javascript:void(0)" onclick="openModalPrivacidad()">Privacidad</a></div></div>
       </div>
       <div class="footer-bottom"><div class="footer-copy">© 2026 Rinde.Agro · Hecho en Argentina 🇦🇷</div></div>
     </div>
@@ -2149,6 +2149,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         <div class="fg"><label class="fl">WhatsApp</label><input class="fi" type="tel" id="r-wa" placeholder="+54 9 358 4XX-XXXX" inputmode="tel" pattern="[+0-9\s\-\(\)]{7,}" title="Solo números, +, espacios y guiones"/></div>
         <div class="fg"><label class="fl">Provincia</label><select class="fi" id="r-prov" style="cursor:pointer"><option value="">Seleccioná</option><option>Córdoba</option><option>Buenos Aires</option><option>Santa Fe</option><option>Entre Ríos</option><option>La Pampa</option><option>Otra</option></select></div>
         <div class="fg"><label class="fl">Contraseña</label><div class="pass-wrap"><input class="fi" type="password" id="r-pass" placeholder="Mínimo 8 caracteres" oninput="_actualizarPassMeter('r-pass','r-pass-meter')"/><button type="button" class="pass-eye" onclick="togglePass('r-pass',this)" tabindex="-1" title="Mostrar contraseña"><svg id="eye-r-pass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div id="r-pass-meter" class="pass-meter" style="display:none"><div class="pass-meter-bar"><div class="pass-meter-fill"></div></div><div class="pass-meter-label"></div></div></div>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12px;color:var(--texto-mid);line-height:1.45;margin:6px 0 12px">
+          <input type="checkbox" id="r-legales" style="margin-top:2px;width:15px;height:15px;accent-color:var(--verde);cursor:pointer;flex-shrink:0"/>
+          <span>Acepto los <a href="javascript:void(0)" onclick="event.stopPropagation();openModalTerminos()" style="color:var(--verde);font-weight:600;text-decoration:underline">Términos y Condiciones</a> y la <a href="javascript:void(0)" onclick="event.stopPropagation();openModalPrivacidad()" style="color:var(--verde);font-weight:600;text-decoration:underline">Política de Privacidad</a>.</span>
+        </label>
         <button class="fb" id="btn-reg" style="margin-top:0" onclick="regPaso3()">🌱 Crear mi cuenta en Rinde.Agro</button>
         <div class="trial-pill"><strong>Plan gratuito para siempre</strong> · Sin tarjeta de crédito</div>
       </div>
@@ -2771,6 +2775,133 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer">
       <button class="fb" id="btn-cambiar-pw" onclick="guardarCambioPassword()">Cambiar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TÉRMINOS Y CONDICIONES -->
+<div class="overlay" id="ov-terminos">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalTerminos()">✕</button>
+      <div class="m-tit">📋 Términos y Condiciones</div>
+      <div class="m-sub" style="margin-bottom:0">Última actualización: julio 2026</div>
+    </div>
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto;padding-right:8px">
+      <div style="font-size:13px;color:var(--texto-mid);line-height:1.7">
+
+        <p><strong>1. Aceptación de los Términos</strong></p>
+        <p>Al registrarte, acceder o utilizar Rinde.Agro (en adelante, "el Servicio"), operado por Rinde.Agro (en adelante, "nosotros", "nuestro"), aceptás estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo, no podés usar el Servicio.</p>
+
+        <p><strong>2. Descripción del Servicio</strong></p>
+        <p>Rinde.Agro es una plataforma SaaS para la gestión agropecuaria en Argentina que permite registrar campos, cultivos, gastos, ingresos, análisis de suelo, lluvias, pagos, tareas y otra información operativa. La plataforma provee herramientas de cálculo de rentabilidad, comparativas entre campañas y exportación de informes.</p>
+
+        <p><strong>3. Registro y Cuenta de Usuario</strong></p>
+        <p>Para usar el Servicio debés crear una cuenta con datos verídicos (nombre, email, teléfono/WhatsApp, provincia). Sos responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta. Debés notificarnos de inmediato ante cualquier uso no autorizado.</p>
+
+        <p><strong>4. Planes y Facturación</strong></p>
+        <p>Rinde.Agro ofrece un <strong>período de prueba gratuito de 30 días</strong> sin necesidad de tarjeta de crédito. Al finalizar, podés elegir uno de nuestros planes pagos (Semilla, Germinación, Floración, Maduración o Cosecha) con facturación mensual o anual. Los precios se expresan en USD sin IVA y se abonan en pesos argentinos al tipo de cambio Divisa Vendedor del Banco Nación del día. Al monto final se suma IVA del 21% para consumidores finales en Argentina.</p>
+        <p>La suscripción es de renovación automática. Podés cancelar en cualquier momento; el acceso continuará hasta el final del período pagado. No hacemos reembolsos por períodos parciales ya facturados.</p>
+
+        <p><strong>5. Uso Permitido y Prohibido</strong></p>
+        <p>Te comprometés a usar el Servicio únicamente para fines lícitos, relacionados con la gestión agropecuaria. Queda prohibido: (a) intentar acceder a cuentas de otros usuarios; (b) hacer ingeniería inversa del Servicio; (c) usar el Servicio para actividades ilegales o fraudulentas; (d) cargar contenido difamatorio o que infrinja derechos de terceros; (e) usar bots o scripts automatizados no autorizados.</p>
+
+        <p><strong>6. Propiedad de tus Datos</strong></p>
+        <p>Los datos operativos que cargás (campos, gastos, cultivos, análisis, etc.) son de tu propiedad. Rinde.Agro solo los procesa para prestarte el Servicio. Podés exportar tus datos en cualquier momento desde la app en formato JSON o CSV. En caso de dar de baja tu cuenta, los datos se conservan por 30 días adicionales por si querés reactivarla, y luego se eliminan de forma permanente.</p>
+
+        <p><strong>7. Propiedad Intelectual del Servicio</strong></p>
+        <p>El código fuente, el diseño, la marca "Rinde.Agro" y todos los materiales del Servicio son propiedad exclusiva nuestra. Este acuerdo te otorga una licencia limitada, no exclusiva e intransferible para usar el Servicio; no te transfiere ningún derecho de propiedad intelectual.</p>
+
+        <p><strong>8. Disponibilidad del Servicio</strong></p>
+        <p>Nos esforzamos por mantener el Servicio disponible 24/7 pero no garantizamos disponibilidad ininterrumpida. Podemos suspender el Servicio por mantenimiento programado, actualizaciones o incidentes. No somos responsables de la pérdida de datos causada por fallas de conectividad del usuario o de terceros (Supabase, GitHub Pages, MercadoPago, etc.).</p>
+
+        <p><strong>9. Limitación de Responsabilidad</strong></p>
+        <p>El Servicio se provee "tal como está". Las estimaciones de rentabilidad, precios de mercado y cálculos que muestra la app son a título informativo — <strong>no constituyen asesoramiento financiero, agronómico ni contable</strong>. La toma de decisiones basada en la información del Servicio es responsabilidad exclusiva del usuario. En ningún caso Rinde.Agro será responsable por daños indirectos, lucro cesante o pérdida de datos que excedan el monto pagado por el usuario en los últimos 12 meses.</p>
+
+        <p><strong>10. Modificaciones</strong></p>
+        <p>Podemos actualizar estos Términos cuando sea necesario. Te avisaremos con al menos 15 días de anticipación por email a la dirección registrada. Si continuás usando el Servicio después de la entrada en vigor, se considera aceptación.</p>
+
+        <p><strong>11. Rescisión</strong></p>
+        <p>Podés dar de baja tu cuenta en cualquier momento. Nosotros podemos suspender o cerrar tu cuenta si violás estos Términos, con notificación previa razonable. En caso de rescisión, tu derecho a usar el Servicio termina de inmediato.</p>
+
+        <p><strong>12. Ley Aplicable y Jurisdicción</strong></p>
+        <p>Estos Términos se rigen por las leyes de la República Argentina. Cualquier controversia se someterá a los tribunales ordinarios con jurisdicción en la Ciudad Autónoma de Buenos Aires, con renuncia expresa a cualquier otro fuero.</p>
+
+        <p><strong>13. Contacto</strong></p>
+        <p>Para cualquier consulta sobre estos Términos podés escribirnos a <a href="mailto:rindeagro.contacto@gmail.com" style="color:var(--verde);font-weight:600">rindeagro.contacto@gmail.com</a>.</p>
+
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin-top:16px;font-size:12px;color:#78350f;line-height:1.6">
+          <strong>Nota:</strong> Este documento es un template inicial de términos de servicio SaaS. Antes de operar comercialmente a gran escala te recomendamos revisarlo con un asesor legal para adaptarlo a la naturaleza específica de tu operación y a las regulaciones vigentes en Argentina (Ley 24.240 de Defensa del Consumidor, Ley 25.326 de Protección de Datos Personales, etc.).
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL POLÍTICA DE PRIVACIDAD -->
+<div class="overlay" id="ov-privacidad">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <button class="m-close" onclick="closeModalPrivacidad()">✕</button>
+      <div class="m-tit">🔒 Política de Privacidad</div>
+      <div class="m-sub" style="margin-bottom:0">Última actualización: julio 2026</div>
+    </div>
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto;padding-right:8px">
+      <div style="font-size:13px;color:var(--texto-mid);line-height:1.7">
+
+        <p>En Rinde.Agro respetamos tu privacidad. Esta política describe qué datos recopilamos, cómo los usamos y cuáles son tus derechos, en conformidad con la <strong>Ley 25.326 de Protección de Datos Personales</strong> de la República Argentina.</p>
+
+        <p><strong>1. Qué datos recopilamos</strong></p>
+        <p><strong>Datos de registro:</strong> nombre completo, email, número de WhatsApp, provincia. Los usás para autenticarte y para que podamos contactarte.</p>
+        <p><strong>Datos operativos:</strong> información que cargás voluntariamente sobre tus campos (hectáreas, ubicación, cultivos), gastos, ingresos, análisis de suelo, lluvias, pagos, tareas y demás datos operativos.</p>
+        <p><strong>Datos técnicos:</strong> dirección IP, tipo de navegador, sistema operativo y timestamps de acceso — recopilados automáticamente para seguridad y prevención de fraude.</p>
+        <p><strong>Cookies y almacenamiento local:</strong> usamos localStorage y sessionStorage para mantener tu sesión iniciada, recordar preferencias (moneda, período de facturación, filtros) y guardar el token de autenticación. No usamos cookies de terceros para publicidad.</p>
+
+        <p><strong>2. Cómo usamos tus datos</strong></p>
+        <p>Los datos se usan exclusivamente para: (a) prestarte el Servicio y todas sus funciones; (b) enviarte notificaciones importantes por email o WhatsApp (recordatorios de pagos, alertas de precio, resúmenes semanales, si habilitaste esas notificaciones); (c) mejorar el Servicio en base a métricas de uso agregadas y anónimas; (d) cumplir obligaciones legales y contables.</p>
+        <p><strong>No vendemos, alquilamos ni compartimos tus datos personales con terceros para fines publicitarios.</strong></p>
+
+        <p><strong>3. Con quién compartimos datos</strong></p>
+        <p>Compartimos datos únicamente con proveedores necesarios para operar el Servicio:</p>
+        <ul style="padding-left:20px;margin:6px 0 12px">
+          <li><strong>Supabase</strong> (US-East / Sudamérica) — hosting de base de datos y autenticación.</li>
+          <li><strong>GitHub Pages</strong> (CDN global) — hosting del frontend.</li>
+          <li><strong>MercadoPago</strong> — procesamiento de pagos de suscripción (cuando esté activo).</li>
+          <li><strong>Twilio / WhatsApp Business API</strong> — envío de mensajes de notificación (cuando esté activo).</li>
+          <li><strong>Anthropic</strong> — procesamiento de OCR para facturas y cartas de porte (cuando esté activo). Las imágenes que subís se envían para su análisis y no se conservan en sus servidores.</li>
+        </ul>
+        <p>Cada uno de estos proveedores tiene sus propias políticas de privacidad y estándares de seguridad.</p>
+
+        <p><strong>4. Cuánto tiempo conservamos tus datos</strong></p>
+        <p>Mientras tu cuenta esté activa, conservamos tus datos. Si das de baja tu cuenta, los conservamos 30 días adicionales para permitir reactivación, y luego los eliminamos de forma permanente. Los datos de facturación se conservan por 10 años según requiere la legislación fiscal argentina.</p>
+
+        <p><strong>5. Seguridad</strong></p>
+        <p>Aplicamos medidas técnicas y organizativas para proteger tus datos: cifrado TLS en tránsito, contraseñas hasheadas con bcrypt, Row-Level Security en la base de datos (cada usuario solo accede a sus datos), backups automáticos. Aún así, ningún sistema es 100% seguro; te recomendamos usar una contraseña fuerte y no compartirla.</p>
+
+        <p><strong>6. Tus Derechos (Derechos ARCO)</strong></p>
+        <p>Conforme a la Ley 25.326, tenés derecho a:</p>
+        <ul style="padding-left:20px;margin:6px 0 12px">
+          <li><strong>Acceso</strong> — pedir qué datos tenemos sobre vos.</li>
+          <li><strong>Rectificación</strong> — corregir datos inexactos.</li>
+          <li><strong>Cancelación</strong> — pedir que borremos tus datos.</li>
+          <li><strong>Oposición</strong> — oponerte al tratamiento de tus datos.</li>
+        </ul>
+        <p>Para ejercer estos derechos, escribinos a <a href="mailto:rindeagro.contacto@gmail.com" style="color:var(--verde);font-weight:600">rindeagro.contacto@gmail.com</a>. Respondemos en un plazo máximo de 10 días hábiles.</p>
+        <p>Desde la propia app también podés exportar todos tus datos (Menú → Backup → Exportar JSON) y borrar tu cuenta (contactándonos).</p>
+
+        <p><strong>7. Menores de edad</strong></p>
+        <p>El Servicio está dirigido a mayores de 18 años. No recopilamos deliberadamente datos de menores. Si te enterás de que un menor cargó datos, contactanos y los eliminaremos.</p>
+
+        <p><strong>8. Cambios en esta Política</strong></p>
+        <p>Podemos actualizar esta política. Te avisaremos por email 15 días antes de cualquier cambio significativo. La versión vigente siempre estará disponible en la app.</p>
+
+        <p><strong>9. Autoridad de Control</strong></p>
+        <p>La Agencia de Acceso a la Información Pública (<a href="https://www.argentina.gob.ar/aaip" target="_blank" rel="noopener" style="color:var(--verde);font-weight:600">www.argentina.gob.ar/aaip</a>) es el organismo de control de la Ley 25.326. Ante cualquier reclamo, podés dirigirte a nosotros primero y, en caso de no llegar a una solución, ante esa autoridad.</p>
+
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin-top:16px;font-size:12px;color:#78350f;line-height:1.6">
+          <strong>Nota:</strong> Este documento es un template inicial. Antes de operar comercialmente te recomendamos que un asesor legal lo revise y adapte a la naturaleza específica de los datos que efectivamente procesás.
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -6364,9 +6495,11 @@ window.regPaso3 = function() {
   var nombre=document.getElementById('r-nombre').value.trim()
   var email=document.getElementById('r-email').value.trim()
   var pass=document.getElementById('r-pass').value
+  var legalesEl = document.getElementById('r-legales')
   if(!nombre){showToast('⚠️ Ingresá tu nombre','err');return}
   if(!email){showToast('⚠️ Ingresá tu email','err');return}
   if(!pass||pass.length<8){showToast('⚠️ Contraseña mínimo 8 caracteres','err');return}
+  if(legalesEl && !legalesEl.checked){showToast('⚠️ Aceptá los Términos y la Política de Privacidad para continuar','err');return}
   registrar()
 }
 function _initMapReg() {
@@ -7358,6 +7491,26 @@ window.openModalAyuda = function() {
 }
 window.closeModalAyuda = function() {
   document.getElementById('ov-ayuda').classList.remove('open')
+}
+// ══════════════════════════════════════════════════════════════════════════
+// MODALES LEGALES (Términos y Condiciones + Política de Privacidad)
+// ══════════════════════════════════════════════════════════════════════════
+window.openModalTerminos = function() {
+  var ov = document.getElementById('ov-terminos'); if (!ov) return
+  ov.classList.add('open')
+  // Reset scroll al abrir
+  var body = ov.querySelector('.modal-body'); if (body) body.scrollTop = 0
+}
+window.closeModalTerminos = function() {
+  document.getElementById('ov-terminos').classList.remove('open')
+}
+window.openModalPrivacidad = function() {
+  var ov = document.getElementById('ov-privacidad'); if (!ov) return
+  ov.classList.add('open')
+  var body = ov.querySelector('.modal-body'); if (body) body.scrollTop = 0
+}
+window.closeModalPrivacidad = function() {
+  document.getElementById('ov-privacidad').classList.remove('open')
 }
 // Abre Gmail en una tab nueva con el mail pre-armado. Funciona en cualquier
 // navegador sin depender de que el user tenga un cliente de mail configurado.

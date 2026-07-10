@@ -284,6 +284,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .met-l{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:8px;margin-top:3px}
 .met-v{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
 .met-s{font-size:13px;color:var(--texto-suave);margin-top:6px;font-weight:500}
+.met-spark{margin-top:12px;width:100%;overflow:hidden}
+.met-spark svg{width:100%;height:32px;display:block}
+.met-spark-lbl{font-size:10px;color:var(--texto-suave);margin-top:2px;font-weight:500;letter-spacing:.03em}
 
 /* PRECIO STRIP */
 .precio-strip{background:linear-gradient(135deg,var(--verde) 0%,var(--verde-mid) 100%);border:none;border-radius:16px;padding:1rem 1.5rem;display:flex;align-items:center;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;box-shadow:0 6px 24px rgba(26,74,46,.2)}
@@ -4518,6 +4521,108 @@ function _ingRealParaCampo(c) {
   return total
 }
 
+// ── Series temporales para los sparklines del dashboard ─────────────────────
+// Devuelven array de {mes:'YYYY-MM', valor:N} con los ultimos N meses. Los
+// meses sin datos aparecen con valor 0 (para que el sparkline no salte).
+function _serieMensualGenerica(items, campoFecha, campoValor, meses) {
+  if (!Array.isArray(items) || !items.length) return []
+  var hoy = new Date()
+  var buckets = []
+  for (var i = meses - 1; i >= 0; i--) {
+    var d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1)
+    var k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')
+    buckets.push({ mes: k, valor: 0 })
+  }
+  items.forEach(function(item){
+    var f = item[campoFecha]; if (!f) return
+    var d = new Date(String(f).length===10 ? f+'T00:00:00' : f)
+    if (isNaN(d.getTime())) return
+    var k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')
+    var b = buckets.find(function(x){ return x.mes === k })
+    if (b) {
+      var v = campoValor === 'count' ? 1 : (parseFloat(item[campoValor]) || 0)
+      b.valor += v
+    }
+  })
+  return buckets
+}
+function _serieMensualGastos(meses) {
+  var g = (typeof gastos !== 'undefined' && Array.isArray(gastos)) ? gastos : []
+  return _serieMensualGenerica(g, 'fecha', 'total_de_usd', meses)
+}
+function _serieMensualLluvias(meses) {
+  var l = (typeof lluvias !== 'undefined' && Array.isArray(lluvias)) ? lluvias : []
+  return _serieMensualGenerica(l, 'fecha', 'mm', meses)
+}
+function _serieMensualIngresos(meses) {
+  // Los ingresos vienen del JSON ingresos_cultivos.ventas[] de cada campo.
+  var items = []
+  var cs = (typeof campos !== 'undefined' && Array.isArray(campos)) ? campos : []
+  cs.forEach(function(c){
+    try {
+      var ic = c.ingresos_cultivos ? (typeof c.ingresos_cultivos === 'string' ? JSON.parse(c.ingresos_cultivos) : c.ingresos_cultivos) : null
+      if (!ic) return
+      Object.keys(ic).forEach(function(cult){
+        var d = ic[cult]; if (!d || !Array.isArray(d.ventas)) return
+        d.ventas.forEach(function(v){
+          if (v.tipo === 'spot' && v.fecha && v.tn && v.precio) {
+            items.push({ fecha: v.fecha, monto: (parseFloat(v.tn)||0) * (parseFloat(v.precio)||0) })
+          }
+        })
+      })
+    } catch(e) {}
+  })
+  return _serieMensualGenerica(items, 'fecha', 'monto', meses)
+}
+function _totalLluviasCampana() {
+  var l = (typeof lluvias !== 'undefined' && Array.isArray(lluvias)) ? lluvias : []
+  if (!l.length) return 0
+  var rango = null
+  try { rango = getCampanaRange && campanaActivaId && getCampanaRange(campanaActivaId) } catch(e) {}
+  return l.filter(function(x){
+    if (!rango) return true
+    var d = new Date(String(x.fecha).length===10 ? x.fecha+'T00:00:00' : x.fecha)
+    return d >= rango.d1 && d <= rango.d2
+  }).reduce(function(a, x){ return a + (parseFloat(x.mm)||0) }, 0)
+}
+// Genera SVG de sparkline. tipo: 'line' | 'area' | 'bars'
+function _sparklineSVG(serie, color, tipo) {
+  if (!Array.isArray(serie) || serie.length < 2) return ''
+  var w = 120, h = 32
+  var valores = serie.map(function(p){ return p.valor })
+  var maxV = Math.max.apply(null, valores)
+  var minV = Math.min.apply(null, valores)
+  if (maxV === minV) { maxV = maxV + 1; minV = 0 }
+  var rango = maxV - minV
+  var stepX = w / (serie.length - 1)
+  var puntos = serie.map(function(p, i){
+    var x = i * stepX
+    var y = h - 4 - ((p.valor - minV) / rango) * (h - 8)
+    return [x, y]
+  })
+  if (tipo === 'bars') {
+    var bw = Math.max(3, stepX - 3)
+    var bars = serie.map(function(p, i){
+      var vy = (p.valor - minV) / rango
+      var bh = Math.max(2, vy * (h - 4))
+      var bx = i * stepX - bw/2
+      if (bx < 0) bx = 0
+      return '<rect x="'+bx.toFixed(1)+'" y="'+(h - bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+color+'" rx="1" opacity="0.85"/>'
+    }).join('')
+    return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:32px;display:block" preserveAspectRatio="none">'+bars+'</svg>'
+  }
+  var polyPts = puntos.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1) }).join(' ')
+  var area = ''
+  if (tipo === 'area') {
+    var areaPts = polyPts + ' ' + w + ',' + h + ' 0,' + h
+    area = '<polygon points="'+areaPts+'" fill="'+color+'" opacity="0.1"/>'
+  }
+  var lastPt = puntos[puntos.length-1]
+  var line = '<polyline points="'+polyPts+'" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+  var dot = '<circle cx="'+lastPt[0].toFixed(1)+'" cy="'+lastPt[1].toFixed(1)+'" r="2.5" fill="'+color+'"/>'
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:32px;display:block" preserveAspectRatio="none">'+area+line+dot+'</svg>'
+}
+
 function _renderDashboardProductor() {
   var totalHa=0,ing=0,cost=0
   campos.forEach(function(c) {
@@ -4529,12 +4634,31 @@ function _renderDashboardProductor() {
   var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
   var dashMets = document.getElementById('dash-mets')
   if(!dashMets) return
+  // Calcular series temporales para sparklines (por mes, ultimos 6 meses)
+  var serieGastos = _serieMensualGastos(6)
+  var serieLluvias = _serieMensualLluvias(6)
+  var serieIngresos = _serieMensualIngresos(6)
+  var totalLluviasCampana = _totalLluviasCampana()
+
   dashMets.innerHTML = [
-    {l:'Hectáreas',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a4a2e'},
-    {l:'Ingresos',v:'USD '+Math.round(ing/1000)+'k',s:ing>0?'Total cargado':'Sin ingresos cargados',c:'#1a5fa8'},
-    {l:'Margen neto',v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k',s:ing>0?pct+'% del ingreso':'',c:mg>=0?'#1a7a52':'#c0392b'},
-    {l:'Campos activos',v:campos.length,s:'Esta campaña',c:'#c9a84c'},
-  ].map(m=>`<div class="met"><div class="met-acc" style="background:${m.c}"></div><div class="met-l">${m.l}</div><div class="met-v" style="color:${m.c}">${m.v}</div><div class="met-s">${m.s}</div></div>`).join('')
+    { l:'Total gastos', v:'USD '+Math.round(cost/1000)+'k', s:cost>0?'Esta campaña':'Sin gastos cargados', c:'#dc2626', serie:serieGastos, tipo:'line' },
+    { l:'Lluvias campaña', v:Math.round(totalLluviasCampana)+' mm', s:totalLluviasCampana>0?'Registradas':'Sin lluvias', c:'#1a5fa8', serie:serieLluvias, tipo:'bars' },
+    { l:'Ingresos', v:'USD '+Math.round(ing/1000)+'k', s:ing>0?'Total cargado':'Sin ingresos', c:'#1a7a52', serie:serieIngresos, tipo:'area' },
+    { l:'Margen neto', v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k', s:ing>0?pct+'% del ingreso':'', c:mg>=0?'#639922':'#c0392b', serie:null, tipo:null }
+  ].map(function(m){
+    var spark = ''
+    if (m.serie && m.serie.length >= 2) {
+      spark = '<div class="met-spark">'+ _sparklineSVG(m.serie, m.c, m.tipo) +'</div>'
+      spark += '<div class="met-spark-lbl">Últimos '+m.serie.length+' meses</div>'
+    }
+    return '<div class="met">'
+      + '<div class="met-acc" style="background:'+m.c+'"></div>'
+      + '<div class="met-l">'+m.l+'</div>'
+      + '<div class="met-v" style="color:'+m.c+'">'+m.v+'</div>'
+      + '<div class="met-s">'+m.s+'</div>'
+      + spark
+      + '</div>'
+  }).join('')
 
   var tit = document.getElementById('dash-campos-tit')
   var btn = document.getElementById('dash-campos-btn')

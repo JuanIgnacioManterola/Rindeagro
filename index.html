@@ -9,6 +9,11 @@
 <title>Rinde.Agro · Plataforma agropecuaria argentina</title>
 <meta name="description" content="Rentabilidad, precios de Rosario, análisis de suelo y registro agronómico — todo desde el celular."/>
 <link rel="icon" type="image/svg+xml" href="/assets/og-image.svg"/>
+<link rel="apple-touch-icon" href="/assets/icon-192.svg"/>
+<link rel="manifest" href="/manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Rinde.Agro"/>
 <!-- Open Graph (WhatsApp, Facebook, LinkedIn, Slack) -->
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Rinde.Agro"/>
@@ -3374,6 +3379,16 @@ window._loadingTimeout = setTimeout(function() {
     _mostrarLandingPorTimeout()
   } catch(ex) { _mostrarLandingPorTimeout() }
 }, 8000)
+
+// PWA — registrar service worker para habilitar "Instalar app" en Chrome/Edge/Safari.
+// El SW es minimo (network-first sin cache) — solo existe para que el browser
+// nos ofrezca instalar. Se skippea si estamos en localhost:8787 (preview) para
+// evitar caching en desarrollo.
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW register:', e && e.message) })
+  })
+}
 </script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'

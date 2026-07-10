@@ -369,10 +369,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 #kmz-dropzone:hover{border-color:var(--verde)!important;background:var(--verde-pale)}
 
 /* EMPTY */
-.empty{text-align:center;padding:2.5rem 1rem;color:var(--texto-suave)}
-.empty-i{font-size:36px;margin-bottom:.75rem}
-.empty-t{font-size:14px;font-weight:500;color:var(--texto-mid);margin-bottom:.5rem}
-.empty-s{font-size:12px;line-height:1.65;margin-bottom:1.25rem}
+.empty{text-align:center;padding:3rem 1.5rem;color:var(--texto-suave);background:linear-gradient(180deg,var(--verde-pale) 0%,#fff 60%);border-radius:16px;border:1.5px dashed var(--verde-mid);max-width:520px;margin:0 auto}
+.empty-i{font-size:56px;margin-bottom:1rem;line-height:1;display:block;filter:drop-shadow(0 4px 8px rgba(26,74,46,.12))}
+.empty-t{font-size:17px;font-weight:800;color:var(--verde);margin-bottom:.6rem;font-family:'DM Sans',sans-serif;line-height:1.25}
+.empty-s{font-size:13px;line-height:1.65;color:var(--texto-mid);margin-bottom:1.5rem;max-width:400px;margin-left:auto;margin-right:auto}
+.empty-cta{display:inline-flex;align-items:center;gap:8px;background:var(--verde);color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 12px rgba(26,74,46,.2);transition:all .15s;text-decoration:none}
+.empty-cta:hover{background:var(--verde-mid);transform:translateY(-1px);box-shadow:0 6px 16px rgba(26,74,46,.3)}
+.empty-cta-alt{background:transparent;color:var(--verde);border:1.5px solid var(--verde);box-shadow:none;margin-left:8px}
+.empty-cta-alt:hover{background:var(--verde-pale);color:var(--verde)}
+.empty-tip{font-size:11px;color:var(--texto-suave);margin-top:1.25rem;padding-top:1.25rem;border-top:.5px solid var(--borde);line-height:1.6}
+.empty-tip strong{color:var(--verde-mid)}
 
 /* MODALES */
 .overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -4517,7 +4523,14 @@ function _renderDashboardProductor() {
   var el = document.getElementById('dash-campos')
   if (!el) return
   if (!campos.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo para ver tu rentabilidad.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px;font-size:13px">+ Agregar campo</button></div>`
+    el.innerHTML = window._emptyState({
+      ico: '🌾',
+      titulo: 'Todavía no cargaste ningún campo',
+      desc: 'Registrá tu primer lote — nombre, hectáreas y cultivo — y en 2 minutos ya vas a poder ver la rentabilidad al instante.',
+      ctaText: '+ Crear mi primer campo',
+      ctaAction: 'openModalCampo()',
+      tip: 'Podés dibujar el polígono sobre un mapa para calcular las hectáreas automáticamente.'
+    })
   } else {
     el.innerHTML = campos.map((c,i)=>{
       var ha=c.hectareas||0, cult=c.cultivo||'Soja'
@@ -12994,7 +13007,14 @@ function _renderEstructuraAmort() {
     ? '<strong>'+lista.length+' activo'+(lista.length!==1?'s':'')+'</strong> · Valor total: <strong>USD '+Math.round(totalActivos).toLocaleString('es-AR')+'</strong> · Amortización anual: <strong style="color:var(--rojo)">USD '+Math.round(totalCuotaAnual).toLocaleString('es-AR')+'/año</strong>'
     : ''
   if (!lista.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-i">🚜</div><div class="empty-t">Sin activos cargados</div><div class="empty-s">Cargá tus vehículos, herramientas o construcciones para prorratearlos automáticamente.</div></div>'
+    el.innerHTML = window._emptyState({
+      ico:'🚜',
+      titulo:'Sin activos cargados todavía',
+      desc:'Camionetas, cosechadoras, silos, tanques… Todo lo que tenga valor y vida útil se amortiza automáticamente y se prorratea entre tus campos.',
+      ctaText:'+ Cargar mi primer activo',
+      ctaAction:'openModalActivo()',
+      tip:'Podés subir la factura del vehículo o máquina y el sistema lee <strong>valor, fecha y descripción</strong> automáticamente.'
+    })
     return
   }
   el.innerHTML = lista.map(function(a){
@@ -13041,7 +13061,14 @@ function _renderEstructuraGastos() {
     ? '<strong>'+lista.length+' gasto'+(lista.length!==1?'s':'')+' cargado'+(lista.length!==1?'s':'')+'</strong> · Estimado anual (mensuales × 12 + anuales): <strong style="color:var(--rojo)">USD '+Math.round(totalAnual).toLocaleString('es-AR')+'/año</strong>'
     : ''
   if (!lista.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-i">💼</div><div class="empty-t">Sin gastos generales</div><div class="empty-s">Cargá sueldos, contador, seguros, oficina y todo lo que sirva a varios campos.</div></div>'
+    el.innerHTML = window._emptyState({
+      ico:'💼',
+      titulo:'Sin gastos generales cargados',
+      desc:'Sueldos, honorarios del contador y del agrónomo, seguros, oficina, combustible general. Todo lo que no es de un campo específico sino de la empresa.',
+      ctaText:'+ Cargar mi primer gasto',
+      ctaAction:'openModalGastoEstructura()',
+      tip:'Estos gastos se distribuyen automáticamente entre todos tus campos activos.'
+    })
     return
   }
   el.innerHTML = lista.map(function(g){
@@ -14499,6 +14526,30 @@ window.descargarBackupXLSX = function() {
   }
 }
 
+// Genera el HTML para un empty state. Se usa en secciones sin datos.
+// Formato uniforme: icono grande, titulo verde, descripcion breve, boton
+// principal + opcional secundario, tip al pie opcional.
+// opts = { ico, titulo, desc, ctaText, ctaAction, ctaAltText, ctaAltAction, tip }
+window._emptyState = function(opts) {
+  opts = opts || {}
+  var cta = ''
+  if (opts.ctaText && opts.ctaAction) {
+    cta = '<div><button class="empty-cta" onclick="'+opts.ctaAction.replace(/"/g,'&quot;')+'">'+opts.ctaText+'</button>'
+    if (opts.ctaAltText && opts.ctaAltAction) {
+      cta += '<button class="empty-cta empty-cta-alt" onclick="'+opts.ctaAltAction.replace(/"/g,'&quot;')+'">'+opts.ctaAltText+'</button>'
+    }
+    cta += '</div>'
+  }
+  var tip = opts.tip ? '<div class="empty-tip">💡 '+opts.tip+'</div>' : ''
+  return '<div class="empty">'
+    + '<div class="empty-i">'+(opts.ico||'📋')+'</div>'
+    + '<div class="empty-t">'+(opts.titulo||'Sin datos')+'</div>'
+    + (opts.desc ? '<div class="empty-s">'+opts.desc+'</div>' : '')
+    + cta
+    + tip
+    + '</div>'
+}
+
 // Helper para envolver funciones async en un estado "loading" del botón que
 // las dispara. Uso desde onclick: `onclick="_wrapLoading(this, guardarGasto)"`.
 // Guarda el HTML original del boton, lo reemplaza con spinner + "Guardando…",
@@ -14617,7 +14668,14 @@ window.renderCamposLista = function() {
   var el = document.getElementById('campos-lista-cards')
   if (!el) return
   if (!campos.length) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos registrados</div><div class="empty-s">Agregá tu primer campo.</div><button class="btn-vs" onclick="openModalCampo()" style="padding:10px 24px">+ Agregar campo</button></div></div>'
+    el.innerHTML = '<div class="card">' + window._emptyState({
+      ico:'🌾',
+      titulo:'Empezá creando tu primer campo',
+      desc:'Un lote nuevo con nombre, hectáreas y cultivo. Después vas a poder cargarle gastos, ingresos, análisis de suelo y ver la rentabilidad.',
+      ctaText:'+ Crear mi primer campo',
+      ctaAction:'openModalCampo()',
+      tip:'Después vas a poder agregar todos los que quieras según tu plan.'
+    }) + '</div>'
     return
   }
   var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']

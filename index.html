@@ -211,6 +211,31 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .anl{font-size:15px;padding:9px 16px;border-radius:9px;border:none;background:transparent;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:6px;font-weight:500}
 .anl:hover{background:var(--crema);color:var(--verde)}
 .anl.active{background:var(--verde-pale);color:var(--verde);font-weight:500}
+/* Campanita de notificaciones */
+.notif-btn{position:relative;width:36px;height:36px;border-radius:50%;background:var(--crema);border:.5px solid var(--borde);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--texto-mid);transition:all .15s;user-select:none}
+.notif-btn:hover{background:#e8ede3;color:var(--verde)}
+.notif-badge{position:absolute;top:-2px;right:-2px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;padding:0 4px;display:flex;align-items:center;justify-content:center;border:2px solid var(--crema);font-family:'DM Sans',sans-serif}
+.notif-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:12px;border:.5px solid var(--borde);box-shadow:0 8px 24px rgba(0,0,0,.12);width:360px;max-height:520px;overflow:hidden;z-index:9999;display:none;flex-direction:column}
+.notif-dropdown.open{display:flex}
+.notif-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid var(--borde);font-size:14px;font-weight:800;color:var(--verde);font-family:'DM Sans',sans-serif}
+.notif-mark-all{background:none;border:none;color:var(--verde);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:6px}
+.notif-mark-all:hover{background:var(--verde-pale)}
+.notif-mark-all:disabled{opacity:.4;cursor:default}
+.notif-body{overflow-y:auto;max-height:440px}
+.notif-item{display:flex;gap:10px;padding:12px 16px;border-bottom:.5px solid var(--borde);cursor:pointer;transition:background .15s;text-align:left;width:100%;border-left:none;border-right:none;border-top:none;background:transparent;font-family:inherit;color:inherit}
+.notif-item:hover{background:#f5faf3}
+.notif-item.unread{background:#eef7ea}
+.notif-item.unread:hover{background:#e3f0dd}
+.notif-item:last-child{border-bottom:none}
+.notif-item-ico{font-size:20px;flex-shrink:0;line-height:1}
+.notif-item-body{flex:1;min-width:0}
+.notif-item-tit{font-size:13px;font-weight:700;color:var(--verde);margin-bottom:2px;font-family:'DM Sans',sans-serif;line-height:1.3}
+.notif-item-sub{font-size:11px;color:var(--texto-mid);line-height:1.45}
+.notif-item-time{font-size:10px;color:var(--texto-suave);margin-top:4px;font-weight:600}
+.notif-item-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);flex-shrink:0;margin-top:8px}
+.notif-empty{padding:36px 20px;text-align:center;color:var(--texto-suave);font-size:12px;line-height:1.5}
+.notif-empty-i{font-size:28px;margin-bottom:8px;opacity:.5}
+@media(max-width:768px){.notif-dropdown{width:calc(100vw - 30px);right:-100px}}
 .user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--crema);border-radius:20px;border:.5px solid var(--borde);cursor:pointer;position:relative;user-select:none}
 .user-chip:hover{background:#e8ede3}
 .u-av{width:26px;height:26px;border-radius:50%;background:var(--verde);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
@@ -665,7 +690,19 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <button class="anl" id="nav-tareas" onclick="showModulo('tareas')"><span>✅</span><span id="tareas-badge">Tareas</span></button>
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <!-- Campanita de notificaciones -->
+      <div class="notif-btn" id="notif-btn" onclick="_toggleNotifDropdown()" title="Notificaciones">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+        <div class="notif-dropdown" id="notif-dropdown">
+          <div class="notif-header">
+            <span id="notif-titulo">Avisos</span>
+            <button onclick="event.stopPropagation();_marcarTodasLeidas()" class="notif-mark-all" id="notif-mark-all-btn" title="Marcar todo como leído">✓ Marcar todo</button>
+          </div>
+          <div class="notif-body" id="notif-lista"></div>
+        </div>
+      </div>
       <div class="user-chip" id="user-chip-btn" onclick="_toggleUserDropdown()">
         <div class="u-av" id="d-av">?</div>
         <span class="u-nm" id="d-nm">...</span>
@@ -3945,6 +3982,9 @@ window.showModulo = function(mod) {
   var idx = mods.indexOf(mod)
   if(idx>=0) btns[idx]?.classList.add('active')
   window.scrollTo(0,0)
+  // Refresh del badge de notificaciones al cambiar de modulo (los datos pueden
+  // haberse actualizado — ej. marcar tarea completa, pagar un cheque, etc)
+  try { window._actualizarBadgeNotif && window._actualizarBadgeNotif() } catch(e) {}
 
   if (mod === 'campos') renderCamposLista()
   if (mod === 'rentabilidad-total') {
@@ -7613,7 +7653,227 @@ window._closeUserDropdown = function() {
 document.addEventListener('click', function(e) {
   var chip = document.getElementById('user-chip-btn')
   if (chip && !chip.contains(e.target)) window._closeUserDropdown()
+  var notif = document.getElementById('notif-btn')
+  if (notif && !notif.contains(e.target)) window._closeNotifDropdown()
 })
+
+// ══════════════════════════════════════════════════════════════════════════
+// NOTIFICACIONES IN-APP (campanita del header)
+// Calcula los avisos del estado local (campos, gastos, tareas, compromisos
+// de pago, analisisS, stock de insumos, trial). No hay tabla en DB — todo
+// se deriva. El estado "leido" se guarda en localStorage por hash del aviso.
+// ══════════════════════════════════════════════════════════════════════════
+window._toggleNotifDropdown = function() {
+  var dd = document.getElementById('notif-dropdown')
+  if (!dd) return
+  var wasOpen = dd.classList.contains('open')
+  window._closeUserDropdown()
+  if (wasOpen) { dd.classList.remove('open'); return }
+  window._renderNotifDropdown()
+  dd.classList.add('open')
+}
+window._closeNotifDropdown = function() {
+  var dd = document.getElementById('notif-dropdown')
+  if (dd) dd.classList.remove('open')
+}
+// Genera un hash simple del contenido para trackear si el user ya lo vio
+function _notifHash(str) {
+  var h = 0
+  for (var i = 0; i < str.length; i++) { h = ((h<<5) - h) + str.charCodeAt(i); h |= 0 }
+  return String(h)
+}
+function _getNotifLeidas() {
+  try { return new Set(JSON.parse(localStorage.getItem('ra_notif_leidas')||'[]')) } catch(e) { return new Set() }
+}
+function _setNotifLeidas(set) {
+  try { localStorage.setItem('ra_notif_leidas', JSON.stringify(Array.from(set).slice(-500))) } catch(e) {}
+}
+// Devuelve un array de avisos ordenados por prioridad (alta → baja) + fecha.
+// Cada aviso: {ico, tit, sub, tiempo, accion, prioridad, hash}
+window._calcularNotificaciones = function() {
+  var avisos = []
+  var hoy = new Date(); hoy.setHours(0,0,0,0)
+  var ms = 24*60*60*1000
+  // Colaborador: notif limitadas (no ve pagos ni analisis del owner desde su perspectiva)
+  var esColab = !!(window.CONTEXTO && window.CONTEXTO.esColaborador)
+  // Helper: leer arrays del scope global. En el codigo real, `pagos`,
+  // `tareas`, etc son vars del modulo. Preferimos window.X (exposed) o el
+  // scope si esta disponible en el momento de la llamada.
+  function _arr(nombre) {
+    try {
+      if (window[nombre] && Array.isArray(window[nombre])) return window[nombre]
+    } catch(e) {}
+    try {
+      var v = eval(nombre)  // resuelve la var del modulo si esta accesible
+      if (Array.isArray(v)) return v
+    } catch(e) {}
+    return []
+  }
+
+  // 1) Pagos vencidos (compromisos_pago con fecha_cobro < hoy y estado='pendiente')
+  var pagosList = _arr('pagos')
+  if (!esColab) {
+    pagosList.forEach(function(p){
+      if (p.estado !== 'pendiente') return
+      var fc = p.fecha_cobro; if (!fc) return
+      var d = new Date(fc); if (isNaN(d.getTime())) return
+      d.setHours(0,0,0,0)
+      var diffD = Math.round((d.getTime()-hoy.getTime())/ms)
+      var etiquetaTipo = p.tipo === 'cheque' ? 'Cheque' : 'Cuota'
+      var benef = p.beneficiario || 'sin destinatario'
+      var monto = ''
+      if (p.importe) {
+        var mSimb = p.moneda === 'USD' ? 'USD' : '$'
+        monto = ' · ' + mSimb + ' ' + Math.round(p.importe).toLocaleString('es-AR')
+      }
+      if (diffD < 0) {
+        avisos.push({ico:'⚠️', tit:etiquetaTipo+' vencido: '+benef, sub:'Venció hace '+Math.abs(diffD)+' día'+(Math.abs(diffD)===1?'':'s')+monto, tiempo:'Vencido', accion:"showModulo('pagos')", prio:0, hash:'pago-v-'+p.id})
+      } else if (diffD <= 7) {
+        var etT = diffD === 0 ? 'Vence hoy' : 'Vence en '+diffD+' día'+(diffD===1?'':'s')
+        avisos.push({ico:'📅', tit:etiquetaTipo+': '+benef, sub:etT+monto, tiempo:etT, accion:"showModulo('pagos')", prio:1, hash:'pago-p-'+p.id})
+      }
+    })
+  }
+
+  // 2) Tareas vencidas / para hoy
+  var tareasList = _arr('tareas')
+  tareasList.forEach(function(t){
+    if (t.estado === 'completada') return
+    var fv = t.fecha_vencimiento; if (!fv) return
+    var d = new Date(fv); if (isNaN(d.getTime())) return
+    d.setHours(0,0,0,0)
+    var diffD = Math.round((d.getTime()-hoy.getTime())/ms)
+    if (diffD < 0) {
+      avisos.push({ico:'⏰', tit:'Tarea vencida: '+(t.titulo||'sin título'), sub:'Se venció hace '+Math.abs(diffD)+' día'+(Math.abs(diffD)===1?'':'s'), tiempo:'Vencida', accion:"showModulo('tareas')", prio:0, hash:'tarea-v-'+t.id})
+    } else if (diffD === 0) {
+      avisos.push({ico:'📌', tit:'Tarea para hoy: '+(t.titulo||'sin título'), sub:'Cargala como completa cuando termines.', tiempo:'Hoy', accion:"showModulo('tareas')", prio:1, hash:'tarea-h-'+t.id})
+    }
+  })
+
+  // 3) Campos sin cultivo definido (campaña activa)
+  var camposList = _arr('campos')
+  if (!esColab) {
+    camposList.forEach(function(c){
+      if (!c.cultivo || String(c.cultivo).trim() === '') {
+        avisos.push({ico:'🌾', tit:'Campo sin cultivo: '+(c.nombre||'sin nombre'), sub:'Cargá qué cultivo tiene para poder ver rentabilidad.', tiempo:'', accion:"abrirCampo('"+c.id+"')", prio:2, hash:'campo-sc-'+c.id})
+      }
+    })
+  }
+
+  // 4) Análisis de suelo desactualizado (> 12 meses sin análisis por campo)
+  var analisisList = _arr('analisisS')
+  if (!esColab && camposList.length && analisisList.length >= 0) {
+    var haceUnAnio = new Date(hoy); haceUnAnio.setFullYear(haceUnAnio.getFullYear()-1)
+    camposList.forEach(function(c){
+      var ultimos = analisisList.filter(function(a){ return a.campo_id === c.id })
+      var ultimo = ultimos.reduce(function(acc, a){
+        var d = new Date(a.fecha); if (isNaN(d.getTime())) return acc
+        return (!acc || d > acc) ? d : acc
+      }, null)
+      if (!ultimo) {
+        avisos.push({ico:'🔬', tit:'Sin análisis de suelo: '+(c.nombre||'sin nombre'), sub:'Nunca cargaste uno. Es clave para ajustar fertilización.', tiempo:'', accion:"abrirCampo('"+c.id+"')", prio:3, hash:'suelo-nunca-'+c.id})
+      } else if (ultimo < haceUnAnio) {
+        var meses = Math.round((hoy - ultimo)/(30*ms))
+        avisos.push({ico:'🔬', tit:'Análisis de suelo desactualizado: '+(c.nombre||'sin nombre'), sub:'Último cargado hace '+meses+' meses.', tiempo:'', accion:"abrirCampo('"+c.id+"')", prio:3, hash:'suelo-old-'+c.id+'-'+ultimo.getFullYear()})
+      }
+    })
+  }
+
+  // 5) Insumos sin stock
+  var insumosList = _arr('insumos')
+  if (!esColab) {
+    insumosList.forEach(function(i){
+      var st = parseFloat(i.stock_actual); if (isNaN(st)) return
+      if (st <= 0) {
+        avisos.push({ico:'📦', tit:'Sin stock: '+(i.nombre||'sin nombre'), sub:'Reponé antes de la próxima aplicación.', tiempo:'', accion:"showModulo('stock-insumos')", prio:2, hash:'insumo-sinstock-'+i.id})
+      }
+    })
+  }
+
+  // 6) Trial por vencer (<= 7 dias)
+  try {
+    var trial = window._trialInfo && window._trialInfo()
+    var planId = (usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis'
+    if (!esColab && planId === 'gratis' && trial) {
+      if (!trial.activo) {
+        avisos.push({ico:'🎁', tit:'Tu período de prueba terminó', sub:'Elegí un plan para seguir usando la app.', tiempo:'Expirado', accion:"showModulo('mi-plan')", prio:0, hash:'trial-expired'})
+      } else if (trial.diasRestantes <= 7) {
+        avisos.push({ico:'🎁', tit:'Te quedan '+trial.diasRestantes+' día'+(trial.diasRestantes===1?'':'s')+' de prueba', sub:'Después vas a necesitar un plan para no perder acceso.', tiempo:trial.diasRestantes+'d', accion:"showModulo('mi-plan')", prio:1, hash:'trial-'+trial.diasRestantes})
+      }
+    }
+  } catch(e) {}
+
+  // Ordenar por prio ASC (0=más urgente) y limitar a 40 items
+  avisos.sort(function(a,b){ return a.prio - b.prio })
+  return avisos.slice(0, 40)
+}
+window._renderNotifDropdown = function() {
+  var lista = document.getElementById('notif-lista')
+  var badge = document.getElementById('notif-badge')
+  var titulo = document.getElementById('notif-titulo')
+  var markBtn = document.getElementById('notif-mark-all-btn')
+  if (!lista) return
+  var avisos = window._calcularNotificaciones()
+  var leidas = _getNotifLeidas()
+  var noLeidos = avisos.filter(function(a){ return !leidas.has(a.hash) }).length
+  // Badge
+  if (badge) {
+    if (noLeidos > 0) { badge.style.display = 'flex'; badge.textContent = noLeidos > 99 ? '99+' : String(noLeidos) }
+    else { badge.style.display = 'none' }
+  }
+  if (titulo) titulo.textContent = 'Avisos' + (avisos.length ? ' ('+avisos.length+')' : '')
+  if (markBtn) markBtn.disabled = noLeidos === 0
+  // Lista
+  if (!avisos.length) {
+    lista.innerHTML = '<div class="notif-empty"><div class="notif-empty-i">🌱</div>Todo al día. No tenés avisos pendientes.</div>'
+    return
+  }
+  lista.innerHTML = avisos.map(function(a){
+    var isNew = !leidas.has(a.hash)
+    var accionSafe = a.accion.replace(/"/g, '&quot;')
+    return '<button class="notif-item'+(isNew?' unread':'')+'" onclick="_onNotifClick(\''+a.hash+'\', function(){ '+a.accion+' })">'
+      + '<div class="notif-item-ico">'+a.ico+'</div>'
+      + '<div class="notif-item-body">'
+      +   '<div class="notif-item-tit">'+a.tit+'</div>'
+      +   '<div class="notif-item-sub">'+a.sub+'</div>'
+      +   (a.tiempo ? '<div class="notif-item-time">'+a.tiempo+'</div>' : '')
+      + '</div>'
+      + (isNew ? '<div class="notif-item-dot"></div>' : '')
+      + '</button>'
+  }).join('')
+}
+window._onNotifClick = function(hash, accion) {
+  var leidas = _getNotifLeidas()
+  leidas.add(hash)
+  _setNotifLeidas(leidas)
+  window._closeNotifDropdown()
+  try { accion() } catch(e) { console.error('notif accion:', e) }
+  setTimeout(function(){ window._actualizarBadgeNotif() }, 100)
+}
+window._marcarTodasLeidas = function() {
+  var avisos = window._calcularNotificaciones()
+  var leidas = _getNotifLeidas()
+  avisos.forEach(function(a){ leidas.add(a.hash) })
+  _setNotifLeidas(leidas)
+  window._renderNotifDropdown()
+}
+// Solo actualiza el badge (contador) sin abrir el dropdown.
+// Se llama periódicamente y después de mutaciones para mantener el contador vivo.
+window._actualizarBadgeNotif = function() {
+  var badge = document.getElementById('notif-badge')
+  if (!badge) return
+  try {
+    var avisos = window._calcularNotificaciones()
+    var leidas = _getNotifLeidas()
+    var noLeidos = avisos.filter(function(a){ return !leidas.has(a.hash) }).length
+    if (noLeidos > 0) { badge.style.display = 'flex'; badge.textContent = noLeidos > 99 ? '99+' : String(noLeidos) }
+    else { badge.style.display = 'none' }
+  } catch(e) {}
+}
+// Refresh badge al entrar a la app + cada 60s + cada vez que cambia el modulo activo
+if (typeof window._notifBadgeInterval === 'undefined') {
+  window._notifBadgeInterval = setInterval(function(){ window._actualizarBadgeNotif() }, 60000)
+}
 window.cerrarSesion = function() {
   // Limpiar estado local PRIMERO sin esperar red
   usuario=null;campos=[];gastos=[];lluvias=[];analisisS=[];window.CONTEXTO=null

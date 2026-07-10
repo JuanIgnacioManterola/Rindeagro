@@ -3072,9 +3072,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modal">
     <div class="modal-header">
       <button class="m-close" onclick="closeModalSuelo()">✕</button>
-      <div class="m-tit">Cargar análisis de suelo</div><div class="m-sub" style="margin-bottom:0">Ingresá los valores del laboratorio</div>
+      <div class="m-tit" id="suelo-modal-tit">Cargar análisis de suelo</div><div class="m-sub" style="margin-bottom:0">Ingresá los valores del laboratorio</div>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="s-edit-id" value=""/>
       <div class="form-row2" style="margin-bottom:.9rem">
         <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
         <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
@@ -14380,10 +14381,35 @@ window.openModalSuelo = function() {
   _sueloRenderArchivos()
   document.getElementById('ov-suelo').classList.add('open')
   document.getElementById('s-fecha').value = new Date().toISOString().split('T')[0]
-  // Limpiar campos
-  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
+  // Limpiar campos y modo edicion
+  document.getElementById('s-edit-id').value = ''
+  document.getElementById('suelo-modal-tit').textContent = 'Cargar análisis de suelo'
+  document.getElementById('btn-suelo').textContent = 'Guardar análisis'
+  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b','s-campo'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value=''
   })
+}
+window.editarSuelo = function(id) {
+  var a = analisisS.find(function(x){ return x.id===id })
+  if (!a) return
+  document.getElementById('ov-suelo').classList.add('open')
+  document.getElementById('suelo-modal-tit').textContent = 'Editar análisis de suelo'
+  document.getElementById('btn-suelo').textContent = 'Guardar cambios'
+  document.getElementById('s-edit-id').value = a.id
+  document.getElementById('s-campo').value = a.campo_id || ''
+  document.getElementById('s-fecha').value = a.fecha || ''
+  document.getElementById('s-lab').value = a.laboratorio || ''
+  document.getElementById('s-n').value = a.n_total || ''
+  document.getElementById('s-p').value = a.p_disponible || ''
+  document.getElementById('s-k').value = a.k || ''
+  document.getElementById('s-s').value = a.s || ''
+  document.getElementById('s-mo').value = a.materia_org || ''
+  document.getElementById('s-ph').value = a.ph || ''
+  document.getElementById('s-zn').value = a.zinc || ''
+  document.getElementById('s-b').value = a.boro || ''
+  // Preservar archivos ya guardados (no permitir editarlos por ahora — solo agregar nuevos)
+  window._sueloArchivosPendientes = []
+  _sueloRenderArchivos()
 }
 window.closeModalSuelo = function() {
   document.getElementById('ov-suelo').classList.remove('open')
@@ -14391,6 +14417,7 @@ window.closeModalSuelo = function() {
 window.guardarSuelo = async function() {
   var campoId=document.getElementById('s-campo').value
   var fecha=document.getElementById('s-fecha').value
+  var editId = document.getElementById('s-edit-id').value
   if(!campoId){showToast('⚠️ Seleccioná el campo','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
   if(!usuario){showToast('⚠️ Sesión expirada','err');return}
@@ -14405,6 +14432,26 @@ window.guardarSuelo = async function() {
       n_total:g('s-n'), p_disponible:g('s-p'), k:g('s-k'), s:g('s-s'),
       materia_org:g('s-mo'), ph:g('s-ph'), zinc:g('s-zn'), boro:g('s-b'),
       notas:null
+    }
+    var isEdit = !!editId
+    if (isEdit) {
+      // UPDATE optimistic: sacar usuario_id del payload (no queremos overwrite del owner)
+      var updPayload = Object.assign({}, payloadSuelo); delete updPayload.usuario_id
+      var idx = analisisS.findIndex(function(x){ return x.id === editId })
+      if (idx < 0) throw new Error('Análisis no encontrado')
+      var snapshot = Object.assign({}, analisisS[idx])
+      analisisS[idx] = Object.assign({}, analisisS[idx], updPayload)
+      try {
+        await _dbMutate({method:'update', table:'analisis_suelo', filter:{col:'id', val:editId}, payload:updPayload, timeout: 8000})
+      } catch (e) {
+        analisisS[idx] = snapshot
+        throw e
+      }
+      _guardarCache()
+      if(campoDet) renderDetSuelo(); else renderSuelo()
+      closeModalSuelo()
+      showToast('✓ Análisis actualizado','ok')
+      return
     }
     // Adjuntar archivos si hay (columna puede no existir en DB vieja → retry sin ella).
     // Los archivos ya se subieron al bucket 'suelo-archivos' — acá solo guardamos las URLs.
@@ -18832,7 +18879,8 @@ window.renderDetSuelo = function() {
         '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Campaña</th>' +
         COLUMNAS.map(function(col){return '<th title="'+col.full+'" style="padding:9px 10px;text-align:right;font-size:11px;color:var(--texto-suave);font-weight:600;cursor:help;text-decoration:underline dotted var(--texto-suave)">'+col.label+'</th>'}).join('') +
         '<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--texto-suave);font-weight:600">Recomendación</th>' +
-        '<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--texto-suave);font-weight:600">Archivos</th></tr>'
+        '<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--texto-suave);font-weight:600">Archivos</th>' +
+        '<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--texto-suave);font-weight:600">Editar</th></tr>'
       var rows = ordenados.map(function(a){
         var cells = COLUMNAS.map(function(col){
           var v = a[col.key], col2 = _colorPorRango(v, col.r)
@@ -18863,7 +18911,8 @@ window.renderDetSuelo = function() {
           '<td style="padding:10px;font-size:12px;color:var(--texto);font-weight:700">'+_labelCampana(a.fecha)+'</td>' +
           cells +
           '<td style="padding:10px;font-size:11px;color:var(--texto-suave);max-width:280px">'+nota+'</td>' +
-          '<td style="padding:10px;text-align:center">'+archCell+'</td></tr>'
+          '<td style="padding:10px;text-align:center">'+archCell+'</td>' +
+          '<td style="padding:10px;text-align:center"><button onclick="editarSuelo(\''+a.id+'\')" title="Editar análisis" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">✏️</button></td></tr>'
       }).join('')
       evoTabla.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead>'+hdr+'</thead><tbody>'+rows+'</tbody></table>'
     }

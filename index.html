@@ -6695,12 +6695,20 @@ window.confirmarCompletarTarea = async function() {
     var now = new Date().toISOString()
     var quien = window.CONTEXTO && window.CONTEXTO.colaboradorActivo ? window.CONTEXTO.colaboradorActivo : (usuario ? usuario.id : null)
     var payload = {estado:'completada', completada_at: now, completado_por: quien, comentario_completado: comentario || null}
-    var r = await sb.from('tareas').update(payload).eq('id', id)
-    if (r.error && /column|does not exist/i.test(r.error.message||'')) {
-      // Retry sin columnas nuevas por compatibilidad (si la migración no se aplicó aún)
-      r = await sb.from('tareas').update({estado:'completada', completada_at: now}).eq('id', id)
+    // Usar _dbMutate (SDK + REST fallback) — evita el deadlock del SDK que dejaba
+    // el UPDATE colgado indefinidamente sin marcar la tarea como completada.
+    try {
+      await _dbMutate({method:'update', table:'tareas', filter:{col:'id', val:id}, payload:payload, timeout:8000})
+    } catch(eFull) {
+      // Compat: si las columnas nuevas (completada_at, completado_por,
+      // comentario_completado) no existen en el schema viejo, retry con
+      // payload mínimo.
+      if (/column|does not exist/i.test(eFull.message||'')) {
+        await _dbMutate({method:'update', table:'tareas', filter:{col:'id', val:id}, payload:{estado:'completada', completada_at: now}, timeout:8000})
+      } else {
+        throw eFull
+      }
     }
-    if (r.error) throw r.error
     var t = tareas.find(function(x){ return x.id === id })
     if (t) { t.estado = 'completada'; t.completada_at = now; t.completado_por = quien; t.comentario_completado = comentario || null }
     document.getElementById('ov-completar-tarea').classList.remove('open')
@@ -8825,7 +8833,17 @@ window.guardarCampo = async function() {
                 return
               }
             } else {
+              // Error grave no relacionado con schema. Revertir cambio local
+              // y avisar al user — sin esto el UPDATE fantasma quedaba en UI
+              // pero nunca llegaba a DB.
               console.error('guardarCampo edit bg error:', re1.error.message)
+              if(campoAnterior && idxEdit >= 0) {
+                var iRev2 = campos.findIndex(function(c){ return c.id === editId })
+                if(iRev2 >= 0) campos[iRev2] = campoAnterior
+                _guardarCache(); renderDashboard()
+                if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
+              }
+              showToast('⚠️ No se pudo actualizar el campo: '+re1.error.message,'err')
               return
             }
           }
@@ -8884,7 +8902,14 @@ window.guardarCampo = async function() {
                 if (rr && rr.error) console.warn('guardarCampo bg update extra error:', rr.error.message)
               }).catch(function(e){ console.warn('guardarCampo bg update extra threw:', e && e.message) })
             } else {
+              // Ambos INSERTs fallaron. Rollback: quitar el campo fantasma del
+              // estado local y del cache — sino queda visible en la UI hasta
+              // el proximo reload pero nunca existe en DB.
               console.error('guardarCampo bg insert error:', r2.error.message)
+              campos = campos.filter(function(c){ return c.id !== newId })
+              _guardarCache(); renderDashboard()
+              if(document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista()
+              showToast('⚠️ No se pudo guardar el campo: '+r2.error.message,'err')
               return
             }
           } else {
@@ -11004,7 +11029,14 @@ window.guardarGasto = async function() {
             var _pMin2 = {id:gId,campo_id:campoId,usuario_id:uid2,rubro:_p.rubro,fecha:_p.fecha,total_de_usd:_p.total_de_usd,usd_ha:_p.usd_ha,qq_ha:_p.qq_ha,descripcion:_p.descripcion,ha_aplicadas:_p.ha_aplicadas,cultivo:_p.cultivo||null}
             try { await _dbMutate({method:'insert', table:'gastos', payload: _pMin2, timeout: 8000}) }
             catch (eMin) {
+              // Rollback: quitar el gasto fantasma del estado local y del cache.
+              // Sin esto quedaba visible en la UI hasta el proximo reload pero
+              // nunca existia en DB.
               console.error('gasto insert falló definitivamente:', eMin.message)
+              gastos = gastos.filter(function(g){ return g.id !== gId })
+              _guardarCache()
+              if(campoDet) renderDetGastos()
+              renderRentabilidad(); renderDashboard()
               showToast('⚠️ Error al guardar en DB: '+eMin.message.slice(0,80),'err')
             }
           }
@@ -12187,7 +12219,15 @@ window.guardarCheque = async function() {
       ;(async function(){
         var payload = Object.assign({}, _p, {id:nId, owner_id:uid})
         try { await _dbMutate({method:'insert', table:'compromisos_pago', payload:payload}) }
-        catch(e){ console.error('insert cheque (bg):', e); showToast('⚠️ No se sincronizó en la nube: '+e.message,'err') }
+        catch(e){
+          // Rollback: remover el cheque fantasma del estado local + cache. Sin
+          // esto, quedaba visible en la UI hasta el proximo reload pero nunca
+          // existia en DB.
+          console.error('insert cheque (bg):', e)
+          pagos = pagos.filter(function(p){ return p.id !== nId })
+          _guardarCache(); renderPagos(); _actualizarBadgePagos()
+          showToast('⚠️ No se pudo guardar el cheque: '+e.message,'err')
+        }
       })()
     }
   } catch(e) { console.error(e); showToast('⚠️ Error: '+(e.message||''),'err') }
@@ -12375,12 +12415,21 @@ window.guardarCredito = async function() {
     showToast('✓ '+nCuotas+' cuotas creadas — total: '+totalCredito.toLocaleString('es-AR',{maximumFractionDigits:0})+' '+moneda,'ok')
 
     // DB en background
+    var idsInsertados = nuevasCuotas.map(function(c){ return c.id })
     ;(async function(){
       try {
         // Insertar todas en batch
         var payload = nuevasCuotas.map(function(c){ var p=Object.assign({},c); delete p.created_at; return p })
         await _dbMutate({method:'insert', table:'compromisos_pago', payload:payload})
-      } catch(e) { console.error('insert credito (bg):', e); showToast('⚠️ No se sincronizó en la nube: '+e.message,'err') }
+      } catch(e) {
+        // Rollback: remover todas las cuotas fantasma del estado local + cache.
+        // Sin esto, quedaban visibles hasta el proximo reload pero nunca existian
+        // en DB.
+        console.error('insert credito (bg):', e)
+        pagos = pagos.filter(function(p){ return idsInsertados.indexOf(p.id) < 0 })
+        _guardarCache(); renderPagos(); _actualizarBadgePagos()
+        showToast('⚠️ No se pudo guardar el crédito: '+e.message,'err')
+      }
     })()
   } catch(e) { console.error(e); showToast('⚠️ Error: '+(e.message||''),'err') }
   finally { btn.disabled=false; btn.textContent='Generar cuotas y guardar' }
@@ -16816,19 +16865,24 @@ window.eliminarFlete = function(id) {
   var idx = fletes.findIndex(function(x){return x.id===id})
   fletes = fletes.filter(function(x){return x.id!==id})
   renderFletes()
+  var deshacer = false
   _showToastUndo('🗑 Flete eliminado', function(){
+    deshacer = true
     if (idx >= 0) fletes.splice(idx, 0, snapshot); else fletes.unshift(snapshot)
     renderFletes()
-  }, function(){
-    ;(async function(){
-      try { await _dbMutate({method:'delete', table:'fletes', filter:{col:'id', val:id}, timeout:6000}) }
-      catch(e) {
-        if (idx>=0) fletes.splice(idx, 0, snapshot); else fletes.unshift(snapshot)
-        renderFletes()
-        showToast('⚠️ No se sincronizó: '+e.message,'err')
-      }
-    })()
   })
+  // Sincronizar delete a DB despues del timer de undo (5s). _showToastUndo solo
+  // acepta 2 params (msg, onUndo); el DB delete lo despachamos aparte con
+  // setTimeout — igual patron que eliminarLluvia/eliminarGasto.
+  setTimeout(async function(){
+    if (deshacer) return
+    try { await _dbMutate({method:'delete', table:'fletes', filter:{col:'id', val:id}, timeout:6000}) }
+    catch(e) {
+      if (idx>=0) fletes.splice(idx, 0, snapshot); else fletes.unshift(snapshot)
+      renderFletes()
+      showToast('⚠️ No se pudo eliminar en DB — restaurado','err')
+    }
+  }, 5000)
 }
 
 // ── OCR de carta de porte (skeleton, mismo patrón que ocr-factura/pago) ──

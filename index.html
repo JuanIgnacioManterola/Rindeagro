@@ -62,6 +62,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--texto)
 .loading-logo .a{font-size:20px;font-weight:400;font-style:italic;opacity:.8}
 .spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--dorado);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Mini-spinner para dentro de un boton en estado loading */
+.btn-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;opacity:.8}
+button[data-loading="1"]{opacity:.75;cursor:progress !important;pointer-events:none}
 .loading-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:1rem;letter-spacing:.08em;text-transform:uppercase}
 
 /* ── SCREENS ── */
@@ -1532,7 +1535,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
       <button id="btn-ac-eliminar" onclick="eliminarActivo()" style="display:none;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar</button>
-      <button class="fb" id="btn-guardar-activo" onclick="guardarActivo()" style="flex:1">Guardar activo</button>
+      <button class="fb" id="btn-guardar-activo" onclick="_wrapLoading(this, guardarActivo)" style="flex:1">Guardar activo</button>
     </div>
   </div>
 </div>
@@ -1664,7 +1667,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
       <button id="btn-ge-eliminar" onclick="eliminarGastoEstructura()" style="display:none;background:#fff;color:var(--rojo);border:1.5px solid var(--rojo);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Eliminar</button>
-      <button class="fb" id="btn-guardar-gest" onclick="guardarGastoEstructura()" style="flex:1">Guardar gasto</button>
+      <button class="fb" id="btn-guardar-gest" onclick="_wrapLoading(this, guardarGastoEstructura)" style="flex:1">Guardar gasto</button>
     </div>
   </div>
 </div>
@@ -1727,7 +1730,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <input type="hidden" id="t-id"/>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-guardar-tarea" onclick="guardarTarea()">Guardar tarea</button>
+      <button class="fb" id="btn-guardar-tarea" onclick="_wrapLoading(this, guardarTarea)">Guardar tarea</button>
     </div>
   </div>
 </div>
@@ -1826,7 +1829,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
       <button id="btn-eliminar-cheque" onclick="eliminarCompromiso()" style="display:none;background:transparent;color:var(--rojo);border:1px solid var(--rojo);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Eliminar</button>
-      <button class="fb" id="btn-guardar-cheque" onclick="guardarCheque()" style="flex:1">Guardar cheque</button>
+      <button class="fb" id="btn-guardar-cheque" onclick="_wrapLoading(this, guardarCheque)" style="flex:1">Guardar cheque</button>
     </div>
   </div>
 </div>
@@ -1932,7 +1935,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div id="cr-resumen" style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--verde);font-weight:600;display:none"></div>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-guardar-credito" onclick="guardarCredito()">Generar cuotas y guardar</button>
+      <button class="fb" id="btn-guardar-credito" onclick="_wrapLoading(this, guardarCredito, 'Generando…')">Generar cuotas y guardar</button>
     </div>
   </div>
 </div>
@@ -2235,7 +2238,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
       <button id="btn-eliminar-insumo" onclick="eliminarInsumo()" style="display:none;background:transparent;color:var(--rojo);border:1px solid var(--rojo);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Eliminar</button>
-      <button class="fb" id="btn-guardar-insumo" onclick="guardarInsumo()" style="flex:1">Guardar insumo</button>
+      <button class="fb" id="btn-guardar-insumo" onclick="_wrapLoading(this, guardarInsumo)" style="flex:1">Guardar insumo</button>
     </div>
   </div>
 </div>
@@ -2452,7 +2455,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <input type="hidden" id="c-edit-id" value=""/>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-campo" onclick="guardarCampo()">Guardar campo</button>
+      <button class="fb" id="btn-campo" onclick="_wrapLoading(this, guardarCampo)">Guardar campo</button>
     </div>
   </div>
 </div>
@@ -2685,7 +2688,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-gasto" onclick="guardarGasto()">Guardar gasto</button>
+      <button class="fb" id="btn-gasto" onclick="_wrapLoading(this, guardarGasto)">Guardar gasto</button>
     </div>
   </div>
 </div>
@@ -2787,7 +2790,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="fg" style="margin-bottom:0"><label class="fl">Notas</label><input class="fi" type="text" id="fl-notas" placeholder="Observaciones libres..."/></div>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-flete" onclick="guardarFlete()">Guardar flete</button>
+      <button class="fb" id="btn-flete" onclick="_wrapLoading(this, guardarFlete)">Guardar flete</button>
     </div>
   </div>
 </div>
@@ -3035,7 +3038,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       <div class="fg"><label class="fl">Observación</label><input class="fi" type="text" id="ll-obs" placeholder="Opcional..."/></div>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-lluvia" onclick="guardarLluvia()">Registrar lluvia</button>
+      <button class="fb" id="btn-lluvia" onclick="_wrapLoading(this, guardarLluvia)">Registrar lluvia</button>
     </div>
   </div>
 </div>
@@ -3077,7 +3080,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-suelo" onclick="guardarSuelo()">Guardar análisis</button>
+      <button class="fb" id="btn-suelo" onclick="_wrapLoading(this, guardarSuelo)">Guardar análisis</button>
     </div>
   </div>
 </div>
@@ -3137,7 +3140,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="fb" id="btn-campana" onclick="guardarCierrecamp()">⚑ Cerrar y guardar campaña</button>
+      <button class="fb" id="btn-campana" onclick="_wrapLoading(this, guardarCierrecamp, 'Cerrando…')">⚑ Cerrar y guardar campaña</button>
     </div>
   </div>
 </div>
@@ -14496,6 +14499,35 @@ window.descargarBackupXLSX = function() {
   }
 }
 
+// Helper para envolver funciones async en un estado "loading" del botón que
+// las dispara. Uso desde onclick: `onclick="_wrapLoading(this, guardarGasto)"`.
+// Guarda el HTML original del boton, lo reemplaza con spinner + "Guardando…",
+// deshabilita el click (data-loading=1 + pointer-events:none via CSS), ejecuta
+// la funcion async, y al terminar (exito o error) restaura el estado original.
+// Evita clicks duplicados y da feedback visual instantaneo.
+window._wrapLoading = function(btn, fn, labelLoading) {
+  if (!btn || !fn) return
+  if (btn.dataset && btn.dataset.loading === '1') return  // ya en loading, ignorar
+  var htmlOrig = btn.innerHTML
+  var lbl = labelLoading || (btn.textContent && btn.textContent.match(/Guard/i) ? 'Guardando…' : 'Procesando…')
+  btn.dataset.loading = '1'
+  btn.setAttribute('aria-busy', 'true')
+  btn.innerHTML = '<span class="btn-spinner"></span>' + lbl
+  var restore = function() {
+    try {
+      btn.innerHTML = htmlOrig
+      delete btn.dataset.loading
+      btn.removeAttribute('aria-busy')
+    } catch(e) {}
+  }
+  var minDelay = new Promise(function(res){ setTimeout(res, 300) })  // evita flash < 300ms
+  Promise.resolve()
+    .then(function(){ return fn.call(btn) })
+    .then(function(){ return minDelay })
+    .catch(function(e){ console.error('_wrapLoading:', e); return minDelay })
+    .then(restore, restore)
+}
+
 // Toast con botón Deshacer para deletes safe. Timer de 5s antes de ejecutar el delete
 // real en DB. El callback onUndo() revierte el estado local si el usuario clickea.
 window._showToastUndo = function(msg, onUndo) {
@@ -18853,7 +18885,7 @@ init()
 
       </div>
       <div class="modal-footer">
-        <button id="btn-guardar-precios" onclick="guardarPrecios()" class="fb" style="width:100%">✓ Guardar precios del día</button>
+        <button id="btn-guardar-precios" onclick="_wrapLoading(this, guardarPrecios)" class="fb" style="width:100%">✓ Guardar precios del día</button>
       </div>
     </div>
   </div>

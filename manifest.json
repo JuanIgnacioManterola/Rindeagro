@@ -1,0 +1,57 @@
+{
+  "name": "Rinde.Agro",
+  "short_name": "Rinde.Agro",
+  "description": "Plataforma agropecuaria argentina. Rentabilidad, análisis de suelo, precios de la Bolsa de Rosario, gestión de campos y campañas desde el celular.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#faf7f0",
+  "theme_color": "#1a4a2e",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cargar gasto",
+      "short_name": "Gasto",
+      "description": "Registrar un nuevo gasto",
+      "url": "/?source=pwa&action=gasto",
+      "icons": [{ "src": "/assets/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Registrar lluvia",
+      "short_name": "Lluvia",
+      "description": "Registrar los mm caídos",
+      "url": "/?source=pwa&action=lluvia",
+      "icons": [{ "src": "/assets/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ver rentabilidad",
+      "short_name": "Rentabilidad",
+      "description": "Ver la rentabilidad de la campaña",
+      "url": "/?source=pwa&action=rentabilidad",
+      "icons": [{ "src": "/assets/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#1a4a2e"/>
+  <path d="M256 88L318.5 205H432L340 291L378 428L256 350L134 428L172 291L80 205H193.5L256 88Z" fill="#c9a84c"/>
+  <text x="256" y="485" font-family="'DM Sans', sans-serif" font-size="42" font-weight="700" fill="#faf7f0" text-anchor="middle">Rinde.Agro</text>
+</svg>

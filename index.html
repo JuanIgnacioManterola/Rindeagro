@@ -715,6 +715,7 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
             <span id="notif-titulo">Avisos</span>
             <button onclick="event.stopPropagation();_marcarTodasLeidas()" class="notif-mark-all" id="notif-mark-all-btn" title="Marcar todo como leído">✓ Marcar todo</button>
           </div>
+          <div id="notif-permiso-banner" style="display:none"></div>
           <div class="notif-body" id="notif-lista"></div>
         </div>
       </div>
@@ -7852,6 +7853,40 @@ window._renderNotifDropdown = function() {
   }
   if (titulo) titulo.textContent = 'Avisos' + (avisos.length ? ' ('+avisos.length+')' : '')
   if (markBtn) markBtn.disabled = noLeidos === 0
+  // Banner de permiso — solo si esta en 'default' (no pidio nunca) y NO fue
+  // dismisseado. Si el user esta en 'denied', mostramos otro banner con
+  // instrucciones. Si esta en 'granted', ocultamos todo.
+  var bannerEl = document.getElementById('notif-permiso-banner')
+  if (bannerEl) {
+    var permiso = window._notifsPermiso ? window._notifsPermiso() : 'unsupported'
+    var dismissed = false
+    try { dismissed = localStorage.getItem('ra_notif_permiso_dism') === '1' } catch(e) {}
+    if (permiso === 'default' && !dismissed) {
+      bannerEl.style.display = 'block'
+      bannerEl.innerHTML = '<div style="background:#eef7ea;border-bottom:.5px solid var(--verde);padding:11px 14px;font-size:12px;color:var(--verde);line-height:1.45">'
+        + '<div style="display:flex;align-items:flex-start;gap:8px">'
+        +   '<span style="font-size:16px;flex-shrink:0">🔔</span>'
+        +   '<div style="flex:1;min-width:0">'
+        +     '<div style="font-weight:700;margin-bottom:3px">Activá los avisos del navegador</div>'
+        +     '<div style="color:var(--texto-mid);font-size:11px">Te avisamos de pagos vencidos y alertas urgentes incluso con la pestaña cerrada.</div>'
+        +     '<div style="display:flex;gap:6px;margin-top:8px">'
+        +       '<button onclick="event.stopPropagation();_pedirPermisoNotifs()" style="background:var(--verde);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">Activar</button>'
+        +       '<button onclick="event.stopPropagation();localStorage.setItem(\'ra_notif_permiso_dism\',\'1\');_renderNotifDropdown()" style="background:transparent;color:var(--texto-suave);border:none;font-size:11px;cursor:pointer;font-family:\'DM Sans\',sans-serif;text-decoration:underline">Ahora no</button>'
+        +     '</div>'
+        +   '</div>'
+        + '</div></div>'
+    } else if (permiso === 'denied' && !dismissed) {
+      bannerEl.style.display = 'block'
+      bannerEl.innerHTML = '<div style="background:#fef3c7;border-bottom:.5px solid #f59e0b;padding:9px 14px;font-size:11px;color:#78350f;line-height:1.45">'
+        + '<div style="display:flex;align-items:flex-start;gap:8px">'
+        +   '<span style="font-size:14px;flex-shrink:0">🔕</span>'
+        +   '<div style="flex:1">Notificaciones bloqueadas. Podés activarlas desde la configuración del sitio en tu navegador.</div>'
+        +   '<button onclick="event.stopPropagation();localStorage.setItem(\'ra_notif_permiso_dism\',\'1\');_renderNotifDropdown()" style="background:transparent;border:none;color:#78350f;font-size:14px;cursor:pointer;padding:0 4px;opacity:.6">✕</button>'
+        + '</div></div>'
+    } else {
+      bannerEl.style.display = 'none'
+    }
+  }
   // Lista
   if (!avisos.length) {
     lista.innerHTML = '<div class="notif-empty"><div class="notif-empty-i">🌱</div>Todo al día. No tenés avisos pendientes.</div>'
@@ -7897,7 +7932,97 @@ window._actualizarBadgeNotif = function() {
     var noLeidos = avisos.filter(function(a){ return !leidas.has(a.hash) }).length
     if (noLeidos > 0) { badge.style.display = 'flex'; badge.textContent = noLeidos > 99 ? '99+' : String(noLeidos) }
     else { badge.style.display = 'none' }
+    // Ademas del badge, disparar notificaciones nativas del browser para los
+    // avisos urgentes (prio 0) que el user aun no vio. Requiere permiso opt-in
+    // (Notification.permission === 'granted').
+    window._dispararNotifsNativas(avisos, leidas)
   } catch(e) {}
+}
+// ══════════════════════════════════════════════════════════════════════════
+// NOTIFICACIONES NATIVAS DEL BROWSER
+// El user activa desde el header del dropdown de la campanita ("🔔 Activar
+// avisos"). Cuando aparecen avisos de prio 0 (pagos vencidos, tareas
+// vencidas, trial expirado) el sistema dispara una notificacion del sistema
+// operativo (esquina de la pantalla, con sonido) — incluso si la pestana
+// esta cerrada. Al clickear la notif, la app se enfoca automaticamente.
+// ══════════════════════════════════════════════════════════════════════════
+function _getNotifsNativasEnviadas() {
+  try { return new Set(JSON.parse(localStorage.getItem('ra_notif_nativa_env')||'[]')) } catch(e) { return new Set() }
+}
+function _setNotifsNativasEnviadas(set) {
+  try { localStorage.setItem('ra_notif_nativa_env', JSON.stringify(Array.from(set).slice(-200))) } catch(e) {}
+}
+window._notifsSoportadas = function() {
+  return typeof Notification !== 'undefined' && 'permissions' in navigator
+}
+window._notifsPermiso = function() {
+  if (typeof Notification === 'undefined') return 'unsupported'
+  return Notification.permission  // 'granted' | 'denied' | 'default'
+}
+window._pedirPermisoNotifs = async function() {
+  if (typeof Notification === 'undefined') {
+    showToast('⚠️ Tu navegador no soporta notificaciones','err'); return 'unsupported'
+  }
+  if (Notification.permission === 'granted') {
+    showToast('✓ Ya tenés las notificaciones activadas','ok'); return 'granted'
+  }
+  if (Notification.permission === 'denied') {
+    showToast('⚠️ Bloqueadas por el navegador. Andá a configuración del sitio para activarlas.','err')
+    return 'denied'
+  }
+  try {
+    var res = await Notification.requestPermission()
+    if (res === 'granted') {
+      showToast('✓ ¡Notificaciones activadas! Te avisamos cuando algo urgente pase.','ok')
+      // Bienvenida — confirma que funciona
+      try { new Notification('Rinde.Agro', { body:'Notificaciones activadas. Te vamos a avisar de pagos vencidos, tareas urgentes y alertas.', icon:'/favicon.svg', silent:false }) } catch(e) {}
+    } else if (res === 'denied') {
+      showToast('⚠️ Notificaciones bloqueadas','err')
+    }
+    // Refresh el UI del dropdown si esta abierto
+    try { window._renderNotifDropdown() } catch(e) {}
+    return res
+  } catch(e) { showToast('⚠️ Error al pedir permiso','err'); return 'error' }
+}
+window._dispararNotifsNativas = function(avisos, leidas) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+  if (!Array.isArray(avisos)) return
+  // Solo disparar para prio 0 (URGENTE) y avisos NO leidos por el user.
+  // Deduplicar contra las que ya se enviaron nativamente (para no spamear
+  // cada minuto la misma notif).
+  var enviadas = _getNotifsNativasEnviadas()
+  var nuevas = avisos.filter(function(a){
+    return a.prio === 0 && !leidas.has(a.hash) && !enviadas.has(a.hash)
+  })
+  if (!nuevas.length) return
+  // Si son varias, no spamear — mandar 1 sola agrupada
+  if (nuevas.length > 1) {
+    try {
+      var n = new Notification('Rinde.Agro — ' + nuevas.length + ' avisos urgentes', {
+        body: nuevas.slice(0,3).map(function(a){ return a.tit }).join('\n') + (nuevas.length > 3 ? '\n…y más' : ''),
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: 'rindeagro-urgente',
+        requireInteraction: false
+      })
+      n.onclick = function(){ try { window.focus(); n.close() } catch(e){} }
+    } catch(e) { console.warn('notif nativa error:', e && e.message) }
+  } else {
+    var a = nuevas[0]
+    try {
+      var n2 = new Notification(a.tit, {
+        body: a.sub || '',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: a.hash,
+        requireInteraction: false
+      })
+      n2.onclick = function(){ try { window.focus(); window._closeNotifDropdown(); if (a.accion) new Function(a.accion)(); n2.close() } catch(e){} }
+    } catch(e) { console.warn('notif nativa error:', e && e.message) }
+  }
+  // Marcar todas como enviadas para no repetir
+  nuevas.forEach(function(a){ enviadas.add(a.hash) })
+  _setNotifsNativasEnviadas(enviadas)
 }
 // Refresh badge al entrar a la app + cada 60s + cada vez que cambia el modulo activo
 if (typeof window._notifBadgeInterval === 'undefined') {

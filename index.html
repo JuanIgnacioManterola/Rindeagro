@@ -459,6 +459,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 /* TOAST */
 .toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--verde);color:#fff;padding:.9rem 1.4rem;border-radius:12px;font-size:13px;font-weight:500;box-shadow:var(--sombra-lg);z-index:400;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px;line-height:1.5}
 .toast.show{transform:translateY(0);opacity:1}
+/* Cuando el toast tiene contenido interactivo (boton Deshacer), habilitar clicks */
+.toast.show.toast-interactive{pointer-events:auto}
+.toast.show.toast-interactive button{pointer-events:auto;cursor:pointer}
 .toast.err{background:var(--rojo)}
 .toast.ok{background:#1a7a52}
 .toast.info{background:var(--azul)}
@@ -3043,9 +3046,10 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
   <div class="modal">
     <div class="modal-header">
       <button class="m-close" onclick="closeModalLluvia()">✕</button>
-      <div class="m-tit">Registrar lluvia</div><div class="m-sub" style="margin-bottom:0">Ingresá los datos de la lluvia</div>
+      <div class="m-tit" id="lluvia-modal-tit">Registrar lluvia</div><div class="m-sub" style="margin-bottom:0">Ingresá los datos de la lluvia</div>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="ll-edit-id" value=""/>
       <div class="form-row2" style="margin-bottom:.9rem">
         <div class="fg"><label class="fl">Campo *</label><select class="fi" id="ll-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
         <div class="fg"><label class="fl">Fecha *</label><input class="fi" type="date" id="ll-fecha"/></div>
@@ -5240,7 +5244,8 @@ function renderLluvias() {
         <span class="etapa-tag e-${l.etapa||'barbecho'}">${etapaLabel(l.etapa)}</span>
         <div style="flex:1"><div style="font-weight:500;font-size:12px">${campoNombre}</div><div style="font-size:10px;color:var(--texto-suave)">${fFecha(l.fecha)} · ${l.tipo||'pareja'}${l.observacion?' · '+l.observacion:''}</div></div>
         <div style="text-align:right;font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:#1a5fa8">${l.mm} mm</div>
-        <button onclick="eliminarLluvia('${l.id}')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px">🗑</button>
+        <button onclick="editarLluvia('${l.id}')" title="Editar" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">✏️</button>
+        <button onclick="eliminarLluvia('${l.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px">🗑</button>
       </div>`
     }).join('')
   }
@@ -14214,12 +14219,31 @@ window._pfProcesarOCR = async function() {
 window.openModalLluvia = function() {
   document.getElementById('ov-lluvia').classList.add('open')
   document.getElementById('ll-fecha').value=new Date().toISOString().split('T')[0]
+  // Reset modo edicion
+  document.getElementById('ll-edit-id').value = ''
+  document.getElementById('lluvia-modal-tit').textContent = 'Registrar lluvia'
+  document.getElementById('btn-lluvia').textContent = 'Registrar lluvia'
 }
 window.closeModalLluvia = function() { document.getElementById('ov-lluvia').classList.remove('open') }
+window.editarLluvia = function(id) {
+  var l = lluvias.find(function(x){ return x.id===id })
+  if (!l) return
+  document.getElementById('ov-lluvia').classList.add('open')
+  document.getElementById('lluvia-modal-tit').textContent = 'Editar lluvia'
+  document.getElementById('btn-lluvia').textContent = 'Guardar cambios'
+  document.getElementById('ll-edit-id').value = l.id
+  document.getElementById('ll-campo').value = l.campo_id || ''
+  document.getElementById('ll-fecha').value = l.fecha || ''
+  document.getElementById('ll-mm').value = l.mm || ''
+  document.getElementById('ll-tipo').value = l.tipo || 'pareja'
+  document.getElementById('ll-etapa').value = l.etapa || 'barbecho'
+  document.getElementById('ll-obs').value = l.observacion || ''
+}
 window.guardarLluvia = async function() {
   var campoId=document.getElementById('ll-campo').value
   var fecha=document.getElementById('ll-fecha').value
   var mm=parseFloat(document.getElementById('ll-mm').value)
+  var editId = document.getElementById('ll-edit-id').value
   if(!campoId){showToast('⚠️ Seleccioná el campo','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
   if(!mm||mm<=0){showToast('⚠️ Ingresá los milímetros','err');return}
@@ -14228,30 +14252,48 @@ window.guardarLluvia = async function() {
   btn.disabled=true;btn.textContent='Guardando...'
   try{
     var _ownerUid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-    var localId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('a'+Math.random().toString(16).slice(2))
-    var lluviaPayload = {
-      id: localId,
-      campo_id:campoId,usuario_id:_ownerUid,fecha,mm,
+    var isEdit = !!editId
+    var payload = {
+      campo_id:campoId, fecha, mm,
       etapa:document.getElementById('ll-etapa').value||null,
       tipo:document.getElementById('ll-tipo').value||null,
       observacion:document.getElementById('ll-obs').value.trim()||null
     }
-    // Optimistic + _dbMutate (REST fallback si el SDK se cuelga)
-    lluvias.unshift(lluviaPayload)
-    try {
-      await _dbMutate({method:'insert', table:'lluvias', payload: lluviaPayload, timeout: 8000})
-    } catch (e) {
-      // Rollback si falla
-      lluvias = lluvias.filter(function(l){return l.id !== localId})
-      throw e
+    if (isEdit) {
+      // UPDATE: optimistic edit + rollback snapshot
+      var idx = lluvias.findIndex(function(l){ return l.id === editId })
+      if (idx < 0) throw new Error('Lluvia no encontrada')
+      var snapshot = Object.assign({}, lluvias[idx])
+      lluvias[idx] = Object.assign({}, lluvias[idx], payload)
+      lluvias.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') })
+      try {
+        await _dbMutate({method:'update', table:'lluvias', filter:{col:'id', val:editId}, payload:payload, timeout: 8000})
+      } catch (e) {
+        lluvias[idx] = snapshot
+        throw e
+      }
+      _guardarCache()
+      if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
+      closeModalLluvia()
+      showToast('✓ Lluvia actualizada','ok')
+    } else {
+      var localId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('a'+Math.random().toString(16).slice(2))
+      var lluviaPayload = Object.assign({id: localId, usuario_id: _ownerUid}, payload)
+      lluvias.unshift(lluviaPayload)
+      try {
+        await _dbMutate({method:'insert', table:'lluvias', payload: lluviaPayload, timeout: 8000})
+      } catch (e) {
+        lluvias = lluvias.filter(function(l){return l.id !== localId})
+        throw e
+      }
+      _guardarCache()
+      if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
+      closeModalLluvia()
+      showToast('✓ '+mm+' mm registrados en '+(campos.find(function(c){return c.id===campoId})?.nombre||'el campo'),'ok')
+      ;['ll-mm','ll-obs'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value='' })
     }
-    _guardarCache()
-    if(campoDet) renderDetLluvias(); else renderLluvias(); renderDashboard()
-    closeModalLluvia()
-    showToast('✓ '+mm+' mm registrados en '+(campos.find(c=>c.id===campoId)?.nombre||'el campo'),'ok')
-    ;['ll-mm','ll-obs'].forEach(id=>{ var el=document.getElementById(id); if(el)el.value='' })
   }catch(e){showToast('⚠️ Error: '+(e.message||'Intentá de nuevo'),'err')}
-  finally{btn.disabled=false;btn.textContent='Registrar lluvia'}
+  finally{btn.disabled=false;btn.textContent=editId?'Guardar cambios':'Registrar lluvia'}
 }
 window.eliminarLluvia = async function(id) {
   // Delete con undo: optimistic remove + toast "Deshacer" 5s. Si al final del timer
@@ -14867,7 +14909,9 @@ window._showToastUndo = function(msg, onUndo) {
   var t = document.getElementById('toast')
   // Contenido con botón Deshacer inline
   t.innerHTML = '<span style="flex:1">'+msg+'</span><button id="_toast-undo-btn" style="background:#fff;color:#1a4a2e;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-left:12px;font-family:DM Sans,sans-serif">Deshacer</button>'
-  t.className = 'toast show ok'
+  // Clase toast-interactive habilita pointer-events (el toast normal los tiene
+  // en none para no interceptar clicks de la UI cuando aparece un aviso momentaneo).
+  t.className = 'toast show ok toast-interactive'
   t.style.display = 'flex'
   t.style.alignItems = 'center'
   clearTimeout(t._t)
@@ -14875,9 +14919,10 @@ window._showToastUndo = function(msg, onUndo) {
   var undone = false
   var cleanup = function(){
     t.classList.remove('show')
+    t.classList.remove('toast-interactive')
     setTimeout(function(){ t.innerHTML=''; t.style.display=''; t.style.alignItems='' }, 300)
   }
-  undoBtn.onclick = function(){
+  if (undoBtn) undoBtn.onclick = function(){
     if (undone) return
     undone = true
     try { onUndo() } catch(e) { console.error('undo callback:', e) }
@@ -18713,7 +18758,7 @@ function renderDetLluvias() {
   if(!lf.length) {
     el.innerHTML = '<div class="empty"><div class="empty-i">🌧️</div><div class="empty-t">Sin lluvias registradas</div><div class="empty-s">Registrá las lluvias de este campo.</div></div>'
   } else {
-    el.innerHTML = lf.map(function(l){return '<div class="lluvia-row"><span class="etapa-tag e-'+(l.etapa||'barbecho')+'">'+etapaLabel(l.etapa)+'</span><div style="flex:1"><div style="font-weight:500">'+l.mm+' mm · '+(l.tipo||'pareja')+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(l.fecha)+(l.observacion?' · '+l.observacion:'')+'</div></div><button onclick="eliminarLluvia(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px">🗑</button></div>'}).join('')
+    el.innerHTML = lf.map(function(l){return '<div class="lluvia-row"><span class="etapa-tag e-'+(l.etapa||'barbecho')+'">'+etapaLabel(l.etapa)+'</span><div style="flex:1"><div style="font-weight:500">'+l.mm+' mm · '+(l.tipo||'pareja')+'</div><div style="font-size:10px;color:var(--texto-suave)">'+fFecha(l.fecha)+(l.observacion?' · '+l.observacion:'')+'</div></div><button onclick="editarLluvia(\''+l.id+'\')" title="Editar" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px;padding:2px 4px">✏️</button><button onclick="eliminarLluvia(\''+l.id+'\')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:13px">🗑</button></div>'}).join('')
   }
   var porEtapa = {barbecho:0,siembra:0,vegetativo:0,floracion:0,llenado:0,maduracion:0}
   var optimos = {barbecho:40,siembra:30,vegetativo:120,floracion:80,llenado:100,maduracion:30}

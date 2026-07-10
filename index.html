@@ -2547,6 +2547,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
       </div>
     </div>
 
+    <!-- Cultivo del gasto (solo semillas / laboreo+siembra) — se auto-popula
+         con los cultivos del campo actual, o fallback a la lista generica -->
+    <div id="cultivo-gasto-row" style="display:none;margin-bottom:.9rem">
+      <label class="fl">Cultivo sembrado *</label>
+      <select class="fi" id="g-cultivo-siembra" style="cursor:pointer">
+        <option value="">Seleccioná el cultivo</option>
+      </select>
+      <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Elegí qué cultivo sembraste. Se usa para asignar el gasto al cultivo correcto en la rentabilidad.</div>
+    </div>
+
     <!-- Momento de la pulverización (solo herb/fung/insect) -->
     <div id="momento-pulv" style="display:none;margin-bottom:.9rem">
       <label class="fl">Momento de la pulverización</label>
@@ -9150,6 +9160,8 @@ window.onRubroChange = function() {
     if(descInput) descInput.placeholder = 'Ingresá una descripción...'
   }
   _actualizarInsumoSel(rubro)
+  // Selector de cultivo aparece si es siembra
+  try { window._actualizarSelectorCultivoSiembra && window._actualizarSelectorCultivoSiembra() } catch(e) {}
 }
 
 // Muestra/oculta y puebla el selector de insumos según rubro
@@ -9262,6 +9274,43 @@ window.selSubTipo = function(btn, tipo) {
   document.querySelectorAll('.sub-tipo-btn').forEach(b=>b.classList.remove('active'))
   btn.classList.add('active')
   gastoSubTipo = tipo
+  // Si es siembra (dentro de laboreo), mostrar el selector de cultivo
+  _actualizarSelectorCultivoSiembra()
+}
+
+// Muestra/oculta el selector de cultivo cuando el gasto es de siembra.
+// Se dispara cada vez que cambia rubro o sub-tipo. Popula el <select> con
+// los cultivos del campo actual (si tiene) o con la lista generica.
+window._actualizarSelectorCultivoSiembra = function() {
+  var row = document.getElementById('cultivo-gasto-row')
+  var sel = document.getElementById('g-cultivo-siembra')
+  if (!row || !sel) return
+  var rubro = document.getElementById('g-rubro').value
+  var esSiembra = rubro === 'semillas' || (rubro === 'laboreo' && gastoSubTipo === 'siembra')
+  if (!esSiembra) { row.style.display = 'none'; return }
+  row.style.display = 'block'
+  // Cultivos del campo actual (si estamos en detalle) o generico
+  var cultivosGenericos = ['Soja','Maíz','Trigo','Girasol','Sorgo','Cebada','Maní']
+  var cultivosDelCampo = []
+  try {
+    var cId = campoDet || document.getElementById('g-campo')?.value
+    if (cId) {
+      var c = (campos||[]).find(function(x){ return x.id === cId })
+      if (c && c.cultivo) {
+        cultivosDelCampo = String(c.cultivo).split(',').map(function(s){return s.trim()}).filter(Boolean)
+      }
+    }
+  } catch(e) {}
+  var opciones = cultivosDelCampo.length ? cultivosDelCampo : cultivosGenericos
+  var valorPrevio = sel.value
+  sel.innerHTML = '<option value="">Seleccioná el cultivo</option>' + opciones.map(function(c){
+    return '<option value="'+c+'">'+c+'</option>'
+  }).join('')
+  // Si hay un solo cultivo en el campo, preseleccionarlo automaticamente
+  if (cultivosDelCampo.length === 1) sel.value = cultivosDelCampo[0]
+  else if (valorPrevio && opciones.indexOf(valorPrevio) >= 0) sel.value = valorPrevio
+  // Si estamos con un contexto de cultivo activo (viene de la vista por cultivo), preseleccionar
+  else if (typeof gastosCultivoActivo !== 'undefined' && gastosCultivoActivo && opciones.indexOf(gastosCultivoActivo) >= 0) sel.value = gastosCultivoActivo
 }
 
 // ── RUBRO CHIPS ──
@@ -10961,6 +11010,13 @@ window.guardarGasto = async function() {
     //   incluso si el picker está en un cultivo. Se reparte proporcional a
     //   las hectáreas de cada cultivo en campos mixtos.
     if(gastosCultivoActivo && rubro !== 'arrendamiento') _p.cultivo = gastosCultivoActivo
+    // Prioridad: el selector explicito de cultivo en gastos de siembra pisa el
+    // contexto (gastosCultivoActivo) — porque es un choice explicito del user.
+    var esSiembraGuardar = rubro === 'semillas' || (rubro === 'laboreo' && gastoSubTipo === 'siembra')
+    if (esSiembraGuardar) {
+      var cultElegido = document.getElementById('g-cultivo-siembra')?.value
+      if (cultElegido) _p.cultivo = cultElegido
+    }
     else if(rubro === 'arrendamiento') _p.cultivo = null
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
@@ -11151,6 +11207,21 @@ window.editarGasto = function(id) {
     var mpEditEl = document.getElementById('g-momento-pulv')
     if(mpEditEl) mpEditEl.value = g.momento_pulverizacion
   }
+  // Cultivo de siembra: pre-cargar si el gasto es semillas/siembra y tiene cultivo
+  try {
+    var esSiembraEdit = g.rubro === 'semillas' || (g.rubro === 'laboreo' && g.sub_tipo === 'siembra')
+    if (esSiembraEdit && g.cultivo) {
+      window._actualizarSelectorCultivoSiembra && window._actualizarSelectorCultivoSiembra()
+      var elCultSel = document.getElementById('g-cultivo-siembra')
+      if (elCultSel) {
+        // Si el cultivo no está en las opciones (raro), agregarlo
+        if (![].slice.call(elCultSel.options).some(function(o){return o.value===g.cultivo})) {
+          var opt = document.createElement('option'); opt.value = g.cultivo; opt.textContent = g.cultivo; elCultSel.appendChild(opt)
+        }
+        elCultSel.value = g.cultivo
+      }
+    }
+  } catch(e) {}
   // Si el gasto tenía insumo vinculado, precargar el selector
   if(g.insumo_id) {
     var insSel = document.getElementById('g-insumo-sel')

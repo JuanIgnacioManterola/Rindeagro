@@ -3986,6 +3986,12 @@ window.showModulo = function(mod) {
   // haberse actualizado — ej. marcar tarea completa, pagar un cheque, etc)
   try { window._actualizarBadgeNotif && window._actualizarBadgeNotif() } catch(e) {}
 
+  // Onboarding: marcar paso 3 automatico cuando el user visita Rentabilidad
+  // por cualquier via (nav, boton del checklist, direct link). Y re-render
+  // del checklist cuando vuelve al dashboard para reflejar cambios.
+  if (mod === 'rentabilidad-total') { try { localStorage.setItem('ra_ob_paso3','1') } catch(e) {} }
+  if (mod === 'dashboard') { try { window._renderOnboarding && window._renderOnboarding() } catch(e) {} }
+
   if (mod === 'campos') renderCamposLista()
   if (mod === 'rentabilidad-total') {
     if (!puedeVerRentabilidad()) {

@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --verde:#1a4a2e;--verde-mid:#2d6e47;--verde-light:#3d8f5f;--verde-pale:#e8f5ee;
@@ -1303,13 +1304,14 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
         </div>
       </div>
       <div style="background:var(--crema);border-radius:9px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--texto-mid);line-height:1.7">
-        <div style="font-weight:700;color:var(--verde);margin-bottom:6px">📁 Se descargan 8 planillas:</div>
+        <div style="font-weight:700;color:var(--verde);margin-bottom:6px">📁 8 hojas dentro de un solo archivo Excel:</div>
         <div><strong>Campos</strong> · <strong>Gastos</strong> · <strong>Lluvias</strong> · <strong>Análisis de suelo</strong> · <strong>Stock de insumos</strong> · <strong>Pagos</strong> · <strong>Tareas</strong> · <strong>Historial de campañas</strong></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button onclick="descargarBackupCSV()" style="background:var(--verde);color:#fff;border:none;border-radius:9px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px">
-          📥 Descargar (8 archivos Excel)
+        <button onclick="descargarBackupXLSX()" style="background:var(--verde);color:#fff;border:none;border-radius:9px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px">
+          📥 Descargar Excel (.xlsx, 1 archivo)
         </button>
+        <button onclick="descargarBackupCSV()" title="Genera un CSV por tabla (8 archivos sueltos). Útil si preferís abrir uno por uno." style="background:transparent;color:var(--texto-mid);border:1px solid var(--borde);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">📄 CSVs sueltos</button>
         <button onclick="descargarBackupJSON()" title="Solo para programadores o migrar a otro sistema — no se abre en Excel" style="background:transparent;color:var(--texto-suave);border:1px solid var(--borde);border-radius:8px;padding:9px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🔧 Backup técnico (JSON)</button>
       </div>
       <div style="font-size:11px;color:var(--texto-suave);margin-top:10px;line-height:1.6">
@@ -14397,6 +14399,101 @@ window.descargarBackupCSV = function() {
     n++
   })
   showToast('✓ '+n+' CSVs descargados en formato Excel', 'ok')
+
+  // Expone las tablas construidas para que descargarBackupXLSX pueda reutilizarlas
+  // sin duplicar la definicion de columnas (se ejecuta con el mismo estado y
+  // los mismos helpers de _fmtFecha, _fmtMoneda, _nombreCampo, etc).
+  window._backupTablasCache = tablas
+}
+
+// Descarga UN archivo .xlsx con las 8 tablas del backup como hojas separadas.
+// Es el formato preferido por productores que usan Excel (no ~10 archivos
+// sueltos) — mismo contenido que el CSV pero mas comodo de abrir y compartir.
+// Usa SheetJS (xlsx CDN) — si no cargo, fallback graceful a los CSV.
+window.descargarBackupXLSX = function() {
+  if (typeof XLSX === 'undefined') {
+    showToast('⚠️ La libreria de Excel no cargo. Descargamos los CSVs mientras tanto.', 'err')
+    return window.descargarBackupCSV()
+  }
+  // Reutilizar la construccion de tablas del CSV — se ejecuta el mismo mapeo
+  // (nombres en vez de UUIDs, columnas en espanol, sin ruido tecnico) y despues
+  // leemos window._backupTablasCache. Es la forma mas simple de no duplicar
+  // 100 lineas de definiciones de columna.
+  try {
+    // Silenciar el toast del CSV para no confundir al user con dos mensajes
+    var _showToastOrig = window.showToast
+    var toastsCSV = []
+    window.showToast = function(m){ toastsCSV.push(m) }
+    // Truco: interceptar el a.click() para que no dispare descargas de CSVs
+    var _createEl = document.createElement.bind(document)
+    document.createElement = function(tag) {
+      var el = _createEl(tag)
+      if (tag && tag.toLowerCase() === 'a') { el.click = function(){} }
+      return el
+    }
+    try { window.descargarBackupCSV() } finally {
+      document.createElement = _createEl
+      window.showToast = _showToastOrig
+    }
+    var tablas = window._backupTablasCache
+    if (!tablas || !tablas.length) { showToast('⚠️ No hay datos para exportar', 'err'); return }
+
+    var wb = XLSX.utils.book_new()
+    var hojasCreadas = 0
+    tablas.forEach(function(t){
+      if (!t.data || !t.data.length) return
+      // Convertir a array-of-arrays: primera fila = headers, resto = valores
+      var aoa = [ t.cols.map(function(c){ return c.header }) ]
+      t.data.forEach(function(row){
+        aoa.push(t.cols.map(function(c){
+          var v = c.value(row)
+          // Excel prefiere numeros nativos para hacer calculos — parseamos donde
+          // el header sugiere numero. Para el resto, string.
+          if (v == null || v === '') return ''
+          var s = String(v)
+          // Si el string es puramente numerico y el header sugiere numero, convertir
+          if (/^\-?\d+(\.\d+)?$/.test(s) && /(hect|kg|rendim|precio|importe|dosis|stock|neta|ha)/i.test(c.header)) {
+            return parseFloat(s)
+          }
+          return v
+        }))
+      })
+      var ws = XLSX.utils.aoa_to_sheet(aoa)
+      // Anchos de columna basados en el max largo del contenido (min 10, max 40)
+      var colWidths = t.cols.map(function(c, idx){
+        var maxLen = c.header.length
+        for (var i = 1; i < Math.min(aoa.length, 200); i++) {
+          var val = aoa[i][idx]; if (val == null) continue
+          var len = String(val).length
+          if (len > maxLen) maxLen = len
+        }
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) }
+      })
+      ws['!cols'] = colWidths
+      // Freeze header row para que quede fija al scrollear
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 }
+      // Nombres de hoja truncados a 31 chars (limite de Excel)
+      var sheetName = String(t.archivo).slice(0, 31)
+      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+      hojasCreadas++
+    })
+
+    if (!hojasCreadas) { showToast('⚠️ No hay datos para exportar', 'err'); return }
+
+    // Escribir y descargar
+    var wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true })
+    var blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    var url = URL.createObjectURL(blob)
+    var a = document.createElement('a')
+    var fecha = new Date().toISOString().split('T')[0]
+    a.href = url; a.download = 'rindeagro-backup-'+fecha+'.xlsx'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    showToast('✓ Backup descargado — '+hojasCreadas+' hoja'+(hojasCreadas===1?'':'s')+' en Excel', 'ok')
+  } catch (e) {
+    console.error('descargarBackupXLSX:', e)
+    showToast('⚠️ Error al generar el Excel. Probá los CSVs.', 'err')
+  }
 }
 
 // Toast con botón Deshacer para deletes safe. Timer de 5s antes de ejecutar el delete

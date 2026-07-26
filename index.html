@@ -421,6 +421,9 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .pass-meter-label{font-size:11px;margin-top:4px;color:var(--texto-suave);font-weight:600}
 .fi:focus{border-color:var(--verde)}
 .fi::placeholder{color:var(--texto-suave)}
+/* Chevron ↓ para selects (design system: verde, Feather-style) */
+select.fi{appearance:none;-moz-appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231a4a2e' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px !important}
+select.fi:disabled{opacity:.55;cursor:not-allowed}
 .fb{width:100%;padding:12px;border-radius:10px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.4rem;transition:all .2s}
 .fb:hover{background:var(--verde-mid)}
 .fb:disabled{opacity:.6;cursor:not-allowed}

@@ -18223,9 +18223,9 @@ window.renderRentabilidadTotal = function() {
     function _money(v) { var s = (v<0?'(':''); return s + 'USD ' + _miles(Math.abs(v)) + (v<0?')':'') }
     function _pct(v) { return (v>=0?'+':'')+v.toFixed(1)+'%' }
     function _perHa(v) { return _miles(v) + ' USD/ha' }
-    var bgIngresos = '#dcfce7'   // verde claro (más suave que Margen para jerarquía)
-    var bgCostos   = '#dc2626'   // rojo
-    var bgMargen   = mgPositivo ? '#86efac' : '#fca5a5'   // verde más claro / rojo claro si negativo
+    var bgIngresos = 'transparent'  // sin fondo — texto negro sobre el card blanco
+    var bgCostos   = 'transparent'  // sin fondo
+    var bgMargen   = 'transparent'  // sin fondo
     var muted = '#475569', text = '#000', border = '#e5e7eb'
 
     casEl.innerHTML = ''

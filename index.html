@@ -17678,12 +17678,12 @@ function _refreshCrAcordeon() {
     var porRubro={}
     directos.forEach(function(g){
       var rk=g.rubro||'otros'; var label=RUBS[rk]||rk
-      if(!porRubro[label]) porRubro[label]={gastos:[],total:0,fr:1}
+      if(!porRubro[label]) porRubro[label]={label:label,gastos:[],total:0,fr:1}
       porRubro[label].gastos.push(g); porRubro[label].total+=(g.total_de_usd||0)
     })
     sinCultivo.forEach(function(g){
       var rk=g.rubro||'otros'; var label=RUBS[rk]||rk
-      if(!porRubro[label]) porRubro[label]={gastos:[],total:0,fr:frac}
+      if(!porRubro[label]) porRubro[label]={label:label,gastos:[],total:0,fr:frac}
       porRubro[label].gastos.push(g); porRubro[label].total+=(g.total_de_usd||0)*frac; porRubro[label].fr=frac
     })
     var rubArr=Object.entries(porRubro).sort(function(a,b){return b[1].total-a[1].total})
@@ -17736,8 +17736,9 @@ function _refreshCrAcordeon() {
     var pct = denomIng>0 ? Math.round(rd.total/denomIng*100)+'%' : '—'
     var haCosto = haRef>0 ? Math.round(rd.total/haRef) : 0
     var chevron = rd.gastos.length ? (isROpen?'▲':'▼') : ''
+    var lblSafe = rd.label || rk || 'Otros'
     var html = '<div onclick="toggleCrRubro(\''+rKey.replace(/'/g,'\\\'')+'\',event)" style="display:grid;'+GRID_COLS+';padding:12px 20px;align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+';cursor:pointer">'
-      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) '+rd.label+'</div>'
+      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) '+lblSafe+'</div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rd.gastos.length+' gasto'+(rd.gastos.length!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(rd.total)+')</div>'
@@ -18539,7 +18540,18 @@ window.guardarRendCampo = function() {
     if(idx2>=0) campos[idx2].hectareas_cultivo=JSON.stringify(haCultivoNew)
   }
   _guardarCache()
-  calcIngresosLive(); renderRentabilidad(); renderDashboard()
+  // Actualizamos TODAS las vistas que consumen ingresos_cultivos para que
+  // cualquier cambio se refleje inmediatamente sin necesidad de recargar:
+  // - calcIngresosLive: la secci\u00f3n Ingresos del propio campo
+  // - renderRentabilidad: vista legacy de rentabilidad (selector + detalle)
+  // - renderCampoRent: pesta\u00f1a Rentabilidad del campo (P&L nuevo)
+  // - renderRentabilidadTotal: dashboard global (hero, cards, P&L)
+  // - renderDashboard: m\u00e9tricas del dashboard general
+  calcIngresosLive()
+  try { renderRentabilidad() } catch(e) {}
+  try { if (typeof renderCampoRent === 'function') renderCampoRent() } catch(e) {}
+  try { if (typeof window.renderRentabilidadTotal === 'function') window.renderRentabilidadTotal() } catch(e) {}
+  try { renderDashboard() } catch(e) {}
   showToast('\u2713 Ingresos guardados','ok')
   var primer0 = cultivos[0]
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}

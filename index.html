@@ -17281,8 +17281,32 @@ window.renderIngresosTab = function() {
   // Multi-cultivo sin cultivo activo → mostrar picker (mismo patrón que Gastos)
   if (esMultiCultivo && !window.ingresosCultivoActivo) {
     if (pickerEl) {
+      // Ingreso bruto total del campo = suma de ventas con precio confirmado
+      // en todos los cultivos. Se muestra como hero arriba del picker para que
+      // el user vea el impacto global antes de entrar a un cultivo puntual.
+      var totalIngBruto = 0
+      cultivos.forEach(function(cu){
+        (window._ingVentas[cu] || []).forEach(function(v){
+          var tn = parseFloat(v.tn||0), pr = parseFloat(v.precio||0)
+          if (tn > 0 && pr > 0) totalIngBruto += tn * pr
+        })
+      })
+      var _enARSp = monedaGlobal === 'ARS', _tcP = _dolarCompra()
+      var totalStr = _enARSp
+        ? '$ ' + Math.round(totalIngBruto*_tcP).toLocaleString('es-AR')
+        : 'USD ' + Math.round(totalIngBruto).toLocaleString('es-AR')
+
+      var heroHtml = '<div class="card" style="padding:18px 22px;margin-bottom:12px;background:#ecfdf5;border-left:4px solid #059669">'
+        +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Ingreso bruto del campo</div>'
+        +'<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'
+        +'<span style="font-size:30px;font-weight:800;color:#047857;font-family:DM Mono,monospace;line-height:1.1">'+totalStr+'</span>'
+        +'<span style="font-size:12px;color:var(--texto-suave)">confirmado · suma de ventas con precio en '+cultivos.length+' cultivos</span>'
+        +'</div>'
+        +'</div>'
+
       pickerEl.style.display = 'block'
-      pickerEl.innerHTML = '<div class="card">'
+      pickerEl.innerHTML = heroHtml
+        +'<div class="card">'
         +'<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">Ingresos por cultivo</div>'
         +'<div style="font-size:12px;color:var(--texto-suave);margin-bottom:16px">Seleccioná el cultivo para cargar rendimiento y ventas</div>'
         +'<div style="display:grid;gap:10px">'
@@ -17448,15 +17472,16 @@ window.renderIngresosTab = function() {
       +   '</div>'
       + '</div>'
 
-      // Banner de ingreso confirmado / alertas
-      + '<div id="cr-ingreso-'+sid+'" style="display:none;margin-bottom:12px"></div>'
-
       // ── Sección Ventas ──
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">'
       +   '<div style="font-size:13px;font-weight:700;color:'+text+'">Ventas del cultivo <span style="color:'+muted+';font-weight:500">('+ventas.length+')</span></div>'
       +   '<button onclick="_ingAgregarVenta(\''+cult+'\')" class="btn-vs">+ Agregar venta</button>'
       + '</div>'
       + ventasHtml + emptyVentas
+
+      // Banner de ingreso confirmado / alertas — al final, después de las ventas
+      + '<div id="cr-ingreso-'+sid+'" style="display:none;margin-top:12px"></div>'
+
       + '<div id="ing-preview-'+sid+'" style="display:none"></div>'
       + '</div>'
   }).join('')
@@ -17583,6 +17608,10 @@ window.calcIngresosLive = function() {
   var alguno = rows.some(function(r){return r.totalUSD>0})
   var res = document.getElementById('cr-resultado')
   if(!res) return
+  // Cuando estás en la vista de un cultivo (multi-cultivo con picker activo),
+  // el resumen general muestra cards de otros cultivos — ocultarlo para no
+  // mezclar info y que el foco sea el cultivo elegido.
+  if (cultivos.length > 1 && window.ingresosCultivoActivo) { res.style.display='none'; return }
   if(!alguno){res.style.display='none';return}
   res.style.display='block'
   var grandTotal = rows.reduce(function(a,r){return a+r.totalUSD},0)

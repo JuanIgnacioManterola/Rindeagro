@@ -1008,8 +1008,6 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <div id="gastos-volver-bar" style="display:none;margin-bottom:10px">
         <button onclick="volverCultivoGastos()" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:2px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 8px rgba(26,74,46,.12)">← Cambiar cultivo</button>
       </div>
-      <!-- Comparativa entre campañas (se muestra si hay 2+ campañas) -->
-      <div id="det-gastos-comparativa" style="display:none"></div>
       <!-- Hero: total de gastos del campo/cultivo en la campaña activa -->
       <div id="det-gastos-hero" style="margin-bottom:14px"></div>
       <!-- Lista cronológica de gastos (con + Agregar) -->
@@ -18405,67 +18403,6 @@ function _campanaDeGasto(fechaStr) {
   return mes >= 6 ? (anio+'/'+(anio+1)) : ((anio-1)+'/'+anio)
 }
 
-function _agruparGastosPorCampanaYRubro(gList) {
-  var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
-  var agrupado = {}
-  gList.forEach(function(g) {
-    var fecha = g.fecha || g.created_at; if(!fecha) return
-    var camp = _campanaDeGasto(fecha)
-    var rubro = RUBS[g.rubro] || g.rubro || 'Otros'
-    if(!agrupado[camp]) agrupado[camp] = {}
-    if(!agrupado[camp][rubro]) agrupado[camp][rubro] = 0
-    agrupado[camp][rubro] += parseFloat(g.total_de_usd || 0)
-  })
-  return agrupado
-}
-
-function _renderComparativaCampanas(gActual, gAnterior, campActual, campAnterior) {
-  var RUBROS = ['Herbicidas','Fungicidas','Insecticidas','Fertilizantes','Semillas','Laboreo','Flete','Empleados','Arrendamiento','Riego','Otros']
-  var totalActual = Object.values(gActual).reduce(function(a,b){return a+b},0)
-  var totalAnterior = Object.values(gAnterior||{}).reduce(function(a,b){return a+b},0)
-  var difTotal = totalActual - totalAnterior
-  var html = '<div style="background:var(--crema);border-radius:10px;padding:12px 14px;margin-bottom:12px">'
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
-  html += '<div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--texto-suave)">Comparativa entre campañas</div>'
-  html += '<div style="display:flex;gap:12px;font-size:11px">'
-  html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--verde);border-radius:2px;display:inline-block;opacity:.35"></span>'+(campAnterior||'Anterior')+'</span>'
-  html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--verde);border-radius:2px;display:inline-block"></span>'+campActual+'</span>'
-  html += '</div></div>'
-  RUBROS.forEach(function(rubro) {
-    var valActual = gActual[rubro] || 0
-    var valAnterior = (gAnterior||{})[rubro] || 0
-    if(valActual===0 && valAnterior===0) return
-    var maxVal = Math.max(valActual, valAnterior, 1)
-    var pctA = Math.round(valActual/maxVal*100)
-    var pctP = Math.round(valAnterior/maxVal*100)
-    var dif = valActual - valAnterior
-    var difStr = dif>0 ? '+$'+Math.round(dif) : '$'+Math.round(dif)
-    var difColor = dif>0 ? 'var(--rojo)' : '#1a7a52'
-    html += '<div style="margin-bottom:8px">'
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
-    html += '<span style="font-size:11px;color:var(--texto-suave);width:90px;flex-shrink:0">'+rubro+'</span>'
-    html += '<div style="flex:1;height:14px;background:#eee;border-radius:3px;overflow:hidden;position:relative">'
-    if(valAnterior>0) html += '<div style="position:absolute;height:7px;top:0;left:0;width:'+pctP+'%;background:var(--verde);opacity:.35;border-radius:3px"></div>'
-    if(valActual>0) html += '<div style="position:absolute;height:7px;bottom:0;left:0;width:'+pctA+'%;background:var(--verde);border-radius:3px"></div>'
-    html += '</div>'
-    html += '<span style="font-size:10px;font-family:\'DM Mono\',monospace;font-weight:600;color:'+difColor+';width:50px;text-align:right;flex-shrink:0">'+(valAnterior>0?difStr:'')+'</span>'
-    html += '</div></div>'
-  })
-  if(totalAnterior > 0) {
-    var difTotStr = difTotal>0 ? '+USD '+Math.round(difTotal)+'/ha vs '+campAnterior : 'USD '+Math.round(difTotal)+'/ha vs '+campAnterior
-    var difTotBg  = difTotal>0 ? 'var(--rojo-pale)' : 'var(--verde-pale)'
-    var difTotClr = difTotal>0 ? 'var(--rojo)' : '#1a7a52'
-    html += '<div style="border-top:.5px solid var(--borde);padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'
-    html += '<span style="font-size:11px;color:var(--texto-suave)">Costo total campaña actual</span>'
-    html += '<div style="display:flex;align-items:center;gap:8px">'
-    html += '<span style="font-size:13px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--verde)">USD '+Math.round(totalActual).toLocaleString('es-AR')+'/ha</span>'
-    html += '<span style="font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;background:'+difTotBg+';color:'+difTotClr+'">'+difTotStr+'</span>'
-    html += '</div></div>'
-  }
-  html += '</div>'
-  return html
-}
-
 function renderDetGastos() {
   var c = campos.find(function(f){return f.id===campoDet})
   if(!c) return
@@ -18587,22 +18524,6 @@ function renderDetGastos() {
   var mc = mgHa>=0?'#1a7a52':'#c0392b'
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
   var SUBS = {siembra:'Siembra',fumigacion:'Fumigación',cosecha:'Cosecha',fertilizacion:'Fertilización',labranza:'Labranza'}
-
-  // ── COMPARATIVA CAMPAÑAS ──
-  var compEl = document.getElementById('det-gastos-comparativa')
-  if(compEl) {
-    // Todos los gastos del campo sin filtro de campaña
-    var todosGastosCampo = gastos.filter(function(g){return g.campo_id===campoDet && g.fecha})
-    var agrupado = _agruparGastosPorCampanaYRubro(todosGastosCampo)
-    var campanas = Object.keys(agrupado).sort().reverse() // más reciente primero
-    if(campanas.length >= 2) {
-      var cAct = campanas[0], cAnt = campanas[1]
-      compEl.innerHTML = _renderComparativaCampanas(agrupado[cAct], agrupado[cAnt], cAct, cAnt)
-      compEl.style.display = 'block'
-    } else {
-      compEl.style.display = 'none'
-    }
-  }
 
   // ── HERO: total de gastos (glanceable arriba) ──
   var heroEl = document.getElementById('det-gastos-hero')

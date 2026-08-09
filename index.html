@@ -988,9 +988,15 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
         <button onclick="exportarPDFIngresosCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
       </div>
-      <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
+      <!-- Selector de cultivo (aparece cuando el campo tiene 2+ cultivos) -->
+      <div id="ingresos-cultivo-pantalla" style="display:none"></div>
+      <!-- Botón volver cultivo (solo visible cuando hay cultivo seleccionado en multi-cultivo) -->
+      <div id="ingresos-volver-bar" style="display:none;margin-bottom:10px">
+        <button onclick="volverCultivoIngresos()" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:2px solid var(--verde);background:var(--verde-pale);color:var(--verde);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 8px rgba(26,74,46,.12)">← Cambiar cultivo</button>
+      </div>
+      <div id="ingresos-card" style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.5rem 1.75rem;box-shadow:0 4px 20px rgba(26,74,46,.25)">
         <div style="font-size:11px;font-weight:600;color:rgba(250,247,240,.6);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">📊 Ingresos por cultivo</div>
-        <div style="font-size:13px;color:rgba(250,247,240,.5);margin-bottom:18px">Ingresá rendimiento y precio de venta por cultivo</div>
+        <div style="font-size:13px;color:rgba(250,247,240,.5);margin-bottom:18px">Cargá rendimiento por hectárea y las ventas realizadas</div>
         <div id="cr-cultivos-inputs"><!-- populated by renderIngresosTab --></div>
         <button onclick="guardarRendCampo()" style="margin-top:12px;padding:12px 26px;border-radius:9px;border:none;background:var(--dorado);color:var(--verde);font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%">Guardar datos →</button>
       </div>
@@ -17196,7 +17202,44 @@ window._ingEliminarVenta = function(cult, idx) {
 // Setter llamado desde el input "Toneladas cosechadas"
 window._ingSetCosechadas = function(cult, val) {
   window._ingCosechadas[cult] = val === '' ? '' : (parseFloat(val)||0)
+  // Sincronizar el input de rendimiento (tn / ha) para que reflejen el cambio
+  try {
+    var sid = _ingSafeId(cult)
+    var haEl = document.getElementById('cr-ha-'+sid)
+    var rEl  = document.getElementById('cr-rend-'+sid)
+    var ha = haEl ? (parseFloat(haEl.value)||0) : 0
+    if (rEl && ha > 0 && val !== '' && !isNaN(parseFloat(val))) {
+      rEl.value = (parseFloat(val)/ha).toFixed(2)
+    } else if (rEl && val === '') {
+      rEl.value = ''
+    }
+  } catch(e) {}
   calcIngresosLive()
+}
+
+// Setter llamado desde el input "Rendimiento por hectárea" — deriva tn cosechadas = rend × ha
+window._ingSetRendHa = function(cult, val) {
+  var sid = _ingSafeId(cult)
+  var haEl = document.getElementById('cr-ha-'+sid)
+  var ha = haEl ? (parseFloat(haEl.value)||0) : 0
+  var rend = val === '' ? '' : (parseFloat(val)||0)
+  var tn = (rend !== '' && ha > 0) ? Math.round(rend * ha * 10)/10 : ''
+  window._ingCosechadas[cult] = tn === '' ? '' : tn
+  var cosEl = document.getElementById('cr-cos-'+sid)
+  if (cosEl) cosEl.value = tn
+  calcIngresosLive()
+}
+
+// Selector de cultivo — mismo patrón que Gastos. null = mostrar picker,
+// string = cultivo elegido (para multi-cultivo). Single-cultivo lo ignora.
+window.ingresosCultivoActivo = null
+window.seleccionarCultivoIngresos = function(cult) {
+  window.ingresosCultivoActivo = cult
+  renderIngresosTab()
+}
+window.volverCultivoIngresos = function() {
+  window.ingresosCultivoActivo = null
+  renderIngresosTab()
 }
 
 window._ingUpdateVenta = function() { calcIngresosLive() }
@@ -17204,12 +17247,15 @@ window._ingUpdateVenta = function() { calcIngresosLive() }
 window.renderIngresosTab = function() {
   var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
   var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var esMultiCultivo = cultivos.length > 1
 
   // Re-init si cambió de campo
   if(window._ingVentasCampoId !== campoDet) {
     window._ingVentasCampoId = campoDet
     window._ingVentas = {}
     window._ingCosechadas = {}
+    // Al cambiar de campo, reseteamos el cultivo activo del picker
+    window.ingresosCultivoActivo = null
     var savedData = {}
     try { savedData = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
     // backward compat single crop
@@ -17226,7 +17272,55 @@ window.renderIngresosTab = function() {
   var INP = 'background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:7px 9px;font-size:13px;font-family:DM Mono,monospace;outline:none;box-sizing:border-box'
   var INP_HA = 'padding:10px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);font-size:16px;font-weight:600;color:#fff;width:130px;font-family:DM Mono,monospace;outline:none;box-sizing:border-box'
 
-  var html = cultivos.map(function(cult) {
+  var pickerEl  = document.getElementById('ingresos-cultivo-pantalla')
+  var volverBar = document.getElementById('ingresos-volver-bar')
+  var cardEl    = document.getElementById('ingresos-card')
+  var resultEl  = document.getElementById('cr-resultado')
+
+  // Multi-cultivo sin cultivo activo → mostrar picker (mismo patrón que Gastos)
+  if (esMultiCultivo && !window.ingresosCultivoActivo) {
+    if (pickerEl) {
+      pickerEl.style.display = 'block'
+      pickerEl.innerHTML = '<div class="card">'
+        +'<div style="font-size:15px;font-weight:700;color:var(--texto);margin-bottom:4px">Ingresos por cultivo</div>'
+        +'<div style="font-size:12px;color:var(--texto-suave);margin-bottom:16px">Seleccioná el cultivo para cargar rendimiento y ventas</div>'
+        +'<div style="display:grid;gap:10px">'
+        + cultivos.map(function(cult){
+            var color = CULT_COLORES[cult]||'#16a34a'
+            var icon  = CULT_ICONS[cult]||'🌱'
+            var haCult = parseFloat(haCultivoMap[cult]) || (haTotal/cultivos.length) || 0
+            // Info resumen: rend/ha + total vendido si hay
+            var ventasCult = window._ingVentas[cult] || []
+            var tnVend = ventasCult.reduce(function(a,v){var tn=parseFloat(v.tn||0),pr=parseFloat(v.precio||0);return a+(tn>0&&pr>0?tn*pr:0)},0)
+            var cosVal = window._ingCosechadas[cult]
+            var rendHa = (typeof cosVal === 'number' && cosVal > 0 && haCult > 0) ? (cosVal/haCult).toFixed(2)+' t/ha' : 'Sin cargar'
+            var infoStr = rendHa + (tnVend > 0 ? ' · USD '+Math.round(tnVend).toLocaleString('es-AR')+' vendido' : '')
+            var cultEsc = cult.replace(/'/g,"\\'")
+            return '<div onclick="seleccionarCultivoIngresos(\''+cultEsc+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--crema);border-radius:13px;border-left:4px solid '+color+';cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 14px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">'
+              +'<div style="display:flex;align-items:center;gap:12px">'
+              +'<span style="font-size:26px">'+icon+'</span>'
+              +'<div><div style="font-size:16px;font-weight:700;color:var(--texto)">'+cult+'</div>'
+              +'<div style="font-size:12px;color:var(--texto-suave)">'+Math.round(haCult)+' ha · '+infoStr+'</div></div>'
+              +'</div>'
+              +'<span style="font-size:20px;color:var(--texto-suave)">›</span>'
+              +'</div>'
+          }).join('')
+        +'</div></div>'
+    }
+    if (volverBar) volverBar.style.display = 'none'
+    if (cardEl) cardEl.style.display = 'none'
+    if (resultEl) resultEl.style.display = 'none'
+    return
+  }
+
+  // Single-cultivo o cultivo activo elegido: mostrar card verde con inputs
+  if (pickerEl) pickerEl.style.display = 'none'
+  if (cardEl) cardEl.style.display = 'block'
+  if (volverBar) volverBar.style.display = (esMultiCultivo && window.ingresosCultivoActivo) ? 'block' : 'none'
+  // Cultivos a renderear: solo el activo si multi, todos si single
+  var cultivosARenderear = esMultiCultivo ? [window.ingresosCultivoActivo] : cultivos
+
+  var html = cultivosARenderear.map(function(cult) {
     var sid = _ingSafeId(cult)
     var icon = CULT_ICONS[cult]||'🌱'
     var color = CULT_COLORES[cult]||'#16a34a'
@@ -17311,10 +17405,22 @@ window.renderIngresosTab = function() {
       +   '</div>'
       + '</div>'
 
+      // ── Rendimiento por hectárea (input prominente, sincronizado con tn totales) ──
+      + '<div style="background:rgba(0,0,0,.18);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">'
+      +   '<div style="min-width:0">'
+      +     '<div style="'+LBL_SMALL+';margin-bottom:2px">Rendimiento por hectárea</div>'
+      +     '<div style="font-size:11px;color:rgba(250,247,240,.55);font-weight:500">Cuántas toneladas cosechaste por ha</div>'
+      +   '</div>'
+      +   '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1.5px solid var(--dorado);border-radius:10px;padding:6px 12px">'
+      +     '<input id="cr-rend-'+sid+'" type="number" placeholder="0.0" min="0" step="0.1" value="'+((typeof cosVal === "number" && cosVal > 0 && haFP > 0) ? (cosVal/haFP).toFixed(2) : "")+'" oninput="_ingSetRendHa(\''+cult+'\',this.value)" style="background:transparent;border:none;color:#fff;font-size:26px;font-weight:800;font-family:DM Mono,monospace;text-align:right;width:110px;outline:none;padding:0" />'
+      +     '<span style="font-size:14px;color:rgba(250,247,240,.7);font-weight:700">t/ha</span>'
+      +   '</div>'
+      + '</div>'
+
       // Balance: 3 columnas grandes — Cosechadas / Vendidas / Por vender
       + '<div style="background:rgba(0,0,0,.2);border-radius:12px;padding:16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2px">'
       +   '<div style="text-align:center;padding:0 10px;border-right:1px solid rgba(255,255,255,.08)">'
-      +     '<div style="'+LBL_SMALL+'">Cosechadas <span title="Editable — tocá el número para cargar las toneladas cosechadas" style="opacity:.7">✏️</span></div>'
+      +     '<div style="'+LBL_SMALL+'">Cosechadas <span title="Se auto-calcula del rendimiento × hectáreas, o cargá directo las toneladas totales" style="opacity:.7">✏️</span></div>'
       +     '<div onclick="document.getElementById(\'cr-cos-'+sid+'\').focus()" style="cursor:text;background:rgba(255,255,255,.06);border:1.5px dashed rgba(201,168,76,.55);border-radius:10px;padding:6px 8px;transition:all .15s" onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.borderColor=\'var(--dorado)\'" onmouseout="this.style.background=\'rgba(255,255,255,.06)\';this.style.borderColor=\'rgba(201,168,76,.55)\'">'
       +       '<input id="cr-cos-'+sid+'" type="number" placeholder="Tocá acá" min="0" step="0.1" value="'+cosVal+'" oninput="_ingSetCosechadas(\''+cult+'\',this.value)" onfocus="this.parentElement.style.borderColor=\'var(--dorado)\';this.parentElement.style.background=\'rgba(255,255,255,.12)\';this.parentElement.style.borderStyle=\'solid\'" onblur="this.parentElement.style.borderColor=\'rgba(201,168,76,.55)\';this.parentElement.style.background=\'rgba(255,255,255,.06)\';this.parentElement.style.borderStyle=\'dashed\'" style="background:transparent;border:none;color:#fff;font-size:28px;font-weight:800;font-family:DM Mono,monospace;text-align:center;width:100%;outline:none;padding:0" />'
       +     '</div>'
@@ -18297,9 +18403,19 @@ window.guardarRendCampo = function() {
   var cultivos = (c.cultivo||'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
   var ingrData = {}
   var hayDato = false
+  // En multi-cultivo con selector activo, solo los inputs del cultivo elegido
+  // están en el DOM. Para el resto de cultivos preservamos la data ya guardada
+  // en ingresos_cultivos (si no, defaults borrarían las ventas anteriores).
+  var savedPrevAll = {}; try { savedPrevAll = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
   cultivos.forEach(function(cult) {
     var sid = _ingSafeId(cult)
     var haEl = document.getElementById('cr-ha-'+sid)
+    if (!haEl && savedPrevAll[cult]) {
+      ingrData[cult] = savedPrevAll[cult]
+      var prev = savedPrevAll[cult]
+      if ((prev.tn_cosechadas > 0) || (Array.isArray(prev.ventas) && prev.ventas.some(function(v){return parseFloat(v.tn||0)>0}))) hayDato = true
+      return
+    }
     var ha2 = haEl ? (parseFloat(haEl.value)||0) : (c.hectareas||0)
     var cosEl = document.getElementById('cr-cos-'+sid)
     var tnCosechadas = cosEl && cosEl.value !== '' ? (parseFloat(cosEl.value)||0) : (parseFloat(window._ingCosechadas[cult])||0)
@@ -18359,9 +18475,20 @@ window.guardarRendCampo = function() {
       if(ingrData[primer].precio_venta) campos[idx].precio_venta = ingrData[primer].precio_venta
     }
   }
-  // Sync hectareas_cultivo so polygon-derived ha stays as source of truth
+  // Sync hectareas_cultivo so polygon-derived ha stays as source of truth.
+  // Preservamos la ha guardada para cultivos que no están rendereados (picker
+  // multi-cultivo: solo el cultivo activo tiene su input en el DOM).
   var haCultivoNew = {}
-  cultivos.forEach(function(cult2){ var sid2=_ingSafeId(cult2); var haEl2=document.getElementById('cr-ha-'+sid2); if(haEl2&&parseFloat(haEl2.value||0)>0) haCultivoNew[cult2]=parseFloat(haEl2.value) })
+  var _haPrev = {}; try { _haPrev = JSON.parse(c.hectareas_cultivo||'{}') } catch(e) {}
+  cultivos.forEach(function(cult2){
+    var sid2 = _ingSafeId(cult2)
+    var haEl2 = document.getElementById('cr-ha-'+sid2)
+    if (haEl2 && parseFloat(haEl2.value||0) > 0) {
+      haCultivoNew[cult2] = parseFloat(haEl2.value)
+    } else if (_haPrev[cult2]) {
+      haCultivoNew[cult2] = _haPrev[cult2]
+    }
+  })
   if(Object.keys(haCultivoNew).length) {
     var idx2=campos.findIndex(function(x){return x.id===campoDet})
     if(idx2>=0) campos[idx2].hectareas_cultivo=JSON.stringify(haCultivoNew)

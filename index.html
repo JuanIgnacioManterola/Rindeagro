@@ -10258,6 +10258,58 @@ window.exportarPDF = function() {
     +'<div class="subtotal-row" style="margin-top:12px;background:#fde8e4"><span style="font-size:13px">Total gastos</span><span class="val-red" style="font-size:15px">'+fmtUSD(costoUSD)+'</span></div>'
     +'</div></div>'
 
+    // ── Rentabilidad bruta por cultivo (solo si multi-cultivo) ──
+    // Cruza ingRowsData × gastosByCultivo para armar la fila cultivo →
+    // ingreso, costos, margen (total y /ha). Le da al lector la respuesta
+    // de "cuánto rindió cada cultivo por separado" sin tener que restar
+    // manualmente Ingresos vs Gastos de arriba.
+    + (cultivosList.length > 1 ? (function(){
+        var rentRows = cultivosList.map(function(cult){
+          var ing = ingRowsData.find(function(r){return r.cult===cult})
+          var gas = gastosByCultivo.find(function(g){return g.cult===cult})
+          var haC = ing ? ing.ha : (gas ? gas.ha : 0)
+          var ingC = ing ? ing.ingTotal : 0
+          var cosC = gas ? gas.total : 0
+          var mgC  = ingC - cosC
+          var mgHaC = haC > 0 ? mgC/haC : 0
+          var col = mgC >= 0 ? '#0d6e41' : '#c0392b'
+          var bg  = mgC >= 0 ? '#e8f5ee' : '#fdecea'
+          return '<tr>'
+            +'<td class="td-l" style="font-weight:700">'+cult+'</td>'
+            +'<td class="td-r" style="color:#666">'+haC.toLocaleString('es-AR')+' ha</td>'
+            +'<td class="td-r" style="color:#1a5fa8">'+fmtUSD(ingC)+'</td>'
+            +'<td class="td-r" style="color:#c0392b">−'+fmtUSD(cosC)+'</td>'
+            +'<td class="td-r" style="background:'+bg+';color:'+col+';font-weight:800">'+(mgC>=0?'+':'−')+fmtUSD(Math.abs(mgC))+'</td>'
+            +'<td class="td-r" style="background:'+bg+';color:'+col+';font-weight:700">'+(mgHaC>=0?'+':'−')+fmtUSD(Math.abs(mgHaC))+'/ha</td>'
+            +'</tr>'
+        }).join('')
+        var totalCol = mgTotal >= 0 ? '#0d6e41' : '#c0392b'
+        var totalBg  = mgTotal >= 0 ? '#d1e7dd' : '#f5c6cb'
+        return '<div class="section">'
+          +'<div class="sec-hdr" style="background:#1a4a2e;color:#fff"><span class="icon">&#127806;</span><span class="title">Rentabilidad por cultivo</span></div>'
+          +'<div class="sec-body">'
+          +'<table>'
+          +'<thead><tr>'
+          +'<th>Cultivo</th>'
+          +'<th class="th-r">Superficie</th>'
+          +'<th class="th-r">Ingreso</th>'
+          +'<th class="th-r">Costos</th>'
+          +'<th class="th-r">Margen</th>'
+          +'<th class="th-r">Margen /ha</th>'
+          +'</tr></thead>'
+          +'<tbody>'+rentRows
+          +'<tr>'
+          +'<td class="td-l" style="background:#f0f0eb;font-weight:800;font-size:13px">TOTAL CAMPO</td>'
+          +'<td class="td-r" style="background:#f0f0eb;font-weight:700">'+ha.toLocaleString('es-AR')+' ha</td>'
+          +'<td class="td-r" style="background:#f0f0eb;color:#1a5fa8;font-weight:800">'+fmtUSD(totalIngUSD)+'</td>'
+          +'<td class="td-r" style="background:#f0f0eb;color:#c0392b;font-weight:800">−'+fmtUSD(costoUSD)+'</td>'
+          +'<td class="td-r" style="background:'+totalBg+';color:'+totalCol+';font-weight:800;font-size:14px">'+(mgTotal>=0?'+':'−')+fmtUSD(Math.abs(mgTotal))+'</td>'
+          +'<td class="td-r" style="background:'+totalBg+';color:'+totalCol+';font-weight:800">'+(mgHaReal>=0?'+':'−')+fmtUSD(Math.abs(mgHaReal))+'/ha</td>'
+          +'</tr>'
+          +'</tbody></table>'
+          +'</div></div>'
+      })() : '')
+
     +'<div class="section">'
     +'<div class="sec-hdr sec-hdr-res" style="background:'+mgColor2+'"><span class="icon">'+(mgHaReal>=0?'&#128200;':'&#128201;')+'</span><span class="title">Resultado final</span></div>'
     +'<div class="sec-body">'

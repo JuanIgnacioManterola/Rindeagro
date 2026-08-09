@@ -1010,6 +1010,9 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       </div>
       <!-- Comparativa entre campañas (se muestra si hay 2+ campañas) -->
       <div id="det-gastos-comparativa" style="display:none"></div>
+      <!-- Hero: total de gastos del campo/cultivo en la campaña activa -->
+      <div id="det-gastos-hero" style="margin-bottom:14px"></div>
+      <!-- Lista cronológica de gastos (con + Agregar) -->
       <div class="card" id="gastos-card-lista">
         <div class="card-hdr" id="gastos-card-hdr">
           <span class="card-tit">Gastos del campo</span>
@@ -1017,30 +1020,10 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
         </div>
         <div id="det-gastos-lista"></div>
       </div>
-      <!-- Desglose interactivo: torta + tabla lado a lado -->
+      <!-- Desglose por rubro — acordeón con click-to-expand (sin torta) -->
       <div class="card" id="gastos-card-desglose">
-        <div class="card-hdr"><span class="card-tit" id="det-chart-titulo">Desglose por rubro</span></div>
-        <!-- Chips de selección de rubro -->
-        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px" id="gastos-rubro-chips">
-          <button class="grub-btn active" onclick="setGastoRubroFiltro(null,this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Todos</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('semillas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🌱 Semillas</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('herbicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🧪 Herbicidas</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('fungicidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🍄 Fungicidas</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('insecticidas',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🐛 Insecticidas</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('fertilizantes',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">⚗️ Fertilizantes</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('laboreo',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚜 Laboreo</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('flete',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🚛 Flete</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('empleados',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">👷 Empleados</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('arrendamiento',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🏠 Arrend.</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('riego',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">💧 Riego</button>
-          <button class="grub-btn" onclick="setGastoRubroFiltro('otros',this)" style="padding:4px 10px;border-radius:16px;border:1.5px solid var(--borde);background:transparent;color:var(--texto-mid);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">📦 Otros</button>
-        </div>
-        <!-- Torta + Tabla lado a lado -->
-        <div style="display:flex;gap:20px;align-items:flex-start" id="det-chart-body">
-          <div id="chart-det-rubro-wrap" style="flex:0 0 200px;position:relative;height:200px"><canvas id="chart-det-rubro"></canvas></div>
-          <div id="det-rubro-tabla" style="flex:1;min-width:0"></div>
-        </div>
-        <div id="det-rubro-empty" style="display:none;text-align:center;padding:28px 0;font-size:12px;color:var(--texto-suave)">Sin gastos en este rubro</div>
+        <div class="card-hdr"><span class="card-tit">Gastos por rubro</span><span style="font-size:11px;color:var(--texto-suave)">click en un rubro para ver el detalle</span></div>
+        <div id="det-rubro-acordeon" style="margin-top:8px"></div>
       </div>
     </div>
 
@@ -9999,35 +9982,20 @@ window.setGastoPeriodo = function(periodo, btn) {
   renderDetGastos()
 }
 
-// ── RUBRO FILTRO CHART ──
-var gastoRubroFiltro = null  // null = todos los rubros (torta por rubro), string = desglose dentro de ese rubro
-var gastosCultivoActivo = null  // null = mostrar selector de cultivo, string = cultivo seleccionado
-window.setGastoRubroFiltro = function(rubro, btn) {
-  gastoRubroFiltro = rubro
-  document.querySelectorAll('.grub-btn').forEach(function(b) {
-    b.style.background = 'transparent'
-    b.style.color = 'var(--texto-mid)'
-    b.style.borderColor = 'var(--borde)'
-  })
-  btn.style.background = 'var(--verde)'
-  btn.style.color = '#fff'
-  btn.style.borderColor = 'var(--verde)'
+// ── RUBRO ACORDEÓN (sec Gastos del campo) ──
+// _gastoRubroOpen: rubro actualmente expandido en el acordeón (null = ninguno)
+// gastosCultivoActivo: cultivo seleccionado en multi-cultivo (null = pantalla selector)
+var _gastoRubroOpen = null
+var gastosCultivoActivo = null
+window.toggleGastoRubro = function(rubro, ev) {
+  if (ev) ev.stopPropagation()
+  _gastoRubroOpen = (_gastoRubroOpen === rubro) ? null : rubro
   renderDetGastos()
 }
-// Auto-switch al rubro del gasto recién guardado
+// Al guardar un gasto nuevo, auto-expandir el rubro correspondiente para que
+// el user vea inmediatamente en el acordeón dónde impactó su carga.
 function autoFocusRubroChart(rubro) {
-  if (!rubro) return
-  gastoRubroFiltro = rubro
-  var chips = document.querySelectorAll('.grub-btn')
-  chips.forEach(function(b) {
-    b.style.background = 'transparent'; b.style.color = 'var(--texto-mid)'; b.style.borderColor = 'var(--borde)'
-  })
-  chips.forEach(function(b) {
-    var oc = b.getAttribute('onclick') || ''
-    if (oc.includes("'"+rubro+"'") || oc.includes('"'+rubro+'"')) {
-      b.style.background = 'var(--verde)'; b.style.color = '#fff'; b.style.borderColor = 'var(--verde)'
-    }
-  })
+  if (rubro) _gastoRubroOpen = rubro
 }
 
 // ── MONEDA TOGGLE ──
@@ -18636,15 +18604,35 @@ function renderDetGastos() {
     }
   }
 
-  // ── LISTA DE GASTOS ──
-  var el = document.getElementById('det-gastos-lista')
-  // Banner de campaña activa
+  // ── HERO: total de gastos (glanceable arriba) ──
+  var heroEl = document.getElementById('det-gastos-hero')
   var campLabel = campanaActivaId === 'actual' ? 'Campaña actual ('+getCampanaRange('actual').label+')' : 'Campaña '+campanaActivaId
+  if (heroEl) {
+    var costoHaHero = ha > 0 ? costoUSD/ha : 0
+    var costoHaStr  = enARS ? '$ '+Math.round(costoHaHero*tcambio).toLocaleString('es-AR') : 'USD '+Math.round(costoHaHero).toLocaleString('es-AR')
+    heroEl.innerHTML = '<div class="card" style="padding:18px 22px;margin-bottom:0;background:#fef2f2;border-left:4px solid #dc2626">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">'
+        +'<div>'
+          +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Total de gastos</div>'
+          +'<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'
+            +'<span style="font-size:32px;font-weight:800;color:#c0392b;font-family:DM Mono,monospace;line-height:1.1">'+fmtMonto(costoUSD)+'</span>'
+            +'<span style="font-size:13px;color:var(--texto-suave);font-weight:600">·  '+costoHaStr+' /ha</span>'
+          +'</div>'
+          +'<div style="font-size:12px;color:var(--texto-suave);margin-top:6px">📅 '+campLabel+' · '+gf.length+' gasto'+(gf.length!==1?'s':'')+'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+  }
+
+  // ── LISTA DE GASTOS (cronológica) ──
+  var el = document.getElementById('det-gastos-lista')
   if(!gf.length) {
-    el.innerHTML = '<div style="font-size:11px;color:var(--texto-suave);margin-bottom:8px">📅 '+campLabel+'</div><div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">No hay gastos registrados en esta campaña.</div></div>'
+    el.innerHTML = '<div class="empty"><div class="empty-i">💰</div><div class="empty-t">Sin gastos</div><div class="empty-s">No hay gastos registrados en esta campaña.</div></div>'
   } else {
-    el.innerHTML = '<div style="font-size:11px;color:var(--verde);font-weight:600;margin-bottom:10px;padding:5px 8px;background:var(--verde-pale);border-radius:7px;display:inline-block">📅 '+campLabel+' · '+gf.length+' gasto'+(gf.length!==1?'s':'')+' · '+fmtMonto(costoUSD)+' total</div>' +
-    gf.map(function(g){
+    // Orden cronológico descendente (más reciente primero) — es lo esperado
+    // cuando alguien busca un gasto que acaba de cargar.
+    var gfOrden = gf.slice().sort(function(a,b){ return new Date(b.fecha) - new Date(a.fecha) })
+    el.innerHTML = gfOrden.map(function(g){
       var sub = g.subtipo ? ' · '+(SUBS[g.subtipo]||g.subtipo) : ''
       var cant = g.cantidad&&g.unidad ? g.cantidad+' '+(g.unidad==='litros'?'L/ha':g.unidad==='kg'?'kg/ha':g.unidad) : ''
       var montoStr = fmtMonto(g.total_de_usd||0)
@@ -18667,156 +18655,95 @@ function renderDetGastos() {
     }).join('')
   }
 
-  // ── TORTA + TABLA COMPLETA ──
-  var ctxR   = document.getElementById('chart-det-rubro')
-  var tablaEl = document.getElementById('det-rubro-tabla')
-  var emptyEl = document.getElementById('det-rubro-empty')
-  var chartBody = document.getElementById('det-chart-body')
-  var tituloEl  = document.getElementById('det-chart-titulo')
-  if (charts['det-rubro']) { charts['det-rubro'].destroy(); charts['det-rubro'] = null }
+  // ── ACORDEÓN POR RUBRO (sin torta) ──
+  // Cada rubro es una fila estilo P&L (fondo rojo suave + border-left rojo).
+  // Click en el rubro expande la composición: items agrupados por descripción
+  // con % del rubro. Si hay 2+ productos del mismo tipo (ej "Semillas 2 tipos")
+  // se ve inmediato cuál pesa más.
+  var acordeonEl = document.getElementById('det-rubro-acordeon')
+  if (acordeonEl) {
+    function fUSD(usd) { return 'USD ' + Math.round(usd).toLocaleString('es-AR') }
+    function fARS(usd) { return '$ '   + Math.round(usd * tcambio).toLocaleString('es-AR') }
+    function fmtMonto2(usd) { return enARS ? fARS(usd) : fUSD(usd) }
+    function fUnidad(u) { return u==='litros'?'L':u==='kg'?'kg':u==='dosis'?'dosis':u==='usd_ha'?'USD/ha':u||'' }
 
-  // helper: moneda única según toggle (sin paréntesis)
-  function fUSD(usd) { return 'USD ' + Math.round(usd).toLocaleString('es-AR') }
-  function fARS(usd) { return '$ '   + Math.round(usd * tcambio).toLocaleString('es-AR') }
-  function fDual(usd) {
-    var v = enARS ? fARS(usd) : fUSD(usd)
-    return '<span style="font-size:14px;font-weight:700;font-family:DM Mono,monospace;color:var(--texto)">'+v+'</span>'
-  }
-
-  // unidad legible
-  function fUnidad(u) { return u==='litros'?'L':u==='kg'?'kg':u==='dosis'?'dosis':u==='usd_ha'?'USD/ha':u||'' }
-
-  function buildChart(labels, vals) {
-    return new Chart(ctxR, {
-      type: 'doughnut',
-      data: { labels: labels, datasets: [{ data: vals, backgroundColor: COLORES.slice(0,labels.length), borderWidth: 2, borderColor: '#fff' }] },
-      options: { responsive:true, maintainAspectRatio:false, cutout:'64%',
-        plugins: { legend:{display:false}, tooltip:{ callbacks:{ label:function(ctx){ return ' '+ctx.label+': '+(enARS?fARS(ctx.raw/tcambio):fUSD(ctx.raw)) }}}}
-      }
+    var porRubroData = {}
+    gf.forEach(function(g){
+      var rk = g.rubro || 'otros'
+      var label = RUBS[rk] || rk
+      if (!porRubroData[rk]) porRubroData[rk] = { label:label, gastos:[], total:0 }
+      porRubroData[rk].gastos.push(g)
+      porRubroData[rk].total += (g.total_de_usd || 0)
     })
-  }
-  // Ajusta el alto del canvas para que coincida con el alto real de la tabla
-  function syncChartHeight() {
-    var wrap = document.getElementById('chart-det-rubro-wrap')
-    if (!wrap || !tablaEl) return
-    var h = Math.max(200, tablaEl.offsetHeight)
-    wrap.style.height = h + 'px'
-    if (charts['det-rubro']) charts['det-rubro'].resize()
-  }
+    var rubrosOrder = Object.keys(porRubroData).sort(function(a,b){ return porRubroData[b].total - porRubroData[a].total })
 
-  // ── VISTA GENERAL: todos los rubros ──
-  if (!gastoRubroFiltro) {
-    if (tituloEl) tituloEl.textContent = 'Desglose por rubro'
-    var porRubro = {}
-    gf.forEach(function(g){ var r=RUBS[g.rubro]||g.rubro||'Otros'; porRubro[r]=(porRubro[r]||0)+(g.total_de_usd||0) })
-    var labelsR = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
-
-    if (labelsR.length && ctxR) {
-      if (emptyEl) emptyEl.style.display = 'none'
-      if (chartBody) chartBody.style.display = 'flex'
-      var valsR = labelsR.map(function(l){ return enARS ? Math.round(porRubro[l]*tcambio) : porRubro[l] })
-      charts['det-rubro'] = buildChart(labelsR, valsR)
-
-      // Tabla: rubro | nº gastos | cantidad total | USD | ARS | %
-      var rows = labelsR.map(function(l, i) {
-        var usd = porRubro[l]
-        var pct = costoUSD > 0 ? (usd/costoUSD*100).toFixed(1) : '0.0'
-        var cnt = gf.filter(function(g){return (RUBS[g.rubro]||g.rubro||'Otros')===l}).length
-        return '<tr style="border-bottom:.5px solid var(--borde)">' +
-          '<td style="padding:7px 4px;vertical-align:top"><div style="display:flex;align-items:center;gap:7px">' +
-            '<div style="width:11px;height:11px;border-radius:3px;flex-shrink:0;margin-top:2px;background:'+COLORES[i]+'"></div>' +
-            '<div><div style="font-size:14px;font-weight:600;color:var(--texto)">'+l+'</div>' +
-            '<div style="font-size:12px;color:var(--texto-suave)">'+cnt+' gasto'+(cnt!==1?'s':'')+'</div></div>' +
-          '</div></td>' +
-          '<td style="padding:7px 4px;text-align:center;font-size:14px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
-          '<td style="padding:7px 4px;text-align:right;white-space:nowrap;line-height:1.5">'+fDual(usd)+'</td>' +
-        '</tr>'
-      }).join('')
-      var totalStr = enARS ? fARS(costoUSD) : fUSD(costoUSD)
-      if (tablaEl) tablaEl.innerHTML =
-        '<table style="width:100%;border-collapse:collapse">' +
-        '<thead><tr style="border-bottom:1.5px solid var(--borde)">' +
-          '<th style="text-align:left;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Rubro</th>' +
-          '<th style="text-align:center;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
-          '<th style="text-align:right;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
-        '</tr></thead><tbody>'+rows+'</tbody>' +
-        '<tfoot><tr style="border-top:2px solid var(--borde)">' +
-          '<td colspan="2" style="padding:10px 4px;font-size:15px;font-weight:700;color:var(--verde)">Total campo</td>' +
-          '<td style="padding:10px 4px;text-align:right;font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">'+totalStr+'</td>' +
-        '</tr></tfoot></table>'
-      setTimeout(syncChartHeight, 0)
+    if (!rubrosOrder.length) {
+      acordeonEl.innerHTML = '<div style="text-align:center;padding:20px 0;font-size:12px;color:var(--texto-suave)">Sin gastos registrados en esta campaña</div>'
     } else {
-      if (emptyEl) emptyEl.style.display = 'block'
-      if (chartBody) chartBody.style.display = 'none'
-      if (tablaEl) tablaEl.innerHTML = ''
-    }
+      // Colores P&L (mismos que sec-rentabilidad)
+      var bgRubro = '#fef2f2', accRubro = '#dc2626'
+      var GRID = 'grid-template-columns:1.8fr 0.9fr 1fr 0.5fr;gap:12px'
 
-  // ── VISTA RUBRO: desglose por producto ──
-  } else {
-    var rubroLabel = RUBS[gastoRubroFiltro] || gastoRubroFiltro
-    if (tituloEl) tituloEl.textContent = 'Desglose — ' + rubroLabel
-    var gRubro = gf.filter(function(g){ return g.rubro === gastoRubroFiltro })
-    var totalRubro = gRubro.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+      acordeonEl.innerHTML = '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff">' +
+        rubrosOrder.map(function(rk){
+          var rd = porRubroData[rk]
+          var isOpen = _gastoRubroOpen === rk
+          var pctTotal = costoUSD > 0 ? Math.round(rd.total/costoUSD*100) : 0
+          var haCosto = ha > 0 ? Math.round(rd.total/ha) : 0
+          var chevron = rd.gastos.length ? (isOpen?'▲':'▼') : ''
+          var rkSafe = rk.replace(/'/g,'\\\'')
 
-    // Agrupar por descripción, acumulando cantidad total y registros
-    var porProd = {}
-    gRubro.forEach(function(g) {
-      var k = (g.descripcion||'Sin descripción').trim() || 'Sin descripción'
-      if (!porProd[k]) porProd[k] = { usd:0, qty:0, haTotal:0, unidad:g.unidad||null, precioUnit:g.precio_unitario||null, count:0 }
-      porProd[k].usd   += g.total_de_usd || 0
-      porProd[k].count++
-      // Acumular cantidad total aplicada (cantidad × ha)
-      if (g.cantidad && g.ha_aplicadas) porProd[k].qty += parseFloat(g.cantidad) * parseFloat(g.ha_aplicadas)
-      else if (g.ha_aplicadas) porProd[k].haTotal += parseFloat(g.ha_aplicadas)
-      if (!porProd[k].unidad && g.unidad) porProd[k].unidad = g.unidad
-    })
-    var labelsP = Object.keys(porProd).sort(function(a,b){return porProd[b].usd-porProd[a].usd})
+          var row = '<div onclick="toggleGastoRubro(\''+rkSafe+'\',event)" style="display:grid;'+GRID+';padding:12px 20px;align-items:baseline;background:'+bgRubro+';border-left:4px solid '+accRubro+';cursor:pointer;border-top:1px solid #e5e7eb" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleGastoRubro(\''+rkSafe+'\',event)}">'
+            +'<div><div style="font-size:13px;color:#0f172a;font-weight:700">'+rd.label+'</div>'
+              +'<div style="font-size:11px;color:#475569;margin-top:2px;font-weight:500">'+rd.gastos.length+' gasto'+(rd.gastos.length!==1?'s':'')+'</div></div>'
+            +'<div style="text-align:right;font-size:12px;color:#0f172a;font-variant-numeric:tabular-nums;font-weight:600">'+(enARS?Math.round(haCosto*tcambio).toLocaleString('es-AR')+' $/ha':haCosto+' USD/ha')+'</div>'
+            +'<div style="text-align:right;font-size:16px;color:#0f172a;font-weight:800;font-variant-numeric:tabular-nums">'+fmtMonto2(rd.total)+'</div>'
+            +'<div style="text-align:right;font-size:12px;color:#475569;font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' '+pctTotal+'%</div>'
+            +'</div>'
 
-    if (labelsP.length && ctxR) {
-      if (emptyEl) emptyEl.style.display = 'none'
-      if (chartBody) chartBody.style.display = 'flex'
-      var valsP = labelsP.map(function(l){ return enARS ? Math.round(porProd[l].usd*tcambio) : porProd[l].usd })
-      charts['det-rubro'] = buildChart(labelsP, valsP)
-
-      // Tabla detallada: producto | cantidad | USD/unidad | total USD | total ARS | %
-      var rows2 = labelsP.map(function(l, i) {
-        var p   = porProd[l]
-        var pct = totalRubro > 0 ? (p.usd/totalRubro*100).toFixed(1) : '0.0'
-        // Cantidad: mostrar litros/kg totales si hay, si es usd_ha mostrar ha
-        var cantStr = '—'
-        if (p.unidad === 'usd_ha' && p.haTotal > 0)      cantStr = p.haTotal.toFixed(1)+' ha'
-        else if (p.qty > 0 && p.unidad)                  cantStr = p.qty.toFixed(1)+' '+fUnidad(p.unidad)
-        // USD/unidad promedio
-        var pUnit = ''
-        if (p.unidad && p.unidad !== 'usd_ha' && p.qty > 0) pUnit = '<div style="font-size:10px;color:var(--texto-suave)">'+fUSD(p.usd/p.qty)+'/'+fUnidad(p.unidad)+'</div>'
-        return '<tr style="border-bottom:.5px solid var(--borde)">' +
-          '<td style="padding:7px 4px;vertical-align:top"><div style="display:flex;align-items:flex-start;gap:7px">' +
-            '<div style="width:11px;height:11px;border-radius:3px;flex-shrink:0;margin-top:2px;background:'+COLORES[i]+'"></div>' +
-            '<div><div style="font-size:14px;font-weight:600;color:var(--texto)">'+l+'</div>' +
-            '<div style="font-size:12px;color:var(--texto-suave)">'+p.count+' aplicac. · '+cantStr+'</div>' +
-            pUnit+'</div>' +
-          '</div></td>' +
-          '<td style="padding:7px 6px;text-align:center;font-size:14px;font-weight:700;color:var(--verde);font-family:DM Mono,monospace;white-space:nowrap">'+pct+'%</td>' +
-          '<td style="padding:7px 4px;text-align:right;white-space:nowrap;line-height:1.6">'+fDual(p.usd)+'</td>' +
-        '</tr>'
-      }).join('')
-      var tStr = enARS ? fARS(totalRubro) : fUSD(totalRubro)
-      if (tablaEl) tablaEl.innerHTML =
-        '<table style="width:100%;border-collapse:collapse">' +
-        '<thead><tr style="border-bottom:1.5px solid var(--borde)">' +
-          '<th style="text-align:left;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Producto</th>' +
-          '<th style="text-align:center;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">%</th>' +
-          '<th style="text-align:right;font-size:12px;font-weight:600;color:var(--texto-suave);padding:4px 4px 7px;text-transform:uppercase;letter-spacing:.04em">Monto ('+(enARS?'$ ARS':'USD')+')</th>' +
-        '</tr></thead><tbody>'+rows2+'</tbody>' +
-        '<tfoot><tr style="border-top:2px solid var(--borde)">' +
-          '<td colspan="2" style="padding:10px 4px;font-size:15px;font-weight:700;color:var(--verde)">Total '+rubroLabel+'</td>' +
-          '<td style="padding:10px 4px;text-align:right;font-size:16px;font-weight:700;font-family:DM Mono,monospace;color:var(--verde)">'+tStr+'</td>' +
-        '</tr></tfoot></table>'
-      setTimeout(syncChartHeight, 0)
-    } else {
-      if (emptyEl) { emptyEl.style.display='block'; emptyEl.textContent='Sin gastos registrados en '+rubroLabel }
-      if (chartBody) chartBody.style.display = 'none'
-      if (tablaEl) tablaEl.innerHTML = ''
+          if (isOpen && rd.gastos.length) {
+            // Agrupar por descripción para mostrar % dentro del rubro (útil
+            // cuando hay 2+ productos del mismo tipo: cuál pesa más).
+            var porProd = {}
+            rd.gastos.forEach(function(g){
+              var k = (g.descripcion||'Sin descripción').trim() || 'Sin descripción'
+              if (!porProd[k]) porProd[k] = { usd:0, qty:0, haTotal:0, unidad:g.unidad||null, count:0, fechas:[] }
+              porProd[k].usd += g.total_de_usd || 0
+              porProd[k].count++
+              if (g.fecha) porProd[k].fechas.push(g.fecha.slice(0,7))
+              if (g.cantidad && g.ha_aplicadas) porProd[k].qty += parseFloat(g.cantidad) * parseFloat(g.ha_aplicadas)
+              else if (g.ha_aplicadas) porProd[k].haTotal += parseFloat(g.ha_aplicadas)
+              if (!porProd[k].unidad && g.unidad) porProd[k].unidad = g.unidad
+            })
+            var prodOrder = Object.keys(porProd).sort(function(a,b){ return porProd[b].usd - porProd[a].usd })
+            row += '<div style="background:'+bgRubro+';padding:0 20px 12px 24px;border-left:4px solid '+accRubro+'">'
+              +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569;font-weight:700;padding:8px 0 6px">Composición del rubro</div>'
+              +prodOrder.map(function(pk){
+                var p = porProd[pk]
+                var pctRubro = rd.total > 0 ? Math.round(p.usd/rd.total*100) : 0
+                var cantStr = ''
+                if (p.unidad === 'usd_ha' && p.haTotal > 0) cantStr = ' · '+p.haTotal.toFixed(1)+' ha'
+                else if (p.qty > 0 && p.unidad)            cantStr = ' · '+p.qty.toFixed(1)+' '+fUnidad(p.unidad)
+                var pUnit = ''
+                if (p.unidad && p.unidad !== 'usd_ha' && p.qty > 0) pUnit = ' · '+fUSD(p.usd/p.qty)+'/'+fUnidad(p.unidad)
+                var fechasStr = p.fechas.length ? ' · '+p.fechas.slice(0,2).join(', ')+(p.fechas.length>2?'…':'') : ''
+                // Barra de peso relativo dentro del rubro
+                var barW = Math.max(2, pctRubro)
+                return '<div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 12px;background:rgba(255,255,255,.7);border-radius:6px;margin-bottom:4px">'
+                  +'<div>'
+                    +'<div style="font-size:12px;color:#0f172a;font-weight:600">'+pk+'</div>'
+                    +'<div style="font-size:10px;color:#475569;margin-top:2px">'+p.count+' aplic.'+cantStr+pUnit+fechasStr+'</div>'
+                    +'<div style="margin-top:6px;height:4px;background:#fecaca;border-radius:2px;overflow:hidden"><div style="width:'+barW+'%;height:100%;background:'+accRubro+'"></div></div>'
+                  +'</div>'
+                  +'<div style="text-align:right;font-size:11px;color:'+accRubro+';font-weight:700;font-variant-numeric:tabular-nums;min-width:38px">'+pctRubro+'%</div>'
+                  +'<div style="text-align:right;font-size:12px;color:#0f172a;font-weight:700;font-family:DM Mono,monospace;min-width:88px">'+fmtMonto2(p.usd)+'</div>'
+                +'</div>'
+              }).join('')
+              +'</div>'
+          }
+          return row
+        }).join('')
+        + '</div>'
     }
   }
 }

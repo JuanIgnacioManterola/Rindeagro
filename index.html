@@ -1224,41 +1224,17 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       </select>
       <span id="rt-campana-rango" style="font-size:11px;color:var(--texto-suave)"></span>
     </div>
-    <!-- Métricas globales (Hectáreas · Ingresos · Costos · Margen) -->
-    <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
-    <!-- Cascada Ingresos → Costos → Margen (estado de resultados) -->
-    <div id="rt-cascada" style="margin-bottom:14px"></div>
-    <!-- 1) Rentabilidad de cada campo -->
+    <!-- 1) Hero: margen total glanceable con sparkline + delta vs campaña anterior -->
+    <div id="rt-hero" style="margin-bottom:14px"></div>
+    <!-- 2) Rentabilidad por campo — cards con drill-down (click abre el campo) -->
     <div id="rt-campos" style="margin-bottom:14px"></div>
-    <!-- 2) Comparativa entre campos -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hdr"><span class="card-tit">Comparativa entre campos · margen USD/ha</span></div>
-      <div id="rt-comparativa"></div>
-    </div>
-    <!-- 3) Tortas globales (gastos por rubro) -->
-    <div class="grid2" style="margin-bottom:14px">
-      <div class="card">
-        <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
-          <span class="card-tit" id="rt-rubro-titulo">Gastos por rubro · todos los campos</span>
-          <select id="rt-campo-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="window._onRtCampoChange()">
-            <option value="todos">Todos los campos</option>
-          </select>
-        </div>
-        <div style="position:relative;height:260px"><canvas id="chart-rt-rubro"></canvas></div>
-        <div id="rt-rubro-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
-          <span class="card-tit" id="rt-detalle-titulo">Detalle por producto</span>
-          <select id="rt-rubro-sel" class="fi" style="width:auto;padding:4px 10px;font-size:11px;cursor:pointer;height:auto" onchange="renderRtTortaDetalle()">
-            <option value="todos">Todos los rubros</option>
-          </select>
-        </div>
-        <div style="position:relative;height:260px"><canvas id="chart-rt-detalle"></canvas></div>
-        <div id="rt-detalle-leyenda" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
-      </div>
-    </div>
-    <!-- 4) Tabla gasto total por rubro · campaña -->
+    <!-- 3) Composición de costos — barras apiladas horizontales (reemplaza las tortas) -->
+    <div id="rt-composicion" style="margin-bottom:14px"></div>
+    <!-- 4) Estado de resultados detallado (P&L) — para quien quiera bajar al número contable -->
+    <div id="rt-cascada" style="margin-bottom:14px"></div>
+    <!-- 5) Métricas globales resumen -->
+    <div class="grid4" id="rt-mets" style="margin-bottom:14px"></div>
+    <!-- 6) Tabla gasto total por rubro · campaña -->
     <div class="card">
       <div class="card-hdr"><span class="card-tit">Gasto total por rubro · campaña</span></div>
       <div id="rt-resumen-rubro"></div>
@@ -18210,6 +18186,89 @@ window.renderRentabilidadTotal = function() {
   var mgHaGlobal = totalHa>0?mgTotal/totalHa:0
   var mc = mgHaGlobal>=0?'#1a7a52':'#c0392b'
 
+  // ── DELTA vs CAMPAÑA ANTERIOR ──
+  // Recalcula totales para la campaña previa (misma lógica pero con rango
+  // desplazado) para poder mostrar deltaʸ vs ʸ⁻¹ en el hero y por campo.
+  // Si no hay data previa (deltaMgHa null), simplemente no se muestra badge.
+  var deltaMgHaPctGlobal = null
+  var deltaPorCampo = {}
+  try {
+    var actualId = window._rtCampanaActivaId || 'actual'
+    var prevId = null
+    if (actualId === 'actual') {
+      var yPrev = hoyDate.getMonth() >= 6 ? hoyDate.getFullYear() - 1 : hoyDate.getFullYear() - 2
+      prevId = yPrev + '/' + String(yPrev+1).slice(2)
+    } else {
+      var y0 = parseInt(String(actualId).split('/')[0], 10)
+      if (!isNaN(y0)) prevId = (y0-1) + '/' + String(y0).slice(2)
+    }
+    if (prevId) {
+      var campPrev = getCampanaRange(prevId)
+      var totalHaPrev = 0, totalIngresoPrev = 0, totalCostoPrev = 0
+      campos.forEach(function(c){
+        var ha = c.hectareas||1
+        var gfPrev = gastos.filter(function(g){
+          if (g.campo_id !== c.id || !g.fecha) return false
+          var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+          return d >= campPrev.start && d <= campPrev.end
+        })
+        var costoPrev = gfPrev.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+        var ingPrevCampo = 0
+        var prevLargo = String(prevId).split('/')[0] + '/' + (parseInt(String(prevId).split('/')[0])+1)
+        ;(window.campanas||[]).forEach(function(cp){
+          if (cp.campo_id !== c.id) return
+          if (cp.anio !== prevId && cp.anio !== prevLargo) return
+          var rend = parseFloat(cp.rendimiento)||0
+          var pre  = parseFloat(cp.precio_venta)||0
+          ingPrevCampo += rend * pre * ha
+        })
+        totalHaPrev += ha
+        totalCostoPrev += costoPrev
+        totalIngresoPrev += ingPrevCampo
+        var mgHaPrevCampo = ha>0 ? (ingPrevCampo - costoPrev)/ha : 0
+        deltaPorCampo[c.id] = mgHaPrevCampo
+      })
+      if (totalHaPrev > 0 && (totalIngresoPrev > 0 || totalCostoPrev > 0)) {
+        var mgHaPrev = (totalIngresoPrev - totalCostoPrev) / totalHaPrev
+        if (Math.abs(mgHaPrev) > 1) {
+          deltaMgHaPctGlobal = ((mgHaGlobal - mgHaPrev) / Math.abs(mgHaPrev)) * 100
+        }
+      }
+    }
+  } catch(e) { deltaMgHaPctGlobal = null; deltaPorCampo = {} }
+
+  // ── HERO: margen glanceable con sparkline + delta ──
+  var heroEl = document.getElementById('rt-hero')
+  if (heroEl) {
+    var mgColorHero = mgHaGlobal >= 0 ? '#0F6E56' : '#c0392b'
+    var deltaHtml = ''
+    if (deltaMgHaPctGlobal !== null && !isNaN(deltaMgHaPctGlobal)) {
+      var dCol = deltaMgHaPctGlobal >= 0 ? '#0F6E56' : '#c0392b'
+      var dBg  = deltaMgHaPctGlobal >= 0 ? '#E1F5EE' : '#FCEBEB'
+      var arr  = deltaMgHaPctGlobal >= 0 ? '↑' : '↓'
+      deltaHtml = '<span style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;color:'+dCol+';background:'+dBg+';padding:4px 10px;border-radius:999px;font-family:DM Mono,monospace" title="Variación del margen /ha respecto de la campaña anterior">'+arr+' '+Math.abs(Math.round(deltaMgHaPctGlobal))+'%</span>'
+    }
+    var sparkColor = mgHaGlobal >= 0 ? '#639922' : '#c0392b'
+    var sparkline = ''
+    try { sparkline = _sparklineSVG(_serieMensualIngresos(6), sparkColor, 'area') } catch(e) {}
+    heroEl.innerHTML = '<div class="card" style="padding:20px 24px;margin-bottom:0">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">'+
+        '<div style="min-width:200px;flex:1">'+
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Margen neto de la campaña</div>'+
+          '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'+
+            '<span style="font-size:34px;font-weight:800;color:'+mgColorHero+';font-family:DM Mono,monospace;line-height:1.1">'+(mgHaGlobal>=0?'+':'')+'USD '+Math.round(mgHaGlobal).toLocaleString('es-AR')+'</span>'+
+            '<span style="font-size:14px;color:var(--texto-suave);font-weight:600">/ ha</span>'+
+            deltaHtml +
+          '</div>'+
+          '<div style="font-size:12px;color:var(--texto-suave);margin-top:8px;font-family:DM Mono,monospace">'+
+            (mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal).toLocaleString('es-AR')+' total · '+totalHa.toLocaleString('es-AR')+' ha · '+campos.length+' campo'+(campos.length!==1?'s':'')+
+          '</div>'+
+        '</div>'+
+        (sparkline ? '<div style="width:180px;flex:0 0 auto"><div style="font-size:10px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600">Ingresos últimos 6 meses</div>'+sparkline+'</div>' : '')+
+      '</div>'+
+    '</div>'
+  }
+
   // ── ESTADO DE RESULTADOS (formato corporativo / P&L) ──
   var casEl = document.getElementById('rt-cascada')
   if(casEl) {
@@ -18303,58 +18362,157 @@ window.renderRentabilidadTotal = function() {
     {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
   ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
-  // Cards por campo
+  // ── Cards por campo — nuevo diseño glanceable ──
+  // Ordenadas de mejor a peor margen. Cada card muestra: nombre + cultivo,
+  // margen /ha grande (verde/rojo), margen total, barra proporcional al
+  // mejor campo, delta vs campaña anterior si hay data histórica. Click en
+  // la card llama verCampoDesdeRent(id) que ya abre el detalle del campo.
   var cEl = document.getElementById('rt-campos')
   if(cEl) {
-    if(!datosCampos.length){cEl.innerHTML='<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div></div>';return}
-    var sorted = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
-    // Si hay estructura cargada a nivel global, mostrar la línea en TODAS las
-    // cards (aunque el prorrateo del campo dé 0). Así el user ve claramente
-    // que la estructura impacta o no y de qué monto.
-    var hayEstructuraCargada = (activosAmort||[]).length > 0 || (gastosEstructura||[]).length > 0
-    cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+sorted.map(function(d){
-      var ingTot=Math.round(d.ingHa*d.ha)
-      var cosDir=Math.round(d.costo)
-      var cosEstr=Math.round(d.costoEstr||0)
-      var cosTot=cosDir+cosEstr
-      var mgTot=ingTot-cosTot
-      var mgHaRound=Math.round(d.mgHa)
-      // Colores SOLO en los números (no en el fondo de la fila)
-      var colIngresos = '#15803d'   // verde oscuro
-      var colCostos   = '#dc2626'   // rojo
-      var colMargen   = mgTot>=0 ? '#16a34a' : '#dc2626'   // verde más claro / rojo si negativo
-      var filaEstr = (cosEstr > 0 || hayEstructuraCargada)
-        ? '<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 14px;border-top:.5px dashed var(--borde);color:var(--texto-suave)">'+
-          '<span style="font-style:italic">↳ Estructura (prorrateo)</span><span style="font-family:DM Mono,monospace">USD '+cosEstr.toLocaleString('es-AR')+'</span></div>'
-        : ''
-      return '<div class="card" style="cursor:pointer;margin-bottom:0;padding:0;overflow:hidden" onclick="verCampoDesdeRent(\''+d.c.id+'\')">'+
-        '<div style="padding:14px 14px 10px">'+
-        '<div style="font-weight:600;font-size:14px">'+d.c.nombre+'</div>'+
-        '<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">'+d.ha+' ha · '+(d.c.cultivo||'Soja')+'</div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="color:#000;font-weight:500">Ingresos</span><span style="font-family:DM Mono,monospace;color:'+colIngresos+';font-weight:700">USD '+ingTot.toLocaleString('es-AR')+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="color:#000;font-weight:500">Costos directos</span><span style="font-family:DM Mono,monospace;color:'+colCostos+';font-weight:700">USD '+cosDir.toLocaleString('es-AR')+'</span></div>'+
-        filaEstr +
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:.5px solid var(--borde)">'+
-        '<span style="font-size:12px;font-weight:700;color:#000">Margen neto</span>'+
-        '<div style="text-align:right">'+
-        '<div style="font-size:15px;font-weight:800;font-family:DM Mono,monospace;color:'+colMargen+'">'+(mgTot>=0?'+':'')+mgTot.toLocaleString('es-AR')+'</div>'+
-        '<div style="font-size:10px;color:var(--texto-suave)">'+(mgHaRound>=0?'+':'')+mgHaRound+' USD/ha</div>'+
-        '</div></div></div>'
-    }).join('')+'</div>'
+    if(!datosCampos.length){
+      cEl.innerHTML = '<div class="empty"><div class="empty-i">🌾</div><div class="empty-t">Sin campos</div><div class="empty-s">Cargá un campo para ver su rentabilidad</div></div>'
+    } else {
+      var sortedCards = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
+      // Referencia para escalar la barra: el mejor margen positivo. Si todos
+      // son negativos usamos el peor negativo en valor absoluto.
+      var maxMgHaPos = Math.max.apply(null, sortedCards.map(function(d){return Math.max(d.mgHa,0)}))
+      var maxMgHaAbs = Math.max.apply(null, sortedCards.map(function(d){return Math.abs(d.mgHa)}))
+      var refBar = maxMgHaPos > 0 ? maxMgHaPos : (maxMgHaAbs > 0 ? maxMgHaAbs : 1)
+      cEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+sortedCards.map(function(d){
+        var mgTot = Math.round(d.ingHa*d.ha - d.costoTotal)
+        var mg = d.mgHa
+        // Semáforo: verde si margen positivo y sobre la mediana del top;
+        // ámbar si positivo pero bajo; rojo si negativo.
+        var esNeg = mg < 0
+        var ratio = maxMgHaPos > 0 ? mg / maxMgHaPos : 0
+        var esOk = !esNeg && ratio >= 0.5
+        var esMedio = !esNeg && !esOk
+        var borderCol = esNeg ? '#c0392b' : (esOk ? '#0F6E56' : '#BA7517')
+        var barBg     = esNeg ? '#FCEBEB' : (esOk ? '#EAF3DE' : '#FAEEDA')
+        var barFill   = borderCol
+        var mgColor   = esNeg ? '#c0392b' : (esOk ? '#0F6E56' : '#854F0B')
+        var barW = Math.max(2, Math.round(Math.abs(mg)/refBar*100))
+        if (barW > 100) barW = 100
+        // Delta vs campaña anterior — solo si hay data histórica para este campo
+        var deltaBadge = ''
+        var mgHaPrev = deltaPorCampo[d.c.id]
+        if (typeof mgHaPrev === 'number' && Math.abs(mgHaPrev) > 1) {
+          var deltaPct = ((mg - mgHaPrev) / Math.abs(mgHaPrev)) * 100
+          if (!isNaN(deltaPct)) {
+            var dCol = deltaPct >= 0 ? '#0F6E56' : '#c0392b'
+            var arr  = deltaPct >= 0 ? '↑' : '↓'
+            deltaBadge = '<span style="font-size:11px;color:'+dCol+';font-family:DM Mono,monospace;font-weight:700" title="vs campaña anterior">'+arr+Math.abs(Math.round(deltaPct))+'%</span>'
+          }
+        }
+        var mgHaLabel = (mg>=0?'+':'')+Math.round(mg).toLocaleString('es-AR')
+        var mgTotLabel = (mgTot>=0?'+':'-')+'USD '+Math.abs(Math.round(mgTot/1000)).toLocaleString('es-AR')+'k'
+        var nombreSafe = (d.c.nombre||'Sin nombre').replace(/'/g,"\\'").replace(/"/g,'&quot;')
+        var cultivoLbl = (d.c.cultivo||'Soja')
+        return '<div class="card" role="button" tabindex="0" aria-label="Ver detalle de '+nombreSafe+'" style="cursor:pointer;margin-bottom:0;padding:14px 16px;border-left:3px solid '+borderCol+';border-top-left-radius:8px;border-bottom-left-radius:8px" onclick="verCampoDesdeRent(\''+d.c.id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();verCampoDesdeRent(\''+d.c.id+'\')}">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">'+
+            '<span style="font-weight:700;font-size:14px;color:#000">'+(d.c.nombre||'Sin nombre')+'</span>'+
+            '<span style="font-size:11px;color:var(--texto-suave);white-space:nowrap">'+cultivoLbl+' · '+d.ha+' ha</span>'+
+          '</div>'+
+          '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+            '<span style="font-size:22px;font-weight:800;color:'+mgColor+';font-family:DM Mono,monospace;line-height:1">'+mgHaLabel+'</span>'+
+            '<span style="font-size:11px;color:var(--texto-suave)">USD/ha</span>'+
+            deltaBadge +
+            '<span style="margin-left:auto;font-size:12px;color:'+mgColor+';font-family:DM Mono,monospace;font-weight:700">'+mgTotLabel+'</span>'+
+          '</div>'+
+          '<div style="height:6px;background:'+barBg+';border-radius:3px;overflow:hidden">'+
+            '<div style="width:'+barW+'%;height:100%;background:'+barFill+'"></div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:var(--texto-suave);margin-top:8px;font-family:DM Mono,monospace;display:flex;justify-content:space-between;gap:8px">'+
+            '<span>Ingr USD '+Math.round(d.ingHa*d.ha).toLocaleString('es-AR')+'</span>'+
+            '<span>Cost USD '+Math.round(d.costoTotal).toLocaleString('es-AR')+'</span>'+
+          '</div>'+
+        '</div>'
+      }).join('')+'</div>'
+    }
   }
 
-  // Poblar el select de campos (Todos + cada uno)
-  var selCampoRt = document.getElementById('rt-campo-sel')
-  if(selCampoRt) {
-    var prevCampo = selCampoRt.value
-    selCampoRt.innerHTML = '<option value="todos">Todos los campos</option>' +
-      campos.map(function(c){ return '<option value="'+c.id+'">'+(c.nombre||'(sin nombre)')+'</option>' }).join('')
-    if(prevCampo) selCampoRt.value = prevCampo
+  // ── Composición de costos: barras horizontales apiladas ──
+  // Reemplaza las 2 tortas anteriores. Muestra por rubro (semillas, fert, herb,
+  // etc) y por cultivo (soja, maíz…) el peso relativo del gasto total. Cada
+  // segmento tiene tooltip con USD absoluto y % — más legible que una torta
+  // cuando hay más de 4-5 categorías. Si un segmento es <8% del total se
+  // omite el label dentro del bloque para no amontonar texto.
+  var compEl = document.getElementById('rt-composicion')
+  if (compEl) {
+    var totalGastosComp = Object.values(porRubroGlobal).reduce(function(a,v){return a+v},0)
+    if (!totalGastosComp) {
+      compEl.innerHTML = ''
+    } else {
+      var RUBRO_COL = {
+        'Herbicidas':'#F0997B','Fungicidas':'#5DCAA5','Insecticidas':'#EF9F27',
+        'Fertilizantes':'#BA7517','Semillas':'#97C459','Laboreo':'#AFA9EC',
+        'Flete':'#85B7EB','Gastos de empleados':'#B4B2A9','Arrendamiento':'#7F77DD',
+        'Riego':'#378ADD','Otros':'#888780'
+      }
+      var rubOrder = Object.keys(porRubroGlobal).sort(function(a,b){return porRubroGlobal[b]-porRubroGlobal[a]})
+      var segRubro = rubOrder.map(function(r){
+        var v = porRubroGlobal[r]
+        var pct = v/totalGastosComp*100
+        var col = RUBRO_COL[r] || '#888780'
+        var lbl = pct >= 8 ? Math.round(pct)+'%' : ''
+        return '<div title="'+r+' — USD '+Math.round(v).toLocaleString('es-AR')+' ('+Math.round(pct)+'%)" style="flex:'+pct.toFixed(2)+' 0 0;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:0;overflow:hidden">'+lbl+'</div>'
+      }).join('')
+      var legRubro = rubOrder.map(function(r){
+        var v = porRubroGlobal[r]
+        var pct = Math.round(v/totalGastosComp*100)
+        var col = RUBRO_COL[r] || '#888780'
+        return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--texto)"><span style="width:10px;height:10px;background:'+col+';border-radius:2px;flex-shrink:0"></span><strong>'+pct+'%</strong> '+r+' · USD '+Math.round(v).toLocaleString('es-AR')+'</span>'
+      }).join('')
+      // Composición por cultivo — repartimos costos por cantidad de cultivos
+      // del campo (aprox razonable cuando el campo es mixto y no hay tag por
+      // cultivo en el gasto individual).
+      var porCultivo = {}
+      datosCampos.forEach(function(d){
+        var lista = (d.c.cultivo||'Sin cultivo').split(',').map(function(s){return s.trim()}).filter(Boolean)
+        if (!lista.length) lista = ['Sin cultivo']
+        var share = d.costo / lista.length
+        lista.forEach(function(c2){ porCultivo[c2] = (porCultivo[c2]||0) + share })
+      })
+      var totalCult = Object.values(porCultivo).reduce(function(a,v){return a+v},0)
+      var CULT_COL = {'Soja':'#639922','Maíz':'#EF9F27','Maiz':'#EF9F27','Trigo':'#BA7517','Girasol':'#EF9F27','Sorgo':'#B4B2A9','Cebada':'#97C459','Sin cultivo':'#888780'}
+      var segCult = '', legCult = ''
+      if (totalCult > 0) {
+        var cOrder = Object.keys(porCultivo).sort(function(a,b){return porCultivo[b]-porCultivo[a]})
+        segCult = cOrder.map(function(c){
+          var v = porCultivo[c]
+          var pct = v/totalCult*100
+          var col = CULT_COL[c] || '#5DCAA5'
+          var lbl = pct >= 8 ? Math.round(pct)+'%' : ''
+          return '<div title="'+c+' — USD '+Math.round(v).toLocaleString('es-AR')+' ('+Math.round(pct)+'%)" style="flex:'+pct.toFixed(2)+' 0 0;background:'+col+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:0;overflow:hidden">'+lbl+'</div>'
+        }).join('')
+        legCult = cOrder.map(function(c){
+          var v = porCultivo[c]
+          var pct = Math.round(v/totalCult*100)
+          var col = CULT_COL[c] || '#5DCAA5'
+          return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--texto)"><span style="width:10px;height:10px;background:'+col+';border-radius:2px;flex-shrink:0"></span><strong>'+pct+'%</strong> '+c+' · USD '+Math.round(v).toLocaleString('es-AR')+'</span>'
+        }).join('')
+      }
+      compEl.innerHTML = ''+
+        '<div class="card" style="padding:16px 18px;margin-bottom:12px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">'+
+            '<span style="font-size:13px;font-weight:700;color:var(--texto)">Composición de gastos por rubro</span>'+
+            '<span style="font-size:12px;color:var(--texto-suave);font-family:DM Mono,monospace">USD '+Math.round(totalGastosComp).toLocaleString('es-AR')+' total</span>'+
+          '</div>'+
+          '<div style="display:flex;height:28px;border-radius:4px;overflow:hidden;margin-bottom:12px">'+segRubro+'</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:8px 14px">'+legRubro+'</div>'+
+        '</div>'+
+        (totalCult > 0
+          ? '<div class="card" style="padding:16px 18px;margin-bottom:0">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">'+
+              '<span style="font-size:13px;font-weight:700;color:var(--texto)">Composición por cultivo</span>'+
+              '<span style="font-size:12px;color:var(--texto-suave);font-family:DM Mono,monospace">USD '+Math.round(totalCult).toLocaleString('es-AR')+' total</span>'+
+            '</div>'+
+            '<div style="display:flex;height:28px;border-radius:4px;overflow:hidden;margin-bottom:12px">'+segCult+'</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:8px 14px">'+legCult+'</div>'+
+          '</div>'
+          : '')
+    }
   }
-  // Render inicial de ambas tortas (respeta selección actual)
-  renderRtTortaRubro()
 
   // Resumen gastos por rubro (tabla)
   var resEl = document.getElementById('rt-resumen-rubro')
@@ -18394,123 +18552,6 @@ window.renderRentabilidadTotal = function() {
     }
   }
 
-  // Comparativa
-  var compEl = document.getElementById('rt-comparativa')
-  if(compEl && datosCampos.length) {
-    var sortedComp = datosCampos.slice().sort(function(a,b){return b.mgHa-a.mgHa})
-    var maxAbs = Math.max.apply(null, sortedComp.map(function(d){return Math.abs(d.mgHa)}))
-    compEl.innerHTML = sortedComp.map(function(d){
-      var mc2=d.mgHa>=0?'#1a7a52':'#c0392b'
-      var w = maxAbs>0?Math.round(Math.abs(d.mgHa)/maxAbs*100):0
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--borde)">'+
-        '<div style="width:120px;font-size:13px;font-weight:500;flex-shrink:0">'+d.c.nombre+'</div>'+
-        '<div style="flex:1;background:var(--crema);border-radius:4px;height:22px;overflow:hidden">'+
-        '<div style="height:100%;width:'+w+'%;background:'+mc2+';border-radius:4px;transition:width .5s;display:flex;align-items:center;padding-left:8px">'+
-        '<span style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+' USD/ha</span></div></div>'+
-        '<div style="width:70px;text-align:right;font-size:12px;font-family:DM Mono,monospace;color:'+mc2+';flex-shrink:0">'+(d.mgHa>=0?'+':'')+Math.round(d.mgHa)+'</div></div>'
-    }).join('')
-  }
-}
-
-var _RT_COLORES = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56','#c0392b','#888780']
-var _RT_RUBS_LBL = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Gastos de empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
-
-// Devuelve { gastosFiltrados, nombreCampo, todosLosCampos }
-function _rtGetCampoFiltro() {
-  var sel = document.getElementById('rt-campo-sel')
-  var campoId = sel ? sel.value : 'todos'
-  // Filtrar SIEMPRE por la campaña seleccionada en el selector de arriba —
-  // antes los pie charts sumaban gastos de TODAS las campañas juntas, lo cual
-  // no coincidía con el P&L (que sí filtra por rango) ni con lo que el user
-  // esperaba visualmente.
-  var campR = getCampanaRange(window._rtCampanaActivaId || 'actual')
-  function _dentroDeCampana(g) {
-    if (!g.fecha) return false
-    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
-    return d >= campR.start && d <= campR.end
-  }
-  if (campoId === 'todos' || !campoId) {
-    return { gastos: gastos.filter(_dentroDeCampana), nombre: 'todos los campos', todos: true }
-  }
-  var c = campos.find(function(x){return x.id===campoId})
-  return {
-    gastos: gastos.filter(function(g){ return g.campo_id===campoId && _dentroDeCampana(g) }),
-    nombre: c ? c.nombre : 'campo',
-    todos: false
-  }
-}
-
-// Disparado al cambiar el select de campo en la primera torta
-window._onRtCampoChange = function() {
-  renderRtTortaRubro()
-}
-
-window.renderRtTortaRubro = function() {
-  var f = _rtGetCampoFiltro()
-  // Título
-  var tit = document.getElementById('rt-rubro-titulo')
-  if(tit) tit.textContent = 'Gastos por rubro · ' + f.nombre
-  // Agrupar gastos filtrados por rubro
-  var porRubro = {}
-  f.gastos.forEach(function(g){
-    var lbl = _RT_RUBS_LBL[g.rubro] || g.rubro || 'Otros'
-    porRubro[lbl] = (porRubro[lbl]||0) + (g.total_de_usd||0)
-  })
-  var ctxR = document.getElementById('chart-rt-rubro')
-  if(!ctxR) return
-  if(charts['rt-rubro']) charts['rt-rubro'].destroy()
-  var legEl = document.getElementById('rt-rubro-leyenda')
-  if(!Object.keys(porRubro).length) {
-    if(legEl) legEl.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Sin gastos en este campo</div>'
-    // Actualizar también el select de rubros (vacío)
-    var sR0 = document.getElementById('rt-rubro-sel')
-    if(sR0) sR0.innerHTML = '<option value="todos">Todos los rubros</option>'
-    renderRtTortaDetalle()
-    return
-  }
-  var lblR = Object.keys(porRubro).sort(function(a,b){return porRubro[b]-porRubro[a]})
-  var valR = lblR.map(function(l){return porRubro[l]})
-  var tot = valR.reduce(function(a,v){return a+v},0)
-  charts['rt-rubro'] = new Chart(ctxR,{type:'doughnut',data:{labels:lblR,datasets:[{data:valR,backgroundColor:_RT_COLORES.slice(0,lblR.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': USD '+Math.round(ctx.raw).toLocaleString('es-AR')+' ('+Math.round(ctx.raw/tot*100)+'%)'}}}}}})
-  if(legEl) legEl.innerHTML = lblR.map(function(l,i){var pct=Math.round(valR[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+_RT_COLORES[i]+'"></div><strong>'+pct+'%</strong> '+l+'</div>'}).join('')
-  // Repoblar select de rubros (sólo los rubros que existen en el filtro)
-  var selR = document.getElementById('rt-rubro-sel')
-  if(selR) {
-    var prev = selR.value
-    selR.innerHTML = '<option value="todos">Todos los rubros</option>'+lblR.map(function(l){return '<option value="'+l+'">'+l+'</option>'}).join('')
-    if(prev && lblR.indexOf(prev)>=0) selR.value = prev
-  }
-  // Re-render del detalle con el mismo filtro
-  renderRtTortaDetalle()
-}
-
-window.renderRtTortaDetalle = function() {
-  var f = _rtGetCampoFiltro()
-  var rubroSel = document.getElementById('rt-rubro-sel')?.value || 'todos'
-  var gFilt = rubroSel==='todos'
-    ? f.gastos.slice()
-    : f.gastos.filter(function(g){ return (_RT_RUBS_LBL[g.rubro]||g.rubro||'Otros')===rubroSel })
-  // Título contextual: "Detalle por producto · herbicidas · La Escondida"
-  var tit = document.getElementById('rt-detalle-titulo')
-  if(tit) tit.textContent = 'Detalle · ' + (rubroSel==='todos' ? 'todos los rubros' : rubroSel) + ' · ' + f.nombre
-  // Agrupar por descripción (insumo)
-  var porDesc = {}
-  gFilt.forEach(function(g){
-    var k = (g.descripcion||'').trim() || (_RT_RUBS_LBL[g.rubro]||g.rubro||'Sin nombre')
-    porDesc[k] = (porDesc[k]||0) + (g.total_de_usd||0)
-  })
-  var ctxD = document.getElementById('chart-rt-detalle'); if(!ctxD) return
-  if(charts['rt-detalle']) charts['rt-detalle'].destroy()
-  var legEl = document.getElementById('rt-detalle-leyenda')
-  if(!Object.keys(porDesc).length){
-    if(legEl) legEl.innerHTML = '<div style="font-size:12px;color:var(--texto-suave)">Sin gastos para esta combinación</div>'
-    return
-  }
-  var lblD = Object.keys(porDesc).sort(function(a,b){return porDesc[b]-porDesc[a]})
-  var valD = lblD.map(function(l){return porDesc[l]})
-  var tot = valD.reduce(function(a,v){return a+v},0)
-  charts['rt-detalle'] = new Chart(ctxD,{type:'doughnut',data:{labels:lblD,datasets:[{data:valD,backgroundColor:_RT_COLORES.map(function(c,i){return c+(i%2===0?'dd':'aa')}),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+Math.round(ctx.raw/tot*100)+'% (USD '+Math.round(ctx.raw).toLocaleString('es-AR')+')'}}}}}})
-  if(legEl) legEl.innerHTML = lblD.map(function(l,i){var pct=Math.round(valD[i]/tot*100);return '<div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:10px;height:10px;border-radius:3px;background:'+_RT_COLORES[i%_RT_COLORES.length]+'"></div><strong>'+pct+'%</strong> '+(l.length>18?l.slice(0,18)+'…':l)+'</div>'}).join('')
 }
 
 window.verCampoDesdeRent = function(id) {

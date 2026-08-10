@@ -3942,7 +3942,7 @@ async function cargarTodo() {
                         function(e){ return {status:'rejected', reason:e} })
   }
 
-  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa, resAA, resGE, resFl] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resI, resPg, resCa, resAA, resGE, resFl, resAcc] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     _selectConFallback('gastos',           {col:'usuario_id', val:uid, order:{col:'fecha', asc:false}}),
@@ -3955,7 +3955,9 @@ async function cargarTodo() {
     _selectConFallback('campanas',         {col:'usuario_id', val:uid, order:{col:'anio', asc:false}}),
     _selectConFallback('activos_amortizables', {col:'owner_id', val:uid, order:{col:'created_at', asc:false}}),
     _selectConFallback('gastos_estructura',    {col:'owner_id', val:uid, order:{col:'created_at', asc:false}}),
-    _selectConFallback('fletes',           {col:'owner_id',   val:uid, order:{col:'fecha', asc:false}})
+    _selectConFallback('fletes',           {col:'owner_id',   val:uid, order:{col:'fecha', asc:false}}),
+    // Accesos: cuentas de otros donde este usuario es miembro (para dashboard "acceso compartido")
+    _selectConFallback('equipo',           {col:'miembro_id', val:usuario.id, col2:'activo', val2:true})
   ])
 
   // Perfil → nombre/saludo. Preferencia: perfil.nombre → user_metadata → nada.
@@ -4026,6 +4028,9 @@ async function cargarTodo() {
   if (modEst && modEst.classList.contains('active')) { try { renderEstructura() } catch(e) {} }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
+  // Cachear accesos (cuentas de otros donde este user es miembro) — evita queries
+  // en carrera en cada render del dashboard que causaban parpadeo.
+  if(resAcc && resAcc.status==='fulfilled' && resAcc.value && Array.isArray(resAcc.value.data)) window._accesosCache = resAcc.value.data
 
   // Siempre fusionar pending aunque la DB haya respondido
   _mergePendingCampos()
@@ -4523,7 +4528,11 @@ function _renderDashPagos() {
   }).join('')
 }
 
-async function _renderDashEquipo() {
+// Sincrónico: lee de window._equipoCache poblada en cargarTodo.
+// Antes disparaba fetch REST cuando la caché estaba vacía, lo que causaba
+// un segundo render fuera de orden y parpadeo. Ahora es idempotente: si
+// la caché no cargó, no toca el DOM.
+function _renderDashEquipo() {
   var el = document.getElementById('dash-equipo')
   var card = document.getElementById('dash-equipo-card')
   if (!el || !usuario) return
@@ -4536,25 +4545,17 @@ async function _renderDashEquipo() {
   if (card) card.style.display = ''
 
   try {
-    // Estrategia 1: usar _equipoCache que ya cargó cargarTodo (rápido, sin SDK)
+    // Usar _equipoCache que ya cargó cargarTodo (siempre poblado antes del primer render efectivo)
     var data = null
     if (Array.isArray(window._equipoCache)) {
       data = window._equipoCache.filter(function(m){
         return m.owner_id === usuario.id && m.activo === true
       }).sort(function(a,b){ return String(b.creado_en||'').localeCompare(String(a.creado_en||'')) })
     }
-    // Estrategia 2: si no hay cache, fetch REST directo (evita el SDK deadlock)
-    if (!data) {
-      try {
-        var uid = encodeURIComponent(usuario.id)
-        data = await _restGet('/equipo?select=id,nombre_display,permisos,creado_en,owner_id,activo&owner_id=eq.'+uid+'&activo=eq.true&order=creado_en.desc')
-      } catch(eRest) {
-        console.warn('[dash-equipo] REST también falló:', eRest.message)
-        data = []
-      }
-    }
+    // Si la caché todavía no está lista, no tocamos el DOM (evita flash vacío)
+    if (!Array.isArray(data)) return
 
-    if (!data || !data.length) {
+    if (!data.length) {
       el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;gap:16px;flex-wrap:wrap">'
         + '<div>'
           + '<div style="font-size:13px;font-weight:500;color:var(--texto-mid);margin-bottom:2px">Todavía no invitaste a nadie</div>'
@@ -4808,31 +4809,30 @@ function _renderDashboardProductor() {
   }
 }
 
-async function _renderAccesosColaborador() {
-  // Si este usuario tiene acceso a cuentas de otros, mostrar tarjeta en dashboard
+// Sincrónico: lee de window._accesosCache poblada en cargarTodo.
+// Antes era async y disparaba una query a `equipo` cada vez que se
+// renderizaba el dashboard — con 3 renders al iniciar sesión eran hasta
+// 6 queries en carrera reescribiendo el mismo DOM y causando parpadeo.
+function _renderAccesosColaborador() {
   var el = document.getElementById('dash-campos')
-  if (!el) return
+  if (!el || !usuario) return
   if (window.CONTEXTO?.esColaborador) return // ya está operando en modo colaborador
-  // Buscar en equipo donde este user es miembro
-  try {
-    var { data: accesos } = await sb.from('equipo')
-      .select('*')
-      .eq('miembro_id', usuario.id)
-      .eq('activo', true)
-    if (!accesos || !accesos.length) return
-    var yaHayAccesos = document.getElementById('dash-accesos-col')
-    if (yaHayAccesos) yaHayAccesos.remove()
-    var div = document.createElement('div')
-    div.id = 'dash-accesos-col'
-    div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
-    div.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">⚡ Cuentas con acceso compartido</div>'
-      + accesos.map(function(a){
-        var nom = a.nombre_display || 'Productor'
-        var rol = a.rol || 'colaborador'
-        return '<div class="campo-row" style="cursor:pointer" onclick="switchToProductor(\''+a.owner_id+'\',\''+nom.replace(/'/g,'')+'\',\''+rol+'\')"><div class="cdot" style="background:#c9a84c"></div><div class="ci"><div class="cn">'+nom+'</div><div class="cm">'+rol+'</div></div><div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:11px">Acceder →</div></div></div>'
-      }).join('')
-    el.appendChild(div)
-  } catch(e) {}
+  // Idempotente: quitar la tarjeta si ya existía antes de re-agregarla
+  var yaHayAccesos = document.getElementById('dash-accesos-col')
+  if (yaHayAccesos) yaHayAccesos.remove()
+  var accesos = window._accesosCache
+  // Si la caché todavía no cargó, no tocamos el DOM (evita flash de "sin nada")
+  if (!Array.isArray(accesos) || !accesos.length) return
+  var div = document.createElement('div')
+  div.id = 'dash-accesos-col'
+  div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
+  div.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">⚡ Cuentas con acceso compartido</div>'
+    + accesos.map(function(a){
+      var nom = a.nombre_display || 'Productor'
+      var rol = a.rol || 'colaborador'
+      return '<div class="campo-row" style="cursor:pointer" onclick="switchToProductor(\''+a.owner_id+'\',\''+nom.replace(/'/g,'')+'\',\''+rol+'\')"><div class="cdot" style="background:#c9a84c"></div><div class="ci"><div class="cn">'+nom+'</div><div class="cm">'+rol+'</div></div><div class="cmg"><div class="cmgv" style="color:#1a4a2e;font-size:11px">Acceder →</div></div></div>'
+    }).join('')
+  el.appendChild(div)
 }
 
 // ── RENTABILIDAD ──

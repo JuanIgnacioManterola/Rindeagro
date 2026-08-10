@@ -17934,22 +17934,25 @@ function _refreshCrAcordeon() {
     var totalG = 0
     var nGastos = 0
     rubrosArr.forEach(function(e){ totalG += e[1].total; nGastos += (e[1].gastos||[]).length })
-    var pct = denomIng>0 ? Math.round(totalG/denomIng*100)+'%' : '—'
+    // La fila totales es la base 100%. Cada rubro debajo se calcula como
+    // porcentaje del TOTAL DE GASTOS (no del ingreso), asi se ve la
+    // composicion real del costo. El % del ingreso queda solo en el margen.
     var haCosto = haRef>0 ? Math.round(totalG/haRef) : 0
     var chevron = rubrosArr.length ? (_crAcSt.gasOpen ? '▲' : '▼') : ''
     var cursor = rubrosArr.length ? 'cursor:pointer' : ''
     var onclick = rubrosArr.length ? ' onclick="toggleCrGas(event)"' : ''
     var html = '<div'+onclick+' style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgCostosTot+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+';'+cursor+'">'
-      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales <span class="ra-help" data-tip="Suma de todos los rubros: semillas, herbicidas, fertilizantes, labores, flete, etc. Click en la fila para desglosar por rubro." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
+      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales <span class="ra-help" data-tip="Suma de todos los rubros: semillas, herbicidas, fertilizantes, labores, flete, etc. Click en la fila para desglosar por rubro. Base 100% para el desglose." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+' · '+nGastos+' gasto'+(nGastos!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(totalG)+')</div>'
-      +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' '+pct+'</div>'
+      +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' 100%</div>'
       +'</div>'
     if (_crAcSt.gasOpen && rubrosArr.length) {
       rubrosArr.forEach(function(entry){
         var rk = entry[0], rd = entry[1]
-        html += _filaRubro(rk, rd, keyPrefix || '', denomIng, haRef)
+        // Denom = totalG asi el % del rubro es sobre el total de gastos.
+        html += _filaRubro(rk, rd, keyPrefix || '', totalG || 1, haRef)
       })
     }
     return html

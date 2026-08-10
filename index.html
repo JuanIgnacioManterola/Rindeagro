@@ -3052,43 +3052,124 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
 
 <!-- MODAL SUELO -->
 <div class="overlay" id="ov-suelo">
-  <div class="modal">
+  <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <button class="m-close" onclick="closeModalSuelo()">✕</button>
-      <div class="m-tit" id="suelo-modal-tit">Cargar análisis de suelo</div><div class="m-sub" style="margin-bottom:0">Ingresá los valores del laboratorio</div>
+      <div class="m-tit" id="suelo-modal-tit">Cargar análisis de suelo</div>
+      <div class="m-sub" id="suelo-modal-sub" style="margin-bottom:0">Elegí cómo querés cargar el análisis</div>
     </div>
     <div class="modal-body">
       <input type="hidden" id="s-edit-id" value=""/>
-      <div class="form-row2" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
-        <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+      <!-- Stepper (visible en wizard, oculto en modo manual y edicion) -->
+      <div id="suelo-stepper" style="display:flex;align-items:center;gap:8px;padding:6px 0 18px;font-size:12px">
+        <span class="s-step" data-step="1" style="display:inline-flex;align-items:center;gap:6px;color:var(--verde);font-weight:600"><span class="s-step-num" style="width:22px;height:22px;border-radius:50%;background:var(--verde);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">1</span>Subir</span>
+        <span style="flex:0 0 20px;height:1px;background:var(--borde)"></span>
+        <span class="s-step" data-step="2" style="display:inline-flex;align-items:center;gap:6px;color:var(--texto-suave)"><span class="s-step-num" style="width:22px;height:22px;border-radius:50%;background:var(--crema);color:var(--texto-suave);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">2</span>Revisar</span>
+        <span style="flex:0 0 20px;height:1px;background:var(--borde)"></span>
+        <span class="s-step" data-step="3" style="display:inline-flex;align-items:center;gap:6px;color:var(--texto-suave)"><span class="s-step-num" style="width:22px;height:22px;border-radius:50%;background:var(--crema);color:var(--texto-suave);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">3</span>Asociar</span>
       </div>
-      <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: INTA Marcos Juárez"/></div>
-      <div class="form-row3" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n" placeholder="175" min="0" step="1"/></div>
-        <div class="fg"><label class="fl">P disponible (ppm)</label><input class="fi" type="number" id="s-p" placeholder="18" min="0" step="1"/></div>
-        <div class="fg"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k" placeholder="260" min="0" step="1"/></div>
-      </div>
-      <div class="form-row3" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s" placeholder="10" min="0" step="1"/></div>
-        <div class="fg"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo" placeholder="3.0" step="0.1" min="0" max="100"/></div>
-        <div class="fg"><label class="fl">pH</label><input class="fi" type="number" id="s-ph" placeholder="6.5" step="0.1" min="0" max="14"/></div>
-      </div>
-      <div class="form-row2" style="margin-bottom:.9rem">
-        <div class="fg"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn" placeholder="1.0" step="0.1" min="0"/></div>
-        <div class="fg"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b" placeholder="0.5" step="0.1" min="0"/></div>
-      </div>
-      <div class="fg" style="margin-bottom:.9rem">
-        <label class="fl">Adjuntar informe (opcional)</label>
-        <div id="s-archivos-lista" style="margin-bottom:6px"></div>
-        <label id="s-upload-btn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1.5px dashed var(--borde);cursor:pointer;font-size:12px;color:var(--texto-suave);background:var(--crema)" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
-          📎 <span id="s-upload-label">Subir PDF o foto del análisis</span>
-          <input type="file" id="s-archivo-input" multiple accept="image/*,.pdf" style="display:none" onchange="window._sueloAgregarArchivos(this)"/>
+
+      <!-- Paso 1: Subir -->
+      <div id="suelo-step-1">
+        <label for="s-archivo-input" style="display:block;border:2px dashed #97C459;background:#ecfdf5;border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;margin-bottom:14px;transition:all .15s" onmouseover="this.style.borderColor='#3B6D11';this.style.background='#dcfce7'" onmouseout="this.style.borderColor='#97C459';this.style.background='#ecfdf5'">
+          <div style="font-size:44px;line-height:1;margin-bottom:8px">📄</div>
+          <div style="font-size:15px;font-weight:700;color:#173404">Subí el PDF del análisis</div>
+          <div style="font-size:12px;color:#3B6D11;margin-top:4px">Fertilab · Kumelen · ROMA · INTA — los valores se autocompletan</div>
+          <div style="margin-top:10px;padding:8px 18px;background:var(--verde);color:#fff;font-size:13px;font-weight:700;border-radius:8px;display:inline-block">Elegir archivo</div>
         </label>
+        <input type="file" id="s-archivo-input" accept="image/*,.pdf" style="display:none" onchange="window._sueloProcesarArchivo(this)"/>
+
+        <div style="text-align:center;font-size:12px;color:var(--texto-suave);margin:14px 0 12px">o cargar de otra forma</div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <button type="button" onclick="document.getElementById('s-archivo-input').click()" style="padding:14px 8px;background:#fff;border:1px solid var(--borde);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+            <span style="font-size:22px">📷</span><span style="font-size:12px;font-weight:600;color:var(--texto)">Foto del análisis</span>
+          </button>
+          <button type="button" onclick="window._sueloInfoWhatsApp()" style="padding:14px 8px;background:#fff;border:1px solid var(--borde);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+            <span style="font-size:22px">💬</span><span style="font-size:12px;font-weight:600;color:var(--texto)">Por WhatsApp</span>
+          </button>
+          <button type="button" onclick="window._sueloIrManual()" style="padding:14px 8px;background:#fff;border:1px solid var(--borde);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--verde)'" onmouseout="this.style.borderColor='var(--borde)'">
+            <span style="font-size:22px">✏️</span><span style="font-size:12px;font-weight:600;color:var(--texto)">Manual</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 2: Revisar (OCR extrajo valores) -->
+      <div id="suelo-step-2" style="display:none">
+        <div style="background:#ecfdf5;border:1px solid #97C459;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#173404;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">✓</span>
+          <div>Valores extraídos del PDF — revisá y corregí si algo no cuadra antes de continuar.</div>
+        </div>
+        <div id="suelo-ocr-nombre-archivo" style="font-size:11px;color:var(--texto-suave);margin-bottom:12px"></div>
+        <div id="suelo-step-2-inputs"><!-- se rellena por _sueloRevisarPaso2 --></div>
+      </div>
+
+      <!-- Paso 3: Asociar campo/fecha/profundidad -->
+      <div id="suelo-step-3" style="display:none">
+        <div style="font-size:13px;color:var(--texto-mid);margin-bottom:16px">Últimos datos para guardar el análisis:</div>
+        <div class="form-row2" style="margin-bottom:.9rem">
+          <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+          <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha"/></div>
+        </div>
+        <div class="form-row2" style="margin-bottom:.9rem">
+          <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab" placeholder="Ej: Fertilab"/></div>
+          <div class="fg"><label class="fl">Profundidad</label><select class="fi" id="s-profundidad" style="cursor:pointer"><option value="0-20">0 – 20 cm</option><option value="20-40">20 – 40 cm</option><option value="40-60">40 – 60 cm</option><option value="0-60">0 – 60 cm</option><option value="">No especifica</option></select></div>
+        </div>
+      </div>
+
+      <!-- MODO MANUAL: layout single-view con secciones + preview lateral -->
+      <div id="suelo-modo-manual" style="display:none">
+        <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px">
+          <div>
+            <div class="form-row2" style="margin-bottom:.9rem">
+              <div class="fg"><label class="fl">Campo</label><select class="fi" id="s-campo-m" style="cursor:pointer"><option value="">Seleccioná</option></select></div>
+              <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="s-fecha-m"/></div>
+            </div>
+            <div class="form-row2" style="margin-bottom:.9rem">
+              <div class="fg"><label class="fl">Laboratorio</label><input class="fi" type="text" id="s-lab-m" placeholder="Ej: Fertilab"/></div>
+              <div class="fg"><label class="fl">Profundidad</label><select class="fi" id="s-profundidad-m" style="cursor:pointer"><option value="0-20">0 – 20 cm</option><option value="20-40">20 – 40 cm</option><option value="40-60">40 – 60 cm</option><option value="0-60">0 – 60 cm</option><option value="">No especifica</option></select></div>
+            </div>
+
+            <div style="border:1px solid var(--borde);border-radius:9px;margin-bottom:8px;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--crema);font-size:13px;font-weight:700;color:var(--texto)">Macronutrientes</div>
+              <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 12px">
+                <div class="fg" style="margin:0"><label class="fl">N total (ppm)</label><input class="fi" type="number" id="s-n-m" placeholder="175" min="0" step="1" oninput="_sueloSemaforoLive()"/></div>
+                <div class="fg" style="margin:0"><label class="fl">P Bray (ppm)</label><input class="fi" type="number" id="s-p-m" placeholder="18" min="0" step="1" oninput="_sueloSemaforoLive()"/></div>
+                <div class="fg" style="margin:0"><label class="fl">K (ppm)</label><input class="fi" type="number" id="s-k-m" placeholder="260" min="0" step="1" oninput="_sueloSemaforoLive()"/></div>
+                <div class="fg" style="margin:0"><label class="fl">S (ppm)</label><input class="fi" type="number" id="s-s-m" placeholder="10" min="0" step="1" oninput="_sueloSemaforoLive()"/></div>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--borde);border-radius:9px;margin-bottom:8px;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--crema);font-size:13px;font-weight:700;color:var(--texto)">Físico-químicos</div>
+              <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 12px">
+                <div class="fg" style="margin:0"><label class="fl">pH</label><input class="fi" type="number" id="s-ph-m" placeholder="6.5" step="0.1" min="0" max="14" oninput="_sueloSemaforoLive()"/></div>
+                <div class="fg" style="margin:0"><label class="fl">MO (%)</label><input class="fi" type="number" id="s-mo-m" placeholder="3.0" step="0.1" min="0" max="100" oninput="_sueloSemaforoLive()"/></div>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--borde);border-radius:9px;overflow:hidden">
+              <div onclick="var b=document.getElementById('s-micros-body');var c=document.getElementById('s-micros-chev');if(b.style.display==='none'){b.style.display='grid';c.textContent='▼'}else{b.style.display='none';c.textContent='▶'}" style="padding:10px 14px;background:var(--crema);font-size:13px;font-weight:700;color:var(--texto);cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span>Micronutrientes <span style="font-weight:400;color:var(--texto-suave)">(opcional)</span></span><span id="s-micros-chev" style="font-size:11px;color:var(--texto-suave)">▶</span></div>
+              <div id="s-micros-body" style="display:none;padding:12px 14px;grid-template-columns:1fr 1fr;gap:10px 12px">
+                <div class="fg" style="margin:0"><label class="fl">Zinc (ppm)</label><input class="fi" type="number" id="s-zn-m" placeholder="1.0" step="0.1" min="0" oninput="_sueloSemaforoLive()"/></div>
+                <div class="fg" style="margin:0"><label class="fl">Boro (ppm)</label><input class="fi" type="number" id="s-b-m" placeholder="0.5" step="0.1" min="0" oninput="_sueloSemaforoLive()"/></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fafbfc;border-radius:9px;padding:14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--texto-suave);font-weight:700;margin-bottom:10px">Semáforo · en vivo</div>
+            <div id="suelo-semaforo-preview" style="font-size:12px;color:var(--texto-suave)">Cargá valores para ver el semáforo.</div>
+            <div style="margin-top:12px;padding:10px;background:#fff;border:1px solid var(--borde);border-radius:6px;font-size:11px;color:var(--texto-suave);line-height:1.5">📎 <label for="s-archivo-input-m" style="cursor:pointer;color:var(--verde);text-decoration:underline">Adjuntar PDF o foto</label> del informe (opcional).<input type="file" id="s-archivo-input-m" accept="image/*,.pdf" multiple style="display:none" onchange="window._sueloAgregarArchivos(this)"/><div id="s-archivos-lista" style="margin-top:6px"></div></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="fb" id="btn-suelo" onclick="_wrapLoading(this, guardarSuelo)">Guardar análisis</button>
+    <div class="modal-footer" id="suelo-modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <button type="button" id="btn-suelo-back" onclick="window._sueloBack()" style="display:none;padding:9px 16px;background:transparent;border:1px solid var(--borde);border-radius:8px;font-size:13px;color:var(--texto-mid);cursor:pointer;font-family:'DM Sans',sans-serif">← Volver</button>
+      <div style="flex:1"></div>
+      <button type="button" id="btn-suelo-next" onclick="window._sueloNext()" style="display:none;padding:9px 20px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Continuar →</button>
+      <button class="fb" id="btn-suelo" onclick="_wrapLoading(this, guardarSuelo)" style="display:none">Guardar análisis</button>
     </div>
   </div>
 </div>
@@ -14555,47 +14636,280 @@ window._sueloQuitarArchivo = function(i) {
   _sueloRenderArchivos()
 }
 
+// ── WIZARD ANÁLISIS DE SUELO ──
+// State del wizard: mode ('wizard' 3 pasos con OCR / 'manual' single-view) +
+// datos numéricos que se van rellenando entre pasos (OCR extrae → paso 2
+// muestra editables → paso 3 asocia a campo → guardar).
+window._sueloState = { mode:'wizard', step:1, datos:{}, archivoOCR:null }
+
+window._sueloResetState = function() {
+  window._sueloState = { mode:'wizard', step:1, datos:{}, archivoOCR:null }
+}
+
+// Poblar el <select> de campos en ambos layouts (wizard step-3 + manual).
+function _sueloPoblarSelects() {
+  var opts = '<option value="">Seleccioná</option>' + (campos||[]).map(function(c){
+    return '<option value="'+c.id+'">'+((c.nombre||'').replace(/"/g,'&quot;'))+'</option>'
+  }).join('')
+  ;['s-campo','s-campo-m'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.innerHTML = opts
+  })
+}
+
+// Aplicar visibilidad del step actual. Muestra/oculta los divs y actualiza
+// el stepper visual arriba + los botones del footer.
+window._sueloAplicarStep = function() {
+  var st = window._sueloState
+  var isManual = st.mode === 'manual'
+  document.getElementById('suelo-modo-manual').style.display = isManual ? '' : 'none'
+  document.getElementById('suelo-stepper').style.display = isManual ? 'none' : ''
+  ;[1,2,3].forEach(function(n){
+    var el = document.getElementById('suelo-step-'+n)
+    if (el) el.style.display = (!isManual && st.step === n) ? '' : 'none'
+  })
+  // Update stepper visual
+  document.querySelectorAll('#suelo-stepper .s-step').forEach(function(el){
+    var n = parseInt(el.getAttribute('data-step'),10)
+    var num = el.querySelector('.s-step-num')
+    if (n <= st.step) {
+      el.style.color = 'var(--verde)'
+      el.style.fontWeight = '600'
+      num.style.background = 'var(--verde)'
+      num.style.color = '#fff'
+    } else {
+      el.style.color = 'var(--texto-suave)'
+      el.style.fontWeight = '500'
+      num.style.background = 'var(--crema)'
+      num.style.color = 'var(--texto-suave)'
+    }
+  })
+  // Update footer buttons según contexto
+  var btnBack = document.getElementById('btn-suelo-back')
+  var btnNext = document.getElementById('btn-suelo-next')
+  var btnSave = document.getElementById('btn-suelo')
+  btnBack.style.display = 'none'; btnNext.style.display = 'none'; btnSave.style.display = 'none'
+  if (isManual) {
+    btnSave.style.display = ''
+    btnSave.textContent = document.getElementById('s-edit-id').value ? 'Guardar cambios' : 'Guardar análisis'
+  } else if (st.step === 1) {
+    // sin botones — cada opción avanza sola
+  } else if (st.step === 2) {
+    btnBack.style.display = ''
+    btnNext.style.display = ''
+    btnNext.textContent = 'Continuar →'
+  } else if (st.step === 3) {
+    btnBack.style.display = ''
+    btnSave.style.display = ''
+    btnSave.textContent = 'Guardar análisis'
+  }
+  // Sub-titulo del modal por paso
+  var subs = {1:'Elegí cómo querés cargar el análisis',2:'Revisá los valores extraídos',3:'Asociá el análisis a un campo'}
+  var subEl = document.getElementById('suelo-modal-sub')
+  if (subEl) subEl.textContent = isManual ? 'Carga manual · el semáforo se actualiza en vivo' : (subs[st.step]||'')
+}
+
+// Ir a modo manual — salta al layout single-view con secciones + preview lateral.
+window._sueloIrManual = function() {
+  window._sueloState.mode = 'manual'
+  var f = document.getElementById('s-fecha-m'); if (f && !f.value) f.value = new Date().toISOString().split('T')[0]
+  _sueloAplicarStep()
+}
+
+// Volver al paso anterior. Si estamos en paso 2 o 3, vuelve al 1 (elección de método).
+window._sueloBack = function() {
+  var st = window._sueloState
+  if (st.mode === 'manual') {
+    st.mode = 'wizard'; st.step = 1
+  } else if (st.step > 1) {
+    st.step -= 1
+  }
+  _sueloAplicarStep()
+}
+
+// Siguiente paso — solo aplica en paso 2 (paso 1 avanza por acciones, paso 3 guarda).
+window._sueloNext = function() {
+  var st = window._sueloState
+  if (st.step === 2) {
+    // Recolectar valores editados en paso 2 y guardar en state
+    ;['n','p','k','s','mo','ph','zn','b'].forEach(function(k){
+      var el = document.getElementById('s-'+k+'-w')
+      if (el) st.datos[k] = el.value === '' ? null : parseFloat(el.value)
+    })
+    st.step = 3
+    var f = document.getElementById('s-fecha'); if (f && !f.value) f.value = new Date().toISOString().split('T')[0]
+    _sueloAplicarStep()
+  }
+}
+
+// Info WhatsApp — muestra un mensaje explicando cómo usarlo (bot no activo aún).
+window._sueloInfoWhatsApp = function() {
+  showToast('📱 Mandá foto/PDF del análisis al WhatsApp de RindeAgro y se carga solo. Activá el bot desde Mi Plan.','ok')
+}
+
+// Procesar archivo (PDF o imagen) — sube al bucket, llama edge function ocr-analisis-suelo,
+// rellena state.datos con los valores extraídos y avanza al paso 2. Si el OCR no está
+// desplegado o falla, muestra un mensaje amigable y ofrece cargar manual.
+window._sueloProcesarArchivo = async function(input) {
+  var file = input.files && input.files[0]
+  if (!file) return
+  if (file.size > 15 * 1024 * 1024) { showToast('⚠️ El archivo supera 15 MB','err'); return }
+  // Guardar el archivo como pendiente (se sube al bucket cuando el user guarde)
+  showToast('📄 Procesando '+file.name+'...','ok')
+  try {
+    var up = await _subirArchivoStorageBucket(file, 'suelo-archivos')
+    window._sueloArchivosPendientes = [{
+      nombre: file.name, url: up.url, path: up.path,
+      tipo: file.type || 'application/octet-stream',
+      tamanio: file.size
+    }]
+    window._sueloState.archivoOCR = { nombre: file.name, url: up.url }
+    // Intentar OCR — si no está desplegada la edge function, cae al catch
+    var tok = _getAccessTokenFromStorage()
+    var b64 = await _sueloFileToB64(file)
+    var r = await fetch(SB_URL + '/functions/v1/ocr-analisis-suelo', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok,'apikey':SB_KEY,'Content-Type':'application/json'},
+      body: JSON.stringify({image_base64: b64.split(',')[1], mime_type: file.type})
+    })
+    if (!r.ok) throw new Error('OCR no disponible (status '+r.status+')')
+    var res = await r.json()
+    if (!res || !res.ok) throw new Error(res && res.error || 'OCR sin datos')
+    // Rellenar state con lo extraído (nombres esperados: n_total, p_disponible, k, s, materia_org, ph, zinc, boro)
+    var d = res.data || {}
+    window._sueloState.datos = {
+      n: d.n_total, p: d.p_disponible, k: d.k, s: d.s, mo: d.materia_org,
+      ph: d.ph, zn: d.zinc, b: d.boro, lab: d.laboratorio||''
+    }
+    window._sueloState.step = 2
+    _sueloRevisarPaso2()
+    _sueloAplicarStep()
+  } catch(e) {
+    // Sin OCR — el archivo queda adjuntado y el user va a manual con los inputs vacíos
+    showToast('ℹ️ OCR aún no disponible — cargá los valores a mano, el archivo queda adjunto.','ok')
+    window._sueloState.datos = {}
+    window._sueloIrManual()
+  }
+  input.value = ''
+}
+
+// Convierte File a base64 dataURL — utility para pasar al edge function OCR.
+// Nombre distinto de _fileToBase64 que ya existe globalmente para ocr-factura.
+function _sueloFileToB64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader()
+    reader.onload = function(){ resolve(reader.result) }
+    reader.onerror = function(){ reject(new Error('No se pudo leer el archivo')) }
+    reader.readAsDataURL(file)
+  })
+}
+
+// Pintar paso 2 (revisar valores del OCR). Cada input queda editable con badge de
+// confianza según si el OCR devolvió el valor o no.
+function _sueloRevisarPaso2() {
+  var d = window._sueloState.datos || {}
+  var fields = [
+    {k:'n', l:'N total (ppm)', ph:'175'},
+    {k:'p', l:'P Bray (ppm)', ph:'18'},
+    {k:'k', l:'K (ppm)', ph:'260'},
+    {k:'s', l:'S (ppm)', ph:'10'},
+    {k:'ph', l:'pH', ph:'6.5', step:'0.1'},
+    {k:'mo', l:'MO (%)', ph:'3.0', step:'0.1'},
+    {k:'zn', l:'Zinc (ppm)', ph:'1.0', step:'0.1'},
+    {k:'b', l:'Boro (ppm)', ph:'0.5', step:'0.1'}
+  ]
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px">'
+  fields.forEach(function(f){
+    var v = d[f.k]
+    var badge = (v !== null && v !== undefined && v !== '')
+      ? '<span style="background:#dcfce7;color:#047857;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:6px">OCR</span>'
+      : '<span style="background:#fef3c7;color:#a16207;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:6px">Vacío</span>'
+    html += '<div class="fg" style="margin:0">'
+      +'<label class="fl">'+f.l+badge+'</label>'
+      +'<input class="fi" type="number" id="s-'+f.k+'-w" placeholder="'+f.ph+'" '
+      +'min="0" step="'+(f.step||'1')+'" value="'+(v!=null?v:'')+'" />'
+      +'</div>'
+  })
+  html += '</div>'
+  document.getElementById('suelo-step-2-inputs').innerHTML = html
+  var nombreEl = document.getElementById('suelo-ocr-nombre-archivo')
+  if (nombreEl && window._sueloState.archivoOCR) nombreEl.textContent = '📎 '+window._sueloState.archivoOCR.nombre
+}
+
+// Semáforo en vivo (modo manual) — actualiza el preview lateral cada vez que
+// el user tipea un valor en cualquier input.
+window._sueloSemaforoLive = function() {
+  // Rangos aproximados soja (default) — el semáforo es orientativo
+  var R = {n:[150,280],p:[18,40],k:[250,400],s:[10,25],mo:[3.0,5.0],ph:[6.0,7.0],zn:[1.0,3.0],b:[0.5,2.0]}
+  var LBL = {n:'N total',p:'P Bray',k:'K',s:'S',ph:'pH',mo:'MO',zn:'Zinc',b:'Boro'}
+  var UNIT = {n:'',p:'',k:'',s:'',ph:'',mo:'%',zn:'',b:''}
+  var el = document.getElementById('suelo-semaforo-preview')
+  if (!el) return
+  var rows = Object.keys(R).map(function(k){
+    var v = parseFloat((document.getElementById('s-'+k+'-m')||{}).value)
+    if (isNaN(v)) return null
+    var min = R[k][0], max = R[k][1]
+    var estado = v < min*0.7 ? 'crit' : v < min ? 'bajo' : v <= max ? 'opt' : 'alto'
+    var color = {crit:'#c0392b',bajo:'#c97a14',opt:'#639922',alto:'#1a5fa8'}[estado]
+    var textCol = {crit:'#791F1F',bajo:'#854F0B',opt:'#3B6D11',alto:'#0C447C'}[estado]
+    return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0"><span style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0"></span><span style="flex:1;color:var(--texto)">'+LBL[k]+'</span><span style="color:'+textCol+';font-weight:700;font-variant-numeric:tabular-nums">'+v+(UNIT[k]||'')+'</span></div>'
+  }).filter(Boolean).join('')
+  el.innerHTML = rows || '<div style="font-size:12px;color:var(--texto-suave)">Cargá valores para ver el semáforo.</div>'
+}
+
 window.openModalSuelo = function() {
   window._sueloArchivosPendientes = []
   _sueloRenderArchivos()
+  _sueloResetState()
   document.getElementById('ov-suelo').classList.add('open')
-  document.getElementById('s-fecha').value = new Date().toISOString().split('T')[0]
-  // Limpiar campos y modo edicion
-  document.getElementById('s-edit-id').value = ''
   document.getElementById('suelo-modal-tit').textContent = 'Cargar análisis de suelo'
-  document.getElementById('btn-suelo').textContent = 'Guardar análisis'
-  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b','s-campo'].forEach(function(id){
+  document.getElementById('s-edit-id').value = ''
+  _sueloPoblarSelects()
+  // Limpiar todos los inputs de ambos layouts
+  ;['s-lab','s-fecha','s-lab-m','s-fecha-m','s-n-m','s-p-m','s-k-m','s-s-m','s-mo-m','s-ph-m','s-zn-m','s-b-m'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value=''
   })
+  var p = document.getElementById('suelo-step-2-inputs'); if (p) p.innerHTML = ''
+  _sueloAplicarStep()
 }
 window.editarSuelo = function(id) {
   var a = analisisS.find(function(x){ return x.id===id })
   if (!a) return
+  window._sueloArchivosPendientes = []
+  _sueloResetState()
+  // Editar SIEMPRE abre en modo manual con los valores cargados
+  window._sueloState.mode = 'manual'
   document.getElementById('ov-suelo').classList.add('open')
   document.getElementById('suelo-modal-tit').textContent = 'Editar análisis de suelo'
-  document.getElementById('btn-suelo').textContent = 'Guardar cambios'
   document.getElementById('s-edit-id').value = a.id
-  document.getElementById('s-campo').value = a.campo_id || ''
-  document.getElementById('s-fecha').value = a.fecha || ''
-  document.getElementById('s-lab').value = a.laboratorio || ''
-  document.getElementById('s-n').value = a.n_total || ''
-  document.getElementById('s-p').value = a.p_disponible || ''
-  document.getElementById('s-k').value = a.k || ''
-  document.getElementById('s-s').value = a.s || ''
-  document.getElementById('s-mo').value = a.materia_org || ''
-  document.getElementById('s-ph').value = a.ph || ''
-  document.getElementById('s-zn').value = a.zinc || ''
-  document.getElementById('s-b').value = a.boro || ''
-  // Preservar archivos ya guardados (no permitir editarlos por ahora — solo agregar nuevos)
-  window._sueloArchivosPendientes = []
+  _sueloPoblarSelects()
+  document.getElementById('s-campo-m').value = a.campo_id || ''
+  document.getElementById('s-fecha-m').value = a.fecha || ''
+  document.getElementById('s-lab-m').value = a.laboratorio || ''
+  document.getElementById('s-n-m').value = a.n_total || ''
+  document.getElementById('s-p-m').value = a.p_disponible || ''
+  document.getElementById('s-k-m').value = a.k || ''
+  document.getElementById('s-s-m').value = a.s || ''
+  document.getElementById('s-mo-m').value = a.materia_org || ''
+  document.getElementById('s-ph-m').value = a.ph || ''
+  document.getElementById('s-zn-m').value = a.zinc || ''
+  document.getElementById('s-b-m').value = a.boro || ''
   _sueloRenderArchivos()
+  _sueloAplicarStep()
+  _sueloSemaforoLive()
 }
 window.closeModalSuelo = function() {
   document.getElementById('ov-suelo').classList.remove('open')
 }
 window.guardarSuelo = async function() {
-  var campoId=document.getElementById('s-campo').value
-  var fecha=document.getElementById('s-fecha').value
+  // Lee datos del layout activo (wizard step-3 usa s-campo/s-fecha/s-lab/s-profundidad
+  // + state.datos con los valores numéricos; manual usa los IDs con sufijo -m).
+  var st = window._sueloState
+  var isManual = st.mode === 'manual'
+  var pref = isManual ? '-m' : ''
+  var g = function(id){ var el=document.getElementById(id); return el && el.value!=='' ? parseFloat(el.value) : null }
+  var campoId = (document.getElementById('s-campo'+pref)||{}).value
+  var fecha = (document.getElementById('s-fecha'+pref)||{}).value
+  var lab = ((document.getElementById('s-lab'+pref)||{}).value||'').trim()
   var editId = document.getElementById('s-edit-id').value
   if(!campoId){showToast('⚠️ Seleccioná el campo','err');return}
   if(!fecha){showToast('⚠️ Ingresá la fecha','err');return}
@@ -14604,12 +14918,16 @@ window.guardarSuelo = async function() {
   btn.disabled=true;btn.textContent='Guardando...'
   try{
     var _ownerUid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
-    const g=id=>parseFloat(document.getElementById(id).value)||null
+    // Datos numéricos: modo manual lee de inputs -m; modo wizard usa state.datos
+    // que se rellenó en paso 2 con edits del user sobre los valores del OCR.
+    var d = isManual
+      ? { n:g('s-n-m'), p:g('s-p-m'), k:g('s-k-m'), s:g('s-s-m'), mo:g('s-mo-m'), ph:g('s-ph-m'), zn:g('s-zn-m'), b:g('s-b-m') }
+      : { n:st.datos.n||null, p:st.datos.p||null, k:st.datos.k||null, s:st.datos.s||null, mo:st.datos.mo||null, ph:st.datos.ph||null, zn:st.datos.zn||null, b:st.datos.b||null }
     var payloadSuelo = {
       campo_id:campoId, usuario_id:_ownerUid2, fecha,
-      laboratorio:document.getElementById('s-lab').value.trim()||null,
-      n_total:g('s-n'), p_disponible:g('s-p'), k:g('s-k'), s:g('s-s'),
-      materia_org:g('s-mo'), ph:g('s-ph'), zinc:g('s-zn'), boro:g('s-b'),
+      laboratorio: lab || null,
+      n_total:d.n, p_disponible:d.p, k:d.k, s:d.s,
+      materia_org:d.mo, ph:d.ph, zinc:d.zn, boro:d.b,
       notas:null
     }
     var isEdit = !!editId

@@ -17673,6 +17673,7 @@ window.calcIngresosLive = function() {
 // ── Acordeón Rentabilidad ──
 var _crAcSt = {cultivoOpen:null, rubroActivo:null, ingOpen:false, gasOpen:false}
 window.toggleCrIng = function(e) { if(e) e.stopPropagation(); _crAcSt.ingOpen=!_crAcSt.ingOpen; _refreshCrAcordeon() }
+window.toggleCrGas = function(e) { if(e) e.stopPropagation(); _crAcSt.gasOpen=!_crAcSt.gasOpen; if(!_crAcSt.gasOpen)_crAcSt.rubroActivo=null; _refreshCrAcordeon() }
 window.toggleCrCultivoCard = function(cult,e) { if(e) e.stopPropagation(); _crAcSt.cultivoOpen=_crAcSt.cultivoOpen===cult?null:cult; _crAcSt.rubroActivo=null; _refreshCrAcordeon() }
 window.toggleCrRubro = function(rk,e) { if(e) e.stopPropagation(); _crAcSt.rubroActivo=_crAcSt.rubroActivo===rk?null:rk; _refreshCrAcordeon() }
 
@@ -17798,6 +17799,37 @@ function _refreshCrAcordeon() {
     return html
   }
 
+  // Fila "Gastos totales" con toggle. Al abrir muestra cada rubro usando
+  // _filaRubro. keyPrefix se propaga al rKey de cada rubro (para no chocar
+  // en multi-cultivo). Denom para % y haRef para USD/ha se usan tanto en
+  // la fila totales como en las filas de rubro internas.
+  function _filaGastosTotales(rubrosArr, keyPrefix, denomIng, haRef) {
+    denomIng = denomIng || totalIngUSD
+    haRef = haRef || ha
+    var totalG = 0
+    var nGastos = 0
+    rubrosArr.forEach(function(e){ totalG += e[1].total; nGastos += (e[1].gastos||[]).length })
+    var pct = denomIng>0 ? Math.round(totalG/denomIng*100)+'%' : '—'
+    var haCosto = haRef>0 ? Math.round(totalG/haRef) : 0
+    var chevron = rubrosArr.length ? (_crAcSt.gasOpen ? '▲' : '▼') : ''
+    var cursor = rubrosArr.length ? 'cursor:pointer' : ''
+    var onclick = rubrosArr.length ? ' onclick="toggleCrGas(event)"' : ''
+    var html = '<div'+onclick+' style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+';'+cursor+'">'
+      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales</div>'
+        +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+' · '+nGastos+' gasto'+(nGastos!==1?'s':'')+'</div></div>'
+      +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
+      +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(totalG)+')</div>'
+      +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' '+pct+'</div>'
+      +'</div>'
+    if (_crAcSt.gasOpen && rubrosArr.length) {
+      rubrosArr.forEach(function(entry){
+        var rk = entry[0], rd = entry[1]
+        html += _filaRubro(rk, rd, keyPrefix || '', denomIng, haRef)
+      })
+    }
+    return html
+  }
+
   // Fila de estructura (rojo saturado, solo si aplica)
   function _filaEstructura(monto, denomIng, haRef) {
     if (!(monto > 0)) return ''
@@ -17863,13 +17895,10 @@ function _refreshCrAcordeon() {
         +'</div>'
         +'</div>'
       if (isOpen) {
-        // P&L interno del cultivo
+        // P&L interno del cultivo — Ingresos / Gastos totales (drill-down) / Margen
         html += '<div style="border:1px solid '+border+';border-radius:8px;overflow:hidden;margin-bottom:10px;background:#fff">'
         html += _filaIngresos(cv.ingRow.ingTotal, cv.ingRow.ha>0?cv.ingRow.ingTotal/cv.ingRow.ha:0, [cv.ingRow], cv.ingRow.ingTotal || 1)
-        cv.gasData.rubros.forEach(function(entry){
-          var rk = entry[0], rd = entry[1]
-          html += _filaRubro(rk, rd, cult2+'__', cv.ingRow.ingTotal || 1, cv.ingRow.ha)
-        })
+        html += _filaGastosTotales(cv.gasData.rubros, cult2+'__', cv.ingRow.ingTotal || 1, cv.ingRow.ha)
         html += _filaMargen(cv.mg, cv.mgHa, cv.ingRow.ingTotal || 1)
         html += '</div>'
       }
@@ -17889,23 +17918,20 @@ function _refreshCrAcordeon() {
       +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:'+muted+';font-weight:600;margin-bottom:2px">Estado de resultados</div>'
       +'<div style="font-size:14px;font-weight:600;color:'+text+'">'+(c.nombre||'Campo')+' · '+ha.toLocaleString('es-AR')+' ha</div>'
       +'</div>'
-      +'<div style="font-size:11px;color:'+muted+';font-weight:500">USD · click en un rubro para desglosar</div>'
+      +'<div style="font-size:11px;color:'+muted+';font-weight:500">USD · click en cada fila para desglosar</div>'
       +'</div>'
-    // Cuerpo P&L
+    // Cuerpo P&L — Ingresos / Gastos totales (drill-down a rubros) / Estructura / Margen
     html += _filaIngresos(totalIngUSD, ingHaReal, ingRowsData)
     if (!rubrosArr.length) {
       html += '<div style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+'">'
-        +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Costos operativos</div>'
+        +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Gastos totales</div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Sin gastos registrados</div></div>'
         +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">—</div>'
         +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">USD 0</div>'
         +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">0%</div>'
         +'</div>'
     } else {
-      rubrosArr.forEach(function(entry){
-        var rk = entry[0], rd = entry[1]
-        html += _filaRubro(rk, rd, '', totalIngUSD, ha)
-      })
+      html += _filaGastosTotales(rubrosArr, '', totalIngUSD, ha)
     }
     html += _filaEstructura(costoEstr, totalIngUSD, ha)
     var mgTotalCampo = Math.round(mgHaReal*ha)

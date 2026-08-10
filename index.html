@@ -19489,14 +19489,16 @@ window.openModalLluviaCampo = function() {
 }
 
 window.openModalSueloCampo = function() {
-  window._sueloArchivosPendientes = []
-  _sueloRenderArchivos()
-  document.getElementById('ov-suelo').classList.add('open')
-  document.getElementById('s-fecha').value=new Date().toISOString().split('T')[0]
-  ;['s-lab','s-n','s-p','s-k','s-s','s-mo','s-ph','s-zn','s-b'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value=''
-  })
-  setTimeout(function(){if(campoDet)document.getElementById('s-campo').value=campoDet},50)
+  // Delegar al flow nuevo del wizard — antes esta funcion abria el modal por
+  // su cuenta y no aplicaba el step 1, por eso se veia vacio. Ahora usa la
+  // misma logica que el CTA global y despues pre-selecciona el campo actual.
+  openModalSuelo()
+  setTimeout(function(){
+    if(campoDet) {
+      var sel = document.getElementById('s-campo'); if (sel) sel.value = campoDet
+      var selM = document.getElementById('s-campo-m'); if (selM) selM.value = campoDet
+    }
+  }, 50)
 }
 
 // Cerrar cualquier modal abierto con Escape o click en el fondo oscuro.

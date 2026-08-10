@@ -5643,24 +5643,21 @@ async function _guardarPoligonoEditado() {
     var arr = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs
     var pts = arr.map(function(p){ return [p.lat, p.lng] })
     if (pts.length < 3) { showToast('⚠️ El polígono necesita al menos 3 puntos','err'); return }
-    // Calcular hectáreas con shoelace (aprox planar — válido para áreas chicas)
+    // Calcular hectáreas del polígono (informativo, no sobrescribe c.hectareas
+    // que es lo que el user cargó al crear el campo — el polígono puede tener
+    // monte, montículos u otras áreas no sembradas y no debe pisar el input).
     var ha = _calcHaPoligono(pts)
     var poligonoJson = JSON.stringify(pts)
     var update = { poligono: poligonoJson }
-    if (ha && isFinite(ha) && ha > 0) update.hectareas = Math.round(ha * 100) / 100
     var r = await sb.from('campos').update(update).eq('id', _editandoCampoId)
     if (r.error) throw r.error
-    // Actualizar estado local
     var c = campos.find(function(x){return x.id===_editandoCampoId})
-    if (c) {
-      c.poligono = poligonoJson
-      if (update.hectareas) c.hectareas = update.hectareas
-    }
+    if (c) c.poligono = poligonoJson
     _guardarCache()
     _cancelarEdicionPoligono()
     renderPoligonosMapa()
     renderMapaCamposInfo()
-    showToast('✓ Polígono actualizado'+(update.hectareas?' · '+update.hectareas+' ha':''),'ok')
+    showToast('✓ Polígono actualizado'+(ha>0?' · '+((Math.round(ha*100)/100)).toLocaleString('es-AR')+' ha marcadas':''),'ok')
   } catch(e) {
     console.error('guardar polígono:', e)
     showToast('⚠️ Error: '+(e.message||'no se pudo guardar'),'err')
@@ -5724,27 +5721,53 @@ window._dibujarPoligonoCampo = function(campoId) {
   document.getElementById('_btn-cancel-draw').onclick = _cancelarDibujoPoligono
 
   // Actualiza el contador de vértices y hectáreas mientras el usuario dibuja.
+  // Estilo Google Earth: mientras el mouse se mueve entre clicks, se calcula
+  // el area tentativa asumiendo que la posicion actual del mouse es el
+  // proximo vertex. Al fijar un vertex real (click) se recalcula con los
+  // vertices confirmados nada mas.
+  var _drawMouseLL = null
+  function _getVerticesActuales() {
+    if (!_dibujandoHandler) return []
+    try {
+      var markers = _dibujandoHandler._markers || []
+      return markers.map(function(m){ var ll = m.getLatLng(); return [ll.lat, ll.lng] })
+    } catch(e) { return [] }
+  }
   function _updateDrawHaCounter() {
     var el = document.getElementById('_draw-poly-ha')
     if (!el || !_dibujandoHandler) return
-    var pts = []
-    try {
-      var markers = _dibujandoHandler._markers || []
-      pts = markers.map(function(m){ var ll = m.getLatLng(); return [ll.lat, ll.lng] })
-    } catch(e) {}
-    if (pts.length < 3) {
-      el.textContent = pts.length + ' vértice' + (pts.length!==1?'s':'') + ' · seguí marcando'
+    var confirmed = _getVerticesActuales()
+    // Sumar el mouse actual como "punto tentativo" — así el área se actualiza en vivo
+    var ptsPreview = confirmed.slice()
+    if (_drawMouseLL) ptsPreview.push([_drawMouseLL.lat, _drawMouseLL.lng])
+    var vCount = confirmed.length
+    if (vCount < 2) {
+      el.textContent = vCount + ' vértice' + (vCount!==1?'s':'') + ' · seguí marcando'
       el.style.background = 'var(--crema)'
       el.style.color = 'var(--texto-suave)'
+    } else if (vCount === 2 && _drawMouseLL) {
+      var ha2 = _calcHaPoligono(ptsPreview)
+      el.textContent = '2 vértices · ~' + (Math.round(ha2*100)/100).toLocaleString('es-AR') + ' ha tentativas'
+      el.style.background = 'var(--verde-pale)'
+      el.style.color = 'var(--verde)'
     } else {
-      var ha = _calcHaPoligono(pts)
-      el.textContent = pts.length + ' vértices · ' + (Math.round(ha*100)/100).toLocaleString('es-AR') + ' ha'
+      var ha = _calcHaPoligono(ptsPreview.length >= 3 ? ptsPreview : confirmed)
+      var suffix = (_drawMouseLL && vCount >= 2) ? ' (con vista previa)' : ''
+      el.textContent = vCount + ' vértices · ' + (Math.round(ha*100)/100).toLocaleString('es-AR') + ' ha' + suffix
       el.style.background = 'var(--verde-pale)'
       el.style.color = 'var(--verde)'
     }
   }
+  // Throttle del mousemove — 60ms es fluido y no satura el render en mobile.
+  var _drawMouseThrottle = null
+  function _onDrawMouseMove(e) {
+    _drawMouseLL = e.latlng
+    if (_drawMouseThrottle) return
+    _drawMouseThrottle = setTimeout(function(){ _drawMouseThrottle = null; _updateDrawHaCounter() }, 60)
+  }
   mapInstance.on('draw:drawvertex', _updateDrawHaCounter)
   mapInstance.on('draw:drawstart', _updateDrawHaCounter)
+  mapInstance.on('mousemove', _onDrawMouseMove)
 
   // Botón Terminar: cierra el polígono programáticamente (no depende de tocar el primer vértice).
   document.getElementById('_btn-finish-draw').onclick = function() {
@@ -5769,9 +5792,11 @@ window._dibujarPoligonoCampo = function(campoId) {
     var arr = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs
     var pts = arr.map(function(p){ return [p.lat, p.lng] })
     if (pts.length < 3) { showToast('⚠️ Necesitás al menos 3 puntos','err'); return _cancelarDibujoPoligono() }
+    // El polígono es solo visual — NO sobrescribe c.hectareas (que es el
+    // input manual del user al crear el campo). Puede diferir porque el
+    // campo tiene monte, taperas, o parcelas que no se siembran.
     var ha = _calcHaPoligono(pts)
     var update = { poligono: JSON.stringify(pts) }
-    if (ha && isFinite(ha) && ha > 0) update.hectareas = Math.round(ha*100)/100
     // Si no había lat/lng, guardar el centro como referencia
     if (!c.lat || !c.lng) {
       var sumLat = pts.reduce(function(a,p){return a+p[0]},0)/pts.length
@@ -5797,7 +5822,7 @@ window._dibujarPoligonoCampo = function(campoId) {
       _cancelarDibujoPoligono()
       renderPoligonosMapa()
       renderMapaCamposInfo()
-      showToast('✓ Polígono creado'+(update.hectareas?' · '+update.hectareas+' ha':''),'ok')
+      showToast('✓ Polígono creado'+(ha>0?' · '+((Math.round(ha*100)/100)).toLocaleString('es-AR')+' ha marcadas':''),'ok')
     } catch(eSave) {
       console.error('guardar polígono nuevo:', eSave)
       showToast('⚠️ Error: '+(eSave.message||'no se pudo guardar'),'err')
@@ -5813,8 +5838,14 @@ function _cancelarDibujoPoligono() {
     try { _dibujandoHandler.disable() } catch(e){}
     _dibujandoHandler = null
   }
-  // Remover listeners de eventos de dibujo para que no queden colgados
-  try { if (mapInstance) { mapInstance.off('draw:drawvertex'); mapInstance.off('draw:drawstart') } } catch(e) {}
+  // Remover listeners (draw + mousemove del live counter) para que no queden colgados
+  try {
+    if (mapInstance) {
+      mapInstance.off('draw:drawvertex')
+      mapInstance.off('draw:drawstart')
+      mapInstance.off('mousemove')
+    }
+  } catch(e) {}
   _dibujandoCampoId = null
   var bar = document.getElementById('_draw-poly-bar')
   if (bar) bar.remove()

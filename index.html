@@ -19698,6 +19698,8 @@ function renderDetGastos() {
       // P&L: quitamos fondo rojo (bg blanco), mantenemos el accent lateral y
       // agregamos una chevron dedicada al final que indica expandible.
       var accRubro = '#dc2626'
+      // bg neutral para la sección expandida (composición). El row header queda blanco.
+      var bgRubroExpanded = '#fafbfc'
       var GRID = 'grid-template-columns:1.6fr 0.9fr 1fr 0.4fr 20px;gap:12px'
 
       acordeonEl.innerHTML = '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff">' +
@@ -19738,7 +19740,7 @@ function renderDetGastos() {
               if (!porProd[k].unidad && g.unidad) porProd[k].unidad = g.unidad
             })
             var prodOrder = Object.keys(porProd).sort(function(a,b){ return porProd[b].usd - porProd[a].usd })
-            row += '<div style="background:'+bgRubro+';padding:0 20px 12px 24px;border-left:4px solid '+accRubro+'">'
+            row += '<div style="background:'+bgRubroExpanded+';padding:0 20px 12px 24px;border-left:4px solid '+accRubro+'">'
               +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569;font-weight:700;padding:8px 0 6px">Composición del rubro</div>'
               +prodOrder.map(function(pk){
                 var p = porProd[pk]

@@ -4652,33 +4652,36 @@ function _renderDashboardProductor() {
     cost += gc
   })
   var mg=ing-cost, pct=ing>0?(mg/ing*100).toFixed(1):0
+  // #dash-mets fue removido del Inicio (info duplicada de Rentabilidad).
+  // Si el div existe todavía (p. ej. en otra vista), lo llenamos; sino
+  // saltamos SOLO ese bloque y seguimos con el render del resto (Mis
+  // campos, etc). Antes hacíamos early return acá y cortábamos todo.
   var dashMets = document.getElementById('dash-mets')
-  if(!dashMets) return
-  // Calcular series temporales para sparklines (por mes, ultimos 6 meses)
-  var serieGastos = _serieMensualGastos(6)
-  var serieLluvias = _serieMensualLluvias(6)
-  var serieIngresos = _serieMensualIngresos(6)
-  var totalLluviasCampana = _totalLluviasCampana()
-
-  dashMets.innerHTML = [
-    { l:'Total gastos', v:'USD '+Math.round(cost/1000)+'k', s:cost>0?'Esta campaña':'Sin gastos cargados', c:'#dc2626', serie:serieGastos, tipo:'line' },
-    { l:'Lluvias campaña', v:Math.round(totalLluviasCampana)+' mm', s:totalLluviasCampana>0?'Registradas':'Sin lluvias', c:'#1a5fa8', serie:serieLluvias, tipo:'bars' },
-    { l:'Ingresos', v:'USD '+Math.round(ing/1000)+'k', s:ing>0?'Total cargado':'Sin ingresos', c:'#1a7a52', serie:serieIngresos, tipo:'area' },
-    { l:'Margen neto', v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k', s:ing>0?pct+'% del ingreso':'', c:mg>=0?'#639922':'#c0392b', serie:null, tipo:null }
-  ].map(function(m){
-    var spark = ''
-    if (m.serie && m.serie.length >= 2) {
-      spark = '<div class="met-spark">'+ _sparklineSVG(m.serie, m.c, m.tipo) +'</div>'
-      spark += '<div class="met-spark-lbl">Últimos '+m.serie.length+' meses</div>'
-    }
-    return '<div class="met">'
-      + '<div class="met-acc" style="background:'+m.c+'"></div>'
-      + '<div class="met-l">'+m.l+'</div>'
-      + '<div class="met-v" style="color:'+m.c+'">'+m.v+'</div>'
-      + '<div class="met-s">'+m.s+'</div>'
-      + spark
-      + '</div>'
-  }).join('')
+  if(dashMets) {
+    var serieGastos = _serieMensualGastos(6)
+    var serieLluvias = _serieMensualLluvias(6)
+    var serieIngresos = _serieMensualIngresos(6)
+    var totalLluviasCampana = _totalLluviasCampana()
+    dashMets.innerHTML = [
+      { l:'Total gastos', v:'USD '+Math.round(cost/1000)+'k', s:cost>0?'Esta campaña':'Sin gastos cargados', c:'#dc2626', serie:serieGastos, tipo:'line' },
+      { l:'Lluvias campaña', v:Math.round(totalLluviasCampana)+' mm', s:totalLluviasCampana>0?'Registradas':'Sin lluvias', c:'#1a5fa8', serie:serieLluvias, tipo:'bars' },
+      { l:'Ingresos', v:'USD '+Math.round(ing/1000)+'k', s:ing>0?'Total cargado':'Sin ingresos', c:'#1a7a52', serie:serieIngresos, tipo:'area' },
+      { l:'Margen neto', v:(mg>=0?'+':'')+'USD '+Math.round(mg/1000)+'k', s:ing>0?pct+'% del ingreso':'', c:mg>=0?'#639922':'#c0392b', serie:null, tipo:null }
+    ].map(function(m){
+      var spark = ''
+      if (m.serie && m.serie.length >= 2) {
+        spark = '<div class="met-spark">'+ _sparklineSVG(m.serie, m.c, m.tipo) +'</div>'
+        spark += '<div class="met-spark-lbl">Últimos '+m.serie.length+' meses</div>'
+      }
+      return '<div class="met">'
+        + '<div class="met-acc" style="background:'+m.c+'"></div>'
+        + '<div class="met-l">'+m.l+'</div>'
+        + '<div class="met-v" style="color:'+m.c+'">'+m.v+'</div>'
+        + '<div class="met-s">'+m.s+'</div>'
+        + spark
+        + '</div>'
+    }).join('')
+  }
 
   var tit = document.getElementById('dash-campos-tit')
   var btn = document.getElementById('dash-campos-btn')

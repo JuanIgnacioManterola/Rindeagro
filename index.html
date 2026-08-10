@@ -1047,7 +1047,10 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="openModalExportCampanas('campo')" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px" title="Comparar las campañas de este campo">📈 Comparar campañas</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="exportarCSVCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📊 Exportar CSV</button>
           <button onclick="exportarPDF()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+        </div>
         </div>
       </div>
       <!-- Metricas -->
@@ -1163,6 +1166,7 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <div><div class="mod-titulo">📊 Rentabilidad total</div><div class="mod-sub">Resumen de todos tus campos</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="openModalExportCampanas()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📈 Comparar campañas</button>
+        <button onclick="exportarCSVTotal()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📊 Exportar CSV</button>
         <button onclick="exportarPDFTotal()" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">📄 Exportar PDF</button>
       </div>
     </div>
@@ -1323,6 +1327,7 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <div><div class="mod-titulo">🧪 Stock de Insumos</div><div class="mod-sub">Cargá tus herbicidas, fungicidas, fertilizantes y demás. Se descuenta automáticamente cuando registrás un gasto vinculado.</div></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button onclick="exportarPDFStockInsumos()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 Exportar PDF</button>
+        <button onclick="exportarCSVInsumos()" class="pagos-hdr-btn pagos-hdr-btn-outline">📊 Exportar CSV</button>
         <button onclick="openModalFactura()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 Desde factura</button>
         <button onclick="openModalInsumo()" class="pagos-hdr-btn pagos-hdr-btn-primary">+ Cargar insumo</button>
       </div>
@@ -14174,6 +14179,190 @@ window.exportarPDFStockInsumos = function() {
   html += '<scr'+'ipt>setTimeout(function(){window.print()}, 400)</scr'+'ipt></body></html>'
   var w = window.open('', '_blank'); if (!w) { showToast('⚠️ Habilitá pop-ups','err'); return }
   w.document.write(html); w.document.close()
+}
+
+// ═════════════════════════════════════════════════════════════════
+// EXPORT CSV — utilidades y 3 exports (Rentabilidad Total, Rentabilidad
+// por Campo, Stock de Insumos). Formato CSV con BOM UTF-8 para que
+// Excel/Sheets/Numbers abran los acentos correctamente.
+// ═════════════════════════════════════════════════════════════════
+
+window._csvEscape = function(v) {
+  if (v == null) return ''
+  var s = String(v)
+  if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0 || s.indexOf(';') >= 0) {
+    s = '"' + s.replace(/"/g, '""') + '"'
+  }
+  return s
+}
+
+window._csvBuild = function(rows) {
+  return rows.map(function(row){
+    return row.map(window._csvEscape).join(',')
+  }).join('\r\n')
+}
+
+window._csvDownload = function(filename, content) {
+  var BOM = '﻿'
+  var blob = new Blob([BOM + content], {type:'text/csv;charset=utf-8;'})
+  var url = URL.createObjectURL(blob)
+  var a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  setTimeout(function(){ URL.revokeObjectURL(url) }, 100)
+}
+
+// ─── Rentabilidad Total: 1 CSV con resumen por campo + tabla de rubros ───
+window.exportarCSVTotal = function() {
+  if (!campos || !campos.length) { showToast('⚠️ No hay campos cargados','err'); return }
+  var today = new Date().toISOString().slice(0,10)
+  var rows = []
+  rows.push(['Rinde.Agro — Rentabilidad total'])
+  rows.push(['Exportado', today])
+  rows.push([])
+  rows.push(['Campo','Hectareas','Cultivos','Ingresos USD','Costos USD','Margen USD','Margen USD/ha'])
+
+  var totHa = 0, totIng = 0, totCos = 0
+  campos.forEach(function(c) {
+    var ha = c.hectareas || 0
+    var gf = gastos.filter(function(g){ return g.campo_id === c.id })
+    var costo = gf.reduce(function(a,g){ return a + (g.total_de_usd||0) }, 0)
+    var cultivosList = (c.cultivo || 'Soja').split(',').map(function(s){return s.trim()}).filter(Boolean)
+    var savedIngr = {}; try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+    var ing = 0
+    cultivosList.forEach(function(cu) {
+      var d = savedIngr[cu] || {}
+      if (d.ventas && d.ventas.length > 0) {
+        ing += d.ventas.reduce(function(a,v){ return a + parseFloat(v.tn||0)*parseFloat(v.precio||0) }, 0)
+      } else if (parseFloat(d.rendimiento||0) > 0 && parseFloat(d.precio_venta||0) > 0) {
+        var haCu = (typeof _haParaCultivo === 'function') ? _haParaCultivo(c, cu, cultivosList) : (cultivosList.length>0?ha/cultivosList.length:0)
+        ing += parseFloat(d.rendimiento) * parseFloat(d.precio_venta) * haCu
+      }
+    })
+    if (ing === 0 && parseFloat(c.rendimiento||0) > 0 && parseFloat(c.precio_venta||0) > 0) {
+      ing = parseFloat(c.rendimiento) * parseFloat(c.precio_venta) * ha
+    }
+    var mg = ing - costo
+    totHa += ha; totIng += ing; totCos += costo
+    rows.push([c.nombre, ha, cultivosList.join(' | '), Math.round(ing), Math.round(costo), Math.round(mg), ha>0?Math.round(mg/ha):0])
+  })
+  var totMg = totIng - totCos
+  rows.push([])
+  rows.push(['TOTAL', totHa, '', Math.round(totIng), Math.round(totCos), Math.round(totMg), totHa>0?Math.round(totMg/totHa):0])
+
+  rows.push([])
+  rows.push(['Gastos por rubro'])
+  rows.push(['Rubro','Total USD','USD/ha','% costos'])
+  var porRubro = {}
+  gastos.forEach(function(g){
+    var r = g.rubro || 'otros'
+    porRubro[r] = (porRubro[r]||0) + (g.total_de_usd||0)
+  })
+  Object.keys(porRubro).map(function(k){return {k:k, v:porRubro[k]}}).sort(function(a,b){return b.v-a.v}).forEach(function(e){
+    rows.push([e.k, Math.round(e.v), totHa>0?Math.round(e.v/totHa):0, totCos>0?((e.v/totCos)*100).toFixed(1)+'%':''])
+  })
+
+  window._csvDownload('rindeagro-rentabilidad-total-'+today+'.csv', window._csvBuild(rows))
+  showToast('✓ CSV exportado','ok')
+}
+
+// ─── Rentabilidad por campo: usa `campoDet` como campo activo ───
+window.exportarCSVCampo = function(id) {
+  var campoId = id || (typeof campoDet !== 'undefined' ? campoDet : null)
+  if (!campoId) { showToast('⚠️ No hay campo abierto','err'); return }
+  var c = campos.find(function(x){ return x.id === campoId })
+  if (!c) { showToast('⚠️ Campo no encontrado','err'); return }
+  var today = new Date().toISOString().slice(0,10)
+  var ha = c.hectareas || 0
+  var gf = gastos.filter(function(g){ return g.campo_id === campoId })
+  var rows = []
+
+  rows.push(['Rinde.Agro — Rentabilidad de ' + c.nombre])
+  rows.push(['Exportado', today])
+  rows.push(['Hectareas', ha])
+  rows.push(['Cultivos', c.cultivo || ''])
+  rows.push(['Tenencia', c.tenencia || 'propio'])
+  if (c.provincia) rows.push(['Provincia', c.provincia])
+  rows.push([])
+
+  // Ingresos por cultivo (aplanado)
+  rows.push(['Ingresos por cultivo'])
+  rows.push(['Cultivo','Hectareas','Concepto','Rendimiento tn/ha','Precio USD/tn','Ingreso USD'])
+  var cultivosList = (c.cultivo || '').split(',').map(function(s){return s.trim()}).filter(Boolean)
+  var savedIngr = {}; try { savedIngr = JSON.parse(c.ingresos_cultivos||'{}') } catch(e) {}
+  var totalIng = 0
+  cultivosList.forEach(function(cu) {
+    var d = savedIngr[cu] || {}
+    var haCu = (typeof _haParaCultivo === 'function') ? _haParaCultivo(c, cu, cultivosList) : (cultivosList.length>0?ha/cultivosList.length:0)
+    if (d.ventas && d.ventas.length > 0) {
+      d.ventas.forEach(function(v) {
+        var ing = parseFloat(v.tn||0) * parseFloat(v.precio||0)
+        totalIng += ing
+        rows.push([cu, haCu.toFixed(2), v.concepto||'Venta', '', v.precio||'', Math.round(ing)])
+      })
+    } else if (parseFloat(d.rendimiento||0) > 0 && parseFloat(d.precio_venta||0) > 0) {
+      var ing = parseFloat(d.rendimiento) * parseFloat(d.precio_venta) * haCu
+      totalIng += ing
+      rows.push([cu, haCu.toFixed(2), 'Rendimiento estimado', d.rendimiento, d.precio_venta, Math.round(ing)])
+    } else {
+      rows.push([cu, haCu.toFixed(2), '(sin datos)', '', '', 0])
+    }
+  })
+  rows.push(['', '', '', '', 'TOTAL', Math.round(totalIng)])
+
+  // Gastos detallados
+  rows.push([])
+  rows.push(['Gastos'])
+  rows.push(['Fecha','Rubro','Sub tipo','Descripcion','Cantidad','Unidad','Precio unit USD','Ha aplicadas','Total USD'])
+  var totalCos = 0
+  gf.slice().sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||'') }).forEach(function(g){
+    totalCos += g.total_de_usd||0
+    rows.push([g.fecha||'', g.rubro||'', g.sub_tipo||'', g.descripcion||'', g.cantidad||'', g.unidad||'', g.precio_unitario||'', g.ha_aplicadas||g.hectareas||'', Math.round(g.total_de_usd||0)])
+  })
+  rows.push(['', '', '', '', '', '', '', 'TOTAL', Math.round(totalCos)])
+
+  rows.push([])
+  rows.push(['Resumen'])
+  rows.push(['Ingresos totales USD', Math.round(totalIng)])
+  rows.push(['Costos totales USD', Math.round(totalCos)])
+  rows.push(['Margen neto USD', Math.round(totalIng - totalCos)])
+  if (ha > 0) rows.push(['Margen USD/ha', Math.round((totalIng - totalCos)/ha)])
+
+  var safeName = (c.nombre||'campo').replace(/[^a-z0-9]/gi, '-').toLowerCase().replace(/-+/g,'-').replace(/^-|-$/g,'')
+  window._csvDownload('rindeagro-campo-'+safeName+'-'+today+'.csv', window._csvBuild(rows))
+  showToast('✓ CSV exportado','ok')
+}
+
+// ─── Stock de Insumos ───
+window.exportarCSVInsumos = function() {
+  if (!insumos || !insumos.length) { showToast('⚠️ No hay insumos cargados','err'); return }
+  var today = new Date().toISOString().slice(0,10)
+  var rows = []
+  rows.push(['Rinde.Agro — Stock de insumos'])
+  rows.push(['Exportado', today])
+  rows.push([])
+  rows.push(['Nombre','Tipo','Unidad','Stock actual','Costo unitario USD','Valor total USD','Ubicacion','Notas'])
+
+  var ordenTipo = {herbicidas:1, fungicidas:2, insecticidas:3, fertilizantes:4, semillas:5, otros:6}
+  var sorted = insumos.slice().sort(function(a,b){
+    var ta = ordenTipo[a.tipo] || 99, tb = ordenTipo[b.tipo] || 99
+    if (ta !== tb) return ta - tb
+    return (a.nombre||'').localeCompare(b.nombre||'')
+  })
+  var totalValor = 0
+  sorted.forEach(function(i){
+    var stock = parseFloat(i.stock_actual)||0
+    var costo = parseFloat(i.costo_unitario)||0
+    var valor = stock * costo
+    totalValor += valor
+    rows.push([i.nombre||'', i.tipo||'', i.unidad||'', stock, costo, Math.round(valor*100)/100, i.ubicacion||'', i.notas||''])
+  })
+  rows.push([])
+  rows.push(['Total items', sorted.length])
+  rows.push(['Valor total inventario USD', Math.round(totalValor*100)/100])
+
+  window._csvDownload('rindeagro-stock-insumos-'+today+'.csv', window._csvBuild(rows))
+  showToast('✓ CSV exportado','ok')
 }
 
 // Historial de uso de un insumo: modal que muestra todos los gastos vinculados

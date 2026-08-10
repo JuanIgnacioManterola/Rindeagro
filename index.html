@@ -596,7 +596,7 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <div class="feat"><div class="feat-ico">📊</div><div class="feat-tit">Rentabilidad real</div><div class="feat-desc">Margen por campo en pesos, dólares y quintales. Historial 10 años y análisis de sensibilidad.</div></div>
       <div class="feat"><div class="feat-ico">💬</div><div class="feat-tit">Carga por WhatsApp</div><div class="feat-desc">Audio, texto o foto desde el campo — la IA interpreta y carga automáticamente.</div></div>
       <div class="feat"><div class="feat-ico">💰</div><div class="feat-tit">Precios en tiempo real</div><div class="feat-desc">Bolsa de Rosario y dólar BNA. Calculadora de venta con retenciones incluidas.</div></div>
-      <div class="feat"><div class="feat-ico">🔬</div><div class="feat-tit">Análisis de suelo</div><div class="feat-desc">Semáforo nutricional para 20 cultivos con recomendaciones de fertilización.</div></div>
+      <div class="feat"><div class="feat-ico">🔬</div><div class="feat-tit">Análisis de suelo</div><div class="feat-desc">Cargá el resultado del laboratorio, ve el semáforo nutricional y compará la evolución campaña a campaña.</div></div>
       <div class="feat"><div class="feat-ico">🗺️</div><div class="feat-tit">Mapa de lotes</div><div class="feat-desc">Vista satelital con capas NDVI y relieve. Datos de cada lote al clic.</div></div>
       <div class="feat"><div class="feat-ico">🔔</div><div class="feat-tit">Alertas agronómicas</div><div class="feat-desc">Notificaciones automáticas calculadas desde la fecha de siembra de cada cultivo.</div></div>
     </div>
@@ -1113,10 +1113,6 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
           </div>
           <div id="det-suelo-semaforo"></div>
           <button class="btn-vs" id="btn-add-suelo-tab" style="margin-top:.75rem;width:100%" onclick="openModalSueloCampo()">+ Cargar nuevo análisis</button>
-        </div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Recomendaciones de fertilización</span></div>
-          <div id="det-suelo-recs"></div>
         </div>
       </div>
       <div class="card">
@@ -5335,7 +5331,6 @@ window.renderSuelo = function() {
   var elS = document.getElementById('suelo-semaforo')
   if (!ultimo) {
     elS.innerHTML = `<div class="empty"><div class="empty-i">🔬</div><div class="empty-t">Sin análisis de suelo</div><div class="empty-s">Cargá el análisis del laboratorio para ver el semáforo nutricional.</div></div>`
-    document.getElementById('suelo-recomendaciones').innerHTML = `<div style="font-size:12px;color:var(--texto-suave);padding:.75rem 0">Cargá un análisis para ver las recomendaciones.</div>`
     return
   }
 
@@ -5353,33 +5348,8 @@ window.renderSuelo = function() {
       <span class="nut-estado n-${estado}">${estadoLabel[estado]}</span>
     </div>`
   }).join('')
-
-  // Recomendaciones
-  var FERTIL = {
-    N:{prod:'Urea 46%',dosis:120,precio:0.85,momento:'Presiembra o macollaje'},
-    P:{prod:'DAP',dosis:80,precio:1.2,momento:'Siembra'},
-    S:{prod:'Sulfato de amonio',dosis:60,precio:0.45,momento:'Siembra'},
-    Zn:{prod:'Zinc quelatado',dosis:2,precio:8,momento:'Foliar en V4'},
-  }
-  var recs = []
-  NUTRI.forEach(n=>{
-    var val=parseFloat(ultimo[n.key])||0
-    var [min] = n.r
-    if(val<min&&FERTIL[n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':n.key.includes('zinc')?'Zn':'']){
-      var k=n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':'Zn'
-      var f=FERTIL[k]
-      if(f) recs.push({nutriente:n.label,...f})
-    }
-  })
-  var elR = document.getElementById('suelo-recomendaciones')
-  if(!recs.length){
-    elR.innerHTML=`<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Todos los nutrientes están en niveles óptimos para ${cultivo}</div>`
-  } else {
-    elR.innerHTML=recs.map(r=>`<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:var(--verde)">${r.nutriente} — ${r.prod}</span><span style="font-size:11px;background:var(--amber-pale);color:var(--amber);padding:2px 8px;border-radius:6px;font-weight:600">Corregir</span></div>
-      <div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>${r.dosis} kg/ha</strong> · Momento: ${r.momento} · Costo estimado: <strong>USD ${(r.dosis*r.precio).toFixed(0)}/ha</strong></div>
-    </div>`).join('')
-  }
+  // Recomendaciones automaticas de fertilizacion removidas — evitamos
+  // asesoramiento agronomico automatizado por riesgo legal.
 
   // Chart suelo histórico
   var ctxSu = document.getElementById('chart-suelo')
@@ -19091,11 +19061,11 @@ window.renderDetSuelo = function() {
     {key:'zinc',label:'Zinc',full:'Zinc — micronutriente clave para maíz especialmente. Bajo → aplicar zinc quelatado foliar en V4-V6.',unidad:'ppm',r:rangos.Zn}
   ]
   var elS = document.getElementById('det-suelo-semaforo')
-  if(!ultimo){elS.innerHTML='<div class="empty"><div class="empty-i">🔬</div><div class="empty-t">Sin análisis</div><div class="empty-s">Cargá un análisis de laboratorio.</div></div>';document.getElementById('det-suelo-recs').innerHTML='<div style="font-size:12px;color:var(--texto-suave);padding:.75rem 0">Cargá un análisis para ver recomendaciones.</div>';return}
+  if(!ultimo){elS.innerHTML='<div class="empty"><div class="empty-i">🔬</div><div class="empty-t">Sin análisis</div><div class="empty-s">Cargá un análisis de laboratorio.</div></div>';return}
   elS.innerHTML = NUTRI.map(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0],max=n.r[1],pct=Math.min(val/max*100,100),estado=val<min*.7?'critico':val<min?'bajo':val<=max?'optimo':'alto',estadoLbl={critico:'Crítico',bajo:'Bajo',optimo:'Óptimo',alto:'Alto'},color={critico:'#c0392b',bajo:'#c97a14',optimo:'#1a7a52',alto:'#1a5fa8'}[estado];return '<div class="nutriente-row" title="'+(n.full||n.label).replace(/"/g,'&quot;')+'" style="cursor:help"><span class="nut-label" style="text-decoration:underline dotted rgba(0,0,0,.2)">'+n.label+'</span><div class="nut-bar-wrap"><div class="nut-bar" style="width:'+pct+'%;background:'+color+'88"></div></div><span class="nut-val" style="color:'+color+'">'+val+(n.unidad?' '+n.unidad:'')+'</span><span class="nut-estado n-'+estado+'">'+estadoLbl[estado]+'</span></div>'}).join('')
-  var FERTIL={N:{prod:'Urea 46%',dosis:120,precio:.85,momento:'Presiembra'},P:{prod:'DAP',dosis:80,precio:1.2,momento:'Siembra'},S:{prod:'Sulfato amonio',dosis:60,precio:.45,momento:'Siembra'},Zn:{prod:'Zinc quelatado',dosis:2,precio:8,momento:'Foliar V4'}}
-  var recs=[];NUTRI.forEach(function(n){var val=parseFloat(ultimo[n.key])||0,min=n.r[0];if(val<min){var k=n.key.includes('n_')?'N':n.key.includes('p_')?'P':n.key.includes('_s')?'S':n.key.includes('zinc')?'Zn':null;if(k&&FERTIL[k])recs.push(Object.assign({label:n.label},FERTIL[k]))}})
-  document.getElementById('det-suelo-recs').innerHTML = !recs.length?'<div style="background:var(--verde-pale);border-radius:10px;padding:1rem;font-size:13px;color:var(--verde);text-align:center">✓ Nutrientes en niveles óptimos para '+cultivo+'</div>':recs.map(function(r){return '<div style="border:.5px solid var(--borde);border-radius:10px;padding:.85rem;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:4px">'+r.label+' — '+r.prod+'</div><div style="font-size:11px;color:var(--texto-suave)">Dosis: <strong>'+r.dosis+' kg/ha</strong> · '+r.momento+' · Costo: <strong>USD '+(r.dosis*r.precio).toFixed(0)+'/ha</strong></div></div>'}).join('')
+  // Recomendaciones automaticas de fertilizacion removidas — evitamos
+  // asesoramiento agronomico automatizado por riesgo legal. El user carga
+  // sus notas manualmente si quiere, y el semaforo + evolucion siguen aca.
 
   // ── EVOLUCIÓN POR CAMPAÑA (tabla + chart) ──
   var evoTabla = document.getElementById('det-suelo-tabla')

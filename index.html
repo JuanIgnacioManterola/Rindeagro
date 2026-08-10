@@ -2586,18 +2586,12 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
     </div>
 
     <div id="gasto-main-fields">
-    <!-- Vincular con stock de insumos (multi-ubicación) — solo para rubros de insumo -->
+    <!-- Vincular con stock de insumos (solo para rubros de insumo) -->
     <div class="fg" id="g-insumo-row" style="display:none">
-      <label class="fl">Descontar de stock (opcional · podés elegir varias ubicaciones)</label>
-      <!-- Lista de checkboxes con las opciones disponibles del rubro -->
-      <div id="g-insumo-checklist" style="max-height:220px;overflow-y:auto;border:1.5px solid var(--borde);border-radius:9px;padding:6px 8px;background:#fff;font-size:13px"></div>
-      <!-- Filas de cantidad/precio por ubicación seleccionada — solo si hay 2+ tildados -->
-      <div id="g-insumo-consumos" style="display:none;margin-top:8px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--verde);background:var(--verde-pale)">
-        <div style="font-size:11px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cantidad y precio por ubicación</div>
-        <div id="g-insumo-consumos-rows" style="display:flex;flex-direction:column;gap:8px"></div>
-        <div id="g-insumo-consumos-total" style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(26,74,46,.3);font-size:12px;font-weight:700;color:var(--verde);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"></div>
-      </div>
-      <!-- Info compacta cuando hay 0 o 1 tildado (comportamiento legacy) -->
+      <label class="fl">Descontar de stock (opcional)</label>
+      <select class="fi" id="g-insumo-sel" style="cursor:pointer" onchange="onInsumoSelChange()">
+        <option value="">— Sin vincular a stock —</option>
+      </select>
       <div id="g-insumo-info" style="display:none;margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--azul-pale);font-size:12px;color:var(--azul);line-height:1.4"></div>
     </div>
     <div class="fg"><label class="fl" id="g-desc-label">Insumo / Producto</label><input class="fi" type="text" id="g-desc" placeholder="Ej: Glifosato 480, Urea 46%, DAP..."/></div>
@@ -9345,250 +9339,65 @@ window.onRubroChange = function() {
   try { window._actualizarSelectorCultivoSiembra && window._actualizarSelectorCultivoSiembra() } catch(e) {}
 }
 
-// ═════════════════════════════════════════════════════════════════════════
-// SELECTOR DE INSUMOS MULTI-UBICACIÓN
-// ═════════════════════════════════════════════════════════════════════════
-// Estado en memoria (solo mientras el modal está abierto):
-//   seleccionados: Set<insumo_id>  — qué ubicaciones tildó el usuario
-//   consumos:      {insumo_id: {cantidad_total, precio}} — inputs por fila
-window._insumoMultiState = { seleccionados: [], consumos: {} }
-
-// Reset del estado al abrir el modal (llamar desde el limpiar-formulario)
-window._resetInsumoMultiState = function() {
-  window._insumoMultiState = { seleccionados: [], consumos: {} }
-  var cont = document.getElementById('g-insumo-consumos')
-  if(cont) cont.style.display = 'none'
-  var info = document.getElementById('g-insumo-info')
-  if(info) info.style.display = 'none'
-}
-
-// Muestra/oculta el bloque de insumos según rubro + arma la lista de checkboxes.
-// Reemplaza el viejo _actualizarInsumoSel (single dropdown).
+// Muestra/oculta y puebla el selector de insumos según rubro
 function _actualizarInsumoSel(rubro) {
   var row = document.getElementById('g-insumo-row')
-  var checklist = document.getElementById('g-insumo-checklist')
-  if(!row || !checklist) return
+  var sel = document.getElementById('g-insumo-sel')
+  if(!row || !sel) return
   var rubrosConInsumo = ['herbicidas','fungicidas','insecticidas','fertilizantes']
   if(rubrosConInsumo.indexOf(rubro) === -1) {
     row.style.display = 'none'
-    _resetInsumoMultiState()
-    _sincronizarCamposPrincipales()  // re-habilita main fields
+    sel.value = ''
+    var info = document.getElementById('g-insumo-info'); if(info) info.style.display='none'
     return
   }
   row.style.display = ''
-  _renderInsumoChecklist(rubro)
-  _renderConsumosSection()
-}
-
-// Arma la lista de checkboxes agrupada por nombre de producto → ubicaciones.
-function _renderInsumoChecklist(rubro) {
-  var checklist = document.getElementById('g-insumo-checklist')
-  if(!checklist) return
+  // Ordenar por nombre → ubicación para que las mismas variantes queden juntas
+  // (mismo producto en múltiples ubicaciones = filas separadas en stock_insumos)
   var disp = (insumos||[]).filter(function(i){ return i.tipo === rubro }).slice().sort(function(a,b){
     var na = (a.nombre||'').toLowerCase(), nb = (b.nombre||'').toLowerCase()
     if (na !== nb) return na.localeCompare(nb)
     return (a.ubicacion||'').localeCompare(b.ubicacion||'')
   })
-  if(!disp.length) {
-    checklist.innerHTML = '<div style="padding:8px 4px;color:var(--texto-suave);font-size:12px">No hay insumos cargados de este tipo. Cargalos en el módulo Stock de Insumos.</div>'
-    return
-  }
-  // Agrupar por nombre para mostrar como "producto → ubicaciones tildables"
-  var porNombre = {}
+  var prev = sel.value
+  var opts = '<option value="">— Sin vincular a stock —</option>'
   disp.forEach(function(i){
-    var k = (i.nombre||'(sin nombre)').trim()
-    if(!porNombre[k]) porNombre[k] = []
-    porNombre[k].push(i)
-  })
-  var seleccionados = window._insumoMultiState.seleccionados || []
-  var html = ''
-  Object.keys(porNombre).forEach(function(nombre){
-    var lista = porNombre[nombre]
-    html += '<div style="padding:4px 0;border-bottom:.5px solid var(--borde)">'
-    html += '<div style="font-size:12px;font-weight:700;color:var(--texto);margin:2px 0 3px">'+ _escHTML(nombre) +'</div>'
-    lista.forEach(function(i){
-      var stk = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2})
-      var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
-      var ubic = i.ubicacion ? _escHTML(i.ubicacion) : 'sin ubicación'
-      var checked = seleccionados.indexOf(i.id) >= 0 ? 'checked' : ''
-      html += '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:12px;cursor:pointer;color:var(--texto-mid)">'
-      html += '<input type="checkbox" data-id="'+i.id+'" '+checked+' onchange="_onInsumoCheckToggle(this)" style="accent-color:var(--verde);flex-shrink:0"/>'
-      html += '<span style="flex:1">' + ubic + ' · stock: <strong>' + stk + ' ' + u + '</strong></span>'
-      html += '</label>'
-    })
-    html += '</div>'
-  })
-  checklist.innerHTML = html
-}
-
-// Callback de cada checkbox: actualiza estado + re-renderiza consumos + sincroniza main fields
-window._onInsumoCheckToggle = function(chk) {
-  var id = chk.dataset.id
-  var st = window._insumoMultiState
-  var idx = st.seleccionados.indexOf(id)
-  if(chk.checked && idx < 0) {
-    st.seleccionados.push(id)
-    // Inicializar consumo con valores por defecto (stock actual como sugerencia, precio del insumo)
-    if(!st.consumos[id]) {
-      var i = insumos.find(function(x){return x.id===id})
-      st.consumos[id] = {
-        cantidad_total: '',
-        precio: i && i.costo_unitario ? parseFloat(i.costo_unitario) : ''
-      }
-    }
-    // Autocompletar descripción y unidad si están vacías (comportamiento actual del single-select)
-    var iSel = insumos.find(function(x){return x.id===id})
-    if(iSel) {
-      var descEl = document.getElementById('g-desc')
-      if(descEl && !descEl.value.trim()) descEl.value = iSel.nombre||''
-      var uEl = document.getElementById('g-unidad')
-      if(uEl && iSel.unidad && ['litros','kg','dosis'].indexOf(iSel.unidad)>=0) { uEl.value = iSel.unidad; if(typeof onUnidadChange==='function') onUnidadChange() }
-    }
-  } else if(!chk.checked && idx >= 0) {
-    st.seleccionados.splice(idx, 1)
-    // Mantener el consumo guardado por si vuelve a tildar (mejor UX)
-  }
-  _renderConsumosSection()
-  _sincronizarCamposPrincipales()
-}
-
-// Renderiza la zona de cantidad/precio por ubicación (solo si hay 2+ tildados)
-// o el info-chip legacy (si hay exactamente 1).
-function _renderConsumosSection() {
-  var cont = document.getElementById('g-insumo-consumos')
-  var info = document.getElementById('g-insumo-info')
-  var st = window._insumoMultiState
-  var n = st.seleccionados.length
-
-  if(n < 2) {
-    if(cont) cont.style.display = 'none'
-    // Con 1 tildado: mostrar info chip como antes (stock disponible + consumo estimado)
-    if(n === 1) _refrescarInfoInsumoLegacy(st.seleccionados[0])
-    else if(info) info.style.display = 'none'
-    return
-  }
-
-  // 2+ tildados: mostrar filas de cantidad/precio
-  if(info) info.style.display = 'none'
-  cont.style.display = ''
-  var rowsEl = document.getElementById('g-insumo-consumos-rows')
-  if(!rowsEl) return
-  var html = ''
-  st.seleccionados.forEach(function(id, idx){
-    var i = insumos.find(function(x){return x.id===id})
-    if(!i) return
+    var stk = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2})
     var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
-    var stk = parseFloat(i.stock_actual)||0
-    var c = st.consumos[id] || {}
-    var cant = c.cantidad_total !== '' && c.cantidad_total != null ? c.cantidad_total : ''
-    var pr = c.precio !== '' && c.precio != null ? c.precio : ''
-    var ubic = i.ubicacion ? _escHTML(i.ubicacion) : 'Sin ubicación'
-    var nombre = _escHTML(i.nombre||'')
-    html += '<div style="background:#fff;border:1px solid var(--borde);border-radius:8px;padding:8px 10px">'
-    html += '<div style="font-size:11px;font-weight:700;color:var(--texto);margin-bottom:5px">'+ nombre +' · '+ ubic +'</div>'
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">'
-    html += '<div><label style="font-size:10px;color:var(--texto-suave);display:block;margin-bottom:2px">Cantidad ('+u+')</label>'
-    html += '<input type="number" step="0.01" min="0" value="'+cant+'" data-id="'+id+'" data-field="cantidad_total" oninput="_onConsumoInput(this)" style="width:100%;padding:5px 7px;border:1px solid var(--borde);border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif"/></div>'
-    html += '<div><label style="font-size:10px;color:var(--texto-suave);display:block;margin-bottom:2px">Precio USD/'+u+'</label>'
-    html += '<input type="number" step="0.01" min="0" value="'+pr+'" data-id="'+id+'" data-field="precio" oninput="_onConsumoInput(this)" style="width:100%;padding:5px 7px;border:1px solid var(--borde);border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif"/></div>'
-    html += '</div>'
-    // Info de stock (rojo si excede)
-    var cantNum = parseFloat(cant)||0
-    var editId = document.getElementById('g-edit-id')?.value||''
-    var prevConsumo = _consumoPrevioPara(editId, id)
-    var stockEfectivo = stk + prevConsumo
-    var restante = stockEfectivo - cantNum
-    var stockColor = cantNum > stockEfectivo + 0.0001 ? 'var(--rojo)' : (cantNum > 0 ? 'var(--verde)' : 'var(--texto-suave)')
-    html += '<div style="font-size:10px;margin-top:4px;color:'+stockColor+'">Disponible: '+ stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+u
-    if(cantNum > 0) html += ' · Después del gasto: '+ restante.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+u
-    if(cantNum > stockEfectivo + 0.0001) html += ' · ⛔ Excede stock'
-    html += '</div>'
-    html += '</div>'
+    var nombre = i.nombre || '(sin nombre)'
+    var ubic = i.ubicacion ? ', ' + i.ubicacion : ''
+    opts += '<option value="'+i.id+'">'+ nombre + ubic +' — stock: '+ stk +' '+ u +'</option>'
   })
-  rowsEl.innerHTML = html
-  _calcularTotalMulti()
+  sel.innerHTML = opts
+  if(prev && disp.find(function(i){return i.id===prev})) sel.value = prev
+  onInsumoSelChange()
 }
 
-// Input handler: actualiza estado y re-calcula totales
-window._onConsumoInput = function(el) {
-  var id = el.dataset.id, field = el.dataset.field
-  var st = window._insumoMultiState
-  if(!st.consumos[id]) st.consumos[id] = { cantidad_total:'', precio:'' }
-  var v = el.value === '' ? '' : parseFloat(el.value)
-  st.consumos[id][field] = isNaN(v) ? '' : v
-  _calcularTotalMulti()
-  _sincronizarCamposPrincipales()
-  // Refrescar el info de disponible (rojo si excede)
-  _renderConsumosSection()
-}
-
-// Calcula y muestra el total consumido + total USD del gasto multi
-function _calcularTotalMulti() {
-  var totEl = document.getElementById('g-insumo-consumos-total')
-  var st = window._insumoMultiState
-  if(!totEl || st.seleccionados.length < 2) return
-  var totCant = 0, totUSD = 0, unidadRef = null
-  st.seleccionados.forEach(function(id){
-    var i = insumos.find(function(x){return x.id===id}); if(!i) return
-    var c = st.consumos[id] || {}
-    var cant = parseFloat(c.cantidad_total)||0
-    var pr = parseFloat(c.precio)||0
-    totCant += cant
-    totUSD += cant * pr
-    if(!unidadRef) unidadRef = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
-  })
-  totEl.innerHTML = '<span>TOTAL: <strong>'+ totCant.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ (unidadRef||'') +'</strong></span><span>USD <strong>'+ totUSD.toLocaleString('es-AR',{maximumFractionDigits:2}) +'</strong></span>'
-}
-
-// Sincroniza los campos principales del gasto (Cantidad, Precio unit) con el
-// estado multi. Comportamiento:
-//  - 0 o 1 seleccionados → main fields editables (comportamiento legacy)
-//  - 2+ seleccionados → main fields disabled y auto-calculados desde consumos
-function _sincronizarCamposPrincipales() {
-  var st = window._insumoMultiState
-  var n = st.seleccionados.length
-  var cantEl = document.getElementById('g-cantidad')
-  var prEl = document.getElementById('g-precio-unit')
-  var haEl = document.getElementById('g-ha-aplicadas')
-  if(n < 2) {
-    if(cantEl) { cantEl.disabled = false; cantEl.style.background=''; cantEl.style.opacity='' }
-    if(prEl) { prEl.disabled = false; prEl.style.background=''; prEl.style.opacity='' }
-    // Si hay 1 seleccionado y el precio principal está vacío, autocompletar
-    if(n === 1) {
-      var i = insumos.find(function(x){return x.id===st.seleccionados[0]})
-      if(i && prEl && !prEl.value && i.costo_unitario) { prEl.value = i.costo_unitario; if(typeof calcConv === 'function') calcConv() }
-    }
-    return
-  }
-  // 2+: auto-calcular
-  var totCant = 0, totUSD = 0
-  st.seleccionados.forEach(function(id){
-    var c = st.consumos[id] || {}
-    var cant = parseFloat(c.cantidad_total)||0
-    var pr = parseFloat(c.precio)||0
-    totCant += cant
-    totUSD += cant * pr
-  })
-  var ha = parseFloat(haEl?.value)||0
-  if(cantEl) {
-    cantEl.disabled = true
-    cantEl.style.background = 'var(--crema)'
-    cantEl.style.opacity = '.75'
-    cantEl.value = ha > 0 ? (totCant / ha).toFixed(2) : totCant.toFixed(2)
-  }
-  if(prEl) {
-    prEl.disabled = true
-    prEl.style.background = 'var(--crema)'
-    prEl.style.opacity = '.75'
-    prEl.value = totCant > 0 ? (totUSD / totCant).toFixed(4) : ''
-  }
-  if(typeof calcConv === 'function') calcConv()
-}
-
-// Info-chip legacy (para el caso de 1 solo tildado). Similar al _refrescarInfoInsumo anterior.
-function _refrescarInfoInsumoLegacy(id) {
+window.onInsumoSelChange = function() {
+  var sel = document.getElementById('g-insumo-sel')
   var info = document.getElementById('g-insumo-info')
-  if(!info || !id) return
+  if(!sel || !info) return
+  var id = sel.value
+  if(!id) { info.style.display='none'; return }
+  var i = insumos.find(function(x){return x.id===id})
+  if(!i) { info.style.display='none'; return }
+  // Autocompletar descripción y precio si están vacíos
+  var descEl = document.getElementById('g-desc')
+  if(descEl && !descEl.value.trim()) descEl.value = i.nombre||''
+  var prEl = document.getElementById('g-precio-unit')
+  if(prEl && !prEl.value && i.costo_unitario) { prEl.value = i.costo_unitario; if(typeof calcConv === 'function') calcConv() }
+  var uEl = document.getElementById('g-unidad')
+  if(uEl && i.unidad && ['litros','kg','dosis'].indexOf(i.unidad)>=0) { uEl.value = i.unidad; if(typeof onUnidadChange==='function') onUnidadChange() }
+  _refrescarInfoInsumo()
+}
+
+// Calcula y muestra cuánto se va a consumir vs stock actual
+function _refrescarInfoInsumo() {
+  var sel = document.getElementById('g-insumo-sel')
+  var info = document.getElementById('g-insumo-info')
+  if(!sel || !info) return
+  var id = sel.value
+  if(!id) { info.style.display='none'; return }
   var i = insumos.find(function(x){return x.id===id})
   if(!i) { info.style.display='none'; return }
   var stockActual = parseFloat(i.stock_actual)||0
@@ -9596,52 +9405,27 @@ function _refrescarInfoInsumoLegacy(id) {
   var ha = parseFloat(document.getElementById('g-ha-aplicadas')?.value)||0
   var consumo = cant * ha
   var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
+  // Si estamos editando, sumar lo que ya estaba descontado por ese gasto
   var editId = document.getElementById('g-edit-id')?.value||''
-  var prevConsumo = _consumoPrevioPara(editId, i.id)
+  var prevConsumo = 0
+  if(editId) {
+    var gPrev = gastos.find(function(g){return g.id===editId})
+    if(gPrev && gPrev.insumo_id === id) prevConsumo = _gastoConsumoInsumo(gPrev)
+  }
   var stockEfectivo = stockActual + prevConsumo
   var restante = stockEfectivo - consumo
-  var color = 'var(--azul)', bg = 'var(--azul-pale)', icon = 'ℹ️'
+  var color = 'var(--azul)'; var bg = 'var(--azul-pale)'; var icon = 'ℹ️'
   if(consumo > 0 && restante < 0) { color = 'var(--rojo)'; bg = '#fee2e2'; icon = '⛔' }
   else if(consumo > 0) { color = 'var(--verde)'; bg = '#dcfce7'; icon = '✓' }
   info.style.background = bg; info.style.color = color
-  var ubic = i.ubicacion ? ' · '+_escHTML(i.ubicacion) : ''
-  var msg = icon + ' <strong>' + _escHTML(i.nombre||'') + ubic + '</strong> — Stock: <strong>'+ stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
+  var msg = icon + ' Stock actual: <strong>'+ stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
   if(consumo > 0) {
     msg += ' · Consumo: <strong>'+ consumo.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
     msg += ' · Restante: <strong>'+ restante.toLocaleString('es-AR',{maximumFractionDigits:2}) +' '+ u +'</strong>'
-    if(restante < 0) msg += '<br/>El gasto excede el stock disponible.'
+    if(restante < 0) msg += '<br/>El gasto excede el stock disponible. No se va a poder guardar.'
   }
   info.innerHTML = msg
   info.style.display = ''
-}
-
-// Cuánto tenía descontado un gasto (que estamos editando) para un insumo dado.
-// Soporta el modelo legacy (insumo_id + cantidad×ha) y el nuevo (insumo_consumos jsonb).
-function _consumoPrevioPara(editId, insumoId) {
-  if(!editId) return 0
-  var g = gastos.find(function(x){return x.id===editId}); if(!g) return 0
-  if(g.insumo_consumos && Array.isArray(g.insumo_consumos)) {
-    var hit = g.insumo_consumos.find(function(c){ return c.insumo_id === insumoId })
-    return hit ? (parseFloat(hit.cantidad_total)||0) : 0
-  }
-  if(g.insumo_id === insumoId) return _gastoConsumoInsumo(g)
-  return 0
-}
-
-// Compat con el resto del código que llame a onInsumoSelChange / _refrescarInfoInsumo
-window.onInsumoSelChange = function() {
-  var st = window._insumoMultiState
-  if(!st) return
-  if(st.seleccionados.length === 1) _refrescarInfoInsumoLegacy(st.seleccionados[0])
-  else if(st.seleccionados.length >= 2) _renderConsumosSection()
-  // Re-sync main fields en cada refresh (cubre cambio de ha_aplicadas en multi mode)
-  _sincronizarCamposPrincipales()
-}
-function _refrescarInfoInsumo() { window.onInsumoSelChange() }
-
-// Escape HTML mínimo para labels
-function _escHTML(s) {
-  return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})
 }
 
 window.onUnidadChange = function() {
@@ -11207,8 +10991,6 @@ window.openModalLluviaRapida = function() {
 window.openModalGasto = function() {
   document.getElementById('ov-gasto').classList.add('open')
   try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
-  // Reset del estado multi-insumo antes de cualquier render (evita arrastrar del anterior)
-  _resetInsumoMultiState()
   document.getElementById('g-precio').value = precios.soja || 280
   document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0]
   var c = campos.find(f=>f.id===(campoDet||campoRent))||campos[0]
@@ -11241,11 +11023,7 @@ window.openModalGasto = function() {
   var _ftr=document.getElementById('g-flete-tc-row'); if(_ftr) _ftr.style.display='none'
   var _etr=document.getElementById('g-emp-tc-row'); if(_etr) _etr.style.display='none'
 }
-window.closeModalGasto = function() {
-  document.getElementById('ov-gasto').classList.remove('open')
-  // Limpiar estado multi-insumo para que la próxima apertura arranque limpio
-  try { _resetInsumoMultiState() } catch(e){}
-}
+window.closeModalGasto = function() { document.getElementById('ov-gasto').classList.remove('open') }
 window.calcConv = function() {
   // Refrescar info de insumo (stock vs consumo)
   try { _refrescarInfoInsumo() } catch(e){}
@@ -11364,59 +11142,23 @@ window.guardarGasto = async function() {
   var usdHa = usdTotal / haFinal
   var qqHa = usdHa / prCereal * 10
 
-  // ── Validación de stock de insumos (multi-ubicación) ───────────────────
+  // ── Validación de stock de insumos ───────────────────────────────────────
+  var insumoId = document.getElementById('g-insumo-sel')?.value || null
   var rubrosConInsumo = ['herbicidas','fungicidas','insecticidas','fertilizantes']
-  var stM = window._insumoMultiState || { seleccionados:[], consumos:{} }
-  var esMulti = rubrosConInsumo.indexOf(rubro) !== -1 && stM.seleccionados.length >= 2
-  var esSingle = rubrosConInsumo.indexOf(rubro) !== -1 && stM.seleccionados.length === 1
-  var insumoId = null
+  if(rubrosConInsumo.indexOf(rubro) === -1) insumoId = null
   var consumoNuevo = 0
-  var consumosArr = null  // [{insumo_id, cantidad_total, precio}]
-
-  if(esMulti) {
-    consumosArr = []
-    var totCantMulti = 0, totUSDMulti = 0
-    for(var _si = 0; _si < stM.seleccionados.length; _si++) {
-      var _id = stM.seleccionados[_si]
-      var _ins = insumos.find(function(x){return x.id===_id})
-      if(!_ins) { showToast('⚠️ Alguno de los insumos ya no existe — actualizá la página','err'); return }
-      var _c = stM.consumos[_id] || {}
-      var _cant = parseFloat(_c.cantidad_total)||0
-      var _pr = parseFloat(_c.precio)||0
-      if(_cant <= 0) { showToast('⚠️ Ingresá una cantidad > 0 para "'+(_ins.nombre||'')+(_ins.ubicacion?' · '+_ins.ubicacion:'')+'" o destildala','err'); return }
-      if(_pr <= 0) { showToast('⚠️ Ingresá el precio de "'+(_ins.nombre||'')+(_ins.ubicacion?' · '+_ins.ubicacion:'')+'"','err'); return }
-      // Validar stock por ubicación (sumando lo que ya se descontó por este gasto si estamos editando)
-      var _editIdPrev = document.getElementById('g-edit-id')?.value||''
-      var _prevCons = _consumoPrevioPara(_editIdPrev, _id)
-      var _stockEfectivo = (parseFloat(_ins.stock_actual)||0) + _prevCons
-      if(_cant > _stockEfectivo + 0.0001) {
-        var _u = (INS_UNI_LABEL[_ins.unidad]||_ins.unidad)
-        showToast('⛔ Stock insuficiente en "'+(_ins.nombre||'')+' · '+(_ins.ubicacion||'sin ubicación')+'": hay '+_stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2})+' '+_u+', necesitás '+_cant.toLocaleString('es-AR',{maximumFractionDigits:2}),'err')
-        return
-      }
-      consumosArr.push({ insumo_id: _id, cantidad_total: _cant, precio: _pr })
-      totCantMulti += _cant
-      totUSDMulti += _cant * _pr
-    }
-    // Sobrescribir cantidad / precio / usdTotal derivados del multi
-    insumoId = consumosArr[0].insumo_id  // el primero como principal (backward compat)
-    if(haFinal > 0) {
-      cantidad = totCantMulti / haFinal
-      precioUnit = totCantMulti > 0 ? totUSDMulti / totCantMulti : 0
-    } else {
-      cantidad = totCantMulti
-      precioUnit = totCantMulti > 0 ? totUSDMulti / totCantMulti : 0
-    }
-    usdTotal = totUSDMulti
-    usdHa = haFinal > 0 ? usdTotal / haFinal : usdTotal
-    qqHa = usdHa / prCereal * 10
-  } else if(esSingle) {
-    insumoId = stM.seleccionados[0]
+  if(insumoId) {
     consumoNuevo = (cantidad||0) * haFinal
     var ins = insumos.find(function(x){return x.id===insumoId})
-    if(!ins) { showToast('⚠️ El insumo seleccionado no existe — actualizá la página','err'); return }
+    if(!ins) {
+      showToast('⚠️ El insumo seleccionado no existe — actualizá la página','err'); return
+    }
     var editIdPrev = document.getElementById('g-edit-id')?.value||''
-    var prevConsumo = _consumoPrevioPara(editIdPrev, insumoId)
+    var prevConsumo = 0
+    if(editIdPrev) {
+      var gPrev = gastos.find(function(g){return g.id===editIdPrev})
+      if(gPrev && gPrev.insumo_id === insumoId) prevConsumo = _gastoConsumoInsumo(gPrev)
+    }
     var stockEfectivo = (parseFloat(ins.stock_actual)||0) + prevConsumo
     if(consumoNuevo > stockEfectivo + 0.0001) {
       showToast('⛔ Stock insuficiente: hay ' + stockEfectivo.toLocaleString('es-AR',{maximumFractionDigits:2}) + ' ' + (INS_UNI_LABEL[ins.unidad]||ins.unidad) + ', necesitás ' + consumoNuevo.toLocaleString('es-AR',{maximumFractionDigits:2}),'err')
@@ -11447,7 +11189,6 @@ window.guardarGasto = async function() {
       precio_cereal: prCereal,
       descripcion: descVal,
       insumo_id: insumoId,
-      insumo_consumos: consumosArr,  // null si es single/legacy; array si es multi
       factura_url: facUrlG,
       factura_path: facPathG,
       factura_tipo: facTipoG,
@@ -11500,38 +11241,11 @@ window.guardarGasto = async function() {
 
     var uid2 = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
 
-    // Snapshot del gasto anterior (para revertir descuentos al stock si era un insumo)
-    // Soporta legacy (insumo_id + cantidad×ha) y nuevo (insumo_consumos jsonb)
+    // Snapshot del gasto anterior (para revertir descuento al stock si era un insumo)
     var prevSnap = null
     if(isEdit) {
       var gPrev2 = gastos.find(function(g){return g.id===editId})
-      if(gPrev2) {
-        if(gPrev2.insumo_consumos && Array.isArray(gPrev2.insumo_consumos) && gPrev2.insumo_consumos.length) {
-          prevSnap = { consumos: gPrev2.insumo_consumos.map(function(c){ return { insumo_id: c.insumo_id, cantidad_total: parseFloat(c.cantidad_total)||0 } }) }
-        } else if(gPrev2.insumo_id) {
-          prevSnap = { consumos: [{ insumo_id: gPrev2.insumo_id, cantidad_total: _gastoConsumoInsumo(gPrev2) }] }
-        }
-      }
-    }
-
-    // Helper local para aplicar descuentos (nuevo array de consumos, o legacy single)
-    async function _aplicarDescuentosStock() {
-      if(consumosArr && consumosArr.length) {
-        for(var _i = 0; _i < consumosArr.length; _i++) {
-          var _c = consumosArr[_i]
-          if(_c.cantidad_total > 0) await _ajustarStockInsumo(_c.insumo_id, -_c.cantidad_total)
-        }
-      } else if(insumoId && consumoNuevo > 0) {
-        await _ajustarStockInsumo(insumoId, -consumoNuevo)
-      }
-    }
-    async function _revertirStockPrev() {
-      if(prevSnap && prevSnap.consumos) {
-        for(var _i = 0; _i < prevSnap.consumos.length; _i++) {
-          var _c = prevSnap.consumos[_i]
-          if(_c.cantidad_total > 0) await _ajustarStockInsumo(_c.insumo_id, +_c.cantidad_total)
-        }
-      }
+      if(gPrev2) prevSnap = {insumo_id: gPrev2.insumo_id||null, consumo: _gastoConsumoInsumo(gPrev2)}
     }
 
     if(isEdit) {
@@ -11546,16 +11260,19 @@ window.guardarGasto = async function() {
         var idx=gastos.findIndex(function(g){return g.id===editId})
         if(idx>=0) {
           gastos[idx]=rE.data
-          // Preservar insumo_id + insumo_consumos local aunque el retry los haya perdido
+          // Preservar insumo_id local aunque el retry sin la columna lo haya perdido
           gastos[idx].insumo_id = insumoId
-          gastos[idx].insumo_consumos = consumosArr
           if(cantidad) gastos[idx].cantidad = cantidad
           if(haFinal) gastos[idx].ha_aplicadas = haFinal
         }
       }
-      // ── Ajustar stock: revertir consumos previos + aplicar nuevos ──
-      await _revertirStockPrev()
-      await _aplicarDescuentosStock()
+      // ── Ajustar stock: revertir consumo previo + aplicar nuevo ──
+      if(prevSnap && prevSnap.insumo_id) {
+        await _ajustarStockInsumo(prevSnap.insumo_id, +prevSnap.consumo)
+      }
+      if(insumoId && consumoNuevo > 0) {
+        await _ajustarStockInsumo(insumoId, -consumoNuevo)
+      }
       _guardarCache()
       if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
       closeModalGasto()
@@ -11567,8 +11284,10 @@ window.guardarGasto = async function() {
         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})
       var gastoLocal = Object.assign({}, _p, {id: gId, campo_id: campoId, usuario_id: uid2})
       gastos.unshift(gastoLocal)
-      // ── Descontar stock (multi o single) ──
-      await _aplicarDescuentosStock()
+      // ── Descontar stock del insumo (si hay) ──
+      if(insumoId && consumoNuevo > 0) {
+        await _ajustarStockInsumo(insumoId, -consumoNuevo)
+      }
       _guardarCache()
       if(campoDet) { autoFocusRubroChart(rubro); renderDetGastos() }; renderRentabilidad(); renderDashboard()
       closeModalGasto()
@@ -11723,31 +11442,15 @@ window.editarGasto = function(id) {
       }
     }
   } catch(e) {}
-  // Hidratar el estado multi-insumo desde el gasto guardado.
-  // - Si tiene insumo_consumos → multi (2+): tildar todos y setear cantidad/precio de cada uno
-  // - Si tiene solo insumo_id → legacy single: tildar ese y setear la cantidad calculada
-  window._insumoMultiState = { seleccionados: [], consumos: {} }
-  if(g.insumo_consumos && Array.isArray(g.insumo_consumos) && g.insumo_consumos.length) {
-    g.insumo_consumos.forEach(function(c){
-      if(!c || !c.insumo_id) return
-      window._insumoMultiState.seleccionados.push(c.insumo_id)
-      window._insumoMultiState.consumos[c.insumo_id] = {
-        cantidad_total: parseFloat(c.cantidad_total)||0,
-        precio: parseFloat(c.precio)||0
-      }
-    })
-  } else if(g.insumo_id) {
-    var iSel = insumos.find(function(x){return x.id===g.insumo_id})
-    if(iSel) {
-      window._insumoMultiState.seleccionados.push(g.insumo_id)
-      window._insumoMultiState.consumos[g.insumo_id] = {
-        cantidad_total: (parseFloat(g.cantidad)||0) * (parseFloat(g.ha_aplicadas)||0),
-        precio: parseFloat(g.precio_unitario)||parseFloat(iSel.costo_unitario)||0
-      }
+  // Si el gasto tenía insumo vinculado, precargar el selector
+  if(g.insumo_id) {
+    var insSel = document.getElementById('g-insumo-sel')
+    if(insSel) {
+      // _actualizarInsumoSel ya fue llamado por onRubroChange — fijar el valor
+      insSel.value = g.insumo_id
+      _refrescarInfoInsumo()
     }
   }
-  // Re-render (onRubroChange llamó _actualizarInsumoSel pero sin estos datos hidratados)
-  try { _actualizarInsumoSel(g.rubro) } catch(e){}
   calcConv()
 }
 window.eliminarGasto = function(id) {
@@ -11766,16 +11469,9 @@ window.eliminarGasto = function(id) {
   setTimeout(async function(){
     if (deshacer) return
     // Aplicar el delete + reponer stock si estaba vinculado a un insumo
-    // Soporta multi (insumo_consumos jsonb) y legacy (insumo_id + cantidad×ha)
     try {
       await _dbMutate({method:'delete', table:'gastos', filter:{col:'id', val:id}, timeout: 6000})
-      if(g.insumo_consumos && Array.isArray(g.insumo_consumos) && g.insumo_consumos.length) {
-        for(var _di = 0; _di < g.insumo_consumos.length; _di++) {
-          var _dc = g.insumo_consumos[_di]
-          var _dcant = parseFloat(_dc.cantidad_total)||0
-          if(_dcant > 0) await _ajustarStockInsumo(_dc.insumo_id, _dcant)
-        }
-      } else if(g.insumo_id) {
+      if(g.insumo_id) {
         var consumido = _gastoConsumoInsumo(g)
         if(consumido > 0) await _ajustarStockInsumo(g.insumo_id, consumido)
       }

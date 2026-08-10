@@ -325,15 +325,17 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .r-insecticidas{background:#fef9c3;color:#a16207}
 .r-riego{background:#e0f2fe;color:#0369a1}
 
-/* INFO HOVER — pequeño ícono ⓘ que al hover muestra un tooltip explicativo.
-   Se usa junto a labels críticos (métricas, conceptos que confunden) para
-   que el usuario entienda qué está viendo sin abrir una ayuda separada. */
-.ra-help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:transparent;color:var(--texto-suave);font-size:11px;font-weight:700;font-style:italic;font-family:'Georgia',serif;cursor:help;border:1px solid var(--borde);position:relative;margin-left:6px;vertical-align:middle;transition:all .15s;user-select:none;line-height:1}
+/* INFO HOVER — pequeño ícono ⓘ. El tooltip se dibuja con JS al body
+   (position:fixed) para no ser cortado por overflow:hidden de ancestros.
+   Ver window._raShowTip / _raHideTip abajo en el bloque de script. */
+.ra-help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:transparent;color:var(--texto-suave);font-size:11px;font-weight:700;font-style:italic;font-family:'Georgia',serif;cursor:help;border:1px solid var(--borde);margin-left:6px;vertical-align:middle;transition:all .15s;user-select:none;line-height:1}
 .ra-help:hover,.ra-help:focus{background:var(--verde);color:#fff;border-color:var(--verde);outline:none}
-.ra-help::before{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:11px;font-weight:500;font-style:normal;font-family:'DM Sans',sans-serif;line-height:1.5;padding:8px 12px;border-radius:6px;white-space:normal;width:220px;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.18)}
-.ra-help::after{content:'';position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a;opacity:0;visibility:hidden;transition:opacity .15s}
-.ra-help:hover::before,.ra-help:hover::after,.ra-help:focus::before,.ra-help:focus::after{opacity:1;visibility:visible}
-@media(max-width:600px){.ra-help::before{width:180px;font-size:10px}}
+.ra-tooltip{position:fixed;background:#0f172a;color:#fff;font-size:11px;font-weight:500;font-style:normal;font-family:'DM Sans',sans-serif;line-height:1.5;padding:8px 12px;border-radius:6px;width:220px;max-width:calc(100vw - 16px);text-align:left;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:2147483647;pointer-events:none;opacity:0;transition:opacity .12s ease}
+.ra-tooltip.on{opacity:1}
+.ra-tooltip::after{content:'';position:absolute;left:var(--arrow-x,50%);transform:translateX(-50%);border:5px solid transparent}
+.ra-tooltip[data-dir="up"]::after{top:100%;border-top-color:#0f172a}
+.ra-tooltip[data-dir="down"]::after{bottom:100%;border-bottom-color:#0f172a}
+@media(max-width:600px){.ra-tooltip{width:180px;font-size:10px}}
 
 /* LLUVIA */
 .lluvia-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
@@ -15094,6 +15096,69 @@ window.descargarBackupXLSX = function() {
     showToast('⚠️ Error al generar el Excel. Probá los CSVs.', 'err')
   }
 }
+
+// ── TOOLTIPS FLOTANTES (.ra-help) ─────────────────────────────────────
+// El popup se monta como un div en el body con position:fixed para escapar
+// cualquier overflow:hidden de un contenedor ancestor (que antes cortaba
+// el tooltip cuando se usaba con ::before). Handlers en capture para
+// funcionar aun cuando el elemento este dentro de listas re-renderizadas.
+;(function initRaTooltips(){
+  function showTip(el){
+    var tip = el.getAttribute('data-tip'); if (!tip) return
+    hideTip()
+    var tt = document.createElement('div')
+    tt.className = 'ra-tooltip'
+    tt.id = '_ra_tooltip'
+    tt.textContent = tip
+    document.body.appendChild(tt)
+    var rect = el.getBoundingClientRect()
+    var tw = tt.offsetWidth, th = tt.offsetHeight
+    var vw = window.innerWidth, vh = window.innerHeight
+    // Centrado horizontal sobre el icono, clampeado al viewport (con margen 8px)
+    var left = rect.left + rect.width/2 - tw/2
+    if (left < 8) left = 8
+    if (left + tw > vw - 8) left = vw - tw - 8
+    // Por default arriba; si no hay espacio arriba, va abajo
+    var top = rect.top - th - 10
+    var dir = 'up'
+    if (top < 8) { top = rect.bottom + 10; dir = 'down' }
+    // Flecha centrada bajo el icono, ajustada si el tooltip se clampeo lateralmente
+    var arrowX = (rect.left + rect.width/2) - left
+    if (arrowX < 10) arrowX = 10
+    if (arrowX > tw - 10) arrowX = tw - 10
+    tt.style.left = Math.round(left) + 'px'
+    tt.style.top  = Math.round(top) + 'px'
+    tt.style.setProperty('--arrow-x', Math.round(arrowX) + 'px')
+    tt.setAttribute('data-dir', dir)
+    // Trigger CSS transition (opacity 0 → 1)
+    requestAnimationFrame(function(){ tt.classList.add('on') })
+  }
+  function hideTip(){
+    var tt = document.getElementById('_ra_tooltip')
+    if (tt) tt.remove()
+  }
+  // Delegacion en capture para agarrar hovers en elementos re-renderizados
+  document.addEventListener('mouseover', function(e){
+    var t = e.target
+    if (t && t.classList && t.classList.contains('ra-help')) showTip(t)
+  }, true)
+  document.addEventListener('mouseout', function(e){
+    var t = e.target
+    if (t && t.classList && t.classList.contains('ra-help')) hideTip()
+  }, true)
+  // Accesibilidad: focus/blur por teclado
+  document.addEventListener('focusin', function(e){
+    var t = e.target
+    if (t && t.classList && t.classList.contains('ra-help')) showTip(t)
+  })
+  document.addEventListener('focusout', function(e){
+    var t = e.target
+    if (t && t.classList && t.classList.contains('ra-help')) hideTip()
+  })
+  // Reposicionar/ocultar al scrollear o cambiar tamano
+  window.addEventListener('scroll', hideTip, true)
+  window.addEventListener('resize', hideTip)
+})()
 
 // Genera el HTML para un empty state. Se usa en secciones sin datos.
 // Formato uniforme: icono grande, titulo verde, descripcion breve, boton

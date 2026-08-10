@@ -19714,7 +19714,7 @@ function renderDetGastos() {
           var rkSafe = rk.replace(/'/g,'\\\'')
           var nGastos = rd.gastos.length + ' gasto' + (rd.gastos.length!==1?'s':'')
 
-          var row = '<div onclick="toggleGastoRubro(\''+rkSafe+'\',event)" style="display:grid;'+GRID+';padding:12px 20px;align-items:center;background:#fff;border-left:4px solid '+accRubro+';cursor:pointer;border-top:1px solid #e5e7eb;transition:background .12s" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'#fff\'" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleGastoRubro(\''+rkSafe+'\',event)}">'
+          var row = '<div onclick="toggleGastoRubro(\''+rkSafe+'\',event)" style="display:grid;'+GRID+';padding:12px 20px;align-items:center;background:#fff;cursor:pointer;border-top:1px solid #e5e7eb;transition:background .12s" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'#fff\'" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleGastoRubro(\''+rkSafe+'\',event)}">'
             +'<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'
               +'<span style="font-size:13px;color:#0f172a;font-weight:700">'+rd.label+'</span>'
               +'<span style="font-size:11px;color:#475569;font-weight:500">· '+nGastos+'</span>'
@@ -19740,7 +19740,7 @@ function renderDetGastos() {
               if (!porProd[k].unidad && g.unidad) porProd[k].unidad = g.unidad
             })
             var prodOrder = Object.keys(porProd).sort(function(a,b){ return porProd[b].usd - porProd[a].usd })
-            row += '<div style="background:'+bgRubroExpanded+';padding:0 20px 12px 24px;border-left:4px solid '+accRubro+'">'
+            row += '<div style="background:'+bgRubroExpanded+';padding:0 20px 12px 24px">'
               +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569;font-weight:700;padding:8px 0 6px">Composición del rubro</div>'
               +prodOrder.map(function(pk){
                 var p = porProd[pk]

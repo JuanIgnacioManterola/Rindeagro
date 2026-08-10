@@ -17630,8 +17630,14 @@ window.renderIngresosTab = function() {
       + '</div>'
 
       // ── Sección Ventas ──
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">'
-      +   '<div style="font-size:13px;font-weight:700;color:'+text+'">Ventas del cultivo <span style="color:'+muted+';font-weight:500">('+ventas.length+')</span></div>'
+      // Header prominente para separar visualmente esta seccion del bloque
+      // de rendimiento/balance. Fondo verde muy suave con border-left,
+      // titulo mas grande + contador diferenciado.
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;flex-wrap:wrap;gap:6px;padding:12px 14px;background:'+bgIngresosTot+';border-left:4px solid '+accIngresos+';border-radius:6px">'
+      +   '<div style="display:flex;align-items:baseline;gap:8px">'
+      +     '<span style="font-size:17px;font-weight:800;color:'+text+';letter-spacing:-.01em">Ventas del cultivo</span>'
+      +     '<span style="background:'+accIngresos+';color:#fff;font-size:12px;font-weight:700;padding:2px 9px;border-radius:12px;line-height:1.4">'+ventas.length+'</span>'
+      +   '</div>'
       +   '<button onclick="_ingAgregarVenta(\''+cult+'\')" class="btn-vs">+ Agregar venta</button>'
       + '</div>'
       + ventasHtml + emptyVentas

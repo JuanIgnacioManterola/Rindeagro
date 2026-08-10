@@ -325,6 +325,16 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .r-insecticidas{background:#fef9c3;color:#a16207}
 .r-riego{background:#e0f2fe;color:#0369a1}
 
+/* INFO HOVER — pequeño ícono ⓘ que al hover muestra un tooltip explicativo.
+   Se usa junto a labels críticos (métricas, conceptos que confunden) para
+   que el usuario entienda qué está viendo sin abrir una ayuda separada. */
+.ra-help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:transparent;color:var(--texto-suave);font-size:11px;font-weight:700;font-style:italic;font-family:'Georgia',serif;cursor:help;border:1px solid var(--borde);position:relative;margin-left:6px;vertical-align:middle;transition:all .15s;user-select:none;line-height:1}
+.ra-help:hover,.ra-help:focus{background:var(--verde);color:#fff;border-color:var(--verde);outline:none}
+.ra-help::before{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:11px;font-weight:500;font-style:normal;font-family:'DM Sans',sans-serif;line-height:1.5;padding:8px 12px;border-radius:6px;white-space:normal;width:220px;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.ra-help::after{content:'';position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a;opacity:0;visibility:hidden;transition:opacity .15s}
+.ra-help:hover::before,.ra-help:hover::after,.ra-help:focus::before,.ra-help:focus::after{opacity:1;visibility:visible}
+@media(max-width:600px){.ra-help::before{width:180px;font-size:10px}}
+
 /* LLUVIA */
 .lluvia-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--borde);font-size:12px}
 .lluvia-row:last-child{border-bottom:none}
@@ -10027,7 +10037,7 @@ window.exportarPDF = function() {
   var gf = gastos.filter(function(g){
     if(g.campo_id!==campoDet) return false
     if(!g.fecha) return false
-    var d = new Date(g.fecha)
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
     return d >= campR.start && d <= campR.end
   })
   var RUBS={herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
@@ -12944,7 +12954,7 @@ window.exportarPDFComparativaCampanas = function() {
       // Gastos: filtrar por fecha
       var gs = (gastos||[]).filter(function(g){
         if (g.campo_id !== cid || !g.fecha) return false
-        var d = new Date(g.fecha)
+        var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
         return d >= r.start && d <= r.end
       })
       var cost = gs.reduce(function(a,g){return a+(parseFloat(g.total_de_usd)||0)},0)
@@ -13187,7 +13197,7 @@ window.exportarPDFGastosCampo = function() {
   var campR = getCampanaRange(campanaActivaId)
   var gf = (gastos||[]).filter(function(g){
     if (g.campo_id!==campoDet||!g.fecha) return false
-    var d = new Date(g.fecha); return d>=campR.start && d<=campR.end
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha); return d>=campR.start && d<=campR.end
   }).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha)})
   if (!gf.length) { showToast('⚠️ Este campo no tiene gastos en la campaña actual','err'); return }
   var RUBS = {herbicidas:'Herbicidas',fungicidas:'Fungicidas',insecticidas:'Insecticidas',fertilizantes:'Fertilizantes',semillas:'Semillas',laboreo:'Laboreo',flete:'Flete',empleados:'Empleados',arrendamiento:'Arrendamiento',riego:'Riego',otros:'Otros'}
@@ -13214,7 +13224,7 @@ window.exportarPDFGastosCampo = function() {
   html += '<table><thead><tr><th>Fecha</th><th>Rubro</th><th>Descripción</th><th>Cultivo</th><th class="r">Cant · Unidad</th><th class="r">USD</th></tr></thead><tbody>'
   gf.forEach(function(g){
     var cant = g.cantidad ? (g.cantidad+' '+(g.unidad||'')) : '—'
-    html += '<tr><td>'+new Date(g.fecha).toLocaleDateString('es-AR')+'</td><td>'+(RUBS[g.rubro]||g.rubro||'Otros')+'</td><td>'+(g.descripcion||'—')+'</td><td>'+(g.cultivo||'—')+'</td><td class="r">'+cant+'</td><td class="r">'+fmtUSD(g.total_de_usd)+'</td></tr>'
+    html += '<tr><td>'+new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha).toLocaleDateString('es-AR')+'</td><td>'+(RUBS[g.rubro]||g.rubro||'Otros')+'</td><td>'+(g.descripcion||'—')+'</td><td>'+(g.cultivo||'—')+'</td><td class="r">'+cant+'</td><td class="r">'+fmtUSD(g.total_de_usd)+'</td></tr>'
   })
   html += '<tr class="tot"><td colspan="5">Total ('+gf.length+' gastos)</td><td class="r">'+fmtUSD(totGas)+'</td></tr>'
   html += '</tbody></table>'
@@ -16644,7 +16654,7 @@ window.renderCultivoTimeline = function() {
       var gEse = (gastos||[]).filter(function(g){
         if (g.campo_id !== campoDet) return false
         if (!g.fecha) return false
-        var d = new Date(g.fecha)
+        var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
         if (d < campR.start || d > campR.end) return false
         if (g.cultivo && g.cultivo !== cult) return false
         return !!_clasificarEventoGasto(g)
@@ -16676,7 +16686,7 @@ window.renderCultivoTimeline = function() {
   var eventosGastos = (gastos||[]).filter(function(g){
     if (g.campo_id !== campoDet) return false
     if (!g.fecha) return false
-    var d = new Date(g.fecha)
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
     if (d < campR.start || d > campR.end) return false
     if (cultivoActivo && g.cultivo && g.cultivo !== cultivoActivo) return false
     return true
@@ -17782,7 +17792,7 @@ function _refreshCrAcordeon() {
     var onclick = totalIng>0 ? ' onclick="toggleCrIng(event)"' : ''
     var cursor  = totalIng>0 ? 'cursor:pointer;' : ''
     var html = '<div'+onclick+' style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgIngresos+';border-left:4px solid '+accIngresos+';'+cursor+'">'
-      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">Ingresos brutos</div>'
+      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">Ingresos brutos <span class="ra-help" data-tip="Suma de todas las ventas con precio confirmado. Las ventas con precio a fijar no cuentan hasta que cierres el precio." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+ingRows.length+' cultivo'+(ingRows.length!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+_mil(ingHa)+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">USD '+_mil(totalIng)+'</div>'
@@ -17821,7 +17831,7 @@ function _refreshCrAcordeon() {
     var chevron = rd.gastos.length ? (isROpen?'▲':'▼') : ''
     var lblSafe = rd.label || rk || 'Otros'
     var html = '<div onclick="toggleCrRubro(\''+rKey.replace(/'/g,'\\\'')+'\',event)" style="display:grid;'+GRID_COLS+';padding:12px 20px;align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+';cursor:pointer">'
-      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) '+lblSafe+'</div>'
+      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) '+lblSafe+' <span class="ra-help" data-tip="Click para desglosar los items individuales de este rubro con su porcentaje del total." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rd.gastos.length+' gasto'+(rd.gastos.length!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(rd.total)+')</div>'
@@ -17862,7 +17872,7 @@ function _refreshCrAcordeon() {
     var cursor = rubrosArr.length ? 'cursor:pointer' : ''
     var onclick = rubrosArr.length ? ' onclick="toggleCrGas(event)"' : ''
     var html = '<div'+onclick+' style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+';'+cursor+'">'
-      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales</div>'
+      +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales <span class="ra-help" data-tip="Suma de todos los rubros: semillas, herbicidas, fertilizantes, labores, flete, etc. Click en la fila para desglosar por rubro." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+' · '+nGastos+' gasto'+(nGastos!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(totalG)+')</div>'
@@ -17885,7 +17895,7 @@ function _refreshCrAcordeon() {
     var pct = denomIng>0 ? Math.round(monto/denomIng*100)+'%' : '—'
     var haCos = haRef>0 ? Math.round(monto/haRef) : 0
     return '<div style="display:grid;'+GRID_COLS+';padding:14px 20px;align-items:baseline;background:'+bgEstr+';border-left:4px solid '+accEstr+';border-top:1px solid '+border+'">'
-      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Estructura</div>'
+      +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Estructura <span class="ra-help" data-tip="Costos que no son del campo específico: amortizaciones de maquinaria, sueldos, seguros, honorarios. Se prorratean entre todos los campos según hectáreas." tabindex="0">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Prorrateo por hectáreas</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCos+' USD/ha</div>'
       +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(monto)+')</div>'
@@ -17901,7 +17911,7 @@ function _refreshCrAcordeon() {
     var acc = positivo ? '#047857' : '#b91c1c'
     var pct = denomIng>0 ? (mgTotal/denomIng*100).toFixed(1)+'%' : '—'
     return '<div style="display:grid;'+GRID_COLS+';padding:18px 20px;align-items:baseline;background:'+bg+';border-left:6px solid '+acc+';border-top:3px double '+acc+'">'
-      +'<div><div style="font-size:14px;color:'+text+';font-weight:800;text-transform:uppercase;letter-spacing:.05em">Margen neto</div>'
+      +'<div><div style="font-size:14px;color:'+text+';font-weight:800;text-transform:uppercase;letter-spacing:.05em">Margen neto <span class="ra-help" data-tip="Ingresos brutos − Gastos totales − Estructura. Es la ganancia real que te queda del campo esta campaña." tabindex="0">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Resultado del campo</div></div>'
       +'<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+(positivo?'+':'')+_mil(mgPerHa)+' USD/ha</div>'
       +'<div style="text-align:right;font-size:20px;color:'+acc+';font-weight:800;font-variant-numeric:tabular-nums">'+(positivo?'+':'-')+'USD '+_mil(Math.abs(mgTotal))+'</div>'
@@ -18016,7 +18026,7 @@ function renderCampoRent() {
   var gf = gastos.filter(function(g){
     if(g.campo_id!==campoDet) return false
     if(!g.fecha) return false
-    var d = new Date(g.fecha)
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
     return d >= campR.start && d <= campR.end
   })
   var costoOperativo = gf.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
@@ -18703,7 +18713,11 @@ function renderDetGastos() {
           var icon = CULT_ICONS[cult]||'🌱'
           var haCultPicker = parseFloat(savedHaPicker[cult]) || (haCampoTotal/cultivosDeCampo.length)
           var fracHaPicker = haTotPicker > 0 ? haCultPicker / haTotPicker : 0
-          var gastosCampoP = gastos.filter(function(g){ return g.campo_id===campoDet && g.fecha && new Date(g.fecha)>=campR0.start && new Date(g.fecha)<=campR0.end })
+          var gastosCampoP = gastos.filter(function(g){
+            if (g.campo_id!==campoDet || !g.fecha) return false
+            var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+            return d>=campR0.start && d<=campR0.end
+          })
           // Conteo: específicos del cultivo + compartidos (visible en c/u, no duplican en USD por el split)
           var nExcl = gastosCampoP.filter(function(g){ return g.cultivo===cult || !g.cultivo }).length
           var totalExcl = gastosCampoP.reduce(function(a,g){
@@ -18762,7 +18776,11 @@ function renderDetGastos() {
   }
   // Filtrar por campaña global
   var campR = getCampanaRange(campanaActivaId)
-  gf = gf.filter(function(g){ return g.fecha && new Date(g.fecha) >= campR.start && new Date(g.fecha) <= campR.end })
+  gf = gf.filter(function(g){
+    if (!g.fecha) return false
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+    return d >= campR.start && d <= campR.end
+  })
   var tcambio = _dolarVenta()  // gastos → divisa vendedor (productor compra USD)
   var enARS = monedaGlobal === 'ARS'
   function fmtMonto(usd) {

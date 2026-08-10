@@ -18608,18 +18608,36 @@ window.guardarRendCampo = function() {
   var primer0 = cultivos[0]
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}
   var extraObj = Object.keys(haCultivoNew).length ? {hectareas_cultivo: JSON.stringify(haCultivoNew)} : {}
-  sb.from('campos').update(Object.assign({}, updateObj, {ingresos_cultivos: ingrJson}, extraObj)).eq('id',campoDet).then(function(r){
-    if(r && r.error && r.error.message && r.error.message.includes('ingresos_cultivos')) {
-      // La columna ingresos_cultivos no existe en el schema del user (migración vieja).
-      // Retry sin esa columna — con log del error para no silenciarlo del todo.
-      console.warn('guardarIngresos: columna ingresos_cultivos no disponible, retry sin JSON')
-      sb.from('campos').update(updateObj).eq('id',campoDet).then(function(rr){
-        if (rr && rr.error) console.warn('guardarIngresos retry error:', rr.error.message)
-      }).catch(function(e){ console.warn('guardarIngresos retry threw:', e && e.message) })
-    } else if (r && r.error) {
-      console.warn('guardarIngresos error:', r.error.message)
+  var payloadFull = Object.assign({}, updateObj, {ingresos_cultivos: ingrJson}, extraObj)
+  // Persistir vía _dbMutate (SDK con timeout + REST fallback). Antes usábamos
+  // sb.from(...).update() directo, pero el SDK tiene un bug conocido de
+  // deadlock (documentado en CLAUDE.md) que a veces cuelga la mutación sin
+  // resolver ni rechazar — resultado: la venta parecía guardada localmente
+  // pero nunca llegaba al server, y al recargar se perdía.
+  ;(async function() {
+    try {
+      await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: payloadFull, timeout: 8000})
+    } catch(err) {
+      var msg = String(err && err.message || err || '')
+      // Si el schema del user no tiene la columna ingresos_cultivos (migración
+      // vieja), reintentamos sin el JSON.
+      if (msg.indexOf('ingresos_cultivos') >= 0) {
+        console.warn('guardarIngresos: columna ingresos_cultivos no disponible, retry sin JSON')
+        try {
+          await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: updateObj, timeout: 8000})
+          if (Object.keys(haCultivoNew).length) {
+            try { await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: extraObj, timeout: 8000}) } catch(e2) {}
+          }
+        } catch(err2) {
+          console.warn('guardarIngresos retry error:', err2 && err2.message)
+          showToast('⚠️ La venta se guardó local pero no llegó al server — intentá de nuevo','err')
+        }
+      } else {
+        console.warn('guardarIngresos error:', msg)
+        showToast('⚠️ No se pudo guardar en el server: '+(msg||'error desconocido'),'err')
+      }
     }
-  }).catch(function(e){ console.warn('guardarIngresos threw:', e && e.message) })
+  })()
 }
 
 window.seleccionarCultivoGastos = function(cult) {

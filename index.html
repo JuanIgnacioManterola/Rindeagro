@@ -1923,7 +1923,7 @@ async function init() {
       // Resetear todo el estado de la app
       usuario = null; campos = []; gastos = []; lluvias = []; analisisS = []
       tareas = []; filtroTareas = 'pendiente'; window.CONTEXTO = null
-      window._equipoCache = []
+      window._equipoCache = []; window._accesosCache = []
       // Cerrar cualquier overlay abierto
       try { document.querySelectorAll('.overlay').forEach(function(o){ o.classList.remove('open') }) } catch(e) {}
       // Ir a landing solo si estábamos en la app
@@ -2036,14 +2036,15 @@ async function cargarTodo() {
     }
     return r
   }
-  var [resP, resC, resG, resL, resS, resT, resEq] = await Promise.allSettled([
+  var [resP, resC, resG, resL, resS, resT, resEq, resAcc] = await Promise.allSettled([
     sb.from('perfiles').select('*').eq('id', usuario.id).single(),
     _fetchCampos(uid),
     sb.from('gastos').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('lluvias').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('analisis_suelo').select('*').eq('usuario_id', uid).order('fecha',{ascending:false}),
     sb.from('tareas').select('*').eq('owner_id', uid).order('created_at',{ascending:false}),
-    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true)
+    sb.from('equipo').select('*').eq('owner_id', uid).eq('activo', true),
+    sb.from('equipo').select('*').eq('miembro_id', usuario.id).eq('activo', true)
   ])
 
   // Perfil → nombre/saludo
@@ -2078,6 +2079,8 @@ async function cargarTodo() {
   }
   // Cachear equipo para selector de asignados en tareas
   if(resEq && resEq.status==='fulfilled' && resEq.value && Array.isArray(resEq.value.data)) window._equipoCache = resEq.value.data
+  // Cachear accesos compartidos (cuentas donde este usuario es miembro) para el dashboard
+  if(resAcc && resAcc.status==='fulfilled' && resAcc.value && Array.isArray(resAcc.value.data)) window._accesosCache = resAcc.value.data
 
   // Siempre fusionar pending aunque la DB haya respondido
   _mergePendingCampos()
@@ -2298,7 +2301,7 @@ function renderDashboard() {
   try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
 }
 
-async function _renderDashEquipo() {
+function _renderDashEquipo() {
   var el = document.getElementById('dash-equipo')
   var card = document.getElementById('dash-equipo-card')
   if (!el || !usuario) return
@@ -2310,11 +2313,16 @@ async function _renderDashEquipo() {
   }
   if (card) card.style.display = ''
 
-  try {
-    var { data } = await sb.from('equipo').select('id,nombre_display,permisos,creado_en')
-      .eq('owner_id', usuario.id).eq('activo', true).order('creado_en', { ascending: false })
+  // Render sincrónico desde caché (poblada en cargarTodo). Evita disparar una
+  // query por cada renderDashboard y el parpadeo de renders async que corren carrera.
+  // Si la caché todavía no cargó, no tocar el DOM (deja el estado previo).
+  var data = window._equipoCache
+  if (!Array.isArray(data)) return
+  // Copia ordenada por más reciente (sin mutar la caché compartida)
+  data = data.slice().sort(function(a,b){ return String(b.creado_en||'').localeCompare(String(a.creado_en||'')) })
 
-    if (!data || !data.length) {
+  try {
+    if (!data.length) {
       el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;gap:16px;flex-wrap:wrap">'
         + '<div>'
           + '<div style="font-size:13px;font-weight:500;color:var(--texto-mid);margin-bottom:2px">Todavía no invitaste a nadie</div>'
@@ -2429,20 +2437,20 @@ function _renderDashboardProductor() {
   }
 }
 
-async function _renderAccesosColaborador() {
+function _renderAccesosColaborador() {
   // Si este usuario tiene acceso a cuentas de otros, mostrar tarjeta en dashboard
   var el = document.getElementById('dash-campos')
   if (!el) return
   if (window.CONTEXTO?.esColaborador) return // ya está operando en modo colaborador
-  // Buscar en equipo donde este user es miembro
+  // Render sincrónico desde caché (poblada en cargarTodo). Sin query por render
+  // y sin la carrera async que parpadeaba/duplicaba la tarjeta.
+  var accesos = window._accesosCache
+  if (!Array.isArray(accesos)) return // aún no cargó — no tocar el DOM
   try {
-    var { data: accesos } = await sb.from('equipo')
-      .select('*')
-      .eq('miembro_id', usuario.id)
-      .eq('activo', true)
-    if (!accesos || !accesos.length) return
+    // Quitar tarjeta previa (idempotente): así refleja también accesos revocados
     var yaHayAccesos = document.getElementById('dash-accesos-col')
     if (yaHayAccesos) yaHayAccesos.remove()
+    if (!accesos.length) return
     var div = document.createElement('div')
     div.id = 'dash-accesos-col'
     div.style = 'margin-top:1.25rem;padding-top:1rem;border-top:.5px solid var(--borde)'
@@ -7611,6 +7619,8 @@ window._eqConfirmarCambioRol = async function(equipoId, nombre, nuevoRol) {
   try {
     var nuevosPermisos = Object.assign({}, PERMISOS_PRESETS[_EQ_ROL_PRESETS[nuevoRol]])
     await sb.from('equipo').update({ permisos: nuevosPermisos }).eq('id', equipoId)
+    // Mantener sincronizada la caché del dashboard (rol/permisos)
+    if (Array.isArray(window._equipoCache)) window._equipoCache = window._equipoCache.map(function(m){ return m.id === equipoId ? Object.assign({}, m, { permisos: nuevosPermisos }) : m })
     showToast('✓ Rol de '+nombre+' actualizado','ok')
     _renderListaMiembros()
   } catch(e) { showToast('⚠️ Error al cambiar rol','err') }
@@ -7675,6 +7685,9 @@ window._eqConfirmarRemover = async function(equipoId, nombre) {
   if (btn) { btn.disabled = true; btn.textContent = 'Removiendo...' }
   try {
     await sb.from('equipo').update({ activo: false }).eq('id', equipoId)
+    // Mantener sincronizada la caché del dashboard (evita mostrar al miembro removido
+    // en el próximo renderDashboard)
+    if (Array.isArray(window._equipoCache)) window._equipoCache = window._equipoCache.filter(function(m){ return m.id !== equipoId })
     if (modal) modal.remove()
     _renderListaMiembros()
     showToast('✓ '+nombre+' fue removido del equipo','ok')

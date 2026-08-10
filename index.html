@@ -1050,23 +1050,6 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
       <!-- P&L del campo: Ingresos / Rubros de gastos / Estructura / Margen —
            mismo formato que Rentabilidad total (fondos suaves + border-left) -->
       <div id="cr-acordeon" style="margin-bottom:14px"></div>
-      <!-- Sensibilidad + Break-even -->
-      <div class="card">
-        <div class="card-hdr"><span class="card-tit">Análisis de sensibilidad · USD/ha</span><span style="font-size:11px;color:var(--texto-suave)">Precio vs Rendimiento</span></div>
-        <div id="be-banner" style="display:flex;align-items:center;justify-content:space-between;background:var(--dorado-pale);border:.5px solid rgba(201,168,76,.4);border-radius:10px;padding:.75rem 1rem;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div>
-            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);margin-bottom:3px">Break-even calculado</div>
-            <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;color:var(--verde)" id="be-precio-display">USD —/t</div>
-            <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Precio mínimo de venta para cubrir costos cargados</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:10px;color:var(--texto-suave);margin-bottom:2px">Precio actual BCR</div>
-            <div style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace;color:var(--verde)" id="be-precio-actual">USD —/t</div>
-            <div style="font-size:11px;margin-top:2px" id="be-colchon"></div>
-          </div>
-        </div>
-        <div style="overflow-x:auto"><table class="sens-table" id="tabla-sens-campo-r"></table></div>
-      </div>
     </div>
 
     <!-- TAB: CULTIVO (línea de tiempo de eventos agronómicos) -->
@@ -18038,56 +18021,6 @@ function renderCampoRent() {
   // ── P&L del campo (acordeón con desglose por rubro) ──
   window._crAcordeonData={c:c,gf:gf,ingRowsData:ingRowsData,totalIngUSD:totalIngUSD,costoUSD:costoUSD,costoOperativo:costoOperativo,costoEstr:costoEstr,costoHa:costoHa,porRubroMap:porRubroMap,rubrosArr:rubrosArr,ha:ha,ingHaReal:ingHaReal,mgHaReal:mgHaReal,pr:pr}
   _refreshCrAcordeon()
-
-  // ── Break-even ──
-  var bePrice = rend > 0 ? Math.round(costoHa / rend) : null  // precio mínimo al rend actual
-  var beYield = pr > 0 ? costoHa / pr : null                  // rend mínimo al precio actual
-  var bePriceEl = document.getElementById('be-precio-display')
-  var bePriceActEl = document.getElementById('be-precio-actual')
-  var beColchonEl = document.getElementById('be-colchon')
-  if(bePriceEl) bePriceEl.textContent = bePrice ? 'USD '+bePrice+'/t' : 'USD —/t'
-  if(bePriceActEl) bePriceActEl.textContent = pr ? 'USD '+Math.round(pr)+'/t' : 'USD —/t'
-  if(beColchonEl && bePrice) {
-    var colchon = Math.round(pr) - bePrice
-    beColchonEl.innerHTML = colchon >= 0
-      ? '<span style="color:#1a7a52;font-weight:600">+USD '+colchon+'/t de margen</span>'
-      : '<span style="color:var(--rojo);font-weight:600">USD '+colchon+'/t bajo costo</span>'
-  }
-
-  // ── Tabla de sensibilidad ──
-  var rendVar=[-20,-10,0,10,20],prVar=[-20,-10,0,10,20]
-  var rendList=rendVar.map(function(v){return Math.round(rend*(1+v/100)*10)/10})
-  var prList=prVar.map(function(v){return Math.round(pr*(1+v/100))})
-  // Encontrar la fila más cercana al break-even yield
-  var closestBeIdx = 0, closestBeDist = Infinity
-  if(beYield !== null) {
-    rendList.forEach(function(r,ri){ var d=Math.abs(r-beYield); if(d<closestBeDist){closestBeDist=d;closestBeIdx=ri} })
-  }
-  var thead='<thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">Rend \ Precio</th>'
-  prVar.forEach(function(v,i){thead+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--texto-suave);background:var(--crema);border-bottom:.5px solid var(--borde)">USD '+prList[i]+'<div style="font-size:9px;opacity:.6">'+(v===0?'Base':(v>0?'+':'')+v+'%')+'</div></th>'})
-  thead+='<th style="padding:8px;text-align:center;font-size:11px;color:var(--amber);background:rgba(201,168,76,.08);border-bottom:.5px solid var(--borde)">Precio BE<div style="font-size:9px;opacity:.7">mín. venta</div></th>'
-  thead+='</tr></thead>'
-  var tbody='<tbody>'
-  rendList.forEach(function(r,ri){
-    var isBeRow = beYield!==null && ri===closestBeIdx && closestBeDist < 1.5
-    var bePriceRow = r > 0 ? Math.round(costoHa/r) : null
-    tbody+='<tr'+(isBeRow?' class="be-fila"':'')+'>'
-    tbody+='<td style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--texto-mid);border-bottom:.5px solid var(--borde)">'+r+' t/ha'+(isBeRow?' <span style="font-size:9px;background:var(--dorado);color:var(--verde);padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:middle">BE</span>':'')+'</td>'
-    prList.forEach(function(p,pi){
-      var mg=r*p-costoHa,isBase=(rendVar[ri]===0&&prVar[pi]===0)
-      var cls,val
-      if(isBase){ cls='cell-base'; val=(mg>=0?'+':'')+Math.round(mg) }
-      else if(Math.abs(mg)<15){ cls='cell-be'; val='≈ 0' }
-      else if(mg>=0){ cls='cell-pos'; val='+'+Math.round(mg) }
-      else{ cls='cell-neg'; val=Math.round(mg).toString() }
-      tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde)"><span class="'+cls+'">'+val+'</span></td>'
-    })
-    tbody+='<td style="padding:7px 8px;text-align:center;border-bottom:.5px solid var(--borde);background:rgba(201,168,76,.05)">'+(bePriceRow?'<span class="cell-be">USD '+bePriceRow+'</span>':'—')+'</td>'
-    tbody+='</tr>'
-  })
-  tbody+='</tbody>'
-  var tEl = document.getElementById('tabla-sens-campo-r')
-  if(tEl) tEl.innerHTML = thead+tbody
 }
 
 window.calcRendCampo = function() {
@@ -18616,7 +18549,7 @@ window.guardarRendCampo = function() {
   // pero nunca llegaba al server, y al recargar se perdía.
   ;(async function() {
     try {
-      await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: payloadFull, timeout: 8000})
+      await _dbMutate({method:'update', table:'campos', filter:{col:'id', val:campoDet}, payload: payloadFull, timeout: 8000})
     } catch(err) {
       var msg = String(err && err.message || err || '')
       // Si el schema del user no tiene la columna ingresos_cultivos (migración
@@ -18624,9 +18557,9 @@ window.guardarRendCampo = function() {
       if (msg.indexOf('ingresos_cultivos') >= 0) {
         console.warn('guardarIngresos: columna ingresos_cultivos no disponible, retry sin JSON')
         try {
-          await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: updateObj, timeout: 8000})
+          await _dbMutate({method:'update', table:'campos', filter:{col:'id', val:campoDet}, payload: updateObj, timeout: 8000})
           if (Object.keys(haCultivoNew).length) {
-            try { await _dbMutate({method:'PATCH', table:'campos', filter:{col:'id', val:campoDet}, payload: extraObj, timeout: 8000}) } catch(e2) {}
+            try { await _dbMutate({method:'update', table:'campos', filter:{col:'id', val:campoDet}, payload: extraObj, timeout: 8000}) } catch(e2) {}
           }
         } catch(err2) {
           console.warn('guardarIngresos retry error:', err2 && err2.message)

@@ -9365,7 +9365,7 @@ function _actualizarInsumoSel(rubro) {
     var stk = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2})
     var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
     var nombre = i.nombre || '(sin nombre)'
-    var ubic = i.ubicacion ? ' 📍 ' + i.ubicacion : ''
+    var ubic = i.ubicacion ? ', ' + i.ubicacion : ''
     opts += '<option value="'+i.id+'">'+ nombre + ubic +' — stock: '+ stk +' '+ u +'</option>'
   })
   sel.innerHTML = opts

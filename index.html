@@ -4716,7 +4716,6 @@ function _renderDashboardProductor() {
           <div class="cm" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">
             <span style="background:${cultivoBg};color:${cultivoColor};font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600">${cult}</span>
             <span style="display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:${estadoColor};display:inline-block"></span><span style="font-size:10px;color:${estadoColor}">${estadoTxt}</span></span>
-            ${c.rendimiento?`<span style="font-size:10px;color:var(--texto-suave)">Rinde: ${c.rendimiento} t/ha</span>`:''}
           </div>
         </div>
         <div class="cmg"><div class="cmgv" style="color:${mc}">${mg>=0?'+':''}${Math.round(mg)} USD/ha</div><div class="cmgp">${ha.toLocaleString('es-AR')} ha</div></div>
@@ -15324,7 +15323,6 @@ window.renderCamposLista = function() {
       html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap">'
       html += '<span style="background:'+cultivoBg+';color:'+cultivoColor+';font-size:10px;padding:3px 9px;border-radius:6px;font-weight:600">'+cult+'</span>'
       html += '<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:'+estadoColor+';display:inline-block"></span><span style="font-size:11px;color:'+estadoColor+'">'+estadoTxt+'</span></span>'
-      if(c.rendimiento) html += '<span style="font-size:11px;color:var(--texto-suave);margin-left:auto">Rinde: <strong style="color:#1a7a52">'+c.rendimiento+' t/ha</strong></span>'
       html += '</div>'
     }
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;margin-bottom:.85rem">'
@@ -15332,8 +15330,8 @@ window.renderCamposLista = function() {
     html += '<div style="color:var(--texto-suave)">Tenencia</div><div style="font-weight:500">'+(c.tenencia||'Propio')+'</div>'
     html += '</div>'
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:.5px solid var(--borde)">'
-    html += '<div style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+mc+'">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha</div>'
-    html += '<div style="display:flex;gap:8px;font-size:11px;color:var(--texto-suave)"><span>🌧️ '+llMm.toFixed(0)+'mm</span><span>💰 '+nG+'</span><span>🔬 '+nA+'</span></div>'
+    html += '<div style="font-size:14px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+mc+'">'+(mg>=0?'+':'')+Math.round(mg)+' USD/ha <span class="ra-help" data-tip="Ganancia por hectárea de la campaña activa: ingresos brutos menos gastos. Verde si estás ganando, rojo si estás perdiendo." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
+    html += '<div style="display:flex;gap:8px;font-size:11px;color:var(--texto-suave)"><span title="Lluvias acumuladas en la campaña">🌧️ '+llMm.toFixed(0)+'mm</span><span title="Cantidad de gastos cargados en la campaña">💰 '+nG+'</span><span title="Análisis de suelo cargados">🔬 '+nA+'</span></div>'
     html += '</div></div></div>'
   })
   html += '</div>'
@@ -17525,7 +17523,7 @@ window.renderIngresosTab = function() {
 
       // ── Bloque de rendimiento (2 inputs sincronizados) ──
       + '<div style="border:1px solid '+border+';border-radius:10px;padding:14px 16px;margin-bottom:12px;background:'+bgVerde+';border-left:4px solid '+accVerde+'">'
-      +   '<div style="'+LBL+'">Rendimiento de la cosecha</div>'
+      +   '<div style="'+LBL+'">Rendimiento de la cosecha <span class="ra-help" data-tip="Cargá cualquiera de los dos campos: toneladas totales cosechadas o rendimiento por hectárea. El otro se calcula solo." tabindex="0">i</span></div>'
       +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">'
       +     '<div>'
       +       '<label style="font-size:12px;color:'+muted+';font-weight:600;display:block;margin-bottom:4px">Toneladas por hectárea</label>'
@@ -17548,17 +17546,17 @@ window.renderIngresosTab = function() {
       // ── Balance simple: 3 columnas ──
       + '<div style="border:1px solid '+border+';border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fff;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
       +   '<div style="text-align:center">'
-      +     '<div style="'+LBL+'">Cosechadas</div>'
+      +     '<div style="'+LBL+'">Cosechadas <span class="ra-help" data-tip="Toneladas totales que levantaste del lote." tabindex="0">i</span></div>'
       +     '<div id="cr-cosechadas-'+sid+'" style="font-size:20px;font-weight:800;color:'+text+';font-family:DM Mono,monospace">'+(cosVal||0)+'</div>'
       +     '<div style="font-size:11px;color:'+muted+'">toneladas</div>'
       +   '</div>'
       +   '<div style="text-align:center;border-left:1px solid '+border+';border-right:1px solid '+border+'">'
-      +     '<div style="'+LBL+'">Vendidas</div>'
+      +     '<div style="'+LBL+'">Vendidas <span class="ra-help" data-tip="Suma de toneladas de todas las ventas cargadas abajo — con precio confirmado y con precio a fijar." tabindex="0">i</span></div>'
       +     '<div id="cr-vendidas-'+sid+'" style="font-size:20px;font-weight:800;font-family:DM Mono,monospace;color:'+accVerde+'">0</div>'
       +     '<div id="cr-vendidas-sub-'+sid+'" style="font-size:11px;color:'+muted+'">t vendidas</div>'
       +   '</div>'
       +   '<div style="text-align:center">'
-      +     '<div style="'+LBL+'">Por vender</div>'
+      +     '<div style="'+LBL+'">Por vender <span class="ra-help" data-tip="Toneladas cosechadas menos vendidas — lo que aún tenés en stock. Si vendés de más aparece en rojo." tabindex="0">i</span></div>'
       +     '<div id="cr-porvender-'+sid+'" style="font-size:20px;font-weight:800;font-family:DM Mono,monospace;color:#a16207">0</div>'
       +     '<div id="cr-porvender-sub-'+sid+'" style="font-size:11px;color:'+muted+'">t en stock</div>'
       +   '</div>'
@@ -18277,7 +18275,7 @@ window.renderRentabilidadTotal = function() {
     heroEl.innerHTML = '<div class="card" style="padding:20px 24px;margin-bottom:0">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">'+
         '<div style="min-width:200px;flex:1">'+
-          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Margen neto de la campaña</div>'+
+          '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Margen neto de la campaña <span class="ra-help" data-tip="Suma de márgenes de todos tus campos: ingresos por ventas menos gastos operativos y estructura. El delta compara con la campaña anterior." tabindex="0">i</span></div>'+
           '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'+
             '<span style="font-size:34px;font-weight:800;color:'+mgColorHero+';font-family:DM Mono,monospace;line-height:1.1">'+(mgHaGlobal>=0?'+':'')+'USD '+Math.round(mgHaGlobal).toLocaleString('es-AR')+'</span>'+
             '<span style="font-size:14px;color:var(--texto-suave);font-weight:600">/ ha</span>'+
@@ -18821,7 +18819,7 @@ function renderDetGastos() {
     heroEl.innerHTML = '<div class="card" style="padding:18px 22px;margin-bottom:0;background:#fef2f2;border-left:4px solid #dc2626">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">'
         +'<div>'
-          +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Total de gastos</div>'
+          +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--texto-suave);font-weight:700;margin-bottom:6px">Total de gastos <span class="ra-help" data-tip="Suma de todos los gastos cargados de este campo en la campaña activa. Cambia según el selector global de campaña." tabindex="0">i</span></div>'
           +'<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'
             +'<span style="font-size:32px;font-weight:800;color:#c0392b;font-family:DM Mono,monospace;line-height:1.1">'+fmtMonto(costoUSD)+'</span>'
             +'<span style="font-size:13px;color:var(--texto-suave);font-weight:600">·  '+costoHaStr+' /ha</span>'

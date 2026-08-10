@@ -9347,13 +9347,21 @@ function _actualizarInsumoSel(rubro) {
     return
   }
   row.style.display = ''
-  var disp = (insumos||[]).filter(function(i){ return i.tipo === rubro })
+  // Ordenar por nombre → ubicación para que las mismas variantes queden juntas
+  // (mismo producto en múltiples ubicaciones = filas separadas en stock_insumos)
+  var disp = (insumos||[]).filter(function(i){ return i.tipo === rubro }).slice().sort(function(a,b){
+    var na = (a.nombre||'').toLowerCase(), nb = (b.nombre||'').toLowerCase()
+    if (na !== nb) return na.localeCompare(nb)
+    return (a.ubicacion||'').localeCompare(b.ubicacion||'')
+  })
   var prev = sel.value
   var opts = '<option value="">— Sin vincular a stock —</option>'
   disp.forEach(function(i){
     var stk = (parseFloat(i.stock_actual)||0).toLocaleString('es-AR',{maximumFractionDigits:2})
     var u = (INS_UNI_LABEL && INS_UNI_LABEL[i.unidad]) || i.unidad
-    opts += '<option value="'+i.id+'">'+ (i.nombre||'(sin nombre)') +' — stock: '+ stk +' '+ u +'</option>'
+    var nombre = i.nombre || '(sin nombre)'
+    var ubic = i.ubicacion ? ' 📍 ' + i.ubicacion : ''
+    opts += '<option value="'+i.id+'">'+ nombre + ubic +' — stock: '+ stk +' '+ u +'</option>'
   })
   sel.innerHTML = opts
   if(prev && disp.find(function(i){return i.id===prev})) sel.value = prev

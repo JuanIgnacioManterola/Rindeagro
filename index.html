@@ -4625,9 +4625,18 @@ function _sparklineSVG(serie, color, tipo) {
 
 function _renderDashboardProductor() {
   var totalHa=0,ing=0,cost=0
+  // Filtramos gastos por campaña activa — antes sumaba histórico completo y
+  // el label decía "Esta campaña", confundiendo al user con números inflados
+  // que no cuadraban con el P&L del campo.
+  var _campRDash = getCampanaRange(campanaActivaId || 'actual')
+  function _enCampRDash(g) {
+    if (!g.fecha) return false
+    var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+    return d >= _campRDash.start && d <= _campRDash.end
+  }
   campos.forEach(function(c) {
     var ha=c.hectareas||0; totalHa+=ha
-    var gc=gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    var gc=gastos.filter(function(g){return g.campo_id===c.id && _enCampRDash(g)}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     ing += _ingRealParaCampo(c)
     cost += gc
   })
@@ -4891,8 +4900,16 @@ function renderRentabilidad() {
       // ── MULTI-CULTIVO: una sección por cultivo ──
       var savedIngMC = {}; try{ savedIngMC=JSON.parse(campo.ingresos_cultivos||'{}') }catch(e){}
       var savedHaMC  = {}; try{ savedHaMC=JSON.parse(campo.hectareas_cultivo||'{}')  }catch(e){}
-      // Gastos del campo: específicos por cultivo (g.cultivo asignado) y compartidos (g.cultivo NULL → reparto por ha)
-      var gastosCampoMC = gastos.filter(function(g){return g.campo_id===campoIdMC})
+      // Gastos del campo: específicos por cultivo (g.cultivo asignado) y compartidos (g.cultivo NULL → reparto por ha).
+      // Filtramos por campaña activa para que los totales cuadren con el P&L
+      // del tab Rentabilidad (mismo criterio en todas las vistas).
+      var _campRMC = getCampanaRange(campanaActivaId || 'actual')
+      var gastosCampoMC = gastos.filter(function(g){
+        if (g.campo_id !== campoIdMC) return false
+        if (!g.fecha) return false
+        var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+        return d >= _campRMC.start && d <= _campRMC.end
+      })
       var haTotMC = cultMC.reduce(function(a,c2){return a + (parseFloat(savedHaMC[c2])||(ha/cultMC.length))}, 0) || ha
       var mcRows = cultMC.map(function(cult) {
         var d = savedIngMC[cult]||{}
@@ -17261,6 +17278,7 @@ window._ingSetCosechadas = function(cult, val) {
     }
   } catch(e) {}
   calcIngresosLive()
+  if (typeof _ingScheduleAutoSave === 'function') _ingScheduleAutoSave()
 }
 
 // Setter llamado desde el input "Rendimiento por hectárea" — deriva tn cosechadas = rend × ha
@@ -17274,6 +17292,7 @@ window._ingSetRendHa = function(cult, val) {
   var cosEl = document.getElementById('cr-cos-'+sid)
   if (cosEl) cosEl.value = tn
   calcIngresosLive()
+  if (typeof _ingScheduleAutoSave === 'function') _ingScheduleAutoSave()
 }
 
 // Selector de cultivo — mismo patrón que Gastos. null = mostrar picker,
@@ -17288,7 +17307,25 @@ window.volverCultivoIngresos = function() {
   renderIngresosTab()
 }
 
-window._ingUpdateVenta = function() { calcIngresosLive() }
+// Auto-save debounceado: 1.2s después del último cambio dispara guardado
+// silencioso (sin toast si sale OK). Si falla, guardarRendCampo muestra
+// toast rojo. El botón "Guardar cambios" del header sigue disponible como
+// alternativa manual con toast verde de confirmación.
+var _ingAutoSaveTimer = null
+window._ingAutoSaving = false
+window._ingScheduleAutoSave = function() {
+  if (_ingAutoSaveTimer) clearTimeout(_ingAutoSaveTimer)
+  _ingAutoSaveTimer = setTimeout(function() {
+    _ingAutoSaveTimer = null
+    if (typeof guardarRendCampo === 'function') {
+      window._ingAutoSaving = true
+      try { guardarRendCampo() } catch(e) {}
+      // _ingAutoSaving se limpia en guardarRendCampo — hay un async dentro
+    }
+  }, 1200)
+}
+
+window._ingUpdateVenta = function() { calcIngresosLive(); _ingScheduleAutoSave() }
 
 window.renderIngresosTab = function() {
   var c = campos.find(function(f){return f.id===campoDet}); if(!c) return
@@ -18531,7 +18568,12 @@ window.guardarRendCampo = function() {
       precio_venta: precioMed
     }
   })
-  if(!hayDato){showToast('\u26a0\ufe0f Cargá las toneladas cosechadas o al menos una venta con toneladas','err');return}
+  if(!hayDato){
+    // Auto-save silencioso: no interrumpir con toast cuando aún no hay data cargada.
+    if (window._ingAutoSaving) { window._ingAutoSaving = false; return }
+    showToast('\u26a0\ufe0f Cargá las toneladas cosechadas o al menos una venta con toneladas','err')
+    return
+  }
   var ingrJson = JSON.stringify(ingrData)
   var idx = campos.findIndex(function(f){return f.id===campoDet})
   if(idx>=0) {
@@ -18573,7 +18615,8 @@ window.guardarRendCampo = function() {
   try { if (typeof renderCampoRent === 'function') renderCampoRent() } catch(e) {}
   try { if (typeof window.renderRentabilidadTotal === 'function') window.renderRentabilidadTotal() } catch(e) {}
   try { renderDashboard() } catch(e) {}
-  showToast('\u2713 Ingresos guardados','ok')
+  // Auto-save no muestra el toast verde (evita spam al tipear). Save manual s\u00ed.
+  if (!window._ingAutoSaving) showToast('\u2713 Ingresos guardados','ok')
   var primer0 = cultivos[0]
   var updateObj = {rendimiento: ingrData[primer0]?.rendimiento||null, precio_venta: ingrData[primer0]?.precio_venta||null}
   var extraObj = Object.keys(haCultivoNew).length ? {hectareas_cultivo: JSON.stringify(haCultivoNew)} : {}
@@ -18605,6 +18648,9 @@ window.guardarRendCampo = function() {
         console.warn('guardarIngresos error:', msg)
         showToast('⚠️ No se pudo guardar en el server: '+(msg||'error desconocido'),'err')
       }
+    } finally {
+      // Reset flag de auto-save al terminar la persistencia (OK o error)
+      window._ingAutoSaving = false
     }
   })()
 }

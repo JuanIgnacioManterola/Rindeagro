@@ -15244,7 +15244,18 @@ window.renderCamposLista = function() {
     var ha = c.hectareas||0
     var faltaCultivo = !c.cultivo || String(c.cultivo).trim() === ''
     var cult = faltaCultivo ? '' : c.cultivo
-    var gc = gastos.filter(function(g){return g.campo_id===c.id}).reduce(function(a,g){return a+(g.total_de_usd||0)},0)
+    // Rango de campaña activa — se usa para filtrar gastos, lluvias y contadores
+    // así los números de la card cuadran con el P&L nuevo (que también filtra).
+    // Antes: gc sumaba TODAS las campañas históricas, dividido por c.hectareas
+    // daba mg/ha absurdo (ej -9675) que no coincidía con el P&L (+1038).
+    var _campR = getCampanaRange(campanaActivaId)
+    function _enCampR(g) {
+      if (!g.fecha) return false
+      var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+      return d >= _campR.start && d <= _campR.end
+    }
+    var gastosCampo = gastos.filter(function(g){ return g.campo_id===c.id && _enCampR(g) })
+    var gc = gastosCampo.reduce(function(a,g){return a+(g.total_de_usd||0)},0)
     var cHa = ha>0?gc/ha:0
     var ingTotal = _ingRealParaCampo(c)
     var mg = (ha>0?ingTotal/ha:0) - cHa
@@ -15252,14 +15263,13 @@ window.renderCamposLista = function() {
     // mm SOLO de la campaña actual (jul año → jun año+1). Antes sumaba histórico completo — bug reportado por usuario.
     // Nota: forzamos T00:00:00 para evitar TZ shift (new Date('YYYY-MM-DD') parsea como UTC medianoche
     // y el rango está construido en local time con new Date(y, 6, 1)).
-    var _campR = getCampanaRange(campanaActivaId)
     var llMm = lluvias.filter(function(l){
       if (l.campo_id !== c.id) return false
       if (!l.fecha) return false
       var d = new Date(l.fecha + 'T00:00:00')
       return d >= _campR.start && d <= _campR.end
     }).reduce(function(a,l){return a+(parseFloat(l.mm)||0)},0)
-    var nG = gastos.filter(function(g){return g.campo_id===c.id}).length
+    var nG = gastosCampo.length
     var nA = analisisS.filter(function(a){return a.campo_id===c.id}).length
     var col = COLS[i%COLS.length]
     var borderExtra = faltaCultivo ? ';border:2px solid var(--dorado);box-shadow:0 4px 14px rgba(201,168,76,.15)' : ''

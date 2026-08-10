@@ -805,31 +805,25 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
          dashboard mientras el user no complete los 3 pasos y no haya dado
          "no mostrar mas". Auto-detecta el progreso via campos/gastos. -->
     <div id="dash-onboarding" style="display:none"></div>
+    <!-- Layout Inicio: 2 columnas con Tareas / Cuentas por vencer, y Mi equipo
+         full-width abajo. Antes tenia 'Mis campos' pero se saco porque duplicaba
+         info que ya esta en el nav (Campos, Rentabilidad). -->
     <div class="grid2">
-      <div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit" id="dash-campos-tit">Mis campos</span><button class="btn-vs" id="dash-campos-btn" onclick="openModalCampo()">+ Nuevo campo</button></div>
-          <div id="dash-campos"></div>
-        </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
+        <div id="dash-tareas"></div>
       </div>
-      <div>
-        <div class="card">
-          <div class="card-hdr"><span class="card-tit">Tareas pendientes</span><button class="btn-vs" onclick="abrirModalTarea()">+ Nueva</button></div>
-          <div id="dash-tareas"></div>
+      <div class="card" id="dash-pagos-card" style="margin-bottom:0;display:none">
+        <div class="card-hdr">
+          <span class="card-tit">💰 Cuentas por vencer</span>
+          <button class="btn-vs" onclick="showModulo('pagos')">Ver todas →</button>
         </div>
-        <!-- Widget Cuentas por vencer (debajo de Tareas, mismo estilo) -->
-        <div class="card" id="dash-pagos-card" style="display:none;margin-top:14px">
-          <div class="card-hdr">
-            <span class="card-tit">💰 Cuentas por vencer</span>
-            <button class="btn-vs" onclick="showModulo('pagos')">Ver todas →</button>
-          </div>
-          <div id="dash-pagos"></div>
-        </div>
+        <div id="dash-pagos"></div>
       </div>
     </div>
 
-    <!-- Widget Mi equipo -->
-    <div class="card" id="dash-equipo-card">
+    <!-- Widget Mi equipo — full width abajo -->
+    <div class="card" id="dash-equipo-card" style="margin-top:14px">
       <div class="card-hdr">
         <span class="card-tit">👥 Mi equipo</span>
         <button class="btn-vs" onclick="openModalMiEquipo()">+ Invitar</button>

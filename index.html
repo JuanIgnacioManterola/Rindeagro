@@ -5765,7 +5765,43 @@ window._dibujarPoligonoCampo = function(campoId) {
     if (_drawMouseThrottle) return
     _drawMouseThrottle = setTimeout(function(){ _drawMouseThrottle = null; _updateDrawHaCounter() }, 60)
   }
-  mapInstance.on('draw:drawvertex', _updateDrawHaCounter)
+
+  // Vertices draggable durante el dibujo. Cada vez que se agrega un vertex,
+  // habilitamos su drag y hookeamos el 'drag' para redibujar la linea del
+  // poligono en curso y actualizar el area en vivo. Sin esto los puntos
+  // quedan fijos hasta terminar y el user no puede ajustar la forma.
+  function _sincronizarPolyDesdeMarkers() {
+    if (!_dibujandoHandler) return
+    var markers = _dibujandoHandler._markers || []
+    var latlngs = markers.map(function(m){ return m.getLatLng() })
+    if (_dibujandoHandler._poly && typeof _dibujandoHandler._poly.setLatLngs === 'function') {
+      _dibujandoHandler._poly.setLatLngs(latlngs)
+    }
+  }
+  function _habilitarDragEnMarkers() {
+    if (!_dibujandoHandler) return
+    var markers = _dibujandoHandler._markers || []
+    markers.forEach(function(m){
+      if (m._raDragHooked) return
+      m._raDragHooked = true
+      try {
+        if (m.dragging) m.dragging.enable()
+        m.on('drag', function(){
+          _sincronizarPolyDesdeMarkers()
+          _updateDrawHaCounter()
+        })
+        m.on('dragend', function(){
+          _sincronizarPolyDesdeMarkers()
+          _updateDrawHaCounter()
+        })
+      } catch(e) { /* leaflet marker sin dragging — ignorar */ }
+    })
+  }
+
+  mapInstance.on('draw:drawvertex', function(){
+    _updateDrawHaCounter()
+    _habilitarDragEnMarkers()
+  })
   mapInstance.on('draw:drawstart', _updateDrawHaCounter)
   mapInstance.on('mousemove', _onDrawMouseMove)
 

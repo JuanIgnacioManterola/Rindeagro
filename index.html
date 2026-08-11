@@ -19071,7 +19071,7 @@ window.renderRentabilidadTotal = function() {
     }
   } catch(e) { deltaMgHaPctGlobal = null; deltaPorCampo = {} }
 
-  // ── HERO: margen glanceable con sparkline + delta ──
+  // ── HERO: margen glanceable + delta ──
   var heroEl = document.getElementById('rt-hero')
   if (heroEl) {
     var mgColorHero = mgHaGlobal >= 0 ? '#0F6E56' : '#c0392b'
@@ -19082,9 +19082,6 @@ window.renderRentabilidadTotal = function() {
       var arr  = deltaMgHaPctGlobal >= 0 ? '↑' : '↓'
       deltaHtml = '<span style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;color:'+dCol+';background:'+dBg+';padding:4px 10px;border-radius:999px;font-family:DM Mono,monospace" title="Variación del margen /ha respecto de la campaña anterior">'+arr+' '+Math.abs(Math.round(deltaMgHaPctGlobal))+'%</span>'
     }
-    var sparkColor = mgHaGlobal >= 0 ? '#639922' : '#c0392b'
-    var sparkline = ''
-    try { sparkline = _sparklineSVG(_serieMensualIngresos(6), sparkColor, 'area') } catch(e) {}
     heroEl.innerHTML = '<div class="card" style="padding:20px 24px;margin-bottom:0">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">'+
         '<div style="min-width:200px;flex:1">'+
@@ -19098,7 +19095,6 @@ window.renderRentabilidadTotal = function() {
             (mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal).toLocaleString('es-AR')+' total · '+totalHa.toLocaleString('es-AR')+' ha · '+campos.length+' campo'+(campos.length!==1?'s':'')+
           '</div>'+
         '</div>'+
-        (sparkline ? '<div style="width:180px;flex:0 0 auto"><div style="font-size:10px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600">Ingresos últimos 6 meses</div>'+sparkline+'</div>' : '')+
       '</div>'+
     '</div>'
   }
@@ -19203,7 +19199,7 @@ window.renderRentabilidadTotal = function() {
     {l:'Ingresos totales',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a7a52'},
     {l:'Costos totales',v:'USD '+Math.round(costoTotalConEstr/1000)+'k',s:(costoEstructuraGlobal>0?'incluye USD '+Math.round(costoEstructuraGlobal/1000)+'k de estructura':'USD '+Math.round(totalHa>0?costoTotalConEstr/totalHa:0)+'/ha promedio'),c:'#c0392b'},
     {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc}
-  ].map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+  ].map(function(m){return '<div class="met"><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // ── Cards por campo — nuevo diseño glanceable ──
   // Ordenadas de mejor a peor margen. Cada card muestra: nombre + cultivo,
@@ -19251,7 +19247,7 @@ window.renderRentabilidadTotal = function() {
         var mgTotLabel = (mgTot>=0?'+':'-')+'USD '+Math.abs(Math.round(mgTot/1000)).toLocaleString('es-AR')+'k'
         var nombreSafe = (d.c.nombre||'Sin nombre').replace(/'/g,"\\'").replace(/"/g,'&quot;')
         var cultivoLbl = (d.c.cultivo||'Soja')
-        return '<div class="card" role="button" tabindex="0" aria-label="Ver detalle de '+nombreSafe+'" style="cursor:pointer;margin-bottom:0;padding:14px 16px;border-left:3px solid '+borderCol+';border-top-left-radius:8px;border-bottom-left-radius:8px" onclick="verCampoDesdeRent(\''+d.c.id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();verCampoDesdeRent(\''+d.c.id+'\')}">'+
+        return '<div class="card" role="button" tabindex="0" aria-label="Ver detalle de '+nombreSafe+'" style="cursor:pointer;margin-bottom:0;padding:14px 16px" onclick="verCampoDesdeRent(\''+d.c.id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();verCampoDesdeRent(\''+d.c.id+'\')}">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">'+
             '<span style="font-weight:700;font-size:14px;color:#000">'+(d.c.nombre||'Sin nombre')+'</span>'+
             '<span style="font-size:11px;color:var(--texto-suave);white-space:nowrap">'+cultivoLbl+' · '+d.ha+' ha</span>'+

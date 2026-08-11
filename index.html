@@ -18555,9 +18555,9 @@ function _refreshCrAcordeon() {
   // Las filas de TOTALES (Ingresos brutos, Gastos totales) usan un tono
   // levemente más saturado que los items que las componen — así se ve la
   // jerarquía sin cambiar la paleta.
-  var bgIngresos='#ecfdf5',  bgIngresosTot='#d1fae5', accIngresos='#059669'
-  var bgCostos='#fef2f2',    bgCostosTot='#fee2e2',   accCostos='#dc2626'
-  var bgEstr='#fee2e2',      accEstr='#991b1b'
+  var bgIngresos='#fff',  bgIngresosTot='#fff', accIngresos='#1a7a52'
+  var bgCostos='#fff',    bgCostosTot='#fff',   accCostos='#c0392b'
+  var bgEstr='#fff',      accEstr='#c0392b'
   var muted='#475569', text='#0f172a', border='#e5e7eb'
   var GRID_COLS = 'grid-template-columns:1.8fr 0.9fr 1fr 0.5fr;gap:12px'
 
@@ -18601,7 +18601,7 @@ function _refreshCrAcordeon() {
       +'<div><div style="font-size:14px;color:'+text+';font-weight:700">Ingresos brutos <span class="ra-help" data-tip="Suma de todas las ventas con precio confirmado. Las ventas con precio a fijar no cuentan hasta que cierres el precio." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+ingRows.length+' cultivo'+(ingRows.length!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+_mil(ingHa)+' USD/ha</div>'
-      +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">USD '+_mil(totalIng)+'</div>'
+      +'<div style="text-align:right;font-size:14px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">USD '+_mil(totalIng)+'</div>'
       +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' '+pct+'</div>'
       +'</div>'
     if (totalIng>0 && _crAcSt.ingOpen) {
@@ -18613,7 +18613,7 @@ function _refreshCrAcordeon() {
           var tn=parseFloat(v.tn||0), pr2=parseFloat(v.precio||0)
           if (tn<=0 && pr2<=0) return
           anyVenta = true
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,.7);border-radius:4px;margin-bottom:3px;font-size:11px">'
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f7f7f5;border-radius:4px;margin-bottom:3px;font-size:11px">'
             +'<span style="color:'+muted+'">'+(v.concepto||'Venta')+(v.fecha?' · '+v.fecha.slice(0,7):'')+' · '+tn.toLocaleString('es-AR',{maximumFractionDigits:1})+' t @ USD '+pr2+'/t</span>'
             +'<span style="font-family:DM Mono,monospace;font-weight:700;color:'+accIngresos+'">USD '+_mil(tn*pr2)+'</span>'
             +'</div>'
@@ -18640,7 +18640,7 @@ function _refreshCrAcordeon() {
       +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) '+lblSafe+' <span class="ra-help" data-tip="Click para desglosar los items individuales de este rubro con su porcentaje del total." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rd.gastos.length+' gasto'+(rd.gastos.length!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
-      +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(rd.total)+')</div>'
+      +'<div style="text-align:right;font-size:14px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">('+_mil(rd.total)+')</div>'
       +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' '+pct+'</div>'
       +'</div>'
     if (isROpen && rd.gastos.length) {
@@ -18652,7 +18652,7 @@ function _refreshCrAcordeon() {
         var monto = Math.round((g2.total_de_usd||0)*fr)
         var fechaStr = g2.fecha ? g2.fecha.slice(0,7) : ''
         var fracLbl = fr < 1 ? ' <span style="opacity:.7">('+Math.round(fr*100)+'%)</span>' : ''
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,.7);border-radius:4px;margin-bottom:3px;font-size:11px">'
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f7f7f5;border-radius:4px;margin-bottom:3px;font-size:11px">'
           +'<span style="color:'+muted+'">'+desc+(fechaStr?' · '+fechaStr:'')+fracLbl+'</span>'
           +'<span style="font-family:DM Mono,monospace;font-weight:700;color:'+accCostos+'">USD '+_mil(monto)+'</span>'
           +'</div>'
@@ -18683,7 +18683,7 @@ function _refreshCrAcordeon() {
       +'<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Gastos totales <span class="ra-help" data-tip="Suma de todos los rubros: semillas, herbicidas, fertilizantes, labores, flete, etc. Click en la fila para desglosar por rubro. Base 100% para el desglose." tabindex="0" onclick="event.stopPropagation()">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">'+rubrosArr.length+' rubro'+(rubrosArr.length!==1?'s':'')+' · '+nGastos+' gasto'+(nGastos!==1?'s':'')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCosto+' USD/ha</div>'
-      +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(totalG)+')</div>'
+      +'<div style="text-align:right;font-size:14px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">('+_mil(totalG)+')</div>'
       +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+chevron+' 100%</div>'
       +'</div>'
     if (_crAcSt.gasOpen && rubrosArr.length) {
@@ -18707,7 +18707,7 @@ function _refreshCrAcordeon() {
       +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Estructura <span class="ra-help" data-tip="Costos que no son del campo específico: amortizaciones de maquinaria, sueldos, seguros, honorarios. Se prorratean entre todos los campos según hectáreas." tabindex="0">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Prorrateo por hectáreas</div></div>'
       +'<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+haCos+' USD/ha</div>'
-      +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_mil(monto)+')</div>'
+      +'<div style="text-align:right;font-size:14px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">('+_mil(monto)+')</div>'
       +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">'+pct+'</div>'
       +'</div>'
   }
@@ -18716,14 +18716,14 @@ function _refreshCrAcordeon() {
   function _filaMargen(mgTotal, mgPerHa, denomIng) {
     denomIng = denomIng || totalIngUSD
     var positivo = mgTotal >= 0
-    var bg = positivo ? '#dcfce7' : '#fecaca'
-    var acc = positivo ? '#047857' : '#b91c1c'
+    var bg = '#fff'
+    var acc = positivo ? '#1a7a52' : '#c0392b'
     var pct = denomIng>0 ? (mgTotal/denomIng*100).toFixed(1)+'%' : '—'
-    return '<div style="display:grid;'+GRID_COLS+';padding:18px 20px;align-items:baseline;background:'+bg+';border-left:6px solid '+acc+';border-top:3px double '+acc+'">'
+    return '<div style="display:grid;'+GRID_COLS+';padding:16px 20px;align-items:baseline;background:'+bg+';border-left:4px solid '+acc+';border-top:2px solid '+acc+'">'
       +'<div><div style="font-size:14px;color:'+text+';font-weight:800;text-transform:uppercase;letter-spacing:.05em">Margen neto <span class="ra-help" data-tip="Ingresos brutos − Gastos totales − Estructura. Es la ganancia real que te queda del campo esta campaña." tabindex="0">i</span></div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Resultado del campo</div></div>'
       +'<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+(positivo?'+':'')+_mil(mgPerHa)+' USD/ha</div>'
-      +'<div style="text-align:right;font-size:20px;color:'+acc+';font-weight:800;font-variant-numeric:tabular-nums">'+(positivo?'+':'-')+'USD '+_mil(Math.abs(mgTotal))+'</div>'
+      +'<div style="text-align:right;font-size:16px;color:'+acc+';font-weight:800;font-variant-numeric:tabular-nums">'+(positivo?'+':'-')+'USD '+_mil(Math.abs(mgTotal))+'</div>'
       +'<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+pct+'</div>'
       +'</div>'
   }
@@ -18793,7 +18793,7 @@ function _refreshCrAcordeon() {
         +'<div><div style="font-size:13px;color:'+text+';font-weight:700">(−) Gastos totales</div>'
         +'<div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Sin gastos registrados</div></div>'
         +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">—</div>'
-        +'<div style="text-align:right;font-size:16px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">USD 0</div>'
+        +'<div style="text-align:right;font-size:14px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">USD 0</div>'
         +'<div style="text-align:right;font-size:12px;color:'+muted+';font-variant-numeric:tabular-nums;font-weight:600">0%</div>'
         +'</div>'
     } else {
@@ -19150,7 +19150,7 @@ window.renderRentabilidadTotal = function() {
       +     '<div style="display:grid;'+rowCols+';'+rowPad+';align-items:baseline;background:'+bgIngresos+';border-left:4px solid '+accIngresos+'">'
       +       '<div><div style="font-size:14px;color:'+text+';font-weight:700">Ingresos por ventas</div><div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Soja · maíz · trigo · otros</div></div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+_perHa(ingPerHa)+'</div>'
-      +       '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">'+_money(totalIngreso)+'</div>'
+      +       '<div style="text-align:right;font-size:15px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+_money(totalIngreso)+'</div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">100.0%</div>'
       +     '</div>'
 
@@ -19158,7 +19158,7 @@ window.renderRentabilidadTotal = function() {
       +     '<div style="display:grid;'+rowCols+';'+rowPad+';align-items:baseline;background:'+bgCostos+';border-left:4px solid '+accCostos+';border-top:1px solid '+border+'">'
       +       '<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Costos operativos</div><div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Insumos · labores · arriendo · flete</div></div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+_perHa(cosPerHa)+'</div>'
-      +       '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_miles(totalCosto)+')</div>'
+      +       '<div style="text-align:right;font-size:15px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">('+_miles(totalCosto)+')</div>'
       +       '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+cosPctIng.toFixed(1)+'%</div>'
       +     '</div>'
 
@@ -19167,16 +19167,16 @@ window.renderRentabilidadTotal = function() {
         ? '<div style="display:grid;'+rowCols+';'+rowPad+';align-items:baseline;background:'+bgEstructura+';border-left:4px solid '+accEstructura+';border-top:1px solid '+border+'">'
         +   '<div><div style="font-size:14px;color:'+text+';font-weight:700">(−) Estructura</div><div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Amortizaciones · sueldos · honorarios · seguros</div></div>'
         +   '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+_perHa(estrPerHa)+'</div>'
-        +   '<div style="text-align:right;font-size:18px;color:'+text+';font-weight:800;font-variant-numeric:tabular-nums">('+_miles(costoEstructuraGlobal)+')</div>'
+        +   '<div style="text-align:right;font-size:15px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">('+_miles(costoEstructuraGlobal)+')</div>'
         +   '<div style="text-align:right;font-size:12px;color:'+text+';font-variant-numeric:tabular-nums;font-weight:600">'+estrPctIng.toFixed(1)+'%</div>'
         + '</div>'
         : '')
 
       //   Margen Neto — fondo verde/rojo más saturado + border-left grueso + border-top doble (efecto contable)
-      +     '<div style="display:grid;'+rowCols+';padding:20px 22px;align-items:baseline;background:'+bgMargen+';border-left:6px solid '+accMargen+';border-top:3px double '+accMargen+'">'
+      +     '<div style="display:grid;'+rowCols+';padding:18px 22px;align-items:baseline;background:'+bgMargen+';border-left:4px solid '+accMargen+';border-top:2px solid '+accMargen+'">'
       +       '<div><div style="font-size:14px;color:'+text+';font-weight:800;text-transform:uppercase;letter-spacing:.05em">Margen neto</div><div style="font-size:11px;color:'+muted+';margin-top:2px;font-weight:500">Resultado de la campaña</div></div>'
       +       '<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+(mgPositivo?'+':'')+_miles(mgPerHa)+' USD/ha</div>'
-      +       '<div style="text-align:right;font-size:22px;color:'+accMargen+';font-weight:800;font-variant-numeric:tabular-nums;font-family:\'DM Sans\',sans-serif">'+(mgPositivo?'+':'')+_money(mgTotal).replace('(','-').replace(')','')+'</div>'
+      +       '<div style="text-align:right;font-size:17px;color:'+accMargen+';font-weight:800;font-variant-numeric:tabular-nums;font-family:\'DM Sans\',sans-serif">'+(mgPositivo?'+':'')+_money(mgTotal).replace('(','-').replace(')','')+'</div>'
       +       '<div style="text-align:right;font-size:13px;color:'+text+';font-weight:700;font-variant-numeric:tabular-nums">'+_pct(mgPctIng)+'</div>'
       +     '</div>'
 

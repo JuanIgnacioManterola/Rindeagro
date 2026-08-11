@@ -19176,10 +19176,10 @@ window.renderRentabilidadTotal = function() {
   }
   if(mEl) mEl.innerHTML = [
     {l:'Hectáreas totales',v:totalHa.toLocaleString('es-AR')+' ha',s:campos.length+' campo'+(campos.length!==1?'s':''),c:'#1a5fa8'},
-    {l:'Ingresos totales',v:'USD '+Math.round(totalIngreso/1000)+'k',s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a7a52'},
-    {l:'Costos totales',v:'USD '+Math.round(costoTotalConEstr/1000)+'k',s:(costoEstructuraGlobal>0?'incluye USD '+Math.round(costoEstructuraGlobal/1000)+'k de estructura':'USD '+Math.round(totalHa>0?costoTotalConEstr/totalHa:0)+'/ha promedio'),c:'#c0392b'},
-    {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal/1000)+'k',s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc,info:'<span class="ra-help" data-tip="Suma de márgenes de todos tus campos: ingresos por ventas menos gastos operativos y estructura. El delta compara con la campaña anterior." tabindex="0">i</span>',pill:_deltaPillMet}
-  ].map(function(m){return '<div class="met"><div class="met-l">'+m.l+(m.info?' '+m.info:'')+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+(m.pill||'')+'</div></div>'}).join('')
+    {l:'Ingresos totales',v:'USD '+Math.round(totalIngreso).toLocaleString('es-AR'),s:'USD '+Math.round(totalHa>0?totalIngreso/totalHa:0)+'/ha promedio',c:'#1a7a52'},
+    {l:'Costos totales',v:'USD '+Math.round(costoTotalConEstr).toLocaleString('es-AR'),s:(costoEstructuraGlobal>0?'incluye USD '+Math.round(costoEstructuraGlobal).toLocaleString('es-AR')+' de estructura':'USD '+Math.round(totalHa>0?costoTotalConEstr/totalHa:0)+'/ha promedio'),c:'#c0392b'},
+    {l:'Margen neto',v:(mgTotal>=0?'+':'')+'USD '+Math.round(mgTotal).toLocaleString('es-AR'),s:(mgTotal>=0?'+':'')+Math.round(mgHaGlobal)+' USD/ha prom.',c:mc,info:'<span class="ra-help" data-tip="Suma de márgenes de todos tus campos: ingresos por ventas menos gastos operativos y estructura. El delta compara con la campaña anterior." tabindex="0">i</span>',pill:_deltaPillMet}
+  ].map(function(m){return '<div class="met"><div class="met-l">'+m.l+(m.info?' '+m.info:'')+'</div><div class="met-v" style="color:'+m.c+';font-size:16px">'+m.v+'</div><div class="met-s">'+m.s+(m.pill||'')+'</div></div>'}).join('')
 
   // ── Cards por campo — nuevo diseño glanceable ──
   // Ordenadas de mejor a peor margen. Cada card muestra: nombre + cultivo,

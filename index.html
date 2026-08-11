@@ -6220,28 +6220,30 @@ function renderTareas() {
 
   el.innerHTML = lista.map(function(t) {
     var esCompletada = t.estado === 'completada'
-    var borderColor = t.prioridad==='alta' ? '#c0392b' : t.prioridad==='baja' ? '#0d6e41' : '#c9a84c'
     var completadaAt = t.completada_at ? ' · '+new Date(t.completada_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) : ''
-    return '<div class="card" style="margin-bottom:8px;border-left:3px solid '+borderColor+';'+(esCompletada?'opacity:.7':'')+';">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:14px;font-weight:600;color:var(--texto);'+(esCompletada?'text-decoration:line-through;color:var(--texto-suave)':'')+'">'+t.titulo+'</div>'
-      +(t.descripcion ? '<div style="font-size:12px;color:var(--texto-suave);margin-top:3px;line-height:1.5">'+t.descripcion+'</div>' : '')
+    // Card con la misma estructura visual que Stock de Insumos: borde completo,
+    // esquinas redondeadas (sin línea de acento a la izquierda), texto a mayor
+    // escala y botones de acción en fila horizontal a la derecha.
+    return '<div style="background:#fff;border:1.5px solid var(--borde);border-radius:12px;padding:14px 18px;margin-bottom:10px;transition:border-color .15s;'+(esCompletada?'opacity:.7':'')+'" onmouseover="this.style.borderColor=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:200px">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--texto);line-height:1.25;'+(esCompletada?'text-decoration:line-through;color:var(--texto-suave)':'')+'">'+t.titulo+'</div>'
+      +(t.descripcion ? '<div style="font-size:13px;color:var(--texto-suave);margin-top:4px;line-height:1.5">'+t.descripcion+'</div>' : '')
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center">'
       +_tarjPrioridad(t.prioridad)
       +_tarjCampo(t.campo_id)
       +(esCompletada ? _tarjRealizadaPor(t) : _tarjAsignado(t.asignado_a))
       +(t.fecha_vencimiento ? _tarjFecha(t.fecha_vencimiento) : '')
       +(esCompletada ? '<span style="font-size:11px;color:var(--texto-suave)">Completada'+completadaAt+'</span>' : '')
-      +(esCompletada && t.comentario_completado ? '<div style="flex:1 1 100%;margin-top:4px;padding:8px 11px;background:var(--verde-pale);border-left:3px solid var(--verde);border-radius:6px;font-size:12px;color:var(--texto-mid);line-height:1.45"><strong style="color:var(--verde);font-size:11px;text-transform:uppercase;letter-spacing:.3px">Comentario:</strong><br/>'+t.comentario_completado+'</div>' : '')
-      +(_tarjArchivos(t))
       +'</div>'
+      +(esCompletada && t.comentario_completado ? '<div style="margin-top:8px;padding:8px 11px;background:var(--verde-pale);border-left:3px solid var(--verde);border-radius:6px;font-size:12px;color:var(--texto-mid);line-height:1.45"><strong style="color:var(--verde);font-size:11px;text-transform:uppercase;letter-spacing:.3px">Comentario:</strong><br/>'+t.comentario_completado+'</div>' : '')
+      +_tarjArchivos(t)
       +'</div>'
-      +'<div style="display:flex;flex-direction:column;gap:6px;align-items:stretch;flex-shrink:0;min-width:110px">'
-      +(!esCompletada ? '<button onclick="completarTarea(\''+t.id+'\')" style="font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--verde);background:var(--verde-pale);color:var(--verde);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap;width:100%;box-sizing:border-box">✓ Completar</button>' : '')
-      +(!esCompletada && t.estado!=='en_progreso' ? '<button onclick="iniciarTarea(\''+t.id+'\')" style="font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap;width:100%;box-sizing:border-box">▶ Iniciar</button>' : '')
-      +(esAdmin ? '<button onclick="abrirModalTarea(\''+t.id+'\')" style="font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--borde);background:transparent;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap;width:100%;box-sizing:border-box">✏️ Editar</button>' : '')
-      +(esAdmin ? '<button onclick="eliminarTarea(\''+t.id+'\')" title="Eliminar tarea" style="font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--rojo);background:transparent;color:var(--rojo);cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;white-space:nowrap;width:100%;box-sizing:border-box">🗑 Eliminar</button>' : '')
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0">'
+      +(!esCompletada ? '<button onclick="completarTarea(\''+t.id+'\')" style="background:var(--verde-pale);border:1px solid var(--verde);border-radius:8px;padding:8px 12px;color:var(--verde);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap">✓ Completar</button>' : '')
+      +(!esCompletada && t.estado!=='en_progreso' ? '<button onclick="iniciarTarea(\''+t.id+'\')" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">▶ Iniciar</button>' : '')
+      +(esAdmin ? '<button onclick="abrirModalTarea(\''+t.id+'\')" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--texto-suave);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--verde)\';this.style.color=\'var(--verde)\'" onmouseout="this.style.borderColor=\'var(--borde)\';this.style.color=\'var(--texto-suave)\'">✏️ Editar</button>' : '')
+      +(esAdmin ? '<button onclick="eliminarTarea(\''+t.id+'\')" title="Eliminar tarea" style="background:transparent;border:1px solid var(--rojo);border-radius:8px;padding:8px 12px;color:var(--rojo);font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600;white-space:nowrap" onmouseover="this.style.background=\'#fdecea\'" onmouseout="this.style.background=\'transparent\'">🗑 Eliminar</button>' : '')
       +'</div>'
       +'</div>'
       +'</div>'

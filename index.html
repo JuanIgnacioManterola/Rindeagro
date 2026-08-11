@@ -13107,7 +13107,9 @@ window.renderPagos = function() {
       : ''
 
     var borderColor = esVencido ? '#c0392b' : esProximo ? '#c97a14' : 'var(--borde)'
-    var bgRow = esVencido ? '#fff6f6' : esProximo ? '#fffaf0' : '#fff'
+    // Fondo blanco para todas las cards; el estado se comunica solo con el color
+    // del borde (rojo = vencido, amarillo = próximo a vencer).
+    var bgRow = '#fff'
     var opacity = esPagado ? '.65' : '1'
 
     return '<div data-pago-id="'+p.id+'" style="background:'+bgRow+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;opacity:'+opacity+'">'

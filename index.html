@@ -6191,7 +6191,7 @@ function renderTareas() {
 
   var badge = document.getElementById('tareas-badge')
   var pending = counts.pendiente + counts.en_progreso
-  if (badge) badge.textContent = pending > 0 ? '✅ Tareas ('+pending+')' : '✅ Tareas'
+  if (badge) badge.textContent = pending > 0 ? 'Tareas ('+pending+')' : 'Tareas'
 
   var filEl = document.getElementById('tareas-filtros')
   if (filEl) filEl.innerHTML = filtros.map(function(f) {

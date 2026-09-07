@@ -49,6 +49,7 @@ Detalles que rompieron cosas antes — no revertir:
 - **Tabla `perfiles` — `telefono_verificado` / `telefono_verificado_en`**: el guard del bot. Un trigger (`tg_perfiles_guard_verificacion`) impide que el usuario se marque verificado a sí mismo — solo `service_role` puede — y desverifica solo si cambia el `telefono`. Hay un índice único parcial sobre `normalizar_telefono(telefono) where telefono_verificado`, así que un número verificado pertenece a una sola cuenta.
 - **Tabla `verificaciones_telefono`**: códigos de verificación de un solo uso. Guarda `codigo_hash` = `sha256(user_id || ':' || upper(codigo))`, nunca el código en claro. 4 policies RLS explícitas (owner-only).
 - **Tabla `wa_verificacion_intentos`**: rate limiting del comando VINCULAR por número entrante. RLS prendida y **cero policies** a propósito: solo la toca `service_role`.
+- **Trigger `tg_perfiles_guard_verificacion` — NO le pongas `security definer`**: se probó en producción y con `security definer` el guard no bloquea nada. Adentro de una función `security definer`, `current_user` es el **dueño** de la función (`postgres`), no el rol que ejecuta el UPDATE, así que el chequeo `current_user in ('service_role','postgres','supabase_admin')` daba verdadero para cualquier usuario y el frontend podía auto-verificarse con un PATCH. Sin `definer`, `current_user` es el rol efectivo que setea PostgREST (`authenticated` / `anon` / `service_role`), que es lo que queremos. Un trigger BEFORE solo toca `NEW`: no necesita privilegios extra.
 - **Función `public.normalizar_telefono(text)`**: espejo SQL de `kapso.normalizar_numero()`. Es `IMMUTABLE` porque el índice único de arriba la usa. Si tocás una, tocá las tres (SQL, `kapso.py`, `window._verifNormalizar` en `index.html`).
 - `_renderAccesosColaborador` usa `.select('*')', no `.select('*, owner:owner_id(id)')` — el join devolvía 400.
 
@@ -244,6 +245,16 @@ Fuera de la ventana de 24 h Meta rechaza el texto libre: si el envío falla, el 
 - `procesar_mensaje_whatsapp()` (webhook viejo de Twilio) y `_manejar_stop_activar()` — mismo filtro.
 - Después de verificar se llama `_wa_dir_invalidar()`: sin eso el índice cacheado sigue viendo al usuario sin verificar hasta 5 minutos.
 
+### Probado contra la base de producción
+
+Los tres comportamientos críticos se verificaron corriendo SQL contra la DB real (en bloques que terminan en `raise` para no dejar nada guardado):
+
+1. Un usuario común (`set local role authenticated`) **no** puede marcarse verificado → salta la excepción del trigger.
+2. El bot (`service_role`) **sí** puede.
+3. Si el usuario cambia su número desde la web, la verificación se cae sola.
+
+El punto 1 falló la primera vez y así se descubrió lo del `security definer`.
+
 ### Límites
 
 Códigos de un solo uso, 15 minutos de vida, guardados hasheados. Rate limit de 8 intentos fallidos por número entrante en una ventana de 15 min → bloqueo de 1 hora (persistido en `wa_verificacion_intentos`, no en memoria: Railway reinicia seguido y un contador en RAM se reseteaba con cada deploy). El OTP saliente permite 5 códigos por usuario por hora y 5 intentos por código. Un número verificado pertenece a una sola cuenta — para moverlo hay que desvincularlo primero.
@@ -307,4 +318,4 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 11. `estructura_activos_y_gastos_generales.sql` — nuevas tablas `activos_amortizables` (vehículos/maquinaria/herramientas/construcción con vida útil) y `gastos_estructura` (sueldos/honorarios/seguros/oficina con frecuencia mensual/anual/único). 4 RLS policies owner-only en cada una. Ver sección "Módulo Estructura" abajo.
 12. `fks_on_delete_cascade_cleanup.sql` — migra los `*.usuario_id → perfiles(id)` a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa (antes eran NO ACTION, rompía el borrado limpio de un `auth.users`). Además pone en `SET NULL`: `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` para preservar registros históricos cuando se elimina la referencia.
 13. `gastos_momento_pulverizacion.sql` — agrega `gastos.momento_pulverizacion` (text nullable con CHECK `barbecho|presiembra|postemergente|aplicacion`). Alimenta la nueva tab **Cultivo** en la vista del campo, que arma una timeline con siembra, pulverizaciones, fertilizaciones y cosecha derivada de los gastos ya cargados. El dropdown aparece en el modal de gasto solo cuando el rubro es `herbicidas`/`fungicidas`/`insecticidas`.
-14. `telefono_verificacion.sql` — verificación de propiedad del número de WhatsApp. Agrega `perfiles.telefono_verificado` + `telefono_verificado_en` con un trigger que impide auto-verificarse, la función `normalizar_telefono()`, el índice único parcial de números verificados, la tabla `verificaciones_telefono` (códigos hasheados, 4 RLS explícitas) y `wa_verificacion_intentos` (rate limiting; RLS prendida y cero policies = solo service_role). Incluye un cron diario de limpieza. **Ojo**: después de aplicarla todos los perfiles quedan sin verificar y el bot deja de atender hasta que cada uno mande su código — es el comportamiento buscado. El archivo trae un backfill comentado para grandfatherear cuentas puntuales.
+14. `telefono_verificacion.sql` — **APLICADA en producción** (2026-09-07). Verificación de propiedad del número de WhatsApp. Agrega `perfiles.telefono_verificado` + `telefono_verificado_en` con un trigger que impide auto-verificarse, la función `normalizar_telefono()`, el índice único parcial de números verificados, la tabla `verificaciones_telefono` (códigos hasheados, 4 RLS explícitas) y `wa_verificacion_intentos` (rate limiting; RLS prendida y cero policies = solo service_role). Incluye un cron diario de limpieza. **Ojo**: después de aplicarla todos los perfiles quedan sin verificar y el bot deja de atender hasta que cada uno mande su código — es el comportamiento buscado. El archivo trae un backfill comentado para grandfatherear cuentas puntuales.

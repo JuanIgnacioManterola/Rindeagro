@@ -85,14 +85,19 @@ create unique index if not exists ux_perfiles_telefono_verificado
 -- todo el flujo. Solo service_role (el bot) puede marcar la verificación.
 -- Y si el usuario cambia el número, la verificación se cae sola.
 
+-- OJO: esta función va SECURITY INVOKER (o sea, sin `security definer`) a
+-- propósito. Con `security definer` el `current_user` de adentro es el DUEÑO de
+-- la función (postgres), no quien ejecuta el UPDATE, así que el chequeo de abajo
+-- daba verdadero para todo el mundo y el guard no bloqueaba nada. Sin definer,
+-- current_user es el rol efectivo que puso PostgREST: authenticated, anon o
+-- service_role. Un trigger BEFORE solo toca NEW, no necesita privilegios extra.
 create or replace function public.tg_perfiles_guard_verificacion()
 returns trigger
 language plpgsql
-security definer
 set search_path = public
 as $$
 begin
-  -- El bot, las edge functions y el admin de la consola pasan derecho.
+  -- El bot (service_role) y el admin de la consola pasan derecho.
   if current_user in ('service_role', 'postgres', 'supabase_admin') then
     return new;
   end if;

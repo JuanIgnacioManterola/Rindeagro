@@ -774,6 +774,15 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
     <button onclick="_cerrarBannerTrial()" title="Ocultar por hoy" style="background:transparent;border:none;color:#78350f;font-size:16px;cursor:pointer;padding:2px 6px;opacity:.5" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">✕</button>
   </div>
 
+  <!-- Banner de suscripcion: cobro rechazado (gracia) o impaga (solo lectura).
+       Lo pinta _actualizarBannerSuscripcion() a partir de window._suscripcion. -->
+  <div id="banner-suscripcion" style="display:none;border-bottom:1px solid;padding:10px 24px;font-size:13px;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:16px" id="banner-sus-ico">⚠️</span>
+    <strong id="banner-sus-msg"></strong>
+    <span id="banner-sus-sub" style="font-size:12px"></span>
+    <button id="banner-sus-cta" onclick="showModulo('mi-plan')" style="margin-left:auto;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:800;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif">Regularizar →</button>
+  </div>
+
   <!-- ── DASHBOARD ── -->
   <div class="modulo active" id="mod-dashboard">
     <div class="mod-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
@@ -1231,6 +1240,10 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
         <div id="mp-badge-plan" style="background:var(--verde-pale);color:var(--verde);font-size:12px;font-weight:700;padding:8px 16px;border-radius:20px">Activo</div>
       </div>
     </div>
+    <!-- Suscripcion activa: importe, proximo cobro, comprobantes, baja.
+         Lo pinta _renderSuscripcionCard(); oculto si no hay suscripcion. -->
+    <div class="card" id="mp-suscripcion-card" style="display:none;margin-bottom:1.5rem"></div>
+
     <!-- Planes disponibles -->
     <div style="font-size:13px;font-weight:600;color:var(--texto-mid);margin-bottom:1rem">Cambiar de plan</div>
     <div id="mp-planes-lista"></div>
@@ -3683,7 +3696,12 @@ async function init() {
       // Si falla o timeout: usar modo dueño por defecto
       window.CONTEXTO = { esColaborador:false, ownerIdActivo:user.id, rolActivo:'dueño', userId:user.id }
     }
+    // La suscripción manda sobre los límites del plan, así que se carga antes
+    // que el resto para que ningún gate se evalúe con el plan equivocado.
+    try { await window._cargarSuscripcion() } catch(e) { console.error('_cargarSuscripcion error:', e) }
     try { await cargarTodo() } catch(e) { console.error('cargarTodo error:', e) }
+    // Volvimos del checkout de Mercado Pago: esperar a que el webhook confirme.
+    try { window._chequearRetornoCheckout() } catch(e) {}
   }
 
   // Marca el momento de inicio para detectar SIGNED_OUT prematuros
@@ -3852,6 +3870,9 @@ function _mergePendingCampos() {
 
 async function cargarTodo() {
   _mostrarPrecios('BCR Rosario · BNA')
+  // Estado de cobro al día en cada refresh: alimenta los límites del plan y
+  // el banner de gracia/impago. No bloquea el resto de la carga.
+  window._cargarSuscripcion().catch(function(){})
   var uid = (window.CONTEXTO && window.CONTEXTO.ownerIdActivo) ? window.CONTEXTO.ownerIdActivo : usuario.id
 
   // ── 1. MOSTRAR CACHÉ GUARDADA INSTANTÁNEAMENTE ───────────────────────────
@@ -7394,9 +7415,14 @@ window._esAdminIlimitado = function() {
   if (!usuario) return false
   return USUARIOS_ADMIN_ILIMITADOS.indexOf(usuario.id) >= 0
 }
-// Devuelve el objeto de plan actual del usuario (default: gratis)
+// Devuelve el objeto de plan actual del usuario (default: gratis).
+// El plan sale de window._planEfectivo(), que lo deriva de la tabla
+// `suscripciones` (escrita solo por el webhook de Mercado Pago). Antes se leía
+// user_metadata.plan, que es escribible por el propio cliente.
 window._infoPlanActual = function() {
-  var planId = (usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis'
+  var planId = (typeof window._planEfectivo === 'function')
+    ? window._planEfectivo()
+    : ((usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis')
   return PLANES_INFO[planId] || PLANES_INFO.gratis
 }
 // Trial: devuelve la fecha límite del mes gratis (o null si no aplica / ya expiró).
@@ -7428,7 +7454,8 @@ window._actualizarBannerTrial = function() {
   var el = document.getElementById('banner-trial')
   if (!el) return
   // Si el user tiene un plan pago (no 'gratis'), no mostrar
-  var planId = (usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis'
+  var planId = (typeof window._planEfectivo === 'function') ? window._planEfectivo()
+             : ((usuario && usuario.user_metadata && usuario.user_metadata.plan) || 'gratis')
   if (planId !== 'gratis') { el.style.display = 'none'; return }
   // Si el user es admin ilimitado (Ignacio), no mostrar
   if (window._esAdminIlimitado && window._esAdminIlimitado()) { el.style.display = 'none'; return }
@@ -7543,14 +7570,431 @@ var IVA_PCT = 21
 var DESCUENTO_ANUAL_PCT = 20  // Al elegir anual, se descuenta este porcentaje sobre 12 meses
 var miPlanData = { anual: true, cuotas: 1 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// SUSCRIPCIONES — Mercado Pago
+// ══════════════════════════════════════════════════════════════════════════════
+// El plan efectivo sale de la tabla `suscripciones`, que SOLO escribe el webhook
+// de Mercado Pago con el service_role (ver SQL/suscripciones_mercadopago.sql).
+// Antes vivía en user_metadata.plan, que cualquiera podía reescribir con
+// sb.auth.updateUser({data:{plan:'cosecha'}}) desde la consola del navegador.
+//
+// user_metadata.plan queda como CACHE de lectura que el webhook sincroniza,
+// para que el código viejo que lo lee no se rompa.
+//
+// Convención del proyecto: lecturas con _restGet, nunca sb.from() pelado.
+
+window._suscripcion = null            // última fila de suscripciones (cualquier estado)
+window._suscripcionPagos = []         // historial de cobros
+window._suscripcionTablaFaltante = false  // true si todavía no se aplicó la migración
+
+window._cargarSuscripcion = async function() {
+  if (!usuario || !usuario.id) { window._suscripcion = null; return null }
+  try {
+    // Sin filtro de estado: necesitamos ver también la cancelada, porque el
+    // usuario conserva el plan hasta que termine el período que ya pagó.
+    var filas = await _restGet('/suscripciones?owner_id=eq.' + usuario.id +
+                               '&order=created_at.desc&limit=1&select=*')
+    window._suscripcion = (filas && filas[0]) || null
+    window._suscripcionTablaFaltante = false
+  } catch (e) {
+    // Si la migración no está aplicada, PostgREST devuelve 404/PGRST205.
+    // No rompemos nada: se cae al plan cacheado en user_metadata.
+    var esFaltante = (e.status === 404) || /PGRST205|does not exist|schema cache/i.test(e.body || e.message || '')
+    window._suscripcionTablaFaltante = esFaltante
+    window._suscripcion = null
+    if (!esFaltante) console.warn('[suscripcion] no se pudo leer:', e.message)
+  }
+  try { window._actualizarBannerSuscripcion() } catch (e) {}
+  return window._suscripcion
+}
+
+window._cargarPagosSuscripcion = async function() {
+  if (!usuario || !usuario.id || window._suscripcionTablaFaltante) return []
+  try {
+    window._suscripcionPagos = await _restGet('/suscripcion_pagos?owner_id=eq.' + usuario.id +
+                                              '&order=fecha.desc&limit=12&select=*') || []
+  } catch (e) { window._suscripcionPagos = [] }
+  return window._suscripcionPagos
+}
+
+// Plan que le corresponde HOY al usuario. Espejo de _plan_efectivo() en
+// main.py del server — si tocás uno, tocá el otro.
+window._planEfectivo = function() {
+  var meta = (usuario && usuario.user_metadata) || {}
+  // Migración no aplicada todavía → comportamiento viejo, no rompemos la app.
+  if (window._suscripcionTablaFaltante) return meta.plan || 'gratis'
+
+  var s = window._suscripcion
+  if (s) {
+    if (s.estado === 'activa' || s.estado === 'en_gracia') return s.plan
+    if (s.estado === 'cancelada' && s.periodo_fin) {
+      // Se dio de baja pero ya pagó el período en curso: lo conserva hasta el
+      // final. Estándar de la industria.
+      var fin = new Date(s.periodo_fin)
+      if (!isNaN(fin.getTime()) && fin > new Date()) return s.plan
+    }
+    return 'gratis'
+  }
+  // Sin fila de suscripción: solo respetamos el plan de user_metadata si fue
+  // un alta MANUAL hecha desde Supabase (plan_manual:true). Así podemos
+  // comp-ear cuentas sin reabrir el auto-upgrade desde la consola.
+  if (meta.plan_manual === true && meta.plan) return meta.plan
+  return 'gratis'
+}
+
+// Estado de la suscripción normalizado para la UI.
+window._suscripcionEstado = function() {
+  var s = window._suscripcion
+  if (!s) return { estado: 'sin_suscripcion', etiqueta: 'Sin suscripción', color: 'var(--texto-suave)' }
+  var mapa = {
+    pendiente: { etiqueta: 'Esperando la tarjeta', color: '#b45309' },
+    activa:    { etiqueta: 'Activa',               color: 'var(--verde)' },
+    en_gracia: { etiqueta: 'Pago rechazado',       color: '#b45309' },
+    impaga:    { etiqueta: 'Impaga',               color: 'var(--rojo)' },
+    pausada:   { etiqueta: 'Pausada',              color: 'var(--texto-suave)' },
+    cancelada: { etiqueta: 'Dada de baja',         color: 'var(--texto-suave)' }
+  }
+  var m = mapa[s.estado] || { etiqueta: s.estado, color: 'var(--texto-suave)' }
+  return { estado: s.estado, etiqueta: m.etiqueta, color: m.color, sub: s }
+}
+
+// Solo lectura: se activa cuando venció la ventana de gracia sin regularizar.
+// Los datos ya cargados NUNCA se ocultan — se sigue viendo y exportando todo,
+// lo único que se bloquea es escribir.
+window._appSoloLectura = function() {
+  if (window._esAdminIlimitado && window._esAdminIlimitado()) return false
+  var s = window._suscripcion
+  return !!(s && s.estado === 'impaga')
+}
+
+window._diasHasta = function(iso) {
+  if (!iso) return null
+  var d = new Date(iso); if (isNaN(d.getTime())) return null
+  return Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+}
+window._fechaCorta = function(iso) {
+  if (!iso) return '—'
+  var d = new Date(iso); if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+window._ars = function(n) { return '$' + Math.round(n || 0).toLocaleString('es-AR') }
+
+// ── Banner global de estado de cobro ────────────────────────────────────────
+window._actualizarBannerSuscripcion = function() {
+  var el = document.getElementById('banner-suscripcion'); if (!el) return
+  var s = window._suscripcion
+  var msg = document.getElementById('banner-sus-msg')
+  var sub = document.getElementById('banner-sus-sub')
+  var ico = document.getElementById('banner-sus-ico')
+  var cta = document.getElementById('banner-sus-cta')
+  if (!s || (window._esAdminIlimitado && window._esAdminIlimitado())) { el.style.display = 'none'; return }
+
+  if (s.estado === 'en_gracia') {
+    var dias = window._diasHasta(s.gracia_hasta)
+    el.style.display = 'flex'
+    el.style.background = 'linear-gradient(90deg,#fef3c7,#fde68a)'
+    el.style.borderBottomColor = '#f59e0b'
+    el.style.color = '#78350f'
+    ico.textContent = '💳'
+    msg.textContent = 'No pudimos cobrar tu suscripción'
+    sub.style.color = '#92400e'
+    sub.textContent = dias !== null && dias >= 0
+      ? 'Tenés ' + dias + ' día' + (dias !== 1 ? 's' : '') + ' para actualizar la tarjeta. Mientras tanto seguís con acceso completo.'
+      : 'Actualizá tu medio de pago para no perder el acceso.'
+    cta.style.background = '#b45309'
+    cta.textContent = 'Actualizar pago →'
+    return
+  }
+  if (s.estado === 'impaga') {
+    el.style.display = 'flex'
+    el.style.background = 'linear-gradient(90deg,#fecaca,#fca5a5)'
+    el.style.borderBottomColor = '#dc2626'
+    el.style.color = '#7f1d1d'
+    ico.textContent = '🔒'
+    msg.textContent = 'Tu suscripción está impaga — la app quedó en solo lectura'
+    sub.style.color = '#991b1b'
+    sub.textContent = 'Seguís viendo y exportando todos tus datos, pero no podés cargar nada nuevo hasta regularizar.'
+    cta.style.background = '#b91c1c'
+    cta.textContent = 'Regularizar →'
+    return
+  }
+  if (s.estado === 'pendiente' && s.init_point) {
+    el.style.display = 'flex'
+    el.style.background = 'linear-gradient(90deg,#dbeafe,#bfdbfe)'
+    el.style.borderBottomColor = '#2563eb'
+    el.style.color = '#1e3a8a'
+    ico.textContent = '⏳'
+    msg.textContent = 'Te falta un paso para activar tu plan'
+    sub.style.color = '#1d4ed8'
+    sub.textContent = 'Todavía no cargaste la tarjeta en Mercado Pago.'
+    cta.style.background = '#1d4ed8'
+    cta.textContent = 'Terminar de contratar →'
+    return
+  }
+  el.style.display = 'none'
+}
+
+// ── Checkout ────────────────────────────────────────────────────────────────
+// Nunca tocamos datos de tarjeta: el server crea el preapproval en Mercado
+// Pago y nos devuelve el init_point del checkout hosteado por ellos.
+async function _mpFetch(path, body) {
+  var token = _getAccessTokenFromStorage()
+  if (!token) throw new Error('No hay sesión activa. Cerrá sesión y volvé a entrar.')
+  var r = await fetch(SERVER_URL + path, {
+    method: body ? 'POST' : 'GET',
+    headers: Object.assign({ 'Authorization': 'Bearer ' + token },
+                           body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined
+  })
+  var j = null
+  try { j = await r.json() } catch (e) {}
+  if (!r.ok) {
+    var err = new Error((j && (j.detail || j.message)) || ('El servidor de pagos respondió ' + r.status))
+    err.status = r.status
+    throw err
+  }
+  return j
+}
+
+window.suscribirse = async function(planId) {
+  if (!usuario) { showToast('⚠️ Debés estar logueado', 'err'); return }
+  var plan = PLANES_INFO[planId]
+  if (!plan) { showToast('⚠️ Plan inválido', 'err'); return }
+
+  // Plan gratuito = dar de baja la suscripción paga.
+  if (plan.precio_mensual_usd === 0) {
+    var s = window._suscripcion
+    if (s && ['pendiente', 'activa', 'en_gracia', 'pausada'].indexOf(s.estado) >= 0) {
+      return window.cancelarSuscripcion()
+    }
+    showToast('Ya estás en el plan gratuito', 'ok')
+    return
+  }
+
+  var periodo = (window._mpPeriodo === 'mensual') ? 'mensual' : 'anual'
+  var vig = window._suscripcion
+  var tieneActiva = vig && ['activa', 'en_gracia', 'pausada'].indexOf(vig.estado) >= 0
+
+  if (tieneActiva && vig.plan === planId && vig.periodo === periodo) {
+    showToast('Ya tenés ese plan contratado', 'ok'); return
+  }
+
+  try {
+    if (tieneActiva) {
+      // Cambio de plan sobre la suscripción existente: no vuelve a cargar la
+      // tarjeta salvo que cambie mensual ↔ anual.
+      showToast('⏳ Cambiando tu plan...', 'ok')
+      var res = await _mpFetch('/mp/suscripcion/cambiar-plan', { plan: planId, periodo: periodo })
+      if (res && res.requiere_nuevo_checkout) {
+        showToast('⚠️ Para pasar de ' + vig.periodo + ' a ' + periodo + ' hay que dar de baja la suscripción actual y contratar de nuevo.', 'err')
+        return
+      }
+      await window._cargarSuscripcion()
+      showToast('✓ Plan cambiado a ' + plan.nombre + ' · ' + window._ars(res.importe_ars) + '/' + (periodo === 'anual' ? 'año' : 'mes'), 'ok')
+      try { renderMiPlan() } catch (e) {}
+      return
+    }
+
+    showToast('⏳ Preparando el pago con Mercado Pago...', 'ok')
+    // NUNCA hardcodear la URL de retorno — romper esto rompe rindeagro.app.
+    var retorno = window.location.origin + window.location.pathname
+    var out = await _mpFetch('/mp/suscripcion/crear', {
+      plan: planId, periodo: periodo, retorno_url: retorno
+    })
+    if (!out || !out.init_point) throw new Error('Mercado Pago no devolvió el link de pago.')
+    try { localStorage.setItem('ra_checkout_pendiente', JSON.stringify({ plan: planId, periodo: periodo, ts: Date.now() })) } catch (e) {}
+    window.location.href = out.init_point
+  } catch (e) {
+    if (e.status === 503) showToast('⚠️ El cobro todavía no está habilitado en el servidor. Escribinos y lo damos de alta a mano.', 'err')
+    else showToast('⚠️ ' + (e.message || 'No pudimos iniciar el pago'), 'err')
+  }
+}
+
+window.cancelarSuscripcion = async function() {
+  var s = window._suscripcion
+  if (!s) { showToast('No tenés una suscripción activa', 'err'); return }
+  var nombrePlan = (PLANES_INFO[s.plan] || {}).nombre || s.plan
+  var hasta = s.proximo_cobro ? window._fechaCorta(s.proximo_cobro) : null
+  var txt = '¿Dar de baja el plan ' + nombrePlan + '?\n\n'
+          + (hasta ? 'Vas a conservar el acceso hasta el ' + hasta + ', que es el final del período que ya pagaste.\n\n' : '')
+          + 'Tus datos no se borran: después de esa fecha seguís viendo y exportando todo, solo se limita cargar cosas nuevas.'
+  if (!confirm(txt)) return
+  try {
+    showToast('⏳ Dando de baja...', 'ok')
+    var res = await _mpFetch('/mp/suscripcion/cancelar', {})
+    await window._cargarSuscripcion()
+    showToast(res && res.acceso_hasta
+      ? '✓ Suscripción dada de baja. Tenés acceso hasta el ' + window._fechaCorta(res.acceso_hasta)
+      : '✓ Suscripción dada de baja', 'ok')
+    try { renderMiPlan() } catch (e) {}
+  } catch (e) {
+    showToast('⚠️ ' + (e.message || 'No pudimos dar de baja la suscripción'), 'err')
+  }
+}
+
+// ── Vuelta desde el checkout de Mercado Pago ────────────────────────────────
+// MP nos devuelve a back_url con ?preapproval_id=... El redirect NO otorga el
+// plan (eso lo hace el webhook): acá solo esperamos a que la fila se actualice.
+window._chequearRetornoCheckout = async function() {
+  var qs
+  try { qs = new URLSearchParams(window.location.search) } catch (e) { return }
+  var pid = qs.get('preapproval_id') || qs.get('preapproval_plan_id')
+  if (!pid) return
+  // Limpiar solo los parámetros de MP, conservando cualquier otro (?inv=... etc).
+  try {
+    qs.delete('preapproval_id'); qs.delete('preapproval_plan_id')
+    var resto = qs.toString()
+    history.replaceState(null, '', window.location.pathname + (resto ? '?' + resto : ''))
+  } catch (e) {}
+  try { localStorage.removeItem('ra_checkout_pendiente') } catch (e) {}
+
+  showToast('⏳ Confirmando tu pago con Mercado Pago...', 'ok')
+  for (var i = 0; i < 8; i++) {
+    await new Promise(function(r) { setTimeout(r, i === 0 ? 1500 : 3000) })
+    await window._cargarSuscripcion()
+    var s = window._suscripcion
+    if (s && s.estado === 'activa') {
+      var nom = (PLANES_INFO[s.plan] || {}).nombre || s.plan
+      showToast('✅ ¡Listo! Ya tenés el plan ' + nom + ' activo.', 'ok')
+      try { renderMiPlan(); renderCamposLista() } catch (e) {}
+      return
+    }
+  }
+  showToast('⏳ Mercado Pago todavía está procesando el pago. En cuanto lo confirme se activa solo — podés cerrar y volver más tarde.', 'ok')
+}
+
+// ── Card de suscripción en "Mi plan" ────────────────────────────────────────
+window._renderSuscripcionCard = async function() {
+  var el = document.getElementById('mp-suscripcion-card'); if (!el) return
+  var s = window._suscripcion
+  if (!s) { el.style.display = 'none'; return }
+
+  var est = window._suscripcionEstado()
+  var plan = PLANES_INFO[s.plan] || { nombre: s.plan, icono: '' }
+  var esAnual = s.periodo === 'anual'
+  var unidad = esAnual ? 'año' : 'mes'
+
+  var filas = []
+  filas.push(['Plan contratado', (plan.icono ? plan.icono + ' ' : '') + plan.nombre + ' · ' + (esAnual ? 'anual' : 'mensual')])
+  filas.push(['Importe', window._ars(s.importe_ars) + ' por ' + unidad +
+              (s.importe_usd ? ' <span style="color:var(--texto-suave);font-size:11px">(USD ' + s.importe_usd + ' + IVA al TC ' + window._ars(s.tc_alta) + ' del alta)</span>' : '')])
+  if (s.estado === 'cancelada' && s.periodo_fin) filas.push(['Acceso hasta', window._fechaCorta(s.periodo_fin)])
+  else if (s.proximo_cobro) filas.push([s.estado === 'en_gracia' ? 'Reintento de cobro' : 'Próximo débito', window._fechaCorta(s.proximo_cobro)])
+  if (s.estado === 'en_gracia' && s.gracia_hasta) filas.push(['Regularizar antes del', window._fechaCorta(s.gracia_hasta)])
+  if (s.entorno === 'test') filas.push(['Entorno', '🧪 Sandbox de Mercado Pago (no se cobra plata real)'])
+
+  var filasHtml = filas.map(function(f) {
+    return '<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--borde);font-size:13px">'
+         + '<span style="color:var(--texto-suave)">' + f[0] + '</span>'
+         + '<span style="font-weight:600;text-align:right">' + f[1] + '</span></div>'
+  }).join('')
+
+  // Comprobantes
+  await window._cargarPagosSuscripcion()
+  var pagosHtml = ''
+  if (window._suscripcionPagos.length) {
+    pagosHtml = '<div style="margin-top:1.25rem"><div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Comprobantes</div>'
+      + window._suscripcionPagos.map(function(p) {
+          var col = p.estado === 'aprobado' ? 'var(--verde)' : (p.estado === 'rechazado' ? 'var(--rojo)' : 'var(--texto-suave)')
+          var ico = p.estado === 'aprobado' ? '✓' : (p.estado === 'rechazado' ? '✕' : '·')
+          var medio = p.metodo ? (' · ' + p.metodo + (p.ultimos4 ? ' ••••' + p.ultimos4 : '')) : ''
+          return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:12px;border-bottom:1px dashed var(--borde)">'
+               + '<span>' + window._fechaCorta(p.fecha) + '<span style="color:var(--texto-suave)">' + medio + '</span></span>'
+               + '<span style="font-weight:700;color:' + col + '">' + ico + ' ' + window._ars(p.importe) + '</span></div>'
+        }).join('')
+      + '</div>'
+  }
+
+  var acciones = ''
+  if (s.estado === 'pendiente' && s.init_point) {
+    acciones = '<a href="' + s.init_point + '" style="display:inline-block;background:var(--verde);color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px">Terminar de cargar la tarjeta →</a>'
+  } else if (['activa', 'en_gracia', 'pausada'].indexOf(s.estado) >= 0) {
+    acciones = '<button onclick="cancelarSuscripcion()" style="background:transparent;border:1.5px solid var(--borde);color:var(--texto-mid);font-size:13px;font-weight:600;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:\'DM Sans\',sans-serif">Dar de baja</button>'
+    if (s.estado === 'en_gracia' && s.init_point) {
+      acciones = '<a href="' + s.init_point + '" style="display:inline-block;background:#b45309;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;margin-right:10px">Actualizar medio de pago →</a>' + acciones
+    }
+  }
+
+  el.style.display = 'block'
+  el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem">'
+    +   '<div style="font-size:15px;font-weight:700;color:var(--texto)">💳 Tu suscripción</div>'
+    +   '<span style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;background:var(--crema-dark);color:' + est.color + '">' + est.etiqueta + '</span>'
+    + '</div>'
+    + filasHtml
+    + pagosHtml
+    + (acciones ? '<div style="margin-top:1.25rem">' + acciones + '</div>' : '')
+    + '<div style="margin-top:10px;font-size:11px;color:var(--texto-suave)">El débito lo gestiona Mercado Pago. Rinde.Agro nunca ve ni guarda los datos de tu tarjeta.</div>'
+}
+
+// ── Modal "llegaste al límite de tu plan" ───────────────────────────────────
+// Reemplaza al toast + redirect silencioso: ahora lleva al checkout de verdad.
+window._modalLimitePlan = function(opts) {
+  opts = opts || {}
+  var viejo = document.getElementById('ov-limite-plan'); if (viejo) viejo.remove()
+  var sug = opts.sugerido
+  var periodo = (window._mpPeriodo === 'mensual') ? 'mensual' : 'anual'
+  var bna = (typeof window._dolarVenta === 'function') ? window._dolarVenta() : ((precios && precios.bna) || 1300)
+  var precioHtml = ''
+  if (sug) {
+    var base = periodo === 'anual'
+      ? Math.round(sug.plan.precio_mensual_usd * 12 * (1 - DESCUENTO_ANUAL_PCT / 100))
+      : sug.plan.precio_mensual_usd
+    var conIva = Math.round(base * (1 + IVA_PCT / 100))
+    precioHtml = '<div style="font-size:13px;color:var(--texto-mid);margin-top:6px">USD ' + base + ' + IVA · ≈ '
+               + window._ars(conIva * bna) + ' por ' + (periodo === 'anual' ? 'año' : 'mes') + '</div>'
+  }
+
+  var d = document.createElement('div')
+  d.id = 'ov-limite-plan'
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99990;display:flex;align-items:center;justify-content:center;padding:20px'
+  d.innerHTML =
+      '<div style="background:#fff;border-radius:18px;max-width:460px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:\'DM Sans\',sans-serif">'
+    +   '<div style="font-size:34px;margin-bottom:10px">🔒</div>'
+    +   '<div style="font-size:20px;font-weight:800;color:var(--verde);font-family:\'Playfair Display\',serif;margin-bottom:8px">' + (opts.titulo || 'Llegaste al límite de tu plan') + '</div>'
+    +   '<div style="font-size:14px;color:var(--texto-mid);line-height:1.6">' + (opts.mensaje || '') + '</div>'
+    +   (sug ? '<div style="margin-top:18px;padding:14px;border:1.5px solid var(--verde);border-radius:12px;background:var(--verde-pale)">'
+    +            '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--verde)">Te alcanza con</div>'
+    +            '<div style="font-size:17px;font-weight:800;color:var(--verde);margin-top:4px">' + (sug.plan.icono || '') + ' ' + sug.plan.nombre + '</div>'
+    +            '<div style="font-size:12px;color:var(--texto-mid)">Hasta ' + sug.plan.limite_hectareas.toLocaleString('es-AR') + ' ha totales</div>'
+    +            precioHtml
+    +          '</div>' : '')
+    +   '<div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">'
+    +     (sug ? '<button id="btn-limite-contratar" style="flex:1;min-width:180px;background:var(--verde);color:#fff;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">Contratar ' + sug.plan.nombre + ' →</button>' : '')
+    +     '<button id="btn-limite-ver" style="flex:1;min-width:130px;background:transparent;border:1.5px solid var(--borde);color:var(--texto-mid);border-radius:11px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">Ver todos los planes</button>'
+    +   '</div>'
+    +   '<button id="btn-limite-cerrar" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--texto-suave);font-size:13px;cursor:pointer;font-family:\'DM Sans\',sans-serif;padding:6px">Ahora no</button>'
+    + '</div>'
+  document.body.appendChild(d)
+
+  function cerrar() { d.remove() }
+  d.addEventListener('click', function(ev) { if (ev.target === d) cerrar() })
+  d.querySelector('#btn-limite-cerrar').onclick = cerrar
+  d.querySelector('#btn-limite-ver').onclick = function() { cerrar(); showModulo('mi-plan') }
+  var btnC = d.querySelector('#btn-limite-contratar')
+  if (btnC) btnC.onclick = function() { cerrar(); showModulo('mi-plan'); setTimeout(function(){ window.suscribirse(sug.id) }, 250) }
+}
+
 window.renderMiPlan = async function() {
-  var planActual = usuario?.user_metadata?.plan || 'gratis'
+  // Refrescar la suscripción antes de pintar: es la fuente de verdad del plan.
+  try { await window._cargarSuscripcion() } catch(e) {}
+  var planActual = window._planEfectivo()
   var info = PLANES_INFO[planActual] || PLANES_INFO.gratis
   var trial = window._trialInfo && window._trialInfo()
   var nombreConIcono = (info.icono ? info.icono + ' ' : '') + info.nombre
   document.getElementById('mp-nombre-plan').textContent = nombreConIcono
   var estadoEl = document.getElementById('mp-estado-plan')
-  if (trial && trial.activo) {
+  var _sus = window._suscripcion
+  var _susEst = window._suscripcionEstado()
+  var badgeEl = document.getElementById('mp-badge-plan')
+  if (badgeEl) {
+    badgeEl.textContent = _sus ? _susEst.etiqueta : (info.precio_mensual_usd === 0 ? 'Gratis' : 'Activo')
+    badgeEl.style.color = _sus ? _susEst.color : 'var(--verde)'
+  }
+  if (_sus && ['activa','en_gracia','pendiente','pausada'].indexOf(_sus.estado) >= 0) {
+    estadoEl.textContent = window._ars(_sus.importe_ars) + ' por ' + (_sus.periodo === 'anual' ? 'año' : 'mes')
+      + (_sus.proximo_cobro ? ' · próximo débito ' + window._fechaCorta(_sus.proximo_cobro) : '')
+  } else if (trial && trial.activo) {
     estadoEl.textContent = '🎁 Mes gratis · ' + trial.diasRestantes + ' día' + (trial.diasRestantes!==1?'s':'') + ' restantes'
   } else if (info.precio_mensual_usd === 0) {
     estadoEl.textContent = 'Plan gratuito'
@@ -7566,12 +8010,13 @@ window.renderMiPlan = async function() {
     await window.actualizarPrecios(true)
     renderTarjetasPlanes()
   } catch(e) {}
-  // Cargar preferencias de WhatsApp en paralelo
+  // Cargar preferencias de WhatsApp y la card de suscripción en paralelo
   try { _waCargarPrefs() } catch(e) {}
+  try { window._renderSuscripcionCard() } catch(e) {}
 }
 
 function renderTarjetasPlanes() {
-  var planActual = usuario?.user_metadata?.plan || 'gratis'
+  var planActual = window._planEfectivo()
   // Uso _dolarVenta() (divisa vendedor BNA) — es el TC correcto para el pago
   // de suscripción porque el productor debe conseguir USD para pagar el plan.
   // Valor se actualiza automáticamente via el cron en Supabase (cada 30 min
@@ -7668,8 +8113,17 @@ function renderTarjetasPlanes() {
     // Botón / estado
     var actionHtml
     if (esActual) actionHtml = '<div class="p-btn" style="background:var(--verde-pale);border-color:var(--verde);color:var(--verde);cursor:default">✓ Plan actual</div>'
-    else if (esGratis) actionHtml = '<button class="p-btn" onclick="suscribirse(\''+id+'\')">Cambiar al plan gratuito</button>'
-    else actionHtml = '<button class="p-btn '+(esPop?'p-btn-pop':'')+'" onclick="suscribirse(\''+id+'\')">Contratar '+plan.nombre+' →</button>'
+    else if (esGratis) {
+      var _sv0 = window._suscripcion
+      var _activa0 = _sv0 && ['pendiente','activa','en_gracia','pausada'].indexOf(_sv0.estado) >= 0
+      actionHtml = '<button class="p-btn" onclick="suscribirse(\''+id+'\')">'+(_activa0 ? 'Dar de baja mi suscripción' : 'Plan gratuito')+'</button>'
+    }
+    else {
+      var _sv = window._suscripcion
+      var _tieneSus = _sv && ['activa','en_gracia','pausada'].indexOf(_sv.estado) >= 0
+      var _lbl = _tieneSus ? ('Cambiar a '+plan.nombre+' →') : ('Contratar '+plan.nombre+' →')
+      actionHtml = '<button class="p-btn '+(esPop?'p-btn-pop':'')+'" onclick="suscribirse(\''+id+'\')">'+_lbl+'</button>'
+    }
 
     var badgeHtml = ''
     if (esActual) badgeHtml = '<div class="plan-badge" style="background:var(--verde);color:#fff">✓ Plan actual</div>'
@@ -7828,60 +8282,6 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function(){ try { _landRenderFAQ() } catch(e) {} })
 } else {
   try { _landRenderFAQ() } catch(e) {}
-}
-
-window.suscribirse = async function(planId) {
-  if(!usuario) { showToast('⚠️ Debés estar logueado','err'); return }
-  var plan = PLANES_INFO[planId]
-  if (!plan) { showToast('⚠️ Plan inválido','err'); return }
-  // Plan gratuito: cambio directo sin pasarela
-  if (plan.precio_mensual_usd === 0) {
-    showToast('⏳ Cambiando al plan gratuito...', 'ok')
-    try {
-      const { error } = await sb.auth.updateUser({ data: { plan: 'gratis' } })
-      if (error) throw error
-      showToast('✓ Plan actualizado a Gratuito','ok')
-      setTimeout(function(){ try { renderMiPlan() } catch(e){} }, 500)
-    } catch(e) {
-      showToast('⚠️ ' + (e.message||'Error al cambiar de plan'),'err')
-    }
-    return
-  }
-  // Planes pagos: mientras no haya pasarela de pago habilitada, disparamos un
-  // mailto con el plan pre-armado al equipo de Rinde.Agro para que gestionen
-  // el alta manualmente.
-  contactarParaContratar(planId)
-}
-
-// Genera un mailto con el plan y el periodo pre-armados. Se usa desde las
-// cards de planes hasta que la pasarela de pago (MercadoPago) esté habilitada.
-window.contactarParaContratar = function(planId) {
-  var plan = PLANES_INFO[planId]
-  if (!plan) return
-  var periodo = window._mpPeriodo || 'anual'
-  var precioMensual = plan.precio_mensual_usd
-  var precioAnualDesc = Math.round(precioMensual * 12 * (1 - DESCUENTO_ANUAL_PCT/100))
-  var precioBase = periodo === 'anual' ? precioAnualDesc : precioMensual
-  var precioConIva = Math.round(precioBase * (1 + IVA_PCT/100))
-  var periodoTxt = periodo === 'anual' ? 'anual' : 'mensual'
-  var nombreUser = (usuario && (usuario.user_metadata?.nombre || usuario.email)) || ''
-  var subject = 'Quiero contratar el plan ' + plan.nombre + ' (' + periodoTxt + ') — Rinde.Agro'
-  var body = 'Hola equipo de Rinde.Agro,\n\n'
-    + 'Quiero contratar el plan ' + plan.nombre + '.\n\n'
-    + 'Detalles:\n'
-    + '- Plan: ' + plan.nombre + '\n'
-    + '- Facturación: ' + periodoTxt + '\n'
-    + '- Precio: USD ' + precioBase + ' (+ IVA 21% = USD ' + precioConIva + ')\n'
-    + (nombreUser ? '- Usuario: ' + nombreUser + '\n' : '')
-    + (usuario && usuario.email ? '- Email de la cuenta: ' + usuario.email + '\n' : '')
-    + '\nPor favor coordinemos el pago.\n\nGracias.'
-  // Abrir Gmail en tab nueva (funciona sin cliente de mail configurado).
-  // Los que usen Outlook/Thunderbird pueden usar el link de mailto del modal Ayuda.
-  var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=rindeagro.contacto@gmail.com'
-    + '&su=' + encodeURIComponent(subject)
-    + '&body=' + encodeURIComponent(body)
-  showToast('✉️ Abriendo Gmail con el plan ' + plan.nombre + '...','ok')
-  window.open(gmailUrl, '_blank', 'noopener')
 }
 
 // ══════════════════════════════════════════════
@@ -8933,11 +9333,20 @@ window.guardarCampo = async function() {
         var p = PLANES_INFO[k]
         if (p.limite_hectareas >= haTotalProyectada && (!sugerido || p.limite_hectareas < sugerido.limite_hectareas)) sugerido = p
       })
-      var msg = '🔒 Con tu plan '+infoPlan.nombre+' ('+limiteHa.toLocaleString('es-AR')+' ha máx) no podés cargar este campo. Total quedaría en '+haTotalProyectada.toLocaleString('es-AR')+' ha.'
-      if (sugerido) msg += ' Pasate a '+sugerido.nombre+' ('+sugerido.limite_hectareas.toLocaleString('es-AR')+' ha, USD '+sugerido.precio_mensual_usd+'/mes).'
-      showToast(msg, 'err')
+      // Guardamos también el id del plan sugerido para poder mandarlo derecho
+      // al checkout desde el modal (antes esto era un toast que se perdía).
+      var sugeridoId = null
+      Object.keys(PLANES_INFO).forEach(function(k){
+        if (PLANES_INFO[k] === sugerido) sugeridoId = k
+      })
       closeModalCampo()
-      setTimeout(function(){ try { showModulo('mi-plan') } catch(e) {} }, 900)
+      window._modalLimitePlan({
+        titulo: 'Llegaste al límite de tu plan',
+        mensaje: 'Con el plan <strong>'+infoPlan.nombre+'</strong> podés tener hasta <strong>'
+               + limiteHa.toLocaleString('es-AR')+' ha</strong>. Con este campo pasarías a <strong>'
+               + haTotalProyectada.toLocaleString('es-AR')+' ha</strong>.',
+        sugerido: (sugerido && sugeridoId) ? { id: sugeridoId, plan: sugerido } : null
+      })
       return
     }
   }
@@ -16635,6 +17044,7 @@ async function _restDelete(path) { return _restRequest('DELETE', path) }
 // table: nombre de tabla. method: 'update'|'delete'. filter: {col,val} de match.
 // payload: objeto para update/insert (omitido en delete).
 async function _dbMutate(opts) {
+  window._guardSoloLectura(opts.method)
   var method = opts.method
   var table = opts.table
   var filter = opts.filter   // {col, val} for update/delete
@@ -16672,7 +17082,20 @@ async function _dbMutate(opts) {
   return result
 }
 
+// Choke point de solo lectura. Cuando la suscripción quedó impaga (venció la
+// ventana de gracia) bloqueamos TODA escritura, pero nunca las lecturas: el
+// usuario sigue viendo y exportando todos sus datos.
+window._guardSoloLectura = function(method) {
+  var m = String(method || '').toUpperCase()
+  if (m === 'GET' || m === 'HEAD') return
+  if (!window._appSoloLectura || !window._appSoloLectura()) return
+  var e = new Error('Tu suscripción está impaga: la app queda en solo lectura hasta que regularices el pago desde Mi plan.')
+  e.soloLectura = true
+  throw e
+}
+
 async function _restRequest(method, path, body) {
+  window._guardSoloLectura(method)
   var token = _getAccessTokenFromStorage()
   if (!token) throw new Error('No hay token de sesión local. Cerrá sesión y volvé a entrar.')
   var url = SB_URL + '/rest/v1' + path

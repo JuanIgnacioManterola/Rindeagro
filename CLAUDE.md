@@ -180,19 +180,113 @@ En `index.html`:
 - Strip del dashboard tiene 2 celdas separadas: `USD Compra · BNA` y `USD Venta · BNA` con el timestamp de "Cierre pizarra: DD-mmm".
 - Mi Plan hace `actualizarPrecios(true)` al abrir para forzar fetch fresco + muestra timestamp "Recién actualizado" / "Hace X min".
 
+## Suscripciones y cobro (Mercado Pago)
+
+Débito automático mensual/anual con **Mercado Pago Suscripciones (`preapproval`)**. Migración `SQL/suscripciones_mercadopago.sql`, backend en `main.py`, frontend en la sección "Mi plan" de `index.html`.
+
+### Por qué `preapproval` y no `preapproval_plan`
+
+Los precios son **USD × dólar BNA vendedor + IVA 21%**, o sea que el monto en ARS es distinto para cada usuario según el día en que se dio de alta. Un `preapproval_plan` es un monto fijo compartido por todos los suscriptos: habría que recrear planes cada vez que se mueve el dólar. Con `preapproval` sin plan asociado cada suscripción lleva su propio `transaction_amount` y su propio `external_reference` (`owner_id|plan|periodo`), que es lo que el webhook necesita para mapear de vuelta al usuario.
+
+**Anual** = `preapproval` con `frequency: 12, frequency_type: "months"` (un solo rail de pago, se auto-renueva, se cancela desde la app). MP Suscripciones **no soporta cuotas**; si algún día queremos anual en cuotas va por Checkout Pro como `proveedor` aparte (la tabla ya tiene las columnas `periodo` y `proveedor` para eso, no hace falta migración nueva).
+
+### El plan efectivo ya NO vive en `user_metadata`
+
+Antes el plan salía de `usuario.user_metadata.plan` y `suscribirse()` hacía `sb.auth.updateUser({data:{plan}})`. Eso es **escribible por el cliente**: cualquiera se ponía `plan:'cosecha'` desde la consola del navegador.
+
+Ahora:
+- La **fuente de verdad** es la tabla `suscripciones`, que solo escribe el webhook con el `service_role`.
+- `window._planEfectivo()` (frontend) y `_plan_efectivo()` (server) derivan el plan de esa fila. **Son espejo uno del otro — si tocás uno, tocá el otro.**
+- `user_metadata.plan` queda como **cache de lectura** que el webhook sincroniza, para no romper el código viejo que lo lee.
+- `window._infoPlanActual()` ahora pasa por `_planEfectivo()`. La whitelist `USUARIOS_ADMIN_ILIMITADOS` sigue ganando sobre todo.
+- Para comp-ear una cuenta a mano desde Supabase: setear `user_metadata.plan` **y** `user_metadata.plan_manual: true`. Sin el flag `plan_manual`, un `plan` en el metadata sin fila de suscripción se ignora (cae a gratis).
+
+**Límite conocido**: el gate de hectáreas sigue siendo del lado del cliente, así que es UX, no seguridad — alguien puede pisar `window._limiteHectareasPlan` desde la consola. Lo que se cerró es el camino fácil (auto-asignarse el plan) y ahora el estado real es auditable. La aplicación server-side del límite (un CHECK o un trigger sobre `campos`) queda pendiente.
+
+**Colaboradores**: el plan se evalúa contra la suscripción del usuario logueado, no la del dueño de la cuenta a la que accede (la policy de SELECT es `owner_id = auth.uid()`). Es el mismo comportamiento que había antes con `user_metadata`, así que no es una regresión, pero un colaborador de una cuenta paga cuenta como gratis para los límites.
+
+### Estados
+
+`pendiente` (preapproval creado, falta la tarjeta) → `activa` → `en_gracia` (rebotó un cobro; **10 días de acceso completo**) → `impaga` (venció la gracia) · `pausada` · `cancelada`.
+
+**Comportamiento en downgrade / impago** (decisión del producto): los datos ya cargados **nunca se ocultan**. El usuario sigue viendo y exportando todo; lo único que se bloquea es escribir. El corte lo aplica `window._guardSoloLectura()`, llamado desde `_dbMutate()` y `_restRequest()` — los dos puntos por donde pasan todas las mutaciones. Los GET/HEAD nunca se bloquean.
+
+Cuando se cancela, el usuario **conserva el plan hasta `periodo_fin`** (el final del período que ya pagó), como hace cualquier SaaS.
+
+### Endpoints (`main.py`)
+
+Todos autentican con el **JWT de Supabase** en el header `Authorization` — nunca con un `usuario_id` del body.
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /mp/suscripcion/crear` | Crea el `preapproval` y devuelve el `init_point` del checkout de MP |
+| `POST /mp/suscripcion/cambiar-plan` | `PUT` del monto sobre el preapproval existente (no vuelve a pedir la tarjeta). Cambiar mensual ↔ anual devuelve `requiere_nuevo_checkout` |
+| `POST /mp/suscripcion/cancelar` | Baja autogestionada, con acceso hasta el fin del período pago |
+| `POST /mp/webhook` | **Fuente de verdad.** Valida firma y aplica el estado |
+| `GET /mp/suscripcion` · `GET /mp/planes` · `GET /mp/diagnostico` | Estado, precios en ARS y chequeo de configuración |
+| `GET /mp/admin/desfasaje` · `POST /mp/admin/reajustar` | Reajuste manual por movimiento del dólar (solo UUIDs de `ADMIN_USER_IDS`) |
+
+### El webhook es lo único que otorga un plan
+
+El redirect de vuelta (`back_url`) **no da de alta nada** — solo muestra "confirmando tu pago" y hace polling sobre la tabla. Nunca confiar en el cliente para eso.
+
+Validación de firma (obligatoria): header `x-signature: ts=<ms>,v1=<hex>`, manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, HMAC-SHA256 hex con `MP_WEBHOOK_SECRET`. **Sin el secreto configurado el webhook ignora la notificación** en vez de aplicarla (devuelve 200 para que MP no reintente en loop, pero no toca la DB). Topics escuchados: `subscription_preapproval` y `subscription_authorized_payment`.
+
+### URLs de retorno
+
+Se mantiene la regla dura: **el frontend manda su propio `window.location.origin + window.location.pathname`** en `retorno_url` y el server lo valida contra la allowlist `ORIGENES_RETORNO`. Nada de URLs hardcodeadas (romper esto rompe rindeagro.app) y nada de open redirect.
+
+### Datos de tarjeta
+
+Ninguno pasa por Rinde.Agro. El usuario carga la tarjeta en el checkout hosteado por Mercado Pago. De vuelta solo guardamos marca y últimos 4 dígitos, que es lo que MP nos informa para el comprobante.
+
+### Env vars a setear en Railway
+
+| Variable | De dónde sale |
+|---|---|
+| `MP_ACCESS_TOKEN` | MP → Tus integraciones → tu aplicación → Credenciales. **Empezar con la de prueba (`TEST-…`)**; el server detecta el entorno por ese prefijo |
+| `MP_WEBHOOK_SECRET` | MP → Tus integraciones → tu aplicación → Webhooks → "Configurar notificación" → revelar clave secreta |
+| `ADMIN_USER_IDS` | Opcional, CSV de UUIDs para `/mp/admin/*`. Default: el UUID de Ignacio |
+
+En el panel de MP hay que configurar la URL de notificación apuntando a `https://<server-de-railway>/mp/webhook` y marcar los eventos **"Planes y suscripciones"** y **"Pagos autorizados de suscripciones"**. El secreto se genera recién al guardar esa configuración.
+
+### Cron
+
+Job diario 6:00 AR `_suscripciones_vencer_gracia`: pasa `en_gracia` → `impaga` cuando venció `gracia_hasta` y sincroniza el metadata. MP no nos avisa de eso.
+
+### Pruebas en sandbox
+
+Usar **usuarios de prueba** de MP (Tus integraciones → Cuentas de prueba): hace falta uno vendedor (de donde sale el `TEST-` access token) y uno comprador distinto. El `payer_email` del checkout tiene que ser el del usuario de prueba comprador, si no MP rechaza la suscripción.
+
 ## Límites por plan + whitelist de admin
 
-Los planes tienen límite de campos aplicado en `window.guardarCampo`:
-- **Gratis** → 1 campo
-- **Semilla** → 3 campos
-- **Corporativo** → ilimitado
+Los planes se eligen por **hectáreas totales del productor**, no por cantidad de campos. El límite se aplica en `window.guardarCampo` sumando las ha de todos los campos más las del que se está creando:
+
+| Plan | Límite | USD/mes |
+|---|---|---|
+| Gratis | 50 ha (1 campo) | 0 |
+| 🌱 Semilla | 500 ha | 35 |
+| 🌿 Germinación | 1.000 ha | 50 |
+| 🌸 Floración | 2.000 ha | 65 |
+| 🌾 Maduración | 5.000 ha | 80 |
+| 🚜 Cosecha | 10.000 ha | 110 |
+
+Anual = mensual × 12 × 0.8 (−20%). Todo + IVA 21%, cobrado en pesos al dólar BNA vendedor.
+
+Al registrarse hay **30 días de trial** sin tarjeta: durante ese período `_limiteHectareasPlan()` devuelve `Infinity`.
+
+Cuando el usuario se pasa del límite, `guardarCampo` abre `window._modalLimitePlan()` — que sugiere el plan más chico que le alcanza y lleva derecho al checkout de Mercado Pago (ver "Suscripciones y cobro"). Antes era un toast que se perdía + un redirect silencioso a Mi Plan.
 
 Excepción admin: whitelist `USUARIOS_ADMIN_ILIMITADOS` (array de UUIDs en `index.html`). Los que están ahí tienen acceso ilimitado sin importar su plan. Hoy contiene solo el UUID de Ignacio (`ea80343b-b31d-4cba-a43e-00c3f0a3fa39`) para poder seguir probando la app sin bloquearse. Extensible: para agregar otro admin, sumar su UUID al array.
 
 Helpers globales:
 - `window._esAdminIlimitado()` — true si el user actual está en la whitelist.
-- `window._infoPlanActual()` — objeto `PLANES_INFO` del plan del user (default gratis).
-- `window._limiteCamposPlan()` — número con el límite (o `Infinity` para admin/corporativo).
+- `window._planEfectivo()` — id del plan que le corresponde HOY según la tabla `suscripciones`. **Fuente de verdad.**
+- `window._infoPlanActual()` — objeto `PLANES_INFO` del plan efectivo (default gratis).
+- `window._limiteHectareasPlan()` — ha permitidas (`Infinity` para admin o trial activo).
+- `window._limiteCamposPlan()` — alias legacy por cantidad de campos.
+- `window._appSoloLectura()` — true si la suscripción quedó impaga.
+- `window._suscripcionEstado()` — `{estado, etiqueta, color}` para la UI.
 
 ## Catálogo de insumos predefinidos
 
@@ -216,12 +310,12 @@ Las 4 categorías predefinidas:
 - [ ] **OCR de facturas, pagos, activos y gastos de estructura — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las 4 edge functions (`ocr-factura`, `ocr-pago`, `ocr-activo`, `ocr-gasto-estr`) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado del modal correspondiente.
 - [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde.Agro. Requiere teléfono para la 2FA (esperando).
 - [ ] **Bot de WhatsApp insertando pagos**: cuando el bot esté listo, implementar el parser de comandos "cheque NNN a X vence DD/MM" y "crédito X N cuotas de NNN desde DD/MM" según el contrato documentado en "Módulo Pagos → Contrato WhatsApp → Pagos".
-- [ ] **Mercado Pago para suscripciones**: cuando alguien alcanza el límite de plan, hoy lo mandamos a Mi Plan pero no hay flujo de pago. Es el bloqueador comercial más grande para monetizar.
+- [x] ~~**Mercado Pago para suscripciones**~~ — Implementado con `preapproval` (débito automático). Ver sección "Suscripciones y cobro" abajo. **Queda por hacer para salir a producción**: (1) aplicar `SQL/suscripciones_mercadopago.sql`, (2) setear `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` en Railway, (3) configurar la URL del webhook en el panel de MP, (4) probar el ciclo completo en sandbox con usuarios de prueba, (5) recién ahí cambiar las credenciales de TEST- a producción.
 
 ## Cosas en curso
 
 - Bot de WhatsApp (Twilio Sandbox, ya recibe mensajes y reconoce números vinculados, falta terminar los flujos de carga de gastos/lluvias y los recordatorios programados con APScheduler).
-- Integración de Mercado Pago para suscripciones (planes Semilla, Lote, Agrónomo, Corporativo en ARS atadas al dólar BNA).
+- Mercado Pago: el flujo de suscripción está implementado y funcionando contra el **sandbox**. Falta aplicar la migración, cargar las credenciales en Railway, configurar el webhook en el panel de MP y probar el ciclo completo antes de pasar a producción.
 
 ## Convenciones de UI
 
@@ -263,3 +357,4 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 11. `estructura_activos_y_gastos_generales.sql` — nuevas tablas `activos_amortizables` (vehículos/maquinaria/herramientas/construcción con vida útil) y `gastos_estructura` (sueldos/honorarios/seguros/oficina con frecuencia mensual/anual/único). 4 RLS policies owner-only en cada una. Ver sección "Módulo Estructura" abajo.
 12. `fks_on_delete_cascade_cleanup.sql` — migra los `*.usuario_id → perfiles(id)` a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa (antes eran NO ACTION, rompía el borrado limpio de un `auth.users`). Además pone en `SET NULL`: `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` para preservar registros históricos cuando se elimina la referencia.
 13. `gastos_momento_pulverizacion.sql` — agrega `gastos.momento_pulverizacion` (text nullable con CHECK `barbecho|presiembra|postemergente|aplicacion`). Alimenta la nueva tab **Cultivo** en la vista del campo, que arma una timeline con siembra, pulverizaciones, fertilizaciones y cosecha derivada de los gastos ya cargados. El dropdown aparece en el modal de gasto solo cuando el rubro es `herbicidas`/`fungicidas`/`insecticidas`.
+14. `suscripciones_mercadopago.sql` — tablas `suscripciones` (una fila por suscripción: plan, período, estado, preapproval id de MP, importe ARS + base USD + TC del alta, próximo cobro, ventana de gracia) y `suscripcion_pagos` (historial de cobros / comprobantes). 4 RLS policies explícitas en cada una, pero con una diferencia respecto del resto del proyecto: **solo el SELECT del dueño está permitido; INSERT/UPDATE/DELETE deniegan siempre** (`with check (false)`). Todas las escrituras entran por el webhook de Railway con `SUPABASE_SERVICE_KEY`, que saltea RLS. Si el frontend pudiera escribir, un usuario se pondría `estado='activa'` y `plan='cosecha'` desde la consola. Incluye índice único parcial `idx_suscripciones_una_viva` (una sola suscripción no cancelada por usuario) y la vista `v_suscripcion_vigente`.

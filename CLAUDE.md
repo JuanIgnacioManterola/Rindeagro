@@ -209,6 +209,95 @@ Las 4 categorías predefinidas:
 - **Insecticidas** (~33): piretroides (Cipermetrina, Lambdacialotrina, Bifentrin, Deltametrina, Zeta-cipermetrina, Gamma-cialotrina, Permetrina), neonicotinoides (Imidacloprid, Tiametoxam, Acetamiprid, Clotianidina), diamidas (Clorantraniliprole/Coragen, Flubendiamide/Belt, Ciantraniliprole), espinosinas (Spinosad, Spinetoram), reguladores (Metoxifenocide, Lufenuron), organofosforados (Clorpirifos, Dimetoato).
 - **Fertilizantes** (~32): nitrogenados (Urea 46% en variantes, UAN 32, Solmix, ATS, Sulfato/Nitrato de amonio), fosfatados (MAP, DAP, MAP azufrado, SFS, SFT), potásicos (KCl, K2SO4, Sulpomag), azufrados, mezclas físicas NPS/NPK, micros (Boro, Zinc), starter líquido.
 
+## Módulo WhatsApp (bot vía Kapso)
+
+El bot vive en el server de Railway (`/Users/juanignaciomanterola/rindeagro-server`),
+no en `index.html`. `kapso.py` es solo transporte (enviar, validar firma, parsear
+webhooks); la lógica conversacional está en `main.py`.
+
+**Kapso es un proxy de la Cloud API oficial de Meta**, no un proveedor con reglas
+propias. Todo lo que limita al bot son reglas de Meta.
+
+### Sandbox vs producción
+
+La limitación de "el bot solo habla con ~5 números" es del **número de test de
+Meta**, no de Kapso ni del código. **No hay ninguna allowlist en el repo.** Un
+número de producción en una WABA verificada habla con cualquiera.
+
+Checklist completo de los pasos manuales (Meta Business Manager, verificación de
+empresa, display name, método de pago, provisionar el número, plantillas) en
+**`WHATSAPP_PRODUCCION.md` del repo del server**.
+
+Lo que más fácil se olvida: **los webhooks de Kapso son POR NÚMERO de teléfono,
+no por proyecto**. Cambiar `KAPSO_PHONE_NUMBER_ID` sin crear el webhook del
+número nuevo (`POST /platform/v1/whatsapp/phone_numbers/{id}/webhooks`) deja al
+server sordo, sin error visible en ningún lado. El `secret_key` lo elegís vos al
+crear el webhook, así que se puede reusar el `KAPSO_WEBHOOK_SECRET` que ya está.
+
+### Identificación de quién escribe — no volver al escaneo por mensaje
+
+`perfiles.telefono` y `equipo.whatsapp` los tipea el usuario, así que están
+guardados en cualquier formato (`+54 9 2944 56-5308`, `02944565308`). No se puede
+filtrar por número en la query de Supabase: hay que normalizar y comparar.
+
+Eso se resolvía trayendo hasta 2000 perfiles y 2000 filas de equipo **en cada
+mensaje entrante**. Con el sandbox daba igual; con un número abierto son dos
+consultas enormes por mensaje y, peor, el que se registra pasada la fila 2000 no
+es reconocido nunca. Ahora hay un índice normalizado en memoria:
+
+- `_wa_construir_directorio()` arma `{número normalizado → perfil o miembro}`.
+- `_wa_buscar_en_directorio()` cachea con TTL de 5 min y rearma ante un miss con
+  un piso de 20s (para que un desconocido que insiste no escanee la base).
+- `_wa_dir_invalidar()` fuerza el rearmado — se llama al verificar un número.
+- `_sb_get_todo()` pagina de a 1000: **PostgREST trunca en 1000 filas sin
+  avisar**, así que cualquier lectura "traeme todo" tiene que usarlo.
+
+Ojo con el orden dentro de `_wa_construir_directorio`: el equipo se indexa
+primero y los perfiles después, a propósito, para que si alguien está en las dos
+tablas gane su perfil (que es de donde sale el contexto de dueño).
+
+### Número desconocido
+
+Con un número de producción escribe cualquiera: equivocados, curiosos, spam. A
+un número que no reconocemos se le contesta **una sola vez cada 6 horas**
+(`_wa_corresponde_avisar`), con un mensaje que cubre los tres casos: no tiene
+cuenta, tiene cuenta pero no cargó el número, o lo sumaron a un equipo.
+
+Detalle no obvio: el diccionario usa `None` como sentinela, **no `0.0`**.
+`time.monotonic()` arranca cerca de cero en un contenedor recién levantado, así
+que con default `0.0` nadie nuevo recibiría respuesta durante las primeras 6
+horas de cada deploy.
+
+### Ventana de 24h y plantillas
+
+Fuera de la ventana de 24 horas desde el último mensaje del usuario, Meta solo
+acepta **plantillas aprobadas**. Todo lo que el bot contesta *como respuesta* cae
+dentro de la ventana y no necesita plantilla.
+
+Los 3 jobs del scheduler (`_wa_recordatorio_operarios`, `_wa_recordatorio_admins`,
+`_wa_resumen_semanal`) sí las necesitan, y **siguen mandando por Twilio a
+propósito**: `kapso.enviar_plantilla()` ya existe, pero migrarlos antes de tener
+las plantillas aprobadas por Meta los rompería en silencio. El orden es aprobar
+plantillas → migrar los jobs → dar de baja Twilio.
+
+### Firma del webhook
+
+`KAPSO_WEBHOOK_SECRET` es **obligatorio en producción**: sin secret el webhook
+acepta cualquier POST y la URL de un número de producción es pública. El código
+mantiene el fail-open para no romper el entorno de prueba, pero avisa al
+arrancar, en cada request y con un campo `alerta` en el endpoint de estado.
+
+Se aceptan las dos formas de firma: `X-Webhook-Signature` en hexadecimal
+(webhook tipo `kapso`, el default) y `X-Hub-Signature-256` con prefijo `sha256=`
+(webhook tipo `meta`).
+
+### Diagnóstico
+
+`GET /whatsapp/kapso/estado` → qué está configurado + tamaño del índice de
+números. Con `?numeros=1` además lista los números conectados al proyecto vía la
+Platform API de Kapso y marca cuál está `en_uso`, para verificar el cambio de
+número sin adivinar el `phone_number_id`.
+
 ## Verificación del número de WhatsApp
 
 Hasta septiembre 2026 el usuario tipeaba su número al registrarse y el sistema le creía. Un dígito mal tipeado alcanzaba para que el bot le sirviera los datos de un productor a otra persona, y para que el resumen semanal (con plata y rindes) le llegara a un desconocido. Ahora hay que probar que el número es tuyo.
@@ -239,7 +328,8 @@ Fuera de la ventana de 24 h Meta rechaza el texto libre: si el envío falla, el 
 
 `_wa_identificar()` solo devuelve un contexto usable si el perfil está verificado. Si existe pero está sin verificar devuelve `{"verificado": False, ...}` — sin un solo dato de la cuenta — para poder contestarle cómo verificar. Puntos cubiertos:
 
-- `_wa_construir_directorio()` — el índice cacheado trae `telefono_verificado`. Las filas de `equipo.whatsapp` (columna legacy que nada del frontend escribe hoy) solo entran si el perfil del miembro está verificado con **ese mismo número**.
+- Las filas de `equipo.whatsapp` (columna legacy que nada del frontend escribe hoy) solo se aceptan si el perfil del miembro está verificado con **ese mismo número** — esa columna se carga a mano y por sí sola no prueba nada.
+- Cuando esté mergeado el índice cacheado `_WA_DIR` (rama `feat/whatsapp-produccion`), el guard vive dentro de `_wa_construir_directorio()`: hay que traer `telefono_verificado` en el `select` y llamar a `_wa_dir_invalidar()` después de verificar, o el índice sigue viendo al usuario sin verificar hasta que venza el TTL de 5 min.
 - `_kapso_procesar()` — `VINCULAR` se procesa **antes** de identificar, porque el que no verificó no existe para el resto del bot.
 - `_wa_get_destinatarios()` — filtra por `telefono_verificado`, así los recordatorios, el resumen semanal y las alertas de precio no salen a números sin probar.
 - `procesar_mensaje_whatsapp()` (webhook viejo de Twilio) y `_manejar_stop_activar()` — mismo filtro.
@@ -259,6 +349,7 @@ El punto 1 falló la primera vez y así se descubrió lo del `security definer`.
 
 Códigos de un solo uso, 15 minutos de vida, guardados hasheados. Rate limit de 8 intentos fallidos por número entrante en una ventana de 15 min → bloqueo de 1 hora (persistido en `wa_verificacion_intentos`, no en memoria: Railway reinicia seguido y un contador en RAM se reseteaba con cada deploy). El OTP saliente permite 5 códigos por usuario por hora y 5 intentos por código. Un número verificado pertenece a una sola cuenta — para moverlo hay que desvincularlo primero.
 
+
 ## Pendientes (roadmap corto)
 
 - [x] ~~Dominio `rindeagro.lat`~~ — Reemplazado por **rindeagro.app** (PR #39). El CNAME apunta ahí. Los redirects auth ahora son dinámicos (`window.location.origin + pathname`), funcionan en cualquier dominio sin hardcodear.
@@ -275,7 +366,7 @@ Códigos de un solo uso, 15 minutos de vida, guardados hasheados. Rate limit de 
 
 ## Cosas en curso
 
-- Bot de WhatsApp (Twilio Sandbox, ya recibe mensajes y reconoce números vinculados, falta terminar los flujos de carga de gastos/lluvias y los recordatorios programados con APScheduler).
+- Bot de WhatsApp por **Kapso** (proxy de la Cloud API de Meta): ya recibe mensajes, reconoce números vinculados y maneja tareas, gastos, lluvias y OCR de facturas. Falta el salto a un número de producción — ver `WHATSAPP_PRODUCCION.md` en el repo del server. Los recordatorios programados con APScheduler siguen saliendo por Twilio hasta que estén aprobadas las plantillas de Meta.
 - Integración de Mercado Pago para suscripciones (planes Semilla, Lote, Agrónomo, Corporativo en ARS atadas al dólar BNA).
 
 ## Convenciones de UI

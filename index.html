@@ -1235,6 +1235,21 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
     <div style="font-size:13px;font-weight:600;color:var(--texto-mid);margin-bottom:1rem">Cambiar de plan</div>
     <div id="mp-planes-lista"></div>
 
+    <!-- Verificación del número de WhatsApp -->
+    <div class="card" id="verif-card" style="margin-top:2rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
+        <span style="font-size:22px">🔒</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--texto)">Verificar mi WhatsApp</div>
+          <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">El bot solo atiende números verificados</div>
+        </div>
+        <span id="verif-badge"></span>
+      </div>
+      <div id="verif-body">
+        <div style="color:var(--texto-suave);font-size:13px">Cargando...</div>
+      </div>
+    </div>
+
     <!-- Notificaciones WhatsApp -->
     <div class="card" id="wa-prefs-card" style="margin-top:2rem">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
@@ -3960,6 +3975,16 @@ async function cargarTodo() {
   // Nunca caer al prefix del email (queda feo: ignamanterola00).
   try {
     var p = resP.status==='fulfilled' ? resP.value.data : null
+    // El perfil viene con select('*'), así que ya trae el estado de verificación.
+    // Lo cacheamos acá para que _construirAvisos() —que es sincrónico— pueda
+    // usarlo sin salir a pedirlo de nuevo.
+    if (p) {
+      window._verifEstadoActual = {
+        telefono: p.telefono || '',
+        telefono_verificado: !!p.telefono_verificado,
+        telefono_verificado_en: p.telefono_verificado_en || null
+      }
+    }
     var meta2 = (usuario && usuario.user_metadata) || {}
     var nombre = (p && p.nombre) ? p.nombre : (meta2.nombre || meta2.full_name || meta2.name || '')
     var nombreCap = nombre ? _capNombreCompleto(nombre) : ''
@@ -7189,6 +7214,9 @@ window.registrar = async function() {
     showToast('🌾 ¡Bienvenido'+(nombre?' '+((nombre.split(' ')[0]||'').charAt(0).toUpperCase()+(nombre.split(' ')[0]||'').slice(1).toLowerCase()):'')+'!','ok')
     showScreen('app')
     await cargarTodo()
+    // El número que acaba de tipear no prueba nada todavía: un dígito mal puesto
+    // y el bot le hablaría a un desconocido. Lo mandamos a verificarlo.
+    try { await window._verifNudge('registro') } catch(e) {}
   }catch(e){
     var msg=e.message||'Error al crear cuenta'
     if(msg.includes('already registered')||msg.includes('already been registered'))msg='Este email ya tiene cuenta. Ingresá con tu contraseña.'
@@ -7566,7 +7594,8 @@ window.renderMiPlan = async function() {
     await window.actualizarPrecios(true)
     renderTarjetasPlanes()
   } catch(e) {}
-  // Cargar preferencias de WhatsApp en paralelo
+  // Cargar verificación del número + preferencias de WhatsApp en paralelo
+  try { window._verifRenderCard(true) } catch(e) {}
   try { _waCargarPrefs() } catch(e) {}
 }
 
@@ -7950,9 +7979,344 @@ async function _waCargarPrefs() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VERIFICACIÓN DEL NÚMERO DE WHATSAPP
+// ═══════════════════════════════════════════════════════════════════════════
+// Antes el usuario tipeaba su número al registrarse y le creíamos. Un dígito
+// mal tipeado alcanzaba para que el bot le sirviera los datos de un productor a
+// otra persona. Ahora hay que probar que el número es tuyo.
+//
+// Camino principal (OTP inverso): esta pantalla genera un código, guarda el
+// HASH en Supabase y le muestra al usuario "escribile VINCULAR <código> al bot".
+// El bot (service_role) matchea el hash y marca el perfil como verificado con el
+// número REAL del remitente — por eso el typo se corrige solo.
+//
+// Fallback (OTP saliente): el bot manda 6 dígitos al número cargado y el usuario
+// los tipea acá. Va por el server porque marcar telefono_verificado está
+// reservado a service_role.
+//
+// La invitación de un operario prueba que a alguien lo invitaron; esto prueba
+// que el número es suyo. Son cosas distintas: el operario que entra por link
+// también tiene que verificar.
+
+var VERIF_VIGENCIA_MIN = 15
+var VERIF_ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  // sin I/O/0/1: se dicta y se copia a mano
+var VERIF_COOLDOWN_MS = 60 * 1000
+var _verifPollTimer = null
+var _verifUltimoCodigo = 0
+var _verifEstadoCache = null
+
+// Espejo exacto de _verif_hash() en main.py. Si tocás uno, tocá el otro.
+async function _verifHash(userId, codigo) {
+  var limpio = String(codigo || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  var data = new TextEncoder().encode(userId + ':' + limpio)
+  var buf = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(buf)).map(function(b){
+    return b.toString(16).padStart(2, '0')
+  }).join('')
+}
+
+function _verifGenerarCodigo() {
+  var out = ''
+  var bytes = new Uint8Array(6)
+  crypto.getRandomValues(bytes)
+  for (var i = 0; i < 6; i++) out += VERIF_ALFABETO[bytes[i] % VERIF_ALFABETO.length]
+  return out
+}
+
+// Solo dígitos, sin el 9 de AR ni el 1 de MX — igual que kapso.normalizar_numero
+// en el server y que public.normalizar_telefono en la DB. Sin esto, el número
+// guardado ('+5492944565308') nunca coincide con el que manda WhatsApp.
+window._verifNormalizar = function(numero) {
+  if (!numero) return ''
+  var d = String(numero).replace(/\D/g, '')
+  if (d.indexOf('00') === 0) d = d.slice(2)
+  if (d.indexOf('549') === 0 && d.length === 13) d = '54' + d.slice(3)
+  if (d.indexOf('521') === 0 && d.length === 13) d = '52' + d.slice(3)
+  return d
+}
+
+// Lee el estado del perfil. Lectura → _restGet, según la convención del proyecto.
+window._verifEstado = async function(force) {
+  if (!usuario || !usuario.id) return null
+  if (_verifEstadoCache && !force) return _verifEstadoCache
+  try {
+    var rows = await _restGet('/perfiles?id=eq.' + encodeURIComponent(usuario.id) +
+                              '&select=telefono,telefono_verificado,telefono_verificado_en&limit=1')
+    _verifEstadoCache = (Array.isArray(rows) && rows.length) ? rows[0] : null
+    return _verifEstadoCache
+  } catch (e) {
+    console.warn('_verifEstado:', e && e.message)
+    return null
+  }
+}
+
+// Badge reutilizable: lo usan Mi plan y el aviso post-registro.
+window._verifBadge = function(verificado) {
+  if (verificado) {
+    return '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;' +
+           'background:var(--verde-pale);color:var(--verde);white-space:nowrap">✓ Verificado</span>'
+  }
+  return '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;' +
+         'background:#fef3c7;color:#8a5a08;white-space:nowrap">Sin verificar</span>'
+}
+
+// ── Generar el código del flujo inverso ──────────────────────────────────────
+window._verifGenerar = async function() {
+  if (!usuario || !usuario.id) return
+  var ahora = Date.now()
+  if (ahora - _verifUltimoCodigo < VERIF_COOLDOWN_MS) {
+    var faltan = Math.ceil((VERIF_COOLDOWN_MS - (ahora - _verifUltimoCodigo)) / 1000)
+    showToast('Esperá ' + faltan + 's antes de pedir otro código', 'info')
+    return
+  }
+  var box = document.getElementById('verif-body')
+  if (box) box.innerHTML = '<div style="font-size:13px;color:var(--texto-suave);padding:8px 0">Generando código...</div>'
+
+  try {
+    var telInput = document.getElementById('verif-tel')
+    var tel = telInput ? telInput.value.trim() : ''
+    var codigo = _verifGenerarCodigo()
+    var hash = await _verifHash(usuario.id, codigo)
+    var expira = new Date(Date.now() + VERIF_VIGENCIA_MIN * 60000).toISOString()
+
+    // Mutación → _dbMutate (SDK con timeout + fallback REST), convención del proyecto.
+    await _dbMutate({
+      method: 'insert',
+      table: 'verificaciones_telefono',
+      payload: {
+        user_id: usuario.id,
+        telefono: window._verifNormalizar(tel) || null,
+        telefono_display: tel || null,
+        codigo_hash: hash,
+        metodo: 'inverso',
+        expira_en: expira
+      },
+      timeout: 6000
+    })
+
+    _verifUltimoCodigo = ahora
+    // El código en claro NUNCA sale de esta pantalla: en la DB solo va el hash.
+    window._verifCodigoActivo = { codigo: codigo, expira: expira }
+    _verifRender()
+    _verifIniciarPoll()
+  } catch (e) {
+    console.error('_verifGenerar:', e)
+    showToast('⚠️ No pude generar el código: ' + (e.message || 'error'), 'err')
+    _verifRender()
+  }
+}
+
+// ── Fallback: pedir que el bot mande el código ───────────────────────────────
+window._verifPedirSaliente = async function() {
+  var telInput = document.getElementById('verif-tel')
+  var tel = telInput ? telInput.value.trim() : ''
+  if (!window._verifNormalizar(tel) || window._verifNormalizar(tel).length < 10) {
+    showToast('⚠️ Escribí tu número con código de país (+54 9 ...)', 'err')
+    return
+  }
+  var btn = document.getElementById('verif-btn-saliente')
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...' }
+  try {
+    var r = await _verifFetchServer('/whatsapp/verificacion/enviar', { telefono: tel })
+    showToast('📲 Te mandé un código por WhatsApp. Vence en ' + (r.expira_en_min || VERIF_VIGENCIA_MIN) + ' min.', 'ok')
+    window._verifModoSaliente = true
+    _verifRender()
+  } catch (e) {
+    showToast('⚠️ ' + (e.message || 'No pude mandar el código'), 'err')
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Mandame el código por WhatsApp' }
+  }
+}
+
+window._verifConfirmarSaliente = async function() {
+  var inp = document.getElementById('verif-codigo-in')
+  var codigo = inp ? inp.value.trim() : ''
+  if (!codigo) { showToast('⚠️ Escribí el código que te llegó', 'err'); return }
+  var btn = document.getElementById('verif-btn-confirmar')
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...' }
+  try {
+    await _verifFetchServer('/whatsapp/verificacion/confirmar', { codigo: codigo })
+    await _verifExito()
+  } catch (e) {
+    showToast('⚠️ ' + (e.message || 'Código incorrecto'), 'err')
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Verificar' }
+  }
+}
+
+window._verifDesvincular = async function() {
+  if (!confirm('¿Desvincular este número? El bot va a dejar de reconocerte hasta que lo verifiques de nuevo.')) return
+  try {
+    await _verifFetchServer('/whatsapp/verificacion/desvincular', {})
+    _verifEstadoCache = null
+    window._verifCodigoActivo = null
+    window._verifModoSaliente = false
+    showToast('Número desvinculado', 'ok')
+    await _verifRenderCard(true)
+  } catch (e) {
+    showToast('⚠️ ' + (e.message || 'No pude desvincular'), 'err')
+  }
+}
+
+// El server es quien tiene service_role: marcar telefono_verificado desde el
+// frontend está bloqueado por trigger a propósito.
+async function _verifFetchServer(path, body) {
+  var token = _getAccessTokenFromStorage()
+  if (!token) throw new Error('Cerrá sesión y volvé a entrar')
+  var r = await fetch(SERVER_URL + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body || {})
+  })
+  var data = null
+  try { data = await r.json() } catch (e) {}
+  if (!r.ok) throw new Error((data && data.detail) || ('Error ' + r.status))
+  return data || {}
+}
+
+// ── Poll: detectar que el bot ya verificó ────────────────────────────────────
+// El usuario manda el mensaje desde el celular y vuelve a mirar la pantalla; sin
+// esto tendría que refrescar a mano para enterarse de que ya está.
+function _verifIniciarPoll() {
+  _verifDetenerPoll()
+  var intentos = 0
+  _verifPollTimer = setInterval(async function() {
+    intentos++
+    if (intentos > 60) { _verifDetenerPoll(); return }   // 5 min a 5s
+    var est = await window._verifEstado(true)
+    if (est && est.telefono_verificado) {
+      _verifDetenerPoll()
+      await _verifExito()
+    }
+  }, 5000)
+}
+
+function _verifDetenerPoll() {
+  if (_verifPollTimer) { clearInterval(_verifPollTimer); _verifPollTimer = null }
+}
+
+async function _verifExito() {
+  _verifEstadoCache = null
+  window._verifCodigoActivo = null
+  window._verifModoSaliente = false
+  _verifDetenerPoll()
+  showToast('✅ ¡Número verificado! Ya podés usar el bot de WhatsApp.', 'ok')
+  await _verifRenderCard(true)
+}
+
+// Empujón después de registrarse o de aceptar una invitación: llevar a Mi plan
+// y dejar la card de verificación a la vista. Sin esto la feature queda
+// escondida en una pantalla que el recién llegado no tiene motivo para abrir.
+window._verifNudge = async function(motivo) {
+  if (!usuario || !usuario.id) return
+  var est = await window._verifEstado(true)
+  if (est && est.telefono_verificado) return
+  showToast(motivo === 'invitacion'
+    ? '🔒 Falta un paso: verificá tu WhatsApp para poder usar el bot'
+    : '🔒 Último paso: verificá tu WhatsApp', 'info')
+  setTimeout(function() {
+    try {
+      showModulo('mi-plan')
+      var card = document.getElementById('verif-card')
+      if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } catch(e) {}
+  }, 1400)
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+window._verifRenderCard = async function(force) {
+  var card = document.getElementById('verif-card')
+  if (!card || !usuario) return
+  var est = await window._verifEstado(force)
+  window._verifEstadoActual = est
+  _verifRender()
+}
+
+function _verifRender() {
+  var body = document.getElementById('verif-body')
+  var badge = document.getElementById('verif-badge')
+  if (!body) return
+  var est = window._verifEstadoActual || {}
+  var verificado = !!est.telefono_verificado
+  if (badge) badge.innerHTML = window._verifBadge(verificado)
+
+  if (verificado) {
+    body.innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--verde-pale);border-radius:9px">' +
+        '<span style="font-size:22px">✅</span>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:700;color:var(--verde)">' + (est.telefono || '') + '</div>' +
+          '<div style="font-size:11px;color:var(--texto-mid);margin-top:2px">Verificado. El bot te reconoce y te manda los avisos acá.</div>' +
+        '</div>' +
+      '</div>' +
+      '<button onclick="window._verifDesvincular()" style="margin-top:10px;background:transparent;border:1px solid var(--borde);border-radius:8px;padding:7px 13px;font-size:12px;font-weight:600;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif">Desvincular este número</button>'
+    return
+  }
+
+  var act = window._verifCodigoActivo
+  var telActual = est.telefono || ''
+
+  var html =
+    '<div style="padding:11px 13px;background:#fef3c7;border-radius:9px;font-size:12px;color:#8a5a08;line-height:1.55;margin-bottom:14px">' +
+      'Hasta que verifiques, el bot de WhatsApp no te reconoce y no te manda avisos. ' +
+      'Es lo que evita que un número mal tipeado le muestre tus datos a otra persona.' +
+    '</div>' +
+    '<div class="fg" style="margin-bottom:12px">' +
+      '<label class="fl">Tu número de WhatsApp</label>' +
+      '<input class="fi" type="tel" id="verif-tel" inputmode="tel" placeholder="+54 9 358 4XX-XXXX" value="' +
+        String(telActual).replace(/"/g, '&quot;') + '"/>' +
+    '</div>'
+
+  if (act) {
+    html +=
+      '<div style="text-align:center;padding:16px 12px;background:var(--crema);border:1px dashed var(--verde);border-radius:11px">' +
+        '<div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.07em">Escribile esto al bot</div>' +
+        '<div style="font-size:26px;font-weight:800;letter-spacing:.12em;color:var(--verde);margin:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">VINCULAR ' + act.codigo + '</div>' +
+        '<div style="font-size:12px;color:var(--texto-mid);line-height:1.6">Mandá ese mensaje desde <strong>el WhatsApp del número que querés vincular</strong>.<br>Vence en ' + VERIF_VIGENCIA_MIN + ' minutos.</div>' +
+        '<div style="font-size:11px;color:var(--texto-suave);margin-top:10px">⏳ Esperando tu mensaje...</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+        '<button onclick="window._verifGenerar()" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif">Generar otro código</button>' +
+        '<button id="verif-btn-saliente" onclick="window._verifPedirSaliente()" style="background:transparent;border:1px solid var(--borde);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif">Mandame el código por WhatsApp</button>' +
+      '</div>'
+  } else {
+    html +=
+      '<button onclick="window._verifGenerar()" style="background:var(--verde);color:#fff;border:none;border-radius:9px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">Verificar mi WhatsApp</button>' +
+      '<button id="verif-btn-saliente" onclick="window._verifPedirSaliente()" style="margin-left:8px;background:transparent;border:1px solid var(--borde);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--texto-mid);cursor:pointer;font-family:\'DM Sans\',sans-serif">Mandame el código por WhatsApp</button>'
+  }
+
+  // El campo para tipear el código solo aparece si pidió el OTP saliente.
+  if (window._verifModoSaliente) {
+    html +=
+      '<div style="margin-top:14px;padding-top:14px;border-top:.5px solid var(--borde)">' +
+        '<label class="fl">Código que te llegó por WhatsApp</label>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">' +
+          '<input class="fi" id="verif-codigo-in" inputmode="numeric" maxlength="8" placeholder="123456" style="max-width:150px;letter-spacing:.15em;font-weight:700"/>' +
+          '<button id="verif-btn-confirmar" onclick="window._verifConfirmarSaliente()" style="background:var(--verde);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">Verificar</button>' +
+        '</div>' +
+      '</div>'
+  }
+
+  body.innerHTML = html
+}
+
 function _waRenderToggles(prefs) {
   var body = document.getElementById('wa-prefs-body')
   if (!body) return
+
+  // Sin número verificado no hay a dónde mandar los avisos: el server filtra por
+  // telefono_verificado en _wa_get_destinatarios. Mostrar toggles acá sería
+  // prometer mensajes que nunca van a salir.
+  var estVerif = window._verifEstadoActual
+  if (estVerif && !estVerif.telefono_verificado) {
+    body.innerHTML =
+      '<div style="padding:12px 14px;background:var(--crema);border-radius:9px;font-size:13px;color:var(--texto-mid);line-height:1.6">' +
+        'Verificá tu número arriba para poder elegir qué avisos querés recibir.' +
+      '</div>'
+    return
+  }
 
   var activo = prefs.activo !== false  // true por defecto
 
@@ -8170,6 +8534,20 @@ window._calcularNotificaciones = function() {
       } else if (trial.diasRestantes <= 7) {
         avisos.push({ico:'🎁', tit:'Te quedan '+trial.diasRestantes+' día'+(trial.diasRestantes===1?'':'s')+' de prueba', sub:'Después vas a necesitar un plan para no perder acceso.', tiempo:trial.diasRestantes+'d', accion:"showModulo('mi-plan')", prio:1, hash:'trial-'+trial.diasRestantes})
       }
+    }
+  } catch(e) {}
+
+  // 7) WhatsApp sin verificar — vale para el dueño y para el operario invitado:
+  //    la invitación prueba que lo invitaron, no que el número sea suyo.
+  try {
+    var ev = window._verifEstadoActual
+    if (ev && !ev.telefono_verificado) {
+      avisos.push({
+        ico: '🔒',
+        tit: ev.telefono ? 'Verificá tu WhatsApp' : 'Cargá y verificá tu WhatsApp',
+        sub: 'Hasta que lo verifiques, el bot no te reconoce ni te manda avisos.',
+        tiempo: '', accion: "showModulo('mi-plan')", prio: 1, hash: 'wa-sin-verificar'
+      })
     }
   } catch(e) {}
 
@@ -16383,6 +16761,9 @@ async function aceptarInvitacionPendiente(userId) {
     showToast(tieneNombreOwner ? '¡Te uniste al equipo de ' + nomOwner + '!' : '¡Te uniste al equipo!', 'ok')
     try { await determinarContextoUsuario(userId) } catch(e) {}
     try { await cargarTodo() } catch(e) {}
+    // Un mecanismo solo para todos: la invitación prueba que lo invitaron, la
+    // verificación prueba que el número es suyo. Hacen falta las dos.
+    try { await window._verifNudge('invitacion') } catch(e) {}
   } catch(e) {
     console.error('[aceptarInvitacionPendiente]', e)
     // Limpiar también en error genérico — evita que un token zombi se reintente

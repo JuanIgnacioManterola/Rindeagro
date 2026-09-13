@@ -46,7 +46,12 @@ Detalles que rompieron cosas antes — no revertir:
 - **Tabla `campos` — columnas `ingresos_cultivos` y `hectareas_cultivo`** (text, nullable, ambas guardan JSON serializado): `ingresos_cultivos` guarda por cultivo el `{rendimiento, precio_venta, hectareas, ventas:[{tn,precio,tipo:'spot'|'forward',comprador,fecha,fecha_entrega?}]}` cargado en el tab Ingresos. `hectareas_cultivo` guarda el `{cultivo: ha}` cuando el campo es mixto y se asignan ha por cultivo desde el polígono o manualmente. El frontend tiene un fallback silencioso en `guardarIngresos` (línea ~12333) que rescata el `update` si la columna no existe — dejarlo, hace al código robusto contra DBs sin la migración `SQL/campos_ingresos_cultivos.sql`.
 - **Tabla `stock_insumos`**: tabla del módulo Stock de Insumos. Columnas: `id`, `owner_id`, `nombre`, `tipo` (herbicidas|fungicidas|insecticidas|fertilizantes|semillas|otros), `unidad` (litros|kg|dosis|bolsas), `stock_actual` (numeric, check >= 0), `costo_unitario`, `ubicacion`, `notas`, `factura_url`, `factura_path`, `factura_tipo` (factura|remito), `created_at`, `updated_at`. 4 policies RLS explícitas (owner-only).
 - **Tabla `gastos`**: columna `insumo_id` (uuid FK a stock_insumos, nullable, on delete set null). Cuando un gasto está vinculado a un insumo, se descuenta `cantidad * ha_aplicadas` del stock al guardar.
-- `_renderAccesosColaborador` usa `.select('*')`, no `.select('*, owner:owner_id(id)')` — el join devolvía 400.
+- **Tabla `perfiles` — `telefono_verificado` / `telefono_verificado_en`**: el guard del bot. Un trigger (`tg_perfiles_guard_verificacion`) impide que el usuario se marque verificado a sí mismo — solo `service_role` puede — y desverifica solo si cambia el `telefono`. Hay un índice único parcial sobre `normalizar_telefono(telefono) where telefono_verificado`, así que un número verificado pertenece a una sola cuenta.
+- **Tabla `verificaciones_telefono`**: códigos de verificación de un solo uso. Guarda `codigo_hash` = `sha256(user_id || ':' || upper(codigo))`, nunca el código en claro. 4 policies RLS explícitas (owner-only).
+- **Tabla `wa_verificacion_intentos`**: rate limiting del comando VINCULAR por número entrante. RLS prendida y **cero policies** a propósito: solo la toca `service_role`.
+- **Trigger `tg_perfiles_guard_verificacion` — NO le pongas `security definer`**: se probó en producción y con `security definer` el guard no bloquea nada. Adentro de una función `security definer`, `current_user` es el **dueño** de la función (`postgres`), no el rol que ejecuta el UPDATE, así que el chequeo `current_user in ('service_role','postgres','supabase_admin')` daba verdadero para cualquier usuario y el frontend podía auto-verificarse con un PATCH. Sin `definer`, `current_user` es el rol efectivo que setea PostgREST (`authenticated` / `anon` / `service_role`), que es lo que queremos. Un trigger BEFORE solo toca `NEW`: no necesita privilegios extra.
+- **Función `public.normalizar_telefono(text)`**: espejo SQL de `kapso.normalizar_numero()`. Es `IMMUTABLE` porque el índice único de arriba la usa. Si tocás una, tocá las tres (SQL, `kapso.py`, `window._verifNormalizar` en `index.html`).
+- `_renderAccesosColaborador` usa `.select('*')', no `.select('*, owner:owner_id(id)')` — el join devolvía 400.
 
 ## Storage
 
@@ -293,6 +298,58 @@ números. Con `?numeros=1` además lista los números conectados al proyecto ví
 Platform API de Kapso y marca cuál está `en_uso`, para verificar el cambio de
 número sin adivinar el `phone_number_id`.
 
+## Verificación del número de WhatsApp
+
+Hasta septiembre 2026 el usuario tipeaba su número al registrarse y el sistema le creía. Un dígito mal tipeado alcanzaba para que el bot le sirviera los datos de un productor a otra persona, y para que el resumen semanal (con plata y rindes) le llegara a un desconocido. Ahora hay que probar que el número es tuyo.
+
+**Un solo mecanismo para dueño y para operario.** La invitación prueba que a alguien lo invitaron; la verificación prueba que el número es suyo. Son cosas distintas y hacen falta las dos: el operario que entra por link de invitación también verifica.
+
+### Camino principal — OTP inverso
+
+1. La web genera un código de 6 caracteres (alfabeto sin I/O/0/1), guarda el **hash** en `verificaciones_telefono` y muestra "escribile `VINCULAR <código>` al bot".
+2. El usuario manda ese mensaje desde el teléfono que quiere vincular.
+3. El bot matchea el hash, marca la fila usada y setea `perfiles.telefono_verificado = true`.
+
+Se eligió por sobre el OTP saliente porque prueba la posesión igual, **no consume plantillas de Meta** y deja abierta la ventana de 24 h de conversación.
+
+**Decisión de diseño importante**: el número que queda verificado es el del **remitente**, no el que el usuario había tipeado en la web. Es lo que arregla el problema original — si se equivocó en un dígito, mandar el código desde su teléfono real corrige el perfil solo, y el bot le avisa que lo corrigió.
+
+### Fallback — OTP saliente
+
+El bot manda 6 dígitos al número cargado y el usuario los tipea en la web. Va por endpoints del server (`POST /whatsapp/verificacion/enviar` y `/confirmar`) y no directo a Supabase, porque marcar `telefono_verificado` está reservado a `service_role`. `POST /whatsapp/verificacion/desvincular` suelta el número para poder moverlo a otra cuenta.
+
+Fuera de la ventana de 24 h Meta rechaza el texto libre: si el envío falla, el frontend le dice al usuario que use el camino inverso, que no tiene esa limitación.
+
+### El hash
+
+`sha256(user_id || ':' || código sin separadores en mayúsculas)`. Meter el `user_id` adentro del material hasheado hace que una tabla arcoíris sobre 32^6 códigos no sirva y que un hash no se pueda mover de una fila a otra. **Está implementado tres veces y las tres tienen que coincidir**: `_verif_hash()` en `main.py`, `_verifHash()` en `index.html`, y la normalización de teléfono además en `public.normalizar_telefono()`. Si tocás una, tocá las otras.
+
+### Guard duro en el bot
+
+`_wa_identificar()` solo devuelve un contexto usable si el perfil está verificado. Si existe pero está sin verificar devuelve `{"verificado": False, ...}` — sin un solo dato de la cuenta — para poder contestarle cómo verificar. Puntos cubiertos:
+
+- Las filas de `equipo.whatsapp` (columna legacy que nada del frontend escribe hoy) solo se aceptan si el perfil del miembro está verificado con **ese mismo número** — esa columna se carga a mano y por sí sola no prueba nada.
+- Cuando esté mergeado el índice cacheado `_WA_DIR` (rama `feat/whatsapp-produccion`), el guard vive dentro de `_wa_construir_directorio()`: hay que traer `telefono_verificado` en el `select` y llamar a `_wa_dir_invalidar()` después de verificar, o el índice sigue viendo al usuario sin verificar hasta que venza el TTL de 5 min.
+- `_kapso_procesar()` — `VINCULAR` se procesa **antes** de identificar, porque el que no verificó no existe para el resto del bot.
+- `_wa_get_destinatarios()` — filtra por `telefono_verificado`, así los recordatorios, el resumen semanal y las alertas de precio no salen a números sin probar.
+- `procesar_mensaje_whatsapp()` (webhook viejo de Twilio) y `_manejar_stop_activar()` — mismo filtro.
+- Después de verificar se llama `_wa_dir_invalidar()`: sin eso el índice cacheado sigue viendo al usuario sin verificar hasta 5 minutos.
+
+### Probado contra la base de producción
+
+Los tres comportamientos críticos se verificaron corriendo SQL contra la DB real (en bloques que terminan en `raise` para no dejar nada guardado):
+
+1. Un usuario común (`set local role authenticated`) **no** puede marcarse verificado → salta la excepción del trigger.
+2. El bot (`service_role`) **sí** puede.
+3. Si el usuario cambia su número desde la web, la verificación se cae sola.
+
+El punto 1 falló la primera vez y así se descubrió lo del `security definer`.
+
+### Límites
+
+Códigos de un solo uso, 15 minutos de vida, guardados hasheados. Rate limit de 8 intentos fallidos por número entrante en una ventana de 15 min → bloqueo de 1 hora (persistido en `wa_verificacion_intentos`, no en memoria: Railway reinicia seguido y un contador en RAM se reseteaba con cada deploy). El OTP saliente permite 5 códigos por usuario por hora y 5 intentos por código. Un número verificado pertenece a una sola cuenta — para moverlo hay que desvincularlo primero.
+
+
 ## Pendientes (roadmap corto)
 
 - [x] ~~Dominio `rindeagro.lat`~~ — Reemplazado por **rindeagro.app** (PR #39). El CNAME apunta ahí. Los redirects auth ahora son dinámicos (`window.location.origin + pathname`), funcionan en cualquier dominio sin hardcodear.
@@ -300,7 +357,7 @@ número sin adivinar el `phone_number_id`.
 - [x] ~~Migrar FKs de Supabase a `ON DELETE CASCADE`~~ — Aplicado (migración `fks_on_delete_cascade_cleanup`). Cambios: `*.usuario_id → perfiles(id)` pasa a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa. `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` pasan a `SET NULL` (mantienen registro histórico). Ahora un `auth.users DELETE` limpia todo en cascada sin transacciones manuales.
 - [x] ~~Habilitar RLS en tabla `precios_pizarra`~~ — Aplicado con la migración `precios_dolar_scrape_pipeline` (lectura pública para authenticated + anon, writes solo desde edge functions con service_role).
 - [x] ~~Confirmación de eliminación más fuerte~~ — Aplicado. 5 confirms simples (`eliminarTarea`, `eliminarGasto`, `eliminarCompromiso`, `eliminarActivo`, `eliminarGastoEstructura`) migrados al pattern **`_showToastUndo`**: delete optimista inmediato + toast con botón "Deshacer" 5s. Los 2 confirms que quedan son deliberados: `eliminarInsumo` cuando está vinculado a gastos (warning custom), y bulk delete de insumos (donde SÍ querés confirmación explícita).
-- [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
+- [x] ~~Verificación de WhatsApp con código de 6 dígitos~~ — Aplicado. Ver la sección "Verificación del número de WhatsApp". El camino principal terminó siendo el **OTP inverso** (el usuario le escribe `VINCULAR <código>` al bot) en vez del saliente: prueba la posesión igual, no consume plantillas de Meta y abre la ventana de 24 h. El OTP saliente quedó como fallback.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
 - [ ] **OCR de facturas, pagos, activos y gastos de estructura — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las 4 edge functions (`ocr-factura`, `ocr-pago`, `ocr-activo`, `ocr-gasto-estr`) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado del modal correspondiente.
 - [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde.Agro. Requiere teléfono para la 2FA (esperando).
@@ -352,4 +409,4 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 11. `estructura_activos_y_gastos_generales.sql` — nuevas tablas `activos_amortizables` (vehículos/maquinaria/herramientas/construcción con vida útil) y `gastos_estructura` (sueldos/honorarios/seguros/oficina con frecuencia mensual/anual/único). 4 RLS policies owner-only en cada una. Ver sección "Módulo Estructura" abajo.
 12. `fks_on_delete_cascade_cleanup.sql` — migra los `*.usuario_id → perfiles(id)` a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa (antes eran NO ACTION, rompía el borrado limpio de un `auth.users`). Además pone en `SET NULL`: `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` para preservar registros históricos cuando se elimina la referencia.
 13. `gastos_momento_pulverizacion.sql` — agrega `gastos.momento_pulverizacion` (text nullable con CHECK `barbecho|presiembra|postemergente|aplicacion`). Alimenta la nueva tab **Cultivo** en la vista del campo, que arma una timeline con siembra, pulverizaciones, fertilizaciones y cosecha derivada de los gastos ya cargados. El dropdown aparece en el modal de gasto solo cuando el rubro es `herbicidas`/`fungicidas`/`insecticidas`.
-.
+14. `telefono_verificacion.sql` — **APLICADA en producción** (2026-09-07). Verificación de propiedad del número de WhatsApp. Agrega `perfiles.telefono_verificado` + `telefono_verificado_en` con un trigger que impide auto-verificarse, la función `normalizar_telefono()`, el índice único parcial de números verificados, la tabla `verificaciones_telefono` (códigos hasheados, 4 RLS explícitas) y `wa_verificacion_intentos` (rate limiting; RLS prendida y cero policies = solo service_role). Incluye un cron diario de limpieza. **Ojo**: después de aplicarla todos los perfiles quedan sin verificar y el bot deja de atender hasta que cada uno mande su código — es el comportamiento buscado. El archivo trae un backfill comentado para grandfatherear cuentas puntuales.

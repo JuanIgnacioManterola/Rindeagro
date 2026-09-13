@@ -1,7 +1,7 @@
 # Activar el OCR de facturas y pagos
 
 > Este archivo explica cómo activar la lectura automática de fotos/PDFs en
-> Rinde.Agro. Se hace **una sola vez** y queda funcionando para siempre.
+> Rinde Agro. Se hace **una sola vez** y queda funcionando para siempre.
 > Tarda 5 minutos.
 
 ## Qué se activa
@@ -59,7 +59,7 @@ Abrí el navegador y andá a:
 
 1. Andá al menú **"API Keys"** (en la barra izquierda).
 2. Click en el botón **"Create Key"** (arriba a la derecha).
-3. Te pide nombre para la key. Poné: `Rinde.Agro OCR`
+3. Te pide nombre para la key. Poné: `Rinde Agro OCR`
 4. Click **"Create Key"**.
 
 ### Paso 1.4 — Copiar la key
@@ -122,7 +122,7 @@ A partir de ese momento:
 
 ## Cómo probar
 
-1. Entrá a Rinde.Agro: **https://rindeagro.app**
+1. Entrá a Rinde Agro: **https://rindeagro.app**
 2. Logueate.
 3. Andá a **Insumos**.
 4. Click en **"📄 Desde factura"**.
@@ -155,7 +155,7 @@ valor completo después de pegarla. Está cifrada.
 
 Las edge functions del proyecto la usan para hablar con la API de Anthropic
 en nombre de los usuarios. Cada vez que alguien sube una factura, Supabase
-manda esa foto a Anthropic, Anthropic la lee, devuelve el JSON, y Rinde.Agro
+manda esa foto a Anthropic, Anthropic la lee, devuelve el JSON, y Rinde Agro
 muestra el resultado al usuario.
 
 ## Si algo sale mal

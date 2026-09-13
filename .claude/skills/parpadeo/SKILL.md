@@ -3,7 +3,7 @@ name: parpadeo
 description: Diagnosticar y arreglar parpadeo, titileo, flicker, scroll trabado o fondo que "se corta" (checkerboarding) en rindeagro.app. Usar cuando el usuario reporte que la página titila, parpadea, se traba al scrollear, un widget aparece y desaparece, o el dashboard "salta" al cargar. También como checklist preventivo al agregar modales, overlays, blur, animaciones o renders async.
 ---
 
-# Parpadeo / titileo en Rinde.Agro
+# Parpadeo / titileo en Rinde Agro
 
 Ya nos pasó varias veces y fueron causas **distintas** con el mismo síntoma.
 No asumir cuál es: medir primero.

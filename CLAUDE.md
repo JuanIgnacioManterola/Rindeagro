@@ -1,6 +1,8 @@
-# Rinde.Agro
+# Rinde Agro
 
 App para gestión agropecuaria. Frontend single-file HTML + backend FastAPI + Supabase.
+
+**Nombre de la marca: "Rinde Agro"** — con espacio, sin punto y sin pegar, igual que el logo (`assets/logo.jpg`). No usar "Rinde.Agro" ni "RindeAgro" en ningún texto visible: web, PDFs, mensajes del bot, Mercado Pago. Además de ser la marca, Meta exige que el nombre de la línea de WhatsApp coincida con cómo aparece en la web. Lo que **no** cambia: el dominio `rindeagro.app`, el mail `rindeagro.contacto@gmail.com` y el nombre del repo `Rindeagro`.
 
 ## Stack
 
@@ -303,7 +305,7 @@ número sin adivinar el `phone_number_id`.
 - [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
 - [ ] **OCR de facturas, pagos, activos y gastos de estructura — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las 4 edge functions (`ocr-factura`, `ocr-pago`, `ocr-activo`, `ocr-gasto-estr`) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado del modal correspondiente.
-- [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde.Agro. Requiere teléfono para la 2FA (esperando).
+- [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde Agro. Requiere teléfono para la 2FA (esperando).
 - [ ] **Bot de WhatsApp insertando pagos**: cuando el bot esté listo, implementar el parser de comandos "cheque NNN a X vence DD/MM" y "crédito X N cuotas de NNN desde DD/MM" según el contrato documentado en "Módulo Pagos → Contrato WhatsApp → Pagos".
 - [ ] **Mercado Pago para suscripciones**: cuando alguien alcanza el límite de plan, hoy lo mandamos a Mi Plan pero no hay flujo de pago. Es el bloqueador comercial más grande para monetizar.
 

@@ -406,8 +406,8 @@ footer{background:#111e15;padding:3rem 2rem 2rem}
 .empty-tip strong{color:var(--verde-mid)}
 
 /* MODALES */
-.overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
-.overlay.open{opacity:1;pointer-events:all}
+.overlay{position:fixed;inset:0;background:rgba(26,74,46,.65);backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s,visibility 0s linear .25s}
+.overlay.open{opacity:1;visibility:visible;pointer-events:all;transition:opacity .25s,visibility 0s}
 .modal{background:var(--blanco);border-radius:22px;width:100%;max-width:460px;position:relative;transform:translateY(16px);transition:transform .28s;box-shadow:var(--sombra-lg);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 .overlay.open .modal{transform:translateY(0)}
 .modal-header{flex-shrink:0;padding:2.25rem 2.25rem 0;position:relative}

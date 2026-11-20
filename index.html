@@ -783,11 +783,11 @@ html.ui-v2 #ps-hora{color:var(--v2-faint) !important;white-space:nowrap}
 .ui2-alert.crit{background:var(--v2-red-soft);border-color:#f9c5c0;color:var(--v2-red)}
 .ui2-alert b{font-weight:700}
 .ui2-alert .ui2-btn{margin-left:auto;padding:7px 12px;font-size:14px}
-.ui2-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.ui2-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
 .ui2-kpi{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:16px 18px;cursor:pointer;text-align:left;font-family:var(--v2-font);transition:box-shadow .15s;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .ui2-kpi:hover{box-shadow:var(--sombra-md)}
 .ui2-kpi small{display:block;font-size:14px;color:var(--v2-muted);font-weight:500}
-.ui2-kpi strong{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--v2-ink)}
+.ui2-kpi strong{display:block;white-space:nowrap;font-size:clamp(19px,2.1vw,24px);font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--v2-ink)}
 .ui2-kpi span{display:block;font-size:14px;color:var(--v2-muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .ui2-pos{color:var(--v2-ok) !important}.ui2-neg{color:var(--v2-red) !important}
 @media(max-width:900px){.ui2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ui2-kpi{padding:14px}.ui2-kpi strong{font-size:20px}}
@@ -1095,6 +1095,28 @@ html.ui-v2 #panel-campanas-ant{margin-top:0 !important;border:1px solid var(--v2
 html.ui-v2 #panel-campanas-ant button{border-radius:10px !important;padding:10px 12px !important;font:500 14px var(--v2-font) !important;color:var(--v2-ink) !important}
 html.ui-v2 #panel-campanas-ant button:hover{background:var(--v2-line-2) !important}
 html.ui-v2 #panel-campanas-ant button[style*="var(--verde-pale)"]{background:var(--v2-green-soft) !important;color:var(--v2-green) !important;font-weight:600 !important}
+/* Notificaciones (v2): márgenes parejos, fila con ícono en cuadrado, sin
+   fondo verde en todas las no leídas (alcanza con el punto). */
+html.ui-v2 .notif-dropdown{width:380px;max-height:min(560px,calc(100vh - 32px));border:1px solid var(--v2-line);border-radius:16px;box-shadow:var(--sombra-lg)}
+html.ui-v2 .notif-header{padding:14px 16px;border-bottom:1px solid var(--v2-line-2);font:700 16px var(--v2-font);color:var(--v2-ink)}
+html.ui-v2 .notif-mark-all{font:600 14px var(--v2-font);color:var(--v2-green-2);padding:6px 10px;border-radius:8px}
+html.ui-v2 .notif-mark-all:hover{background:var(--v2-green-soft)}
+html.ui-v2 #notif-permiso-banner > div{margin:12px 12px 4px;border:1px solid #fedf89 !important;border-radius:12px;padding:10px 12px !important;font-size:14px !important;line-height:1.45 !important;background:#fffaeb !important;color:#7a3e0b !important}
+html.ui-v2 #notif-permiso-banner > div[style*="#eef7ea"]{border-color:#c8e3cf !important;background:var(--v2-green-soft) !important;color:var(--v2-green) !important}
+html.ui-v2 #notif-permiso-banner button{font-size:14px !important;border-radius:8px !important}
+html.ui-v2 .notif-body{max-height:none;flex:1;padding:6px}
+html.ui-v2 .notif-item{gap:12px;padding:12px 12px;border:0 !important;border-radius:12px;align-items:flex-start;position:relative}
+html.ui-v2 .notif-item + .notif-item{margin-top:2px}
+html.ui-v2 .notif-item,html.ui-v2 .notif-item.unread{background:transparent}
+html.ui-v2 .notif-item:hover,html.ui-v2 .notif-item.unread:hover{background:var(--v2-line-2)}
+html.ui-v2 .notif-item-ico{width:36px;height:36px;border-radius:10px;background:var(--v2-line-2);display:grid;place-items:center;font-size:17px;flex:none}
+html.ui-v2 .notif-item.unread .notif-item-ico{background:#fdeceb}
+html.ui-v2 .notif-item-tit{font:600 14px/1.35 var(--v2-font);color:var(--v2-ink);margin:1px 18px 2px 0}
+html.ui-v2 .notif-item-sub{font-size:14px;color:var(--v2-muted);line-height:1.4}
+html.ui-v2 .notif-item-time{font-size:14px;color:var(--v2-faint);font-weight:500;margin-top:2px}
+html.ui-v2 .notif-item-dot{position:absolute;top:18px;right:14px;width:8px;height:8px;margin:0;background:var(--v2-green-2)}
+html.ui-v2 .notif-empty{font-size:14px;padding:36px 20px}
+@media(max-width:900px){html.ui-v2 .notif-dropdown{position:fixed;top:64px;right:12px;left:12px;width:auto}}
 </style>
 </head>
 <body>
@@ -9016,7 +9038,7 @@ window._calcularNotificaciones = function() {
         monto = ' · ' + mSimb + ' ' + Math.round(p.importe).toLocaleString('es-AR')
       }
       if (diffD < 0) {
-        avisos.push({ico:'⚠️', tit:etiquetaTipo+' vencido: '+benef, sub:'Venció hace '+Math.abs(diffD)+' día'+(Math.abs(diffD)===1?'':'s')+monto, tiempo:'Vencido', accion:"showModulo('pagos')", prio:0, hash:'pago-v-'+p.id})
+        avisos.push({ico:'⚠️', tit:etiquetaTipo+(p.tipo === 'cheque' ? ' vencido: ' : ' vencida: ')+benef, sub:'Venció hace '+Math.abs(diffD)+' día'+(Math.abs(diffD)===1?'':'s')+monto, tiempo:'Vencido', accion:"showModulo('pagos')", prio:0, hash:'pago-v-'+p.id})
       } else if (diffD <= 7) {
         var etT = diffD === 0 ? 'Vence hoy' : 'Vence en '+diffD+' día'+(diffD===1?'':'s')
         avisos.push({ico:'📅', tit:etiquetaTipo+': '+benef, sub:etT+monto, tiempo:etT, accion:"showModulo('pagos')", prio:1, hash:'pago-p-'+p.id})
@@ -9159,7 +9181,7 @@ window._renderNotifDropdown = function() {
       + '<div class="notif-item-body">'
       +   '<div class="notif-item-tit">'+a.tit+'</div>'
       +   '<div class="notif-item-sub">'+a.sub+'</div>'
-      +   (a.tiempo ? '<div class="notif-item-time">'+a.tiempo+'</div>' : '')
+      +   (a.tiempo && !(window._uiV2 && window._uiV2() && a.tit.toLowerCase().indexOf(String(a.tiempo).toLowerCase().slice(0,6)) >= 0) ? '<div class="notif-item-time">'+a.tiempo+'</div>' : '')
       + '</div>'
       + (isNew ? '<div class="notif-item-dot"></div>' : '')
       + '</button>'

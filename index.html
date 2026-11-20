@@ -929,6 +929,17 @@ html.ui-v2 .campo-tab.active{color:var(--v2-green)}
   .ui2-pago .acc{justify-content:flex-start;flex-wrap:wrap}
   .ui2-pago .tt,.ui2-pago .sb{white-space:normal}
 }
+/* Tarjetas que funcionan como filtro: estado seleccionado visible.
+   Con esto los botones de filtro duplicados (Pagos) se ocultan. */
+html.ui-v2 .met-filtro{cursor:pointer;border-width:1.5px}
+html.ui-v2 .met-filtro:hover{border-color:#cfcabd}
+html.ui-v2 .met-filtro.sel{border-color:var(--v2-green);background:var(--v2-green-soft);box-shadow:0 0 0 3px rgba(45,110,71,.12)}
+html.ui-v2 .met-filtro:focus-visible{outline:2px solid var(--v2-gold);outline-offset:2px}
+.met-check{display:none}
+html.ui-v2 .met-filtro .met-l{display:flex;align-items:center;justify-content:space-between;gap:8px}
+html.ui-v2 .met-filtro.sel .met-check{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--v2-green);color:#fff;font-size:13px;font-weight:700}
+html.ui-v2 #pagos-filtros{display:none !important}
+@media(max-width:600px){html.ui-v2 #pagos-mets{gap:8px !important}html.ui-v2 #pagos-mets .met{padding:12px}html.ui-v2 #pagos-mets .met-s{display:none}}
 </style>
 </head>
 <body>
@@ -13630,7 +13641,8 @@ window.renderPagos = function() {
       {l:'Pagados',           v:pagados.toString(),  s:'compromisos saldados',   c:'#1a7a52', estado:'pagados'}
     ]
     totMet.innerHTML = cards.map(function(m){
-      return '<div class="met" onclick="window.filtrarPagos(\''+m.estado+'\')" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'
+      var sel = pagosFiltroEstado === m.estado
+      return '<div class="met met-filtro'+(sel?' sel':'')+'" role="button" tabindex="0" aria-pressed="'+sel+'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();window.filtrarPagos(\''+m.estado+'\')}" onclick="window.filtrarPagos(\''+m.estado+'\')" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'
     }).join('')
   }
 

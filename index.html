@@ -904,9 +904,7 @@ html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.5"],h
 html.ui-v2 .campo-tab{color:rgba(255,255,255,.9);font-size:14px}
 html.ui-v2 .campo-tab.active{color:var(--v2-green)}
 /* Pagos v2 — filas con la misma estructura que Insumos */
-.ui2-pago{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(130px,1fr) minmax(170px,1fr) auto;gap:18px;align-items:center;box-shadow:inset 4px 0 0 transparent;font-family:var(--v2-font)}
-.ui2-pago.crit{box-shadow:inset 4px 0 0 var(--v2-red)}
-.ui2-pago.warn{box-shadow:inset 4px 0 0 #e0a24a}
+.ui2-pago{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(130px,1fr) minmax(170px,1fr) auto;gap:18px;align-items:center;font-family:var(--v2-font)}
 .ui2-pago.ok{opacity:.7}
 .ui2-pago .c-nom{min-width:0}
 .ui2-pago .tt{font-weight:700;font-size:15px;color:var(--v2-ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -13711,7 +13709,7 @@ window.renderPagos = function() {
       : ''
 
     if (window._uiV2 && window._uiV2()) {
-      // Estilo nuevo: fila como las de Insumos, franja a la izquierda = urgencia.
+      // Estilo nuevo: fila como las de Insumos. La urgencia va en el chip y el color del importe.
       var est = esPagado ? 'ok' : esVencido ? 'crit' : esProximo ? 'warn' : 'n'
       var chipTxt = esPagado ? 'Pagado'
         : esVencido ? 'Vencido hace '+Math.abs(dias)+' día'+(Math.abs(dias)!==1?'s':'')

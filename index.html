@@ -946,7 +946,7 @@ html.ui-v2 #pagos-filtros{display:none !important}
 @media(max-width:600px){html.ui-v2 #pagos-mets{gap:8px !important}html.ui-v2 #pagos-mets .met{padding:12px}html.ui-v2 #pagos-mets .met-s{display:none}}
 /* Acciones de cabecera arriba a la derecha + menú desplegable */
 html.ui-v2 .ui2-hdr-acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-html.ui-v2 #mod-pagos .mod-header{align-items:flex-start}
+html.ui-v2 #mod-pagos .mod-header,html.ui-v2 #mod-stock-insumos .mod-header{align-items:flex-start}
 .ui2-dd{position:relative}
 .ui2-dd .car{width:16px;height:16px;margin-left:-2px;margin-right:-4px;opacity:.9;transition:transform .15s}
 .ui2-dd.open .car{transform:rotate(180deg)}
@@ -1775,7 +1775,24 @@ html.ui-v2 #mod-pagos .mod-header{align-items:flex-start}
   <div class="modulo" id="mod-stock-insumos">
     <div class="mod-header">
       <div><div class="mod-titulo">🧪 Stock de Insumos</div><div class="mod-sub">Cargá tus herbicidas, fungicidas, fertilizantes y demás. Se descuenta automáticamente cuando registrás un gasto vinculado.</div></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <!-- Estilo nuevo: menú Exportar (PDF/CSV) + menú Cargar (foto/PDF o a mano) -->
+      <div class="ui2-only ui2-hdr-acc">
+        <div class="ui2-dd">
+          <button class="ui2-btn" aria-haspopup="menu" aria-expanded="false" onclick="_ui2DdToggle(this,event)">Exportar<span class="ui2-ic car" style="--ic:var(--ic-chev-down)" aria-hidden="true"></span></button>
+          <div class="ui2-dd-menu" role="menu">
+            <button role="menuitem" onclick="_ui2DdCerrar();exportarPDFStockInsumos()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-file)"></span></span><span><b>PDF</b><small>Para imprimir o mandar</small></span></button>
+            <button role="menuitem" onclick="_ui2DdCerrar();exportarCSVInsumos()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-chart)"></span></span><span><b>CSV</b><small>Para abrir en Excel o Google Sheets</small></span></button>
+          </div>
+        </div>
+        <div class="ui2-dd">
+          <button class="ui2-btn p" aria-haspopup="menu" aria-expanded="false" onclick="_ui2DdToggle(this,event)"><span class="ui2-ic" style="--ic:var(--ic-plus)"></span>Cargar<span class="ui2-ic car" style="--ic:var(--ic-chev-down)" aria-hidden="true"></span></button>
+          <div class="ui2-dd-menu" role="menu">
+            <button role="menuitem" onclick="_ui2DdCerrar();openModalFactura()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-file)"></span></span><span><b>Desde foto o PDF</b><small>Leemos la factura o el remito por vos</small></span></button>
+            <button role="menuitem" onclick="_ui2DdCerrar();openModalInsumo()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-flask)"></span></span><span><b>Cargar a mano</b><small>Completás nombre, cantidad y precio</small></span></button>
+          </div>
+        </div>
+      </div>
+      <div class="v1-only" style="display:flex;gap:10px;flex-wrap:wrap">
         <button onclick="exportarPDFStockInsumos()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 Exportar PDF</button>
         <button onclick="exportarCSVInsumos()" class="pagos-hdr-btn pagos-hdr-btn-outline">📊 Exportar CSV</button>
         <button onclick="openModalFactura()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 Desde factura</button>

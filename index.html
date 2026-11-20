@@ -1040,13 +1040,14 @@ html.ui-v2 #rent-pdf-banner{background:transparent !important;border:0 !importan
 html.ui-v2 #cr-mets.ui2-hero-wrap{display:flex !important;flex-direction:column;gap:14px}
 .ui2-hero{background:#fff;border:1px solid var(--v2-line);border-radius:16px;padding:20px 22px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center;font-family:var(--v2-font)}
 .ui2-hero .k{font-size:14px;font-weight:600;color:var(--v2-muted)}
-.ui2-hero .big{font-size:44px;font-weight:800;letter-spacing:-.035em;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ui2-hero .big small{font-size:18px;font-weight:600;color:var(--v2-muted);letter-spacing:0;margin-left:6px}
-.ui2-hero .sub{font-size:15px;color:var(--v2-muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.ui2-hero .big{font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-hero .big small{font-size:15px;font-weight:600;color:var(--v2-muted);letter-spacing:0;margin-left:6px}
+.ui2-hero .sub{font-size:14px;color:var(--v2-muted);margin-top:6px;font-variant-numeric:tabular-nums;line-height:1.5}
+.ui2-hero .sub b{font-weight:600}
 .ui2-hero .sub b{font-weight:700}
 .ui2-bars{display:flex;flex-direction:column;gap:10px;font-variant-numeric:tabular-nums}
-.ui2-bar{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;font-size:14px}
-.ui2-bar .t{height:10px;border-radius:6px;background:var(--v2-line-2);overflow:hidden}
+.ui2-bar{display:grid;grid-template-columns:80px 1fr 120px;gap:12px;align-items:center;font-size:14px}
+.ui2-bar .t{height:8px;border-radius:6px;background:var(--v2-line-2);overflow:hidden}
 .ui2-bar .t i{display:block;height:100%;border-radius:6px}
 .ui2-bar .v{text-align:right;font-weight:600;white-space:nowrap}
 .ui2-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
@@ -1056,7 +1057,8 @@ html.ui-v2 #cr-mets.ui2-hero-wrap{display:flex !important;flex-direction:column;
 .ui2-mini span{display:block;font-size:14px;color:var(--v2-faint);margin-top:2px}
 @media(max-width:780px){
   .ui2-hero{grid-template-columns:1fr;padding:16px;gap:16px}
-  .ui2-hero .big{font-size:36px}
+  .ui2-hero .big{font-size:26px}
+  .ui2-bar{grid-template-columns:70px 1fr 110px}
   .ui2-minis{gap:8px}.ui2-mini{padding:12px}.ui2-mini b{font-size:16px}.ui2-mini span{display:none}
   html.ui-v2 #mod-campo-detalle > div:nth-child(2){padding:16px 16px 0 !important}
   html.ui-v2 #det-campo-nombre{font-size:26px !important}
@@ -19856,7 +19858,7 @@ function renderCampoRent() {
     hv += '<section class="ui2-hero">'
       + '<div><div class="k">Margen neto de la campaña</div>'
       +   '<div class="big" style="color:'+colMg+'">'+_fmtM(mgHaReal,{sign:true}).replace(/^(USD |\$ )/,'')+'<small>'+(_enARSrc?'$/ha':'USD/ha')+'</small></div>'
-      +   '<div class="sub">Total <b style="color:'+colMg+'">'+_fmtM(mgTot,{sign:true})+'</b> en '+ha.toLocaleString('es-AR')+' ha · equivale a '+(pos?'+':'−')+qq+' qq de soja por ha</div></div>'
+      +   '<div class="sub">Total <b style="color:'+colMg+'">'+_fmtM(mgTot,{sign:true})+'</b> en '+ha.toLocaleString('es-AR')+' ha<br>Equivale a '+(pos?'+':'−')+qq+' qq de soja por ha</div></div>'
       + '<div class="ui2-bars">'
       +   '<div class="ui2-bar"><span>Ingresos</span><div class="t"><i style="width:'+Math.round(ingHaReal/maxB*100)+'%;background:var(--v2-ok)"></i></div><span class="v">'+_fmtM(ingHaReal)+'/ha</span></div>'
       +   '<div class="ui2-bar"><span>Costos</span><div class="t"><i style="width:'+Math.round(costoHa/maxB*100)+'%;background:var(--v2-red)"></i></div><span class="v">'+_fmtM(costoHa)+'/ha</span></div>'

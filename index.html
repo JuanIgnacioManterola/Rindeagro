@@ -595,6 +595,10 @@ html.ui-v2{
   --ic-drop:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12Z'/></svg>");
   --ic-trash:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/></svg>");
   --ic-alert:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3 2 20h20z'/><path d='M12 10v4M12 17v.5'/></svg>");
+  /* chevron-down de Lucide (lucide.dev), stroke 2 */
+  --ic-chev-down:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  /* file-text de Lucide */
+  --ic-file:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/><path d='M14 2v5h6M16 13H8M16 17H8M10 9H8'/></svg>");
   --ic-chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m9 6 6 6-6 6'/></svg>");
 }
 html.ui-v2 .ui2-ic{display:inline-block;width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
@@ -940,6 +944,27 @@ html.ui-v2 .met-filtro .met-l{display:flex;align-items:center;justify-content:sp
 html.ui-v2 .met-filtro.sel .met-check{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--v2-green);color:#fff;font-size:13px;font-weight:700}
 html.ui-v2 #pagos-filtros{display:none !important}
 @media(max-width:600px){html.ui-v2 #pagos-mets{gap:8px !important}html.ui-v2 #pagos-mets .met{padding:12px}html.ui-v2 #pagos-mets .met-s{display:none}}
+/* Acciones de cabecera arriba a la derecha + menú desplegable */
+html.ui-v2 .ui2-hdr-acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+html.ui-v2 #mod-pagos .mod-header{align-items:flex-start}
+.ui2-dd{position:relative}
+.ui2-dd .car{width:16px;height:16px;margin-left:-2px;margin-right:-4px;opacity:.9;transition:transform .15s}
+.ui2-dd.open .car{transform:rotate(180deg)}
+@media(prefers-reduced-motion:reduce){.ui2-dd .car{transition:none}}
+.ui2-dd-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:160;min-width:290px;background:#fff;border:1px solid var(--v2-line);border-radius:14px;box-shadow:var(--sombra-md);padding:6px}
+.ui2-dd.open .ui2-dd-menu{display:block;animation:ui2Up .15s ease}
+.ui2-dd.al-left .ui2-dd-menu{left:0;right:auto}
+.ui2-dd-menu button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;border-radius:10px;padding:10px 12px;cursor:pointer;font-family:var(--v2-font);color:var(--v2-ink)}
+.ui2-dd-menu button:hover,.ui2-dd-menu button:focus-visible{background:var(--v2-line-2);outline:none}
+.ui2-dd-menu .ico{width:36px;height:36px;border-radius:10px;background:var(--v2-green-soft);color:var(--v2-green);display:grid;place-items:center;flex:none}
+.ui2-dd-menu .ico .ui2-ic{width:20px;height:20px}
+.ui2-dd-menu b{display:block;font-size:15px;font-weight:600}
+.ui2-dd-menu small{display:block;font-size:14px;color:var(--v2-muted);margin-top:1px}
+@media(max-width:780px){
+  html.ui-v2 .ui2-hdr-acc{display:grid;grid-template-columns:1fr 1fr}
+  html.ui-v2 .ui2-hdr-acc .ui2-btn,html.ui-v2 .ui2-dd > .ui2-btn{width:100%;justify-content:center}
+  .ui2-dd-menu{left:auto;right:0;min-width:min(300px,calc(100vw - 32px))}
+}
 </style>
 </head>
 <body>
@@ -1791,7 +1816,19 @@ html.ui-v2 #pagos-filtros{display:none !important}
   <div class="modulo" id="mod-pagos">
     <div class="mod-header">
       <div><div class="mod-titulo">💰 Pagos</div><div class="mod-sub">Cargá los cheques que emitís y las cuotas de tus créditos. Te alertamos cuando se acerca el vencimiento para que junte la plata a tiempo.</div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <!-- Estilo nuevo: Exportar PDF + menú Cargar (foto/PDF, crédito, cheque) -->
+      <div class="ui2-only ui2-hdr-acc">
+        <button class="ui2-btn" onclick="openModalExportPagos()">📥 Exportar PDF</button>
+        <div class="ui2-dd">
+          <button class="ui2-btn p" aria-haspopup="menu" aria-expanded="false" onclick="_ui2DdToggle(this,event)"><span class="ui2-ic" style="--ic:var(--ic-plus)"></span>Cargar<span class="ui2-ic car" style="--ic:var(--ic-chev-down)" aria-hidden="true"></span></button>
+          <div class="ui2-dd-menu" role="menu">
+            <button role="menuitem" onclick="_ui2DdCerrar();openModalPagoFoto()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-file)"></span></span><span><b>Desde foto o PDF</b><small>Leemos el cheque o el contrato por vos</small></span></button>
+            <button role="menuitem" onclick="_ui2DdCerrar();openModalCheque()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-receipt)"></span></span><span><b>Cheque</b><small>Cheque emitido con fecha de cobro</small></span></button>
+            <button role="menuitem" onclick="_ui2DdCerrar();openModalCredito()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-wallet)"></span></span><span><b>Crédito</b><small>Genera todas las cuotas de una vez</small></span></button>
+          </div>
+        </div>
+      </div>
+      <div class="v1-only" style="display:flex;gap:6px;flex-wrap:wrap">
         <button onclick="openModalExportPagos()" class="pagos-hdr-btn" style="background:#fff;color:var(--texto-mid);border:1px solid var(--borde)">📥 <span>Exportar PDF</span></button>
         <button onclick="openModalPagoFoto()" class="pagos-hdr-btn pagos-hdr-btn-outline">📄 <span>Desde foto/PDF</span></button>
         <button onclick="openModalCredito()" class="pagos-hdr-btn pagos-hdr-btn-outline">💳 <span>+ Crédito</span></button>
@@ -4645,6 +4682,32 @@ window.showModulo = function(mod) {
   try { _ui2SyncTabbar(mod) } catch(e) {}
   return r
 }
+
+// Menú desplegable genérico (.ui2-dd): un solo abierto a la vez, se cierra
+// con clic afuera o Escape.
+window._ui2DdCerrar = function() {
+  document.querySelectorAll('.ui2-dd.open').forEach(function(d){
+    d.classList.remove('open')
+    var b = d.querySelector('[aria-haspopup]'); if (b) b.setAttribute('aria-expanded','false')
+  })
+}
+window._ui2DdToggle = function(btn, ev) {
+  if (ev) ev.stopPropagation()
+  var dd = btn.closest('.ui2-dd'), abrir = !dd.classList.contains('open')
+  _ui2DdCerrar()
+  if (abrir) {
+    dd.classList.add('open'); btn.setAttribute('aria-expanded','true')
+    // Si abierto hacia la izquierda se sale del contenido, abrir hacia la derecha
+    dd.classList.remove('al-left')
+    var menu = dd.querySelector('.ui2-dd-menu'), side = document.querySelector('.app-nav')
+    var minX = 8
+    if (side && getComputedStyle(side).position === 'fixed' && side.offsetWidth < innerWidth/2) minX = side.getBoundingClientRect().right + 8
+    if (menu && menu.getBoundingClientRect().left < minX) dd.classList.add('al-left')
+    var first = dd.querySelector('[role=menuitem]'); if (first) first.focus()
+  }
+}
+document.addEventListener('click', function(e){ if (!e.target.closest('.ui2-dd')) _ui2DdCerrar() })
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') _ui2DdCerrar() })
 
 window._ui2SheetClose = function() {
   var ov = document.getElementById('ui2-sheet-ov')

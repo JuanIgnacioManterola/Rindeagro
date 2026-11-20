@@ -41,7 +41,7 @@
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <!-- Interruptor de estilo: ?ui=2 activa el estilo nuevo, ?ui=1 vuelve al de
      siempre. Se guarda en localStorage['ra_ui'] y se aplica ANTES del primer
      paint (si no, se ve el estilo viejo un instante). Todo el CSS nuevo está
@@ -567,13 +567,13 @@ html.ui-v2 .v1-emoji{display:none}
 
 html.ui-v2{
   --v2-bg:#f6f5f1;--v2-surface:#fff;--v2-line:#e8e5dc;--v2-line-2:#f1efe9;
-  --v2-ink:#1b1f1c;--v2-muted:#6b7068;--v2-faint:#a3a69f;
+  --v2-ink:#161a17;--v2-muted:#4a4f48;--v2-faint:#62675f;
   --v2-green:#1a4a2e;--v2-green-2:#2d6e47;--v2-green-soft:#edf5ef;
   --v2-gold:#c9a84c;--v2-red:#b42318;--v2-red-soft:#fdeceb;
   --v2-amber:#b54708;--v2-amber-soft:#fef3e2;
   --v2-ok:#15803d;
   --v2-font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --v2-display:'Fraunces','Playfair Display',Georgia,serif;
+  --v2-display:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --v2-side:236px;
   /* Tokens viejos reapuntados: todo lo que ya usa var(--crema) etc. se actualiza solo */
   --crema:#f6f5f1;--crema-dark:#ece9e0;--borde:#e8e5dc;
@@ -608,9 +608,9 @@ html.ui-v2 #screen-app [style*="DM Sans"]{font-family:var(--v2-font) !important}
 html.ui-v2 #screen-app [style*="DM Mono"],html.ui-v2 .pi-v,html.ui-v2 .cmgv,html.ui-v2 .nut-val,html.ui-v2 .conv-v,html.ui-v2 .ep-inp,html.ui-v2 #d-hora-actual{font-family:var(--v2-font) !important;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 html.ui-v2 #screen-app [style*="Playfair"],html.ui-v2 .met-v{font-family:var(--v2-font) !important;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 /* Títulos: serif de display con moderación */
-html.ui-v2 .mod-titulo,html.ui-v2 .m-tit,html.ui-v2 #det-campo-nombre,html.ui-v2 #rent-campo-nombre{font-family:var(--v2-display) !important;font-weight:600 !important;letter-spacing:-.02em;color:var(--v2-green)}
+html.ui-v2 .mod-titulo,html.ui-v2 .m-tit,html.ui-v2 #det-campo-nombre,html.ui-v2 #rent-campo-nombre{font-family:var(--v2-display) !important;font-weight:700 !important;letter-spacing:-.025em;color:var(--v2-green)}
 html.ui-v2 .mod-titulo{font-size:28px;line-height:1.15;margin-bottom:4px}
-html.ui-v2 .mod-sub{font-size:13.5px;color:var(--v2-muted)}
+html.ui-v2 .mod-sub{font-size:14px;color:var(--v2-muted)}
 html.ui-v2 .modulo{padding:28px 32px 48px}
 html.ui-v2 .mod-header{margin-bottom:22px;align-items:flex-end}
 
@@ -621,29 +621,29 @@ html.ui-v2 .card-tit{font-size:15px;font-weight:600;letter-spacing:-.005em;text-
 html.ui-v2 .met{border:1px solid var(--v2-line);border-radius:14px;box-shadow:none;padding:16px 18px}
 html.ui-v2 .met:hover{transform:none;box-shadow:var(--sombra-md)}
 html.ui-v2 .met-acc{display:none}
-html.ui-v2 .met-l{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);margin:0 0 6px}
+html.ui-v2 .met-l{font-size:14px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);margin:0 0 6px}
 html.ui-v2 .met-v{font-weight:700;font-size:24px !important;line-height:1.1}
-html.ui-v2 .met-s{font-size:12px;color:var(--v2-muted);font-weight:400}
+html.ui-v2 .met-s{font-size:14px;color:var(--v2-muted);font-weight:400}
 
 /* ── Botones ──────────────────────────────────────────────────────── */
 html.ui-v2 .btn-vs,html.ui-v2 .fb,html.ui-v2 .empty-cta{border-radius:10px;font-weight:600;letter-spacing:-.005em;box-shadow:none}
-html.ui-v2 .btn-vs{font-size:13px;padding:8px 14px}
+html.ui-v2 .btn-vs{font-size:14px;padding:8px 14px}
 html.ui-v2 .btn-vs:hover,html.ui-v2 .fb:hover{background:var(--v2-green-2)}
-html.ui-v2 .btn-sm{border-radius:9px;border:1px solid var(--v2-line);font-size:12.5px;padding:7px 12px;color:var(--v2-ink);background:#fff}
-html.ui-v2 .ui2-btn{display:inline-flex;align-items:center;gap:8px;font:600 13.5px var(--v2-font);padding:10px 14px;border-radius:10px;border:1px solid var(--v2-line);background:#fff;color:var(--v2-ink);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+html.ui-v2 .btn-sm{border-radius:9px;border:1px solid var(--v2-line);font-size:14px;padding:7px 12px;color:var(--v2-ink);background:#fff}
+html.ui-v2 .ui2-btn{display:inline-flex;align-items:center;gap:8px;font:600 14px var(--v2-font);padding:10px 14px;border-radius:10px;border:1px solid var(--v2-line);background:#fff;color:var(--v2-ink);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
 html.ui-v2 .ui2-btn:hover{border-color:#cfcabd;background:#fbfaf7}
 html.ui-v2 .ui2-btn.p{background:var(--v2-green);border-color:var(--v2-green);color:#fff}
 html.ui-v2 .ui2-btn.p:hover{background:var(--v2-green-2)}
 html.ui-v2 .ui2-btn:focus-visible,html.ui-v2 .anl:focus-visible,html.ui-v2 .ui2-tab:focus-visible{outline:2px solid var(--v2-gold);outline-offset:2px}
 /* Botones de cabecera de módulo con estilo inline (Exportar, Comparar…) */
-html.ui-v2 .mod-header button[style]{border-radius:10px !important;padding:9px 14px !important;font-size:13px !important;font-weight:600 !important;box-shadow:none !important}
+html.ui-v2 .mod-header button[style]{border-radius:10px !important;padding:9px 14px !important;font-size:14px !important;font-weight:600 !important;box-shadow:none !important}
 html.ui-v2 .mod-header button[style*="background:#fff"]{border:1px solid var(--v2-line) !important;color:var(--v2-ink) !important}
 html.ui-v2 .mod-header button[style*="background:#fff"]:hover{border-color:#cfcabd !important;background:#fbfaf7 !important}
 
 /* ── Formularios y modales ────────────────────────────────────────── */
 html.ui-v2 .fi{border:1px solid var(--v2-line);border-radius:10px;font-size:15px}
 html.ui-v2 .fi:focus{border-color:var(--v2-green-2);box-shadow:0 0 0 3px rgba(45,110,71,.14)}
-html.ui-v2 .fl{font-size:13px;font-weight:600;color:var(--v2-ink)}
+html.ui-v2 .fl{font-size:14px;font-weight:600;color:var(--v2-ink)}
 html.ui-v2 .overlay{background:rgba(16,28,20,.45);backdrop-filter:blur(4px)}
 html.ui-v2 .modal{border-radius:18px;box-shadow:var(--sombra-lg)}
 html.ui-v2 .m-tit{font-size:20px}
@@ -657,7 +657,7 @@ html.ui-v2 .toast{border-radius:12px;font-family:var(--v2-font)}
   html.ui-v2 .app-nav{position:fixed;top:0;left:0;bottom:0;width:var(--v2-side);flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;padding:18px 14px 14px;border-bottom:none;border-right:1px solid var(--v2-line);box-shadow:none;z-index:120;overflow-y:auto}
   html.ui-v2 .app-nav .logo-wrap{padding:2px 8px 16px}
   html.ui-v2 .app-nav-links{flex-direction:column;gap:2px}
-  html.ui-v2 .anl{width:100%;justify-content:flex-start;gap:12px;padding:9px 12px;font-size:14px;font-weight:500;color:#52574f;border-radius:9px}
+  html.ui-v2 .anl{width:100%;justify-content:flex-start;gap:12px;padding:9px 12px;font-size:14px;font-weight:500;color:#3a3f39;border-radius:9px}
   html.ui-v2 .anl:hover{background:var(--v2-line-2);color:var(--v2-ink)}
   html.ui-v2 .anl.active{background:var(--v2-green-soft);color:var(--v2-green);font-weight:600}
   html.ui-v2 .app-nav > div:last-child{margin-top:auto;flex-direction:row-reverse;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--v2-line-2)}
@@ -687,7 +687,7 @@ html.ui-v2 #nav-mapa{--ic:var(--ic-map)}
   html.ui-v2 .app-nav .logo-wrap img{height:32px !important}
   html.ui-v2 .user-chip{padding:3px;border-radius:999px;background:#fff}
   html.ui-v2 .user-chip > span{display:none}
-  html.ui-v2 .u-av{width:32px;height:32px;font-size:13px}
+  html.ui-v2 .u-av{width:32px;height:32px;font-size:14px}
   html.ui-v2 .notif-btn{width:38px;height:38px;border-radius:11px;background:#fff}
   html.ui-v2 #screen-app.active{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   html.ui-v2 #screen-app.active #ui2-tabbar{display:grid}
@@ -700,7 +700,7 @@ html.ui-v2 #nav-mapa{--ic:var(--ic-map)}
   html.ui-v2 .toast{left:16px;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:none}
 }
 #ui2-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:150;grid-template-columns:repeat(5,1fr);align-items:end;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--v2-line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px))}
-.ui2-tab{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:6px 0;min-height:48px;font:600 10.5px var(--v2-font);color:var(--v2-faint);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ui2-tab{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:6px 0;min-height:48px;font:600 12px var(--v2-font);color:var(--v2-faint);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ui2-tab .ui2-ic{width:22px;height:22px}
 .ui2-tab.on{color:var(--v2-green)}
 .ui2-tab[hidden]{display:none}
@@ -716,14 +716,14 @@ html.ui-v2 #nav-mapa{--ic:var(--ic-map)}
 .ui2-grab{width:40px;height:5px;border-radius:9px;background:var(--v2-line);margin:0 auto 14px}
 .ui2-sheet h3{font:700 17px var(--v2-font);color:var(--v2-ink);margin:0 4px 12px}
 .ui2-qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.ui2-qa button{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:none;padding:6px 0;font:600 12px var(--v2-font);color:#3f433d;cursor:pointer}
+.ui2-qa button{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:none;padding:6px 0;font:600 14px var(--v2-font);color:#2c302b;cursor:pointer}
 .ui2-qa .bx{width:54px;height:54px;border-radius:16px;display:grid;place-items:center}
 .ui2-qa .bx .ui2-ic{width:24px;height:24px}
 .ui2-list{display:flex;flex-direction:column}
 .ui2-list button{display:flex;align-items:center;gap:14px;padding:13px 6px;background:none;border:none;border-bottom:1px solid var(--v2-line-2);font:500 15px var(--v2-font);color:var(--v2-ink);cursor:pointer;text-align:left;min-height:48px}
 .ui2-list button:last-child{border-bottom:none}
 .ui2-list button .ui2-ic{color:var(--v2-muted)}
-.ui2-list button .tail{margin-left:auto;font-size:12.5px;color:var(--v2-muted)}
+.ui2-list button .tail{margin-left:auto;font-size:14px;color:var(--v2-muted)}
 .ui2-list button.danger{color:var(--v2-red)}
 .ui2-sep{height:8px}
 
@@ -752,9 +752,9 @@ html.ui-v2 .ui2-dash-actions{display:flex;gap:8px;flex-wrap:wrap}
 html.ui-v2 .precio-strip{background:#fff;border:1px solid var(--v2-line);box-shadow:none;border-radius:14px;padding:0;margin-bottom:16px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));overflow:hidden}
 @media(max-width:1180px){html.ui-v2 .precio-strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
 html.ui-v2 .precio-strip .pi{padding:12px 14px;margin:0;border-right:1px solid var(--v2-line-2);min-width:0}
-html.ui-v2 .precio-strip .pi-l{font-size:11.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ui-v2 .precio-strip .pi-l{font-size:14px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.ui-v2 .precio-strip .pi-v{font-size:17px;font-weight:600;color:var(--v2-ink);margin-top:2px;white-space:nowrap}
-html.ui-v2 .precio-strip .pi-d{color:var(--v2-faint) !important;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ui-v2 .precio-strip .pi-d{color:var(--v2-faint) !important;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.ui-v2 .precio-strip > div:last-child{grid-column:1/-1;margin:0 !important;padding:8px 14px;flex-direction:row-reverse !important;justify-content:space-between;align-items:center !important;gap:10px;border-top:1px solid var(--v2-line-2);background:#fbfaf7}
 html.ui-v2 .precio-strip button{background:var(--v2-green-soft) !important;color:var(--v2-green) !important;border:1px solid transparent !important;border-radius:8px !important;font-weight:600 !important}
 html.ui-v2 #ps-hora{color:var(--v2-faint) !important;white-space:nowrap}
@@ -764,16 +764,16 @@ html.ui-v2 #ps-hora{color:var(--v2-faint) !important;white-space:nowrap}
   html.ui-v2 .precio-strip > div:last-child{flex:0 0 auto;border-top:none;flex-direction:column !important}
 }
 /* Alerta agrupada de vencidos + KPIs */
-.ui2-alert{display:flex;gap:12px;align-items:center;background:#fffaeb;border:1px solid #fedf89;color:#93370d;border-radius:12px;padding:11px 14px;font-size:13.5px;margin-bottom:16px;flex-wrap:wrap}
+.ui2-alert{display:flex;gap:12px;align-items:center;background:#fffaeb;border:1px solid #fedf89;color:#93370d;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:16px;flex-wrap:wrap}
 .ui2-alert.crit{background:var(--v2-red-soft);border-color:#f9c5c0;color:var(--v2-red)}
 .ui2-alert b{font-weight:700}
-.ui2-alert .ui2-btn{margin-left:auto;padding:7px 12px;font-size:12.5px}
+.ui2-alert .ui2-btn{margin-left:auto;padding:7px 12px;font-size:14px}
 .ui2-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
 .ui2-kpi{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:16px 18px;cursor:pointer;text-align:left;font-family:var(--v2-font);transition:box-shadow .15s}
 .ui2-kpi:hover{box-shadow:var(--sombra-md)}
-.ui2-kpi small{display:block;font-size:12.5px;color:var(--v2-muted);font-weight:500}
+.ui2-kpi small{display:block;font-size:14px;color:var(--v2-muted);font-weight:500}
 .ui2-kpi strong{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--v2-ink)}
-.ui2-kpi span{display:block;font-size:12px;color:var(--v2-muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.ui2-kpi span{display:block;font-size:14px;color:var(--v2-muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .ui2-pos{color:var(--v2-ok) !important}.ui2-neg{color:var(--v2-red) !important}
 @media(max-width:900px){.ui2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ui2-kpi{padding:14px}.ui2-kpi strong{font-size:20px}}
 /* Onboarding más sobrio */
@@ -786,13 +786,13 @@ html.ui-v2 #dash-tareas .notif-tit{font-size:14px;font-weight:600}
 .ui2-row:last-child{border-bottom:none}
 .ui2-row .t{flex:1;min-width:0}
 .ui2-row .t b{display:block;font-size:14px;font-weight:600;color:var(--v2-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ui2-row .t small{display:block;font-size:12px;color:var(--v2-muted);margin-top:1px}
-.ui2-row .v{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ui2-chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ui2-row .t small{display:block;font-size:14px;color:var(--v2-muted);margin-top:1px}
+.ui2-row .v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-chip{display:inline-block;font-size:13px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
 .ui2-chip.r{background:var(--v2-red-soft);color:var(--v2-red)}
 .ui2-chip.a{background:var(--v2-amber-soft);color:var(--v2-amber)}
 .ui2-chip.g{background:var(--v2-green-soft);color:var(--v2-green)}
-.ui2-chip.n{background:#f2f2ef;color:#71756e}
+.ui2-chip.n{background:#efefeb;color:#4a4f48}
 
 /* ══ MIS CAMPOS ═══════════════════════════════════════════════════ */
 .ui2-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
@@ -805,20 +805,20 @@ html.ui-v2 #dash-tareas .notif-tit{font-size:14px;font-weight:600}
 .ui2-campo .del{width:32px;height:32px;border-radius:9px;border:1px solid transparent;background:none;color:var(--v2-faint);display:grid;place-items:center;cursor:pointer;flex:none}
 .ui2-campo .del:hover{color:var(--v2-red);background:var(--v2-red-soft)}
 .ui2-campo .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.ui2-campo .warn{display:flex;align-items:center;gap:8px;background:var(--v2-amber-soft);color:var(--v2-amber);border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:600}
+.ui2-campo .warn{display:flex;align-items:center;gap:8px;background:var(--v2-amber-soft);color:var(--v2-amber);border-radius:10px;padding:8px 10px;font-size:14px;font-weight:600}
 .ui2-campo .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.ui2-campo .stats div small{display:block;font-size:11.5px;color:var(--v2-muted)}
+.ui2-campo .stats div small{display:block;font-size:14px;color:var(--v2-muted)}
 .ui2-campo .stats div b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .ui2-campo .ft{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid var(--v2-line-2)}
 .ui2-campo .mg{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.ui2-campo .mg small{font-size:12px;font-weight:500;color:var(--v2-muted);margin-left:4px;letter-spacing:0}
-.ui2-campo .meta{font-size:12px;color:var(--v2-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-campo .mg small{font-size:14px;font-weight:500;color:var(--v2-muted);margin-left:4px;letter-spacing:0}
+.ui2-campo .meta{font-size:14px;color:var(--v2-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:600px){.ui2-campos{grid-template-columns:1fr;gap:10px}}
 html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:flex-end}
 @media(max-width:780px){html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:stretch !important}}
 /* Detalle del campo: cabecera verde más plana y tabs con scroll */
 html.ui-v2 #mod-campo-detalle > div:first-child{background:var(--v2-green) !important;border-radius:16px !important}
-html.ui-v2 .campo-tab{font-size:13.5px;padding:9px 14px;border-radius:9px}
+html.ui-v2 .campo-tab{font-size:14px;padding:9px 14px;border-radius:9px}
 html.ui-v2 .campo-tab.active{box-shadow:none;transform:none}
 html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:10px"]{overflow-x:auto;flex-wrap:nowrap !important;scrollbar-width:none}
 html.ui-v2 #rent-pdf-banner{background:#fff !important;border:1px solid var(--v2-line) !important;flex-wrap:wrap;gap:10px}
@@ -827,7 +827,7 @@ html.ui-v2 #mod-campo-detalle .campo-seccion button[style*="background:#fff"]{bo
 
 /* ══ RENTABILIDAD TOTAL ═══════════════════════════════════════════ */
 html.ui-v2 #rt-campana-sel{border:1px solid var(--v2-line) !important;background:#fff !important;color:var(--v2-ink) !important;border-radius:10px !important;font-weight:600 !important}
-html.ui-v2 #mod-rentabilidad-total > div:nth-child(2) > span:first-child{text-transform:none !important;letter-spacing:0 !important;font-weight:600 !important;color:var(--v2-muted) !important;font-size:13px !important}
+html.ui-v2 #mod-rentabilidad-total > div:nth-child(2) > span:first-child{text-transform:none !important;letter-spacing:0 !important;font-weight:600 !important;color:var(--v2-muted) !important;font-size:14px !important}
 html.ui-v2 #rt-cascada .card{border-radius:14px !important;border-color:var(--v2-line) !important;box-shadow:none !important}
 html.ui-v2 #rt-cascada [style*="background:#fafbfc"]{background:#fbfaf7 !important}
 html.ui-v2 #rt-campos .card{border-radius:14px;transition:box-shadow .15s}
@@ -836,14 +836,73 @@ html.ui-v2 #rt-resumen-rubro tr:last-child{background:var(--v2-line-2) !importan
 @media(max-width:700px){
   /* P&L: en el celu quedan 2 columnas (concepto | total), USD/ha va abajo del total */
   html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"]{grid-template-columns:1fr auto !important;gap:2px 12px !important;padding:14px 16px !important}
-  html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"] > div:nth-child(2){order:3;grid-column:2;font-size:11.5px !important;color:var(--v2-muted) !important}
+  html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"] > div:nth-child(2){order:3;grid-column:2;font-size:14px !important;color:var(--v2-muted) !important}
   html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"] > div:nth-child(4){display:none}
   html.ui-v2 #rt-cascada [style*="justify-content:space-between;align-items:center;padding:18px 24px"]{padding:14px 16px !important}
   html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important}
   html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child button:first-child{grid-column:1/-1}
   html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child button{justify-content:center}
-  html.ui-v2 #rt-resumen-rubro table{font-size:12.5px}
+  html.ui-v2 #rt-resumen-rubro table{font-size:14px}
 }
+/* Mínimo 14px también para estilos inline (los renders viejos usan 10–13px).
+   Excepciones: numerito de notificaciones, ícono (i) y tooltip. */
+html.ui-v2 #screen-app :is([style*="font-size:9px"],[style*="font-size:10px"],[style*="font-size:11px"],[style*="font-size:12px"],[style*="font-size:13px"],[style*="font-size:10.5px"],[style*="font-size:11.5px"],[style*="font-size:12.5px"],[style*="font-size:13.5px"]):not(.notif-badge):not(.ra-help){font-size:14px !important}
+html.ui-v2 :is(.mod-sub,.card-tit,.met-l,.met-s,.cm,.cmgv,.notif-meta,.notif-item-sub,.notif-item-time,.dias-chip,.gtag,.etapa-tag,.btn-sm,.btn-vs,.user-dropdown-item,.u-nm,.fl,.empty-s,.empty-tip,.sub-tipo-btn,.tab,.campo-tab,.pi-l,.pi-d){font-size:14px}
+html.ui-v2 #screen-app :is(.mod-sub,.met-s,.notif-meta,.pi-d,.empty-s,.empty-tip){color:var(--v2-muted) !important}
+/* Botón visible para cambiar de estilo (en los dos estilos) */
+.ui2-style-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:10px;border:1.5px solid var(--dorado);background:var(--dorado-pale);color:var(--verde);font:700 14px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.ui2-style-btn:hover{background:#fbefd0}
+.ui2-style-btn .on-v2{display:none}
+html.ui-v2 .ui2-style-btn{font-family:var(--v2-font);border:1px solid var(--v2-line);background:#fff;color:var(--v2-ink);height:40px}
+html.ui-v2 .ui2-style-btn .on-v1{display:none}
+html.ui-v2 .ui2-style-btn .on-v2{display:inline}
+@media(max-width:600px){.ui2-style-btn .long{display:none}}
+@media(min-width:901px){html.ui-v2 .app-nav > div:last-child{flex-wrap:wrap}html.ui-v2 .ui2-style-btn{flex:1 0 100%;justify-content:center}}
+/* ══ RESTO DE LA APP (Insumos, Pagos, Tareas, Estructura, Mapa, Mi plan,
+   detalle de campo, modales). Reglas generales sobre estilos inline. ══ */
+/* Etiquetas en mayúscula → en minúscula normal, más fáciles de leer */
+html.ui-v2 #screen-app [style*="text-transform:uppercase"],html.ui-v2 #screen-app .card-tit,html.ui-v2 #screen-app .pi-l{text-transform:none !important;letter-spacing:0 !important}
+/* Tarjetas/filas inline: borde fino neutro y radio parejo */
+html.ui-v2 #screen-app [style*="border:1.5px solid var(--borde)"],html.ui-v2 #screen-app [style*="border:.5px solid var(--borde)"]{border:1px solid var(--v2-line) !important}
+html.ui-v2 #screen-app [style*="border-radius:12px"][style*="padding:14px 18px"]{border-radius:14px !important}
+/* Botones de cabecera (Insumos, Pagos) */
+html.ui-v2 .pagos-hdr-btn{border-radius:10px;font-size:14px;font-weight:600;padding:10px 14px;box-shadow:none}
+html.ui-v2 .pagos-hdr-btn:hover{transform:none;box-shadow:none}
+html.ui-v2 .pagos-hdr-btn-outline{border:1px solid var(--v2-line);color:var(--v2-ink);background:#fff}
+html.ui-v2 .pagos-hdr-btn-outline:hover{background:#fbfaf7;border-color:#cfcabd}
+html.ui-v2 .pagos-hdr-btn-primary{background:var(--v2-green);border-color:var(--v2-green)}
+/* Botones secundarios inline con borde verde grueso → neutros */
+html.ui-v2 #screen-app button[style*="background:#fff"][style*="solid var(--verde)"],
+html.ui-v2 #screen-app button[style*="background:transparent"][style*="1px solid var(--borde)"]{border:1px solid var(--v2-line) !important;color:var(--v2-ink) !important;background:#fff !important;border-radius:10px !important;font-weight:600 !important;box-shadow:none !important}
+html.ui-v2 #screen-app button[style*="background:var(--verde-pale)"][style*="solid var(--verde)"]{border:1px solid transparent !important;border-radius:10px !important;font-weight:600 !important}
+/* Eliminar: texto rojo sin recuadro rojo (deja de ser lo más llamativo) */
+html.ui-v2 #screen-app button[style*="border:1px solid var(--rojo)"],html.ui-v2 #screen-app button[style*="border:1.5px solid var(--rojo)"]{border-color:var(--v2-line) !important;background:#fff !important;border-radius:10px !important}
+html.ui-v2 #screen-app button[style*="background:#c0392b"]{background:#fff !important;color:var(--v2-red) !important;border:1px solid var(--v2-line) !important}
+/* Pagos: borde neutro + franja de color a la izquierda según urgencia */
+html.ui-v2 #mod-pagos [style*="border:1.5px solid #c97a14"]{border:1px solid var(--v2-line) !important;box-shadow:inset 4px 0 0 #e0a24a}
+html.ui-v2 #mod-pagos [style*="border:1.5px solid #c0392b"],html.ui-v2 #mod-pagos [style*="border:1.5px solid var(--rojo)"]{border:1px solid var(--v2-line) !important;box-shadow:inset 4px 0 0 var(--v2-red)}
+html.ui-v2 #mod-pagos [style*="border:1.5px solid #1a7a52"],html.ui-v2 #mod-pagos [style*="border:1.5px solid var(--verde)"]{border:1px solid var(--v2-line) !important;box-shadow:inset 4px 0 0 var(--v2-ok)}
+/* Inputs inline (filtros, buscadores, edición en línea de Insumos) */
+html.ui-v2 #screen-app input[style],html.ui-v2 #screen-app select[style]{border-radius:10px !important;font-size:14px !important}
+html.ui-v2 #screen-app input[style*="border"]:not([type=checkbox]):not([type=radio]),html.ui-v2 #screen-app select[style*="border"]{border:1px solid var(--v2-line) !important}
+/* Insumos en celular/tablet: la fila de 5 columnas pasa a 2 */
+@media(max-width:900px){
+  html.ui-v2 #mod-stock-insumos [style*="grid-template-columns:minmax(220px,2fr)"]{grid-template-columns:1fr 1fr !important;gap:12px !important}
+  html.ui-v2 #mod-stock-insumos [style*="grid-template-columns:minmax(220px,2fr)"] > :first-child,
+  html.ui-v2 #mod-stock-insumos [style*="grid-template-columns:minmax(220px,2fr)"] > :last-child{grid-column:1/-1}
+  html.ui-v2 #mod-pagos [style*="grid-template-columns:auto 1fr auto"]{grid-template-columns:1fr !important}
+}
+/* Mapa */
+html.ui-v2 #mapa-lotes{border-radius:14px;border:1px solid var(--v2-line)}
+/* Mi plan */
+html.ui-v2 .plan{border:1px solid var(--v2-line);border-radius:14px}
+html.ui-v2 .plan:hover{transform:none}
+html.ui-v2 .pp,html.ui-v2 .pn{font-family:var(--v2-font)}
+html.ui-v2 .ps,html.ui-v2 .pfi,html.ui-v2 .pp-per{font-size:14px}
+/* Detalle del campo: textos de la cabecera verde con más contraste */
+html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.5"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.55"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.6"]{color:rgba(255,255,255,.85) !important}
+html.ui-v2 .campo-tab{color:rgba(255,255,255,.9);font-size:14px}
+html.ui-v2 .campo-tab.active{color:var(--v2-green)}
 </style>
 </head>
 <body>
@@ -1041,6 +1100,7 @@ html.ui-v2 #rt-resumen-rubro tr:last-child{background:var(--v2-line-2) !importan
       <button class="anl" id="nav-mapa" onclick="showModulo('mapa')"><span>🗺️</span><span>Mapa</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
+      <button class="ui2-style-btn" onclick="_ui2Toggle()" title="Cambiar entre el estilo clásico y el nuevo"><span class="on-v1">✨ <span class="long">Probar </span>estilo nuevo</span><span class="on-v2">↩ <span class="long">Volver al </span>clásico</span></button>
       <!-- Campanita de notificaciones -->
       <div class="notif-btn" id="notif-btn" onclick="_toggleNotifDropdown()" title="Notificaciones">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>

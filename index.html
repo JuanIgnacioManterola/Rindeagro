@@ -41,6 +41,25 @@
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<!-- Interruptor de estilo: ?ui=2 activa el estilo nuevo, ?ui=1 vuelve al de
+     siempre. Se guarda en localStorage['ra_ui'] y se aplica ANTES del primer
+     paint (si no, se ve el estilo viejo un instante). Todo el CSS nuevo está
+     scopeado bajo html.ui-v2, así que con el interruptor apagado no cambia nada. -->
+<script>
+(function(){
+  try {
+    var sp = new URLSearchParams(location.search), q = sp.get('ui')
+    if (q === '1' || q === '2') {
+      localStorage.setItem('ra_ui', q)
+      sp.delete('ui')
+      var s = sp.toString()
+      history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash)
+    }
+    if (localStorage.getItem('ra_ui') === '2') document.documentElement.classList.add('ui-v2')
+  } catch(e) {}
+})()
+</script>
 <style>
 :root{
   --verde:#1a4a2e;--verde-mid:#2d6e47;--verde-light:#3d8f5f;--verde-pale:#e8f5ee;
@@ -534,6 +553,298 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
   canvas { max-width: 100% }
 }
 </style>
+<style id="ui-v2-css">
+/* ══════════════════════════════════════════════════════════════════
+   ESTILO NUEVO (v2) — solo aplica con html.ui-v2 (interruptor).
+   Desktop: sidebar con texto + íconos de línea. Mobile (≤900px): header
+   compacto + barra inferior con botón "+" + modales como hoja inferior.
+   No reusar el prefijo ui2- ni la clase ui-v2 para otra cosa.
+══════════════════════════════════════════════════════════════════ */
+.ui2-only{display:none}
+html.ui-v2 .ui2-only{display:block}
+html.ui-v2 .v1-only{display:none !important}
+html.ui-v2 .v1-emoji{display:none}
+
+html.ui-v2{
+  --v2-bg:#f6f5f1;--v2-surface:#fff;--v2-line:#e8e5dc;--v2-line-2:#f1efe9;
+  --v2-ink:#1b1f1c;--v2-muted:#6b7068;--v2-faint:#a3a69f;
+  --v2-green:#1a4a2e;--v2-green-2:#2d6e47;--v2-green-soft:#edf5ef;
+  --v2-gold:#c9a84c;--v2-red:#b42318;--v2-red-soft:#fdeceb;
+  --v2-amber:#b54708;--v2-amber-soft:#fef3e2;
+  --v2-ok:#15803d;
+  --v2-font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --v2-display:'Fraunces','Playfair Display',Georgia,serif;
+  --v2-side:236px;
+  /* Tokens viejos reapuntados: todo lo que ya usa var(--crema) etc. se actualiza solo */
+  --crema:#f6f5f1;--crema-dark:#ece9e0;--borde:#e8e5dc;
+  --sombra:0 1px 2px rgba(16,24,20,.04);
+  --sombra-md:0 6px 20px rgba(16,24,20,.08);
+  --sombra-lg:0 18px 48px rgba(16,24,20,.18);
+  /* Íconos de línea (se pintan con mask + currentColor) */
+  --ic-home:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'/></svg>");
+  --ic-campos:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M5 21c0-9 5-15 15-16-1 10-7 15-15 16Z'/><path d='M5 21 14 12'/></svg>");
+  --ic-chart:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20V10M10 20V4M16 20v-7M22 20H2'/></svg>");
+  --ic-build:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6'/></svg>");
+  --ic-flask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 3h6M10 3v6L4 19a1.5 1.5 0 0 0 1.3 2h13.4a1.5 1.5 0 0 0 1.3-2L14 9V3'/><path d='M7 15h10'/></svg>");
+  --ic-wallet:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='6' width='18' height='14' rx='2'/><path d='M3 10h18M16 15h2'/></svg>");
+  --ic-check:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='4'/><path d='m8 12 3 3 5-6'/></svg>");
+  --ic-map:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='m9 4-6 2v14l6-2 6 2 6-2V4l-6 2z'/><path d='M9 4v14M15 6v14'/></svg>");
+  --ic-plus:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'><path d='M12 5v14M5 12h14'/></svg>");
+  --ic-more:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='4' width='6' height='6' rx='1.5'/><rect x='14' y='4' width='6' height='6' rx='1.5'/><rect x='4' y='14' width='6' height='6' rx='1.5'/><rect x='14' y='14' width='6' height='6' rx='1.5'/></svg>");
+  --ic-receipt:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 3h12v18l-3-2-3 2-3-2-3 2z'/><path d='M9 8h6M9 12h6'/></svg>");
+  --ic-drop:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12Z'/></svg>");
+  --ic-trash:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/></svg>");
+  --ic-alert:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3 2 20h20z'/><path d='M12 10v4M12 17v.5'/></svg>");
+  --ic-chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m9 6 6 6-6 6'/></svg>");
+}
+html.ui-v2 .ui2-ic{display:inline-block;width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+
+/* ── Base: tipografía ─────────────────────────────────────────────── */
+html.ui-v2 body{font-family:var(--v2-font);background:var(--v2-bg);color:var(--v2-ink);-webkit-font-smoothing:antialiased}
+html.ui-v2 #screen-app{background:var(--v2-bg)}
+html.ui-v2 button,html.ui-v2 input,html.ui-v2 select,html.ui-v2 textarea{font-family:var(--v2-font)}
+html.ui-v2 #screen-app [style*="DM Sans"]{font-family:var(--v2-font) !important}
+/* Números: Inter con dígitos tabulares en vez de mono */
+html.ui-v2 #screen-app [style*="DM Mono"],html.ui-v2 .pi-v,html.ui-v2 .cmgv,html.ui-v2 .nut-val,html.ui-v2 .conv-v,html.ui-v2 .ep-inp,html.ui-v2 #d-hora-actual{font-family:var(--v2-font) !important;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+html.ui-v2 #screen-app [style*="Playfair"],html.ui-v2 .met-v{font-family:var(--v2-font) !important;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* Títulos: serif de display con moderación */
+html.ui-v2 .mod-titulo,html.ui-v2 .m-tit,html.ui-v2 #det-campo-nombre,html.ui-v2 #rent-campo-nombre{font-family:var(--v2-display) !important;font-weight:600 !important;letter-spacing:-.02em;color:var(--v2-green)}
+html.ui-v2 .mod-titulo{font-size:28px;line-height:1.15;margin-bottom:4px}
+html.ui-v2 .mod-sub{font-size:13.5px;color:var(--v2-muted)}
+html.ui-v2 .modulo{padding:28px 32px 48px}
+html.ui-v2 .mod-header{margin-bottom:22px;align-items:flex-end}
+
+/* ── Superficies ──────────────────────────────────────────────────── */
+html.ui-v2 .card{background:var(--v2-surface);border:1px solid var(--v2-line);border-radius:14px;box-shadow:none;padding:18px 20px}
+html.ui-v2 .card-hdr{margin-bottom:12px}
+html.ui-v2 .card-tit{font-size:15px;font-weight:600;letter-spacing:-.005em;text-transform:none;color:var(--v2-ink)}
+html.ui-v2 .met{border:1px solid var(--v2-line);border-radius:14px;box-shadow:none;padding:16px 18px}
+html.ui-v2 .met:hover{transform:none;box-shadow:var(--sombra-md)}
+html.ui-v2 .met-acc{display:none}
+html.ui-v2 .met-l{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);margin:0 0 6px}
+html.ui-v2 .met-v{font-weight:700;font-size:24px !important;line-height:1.1}
+html.ui-v2 .met-s{font-size:12px;color:var(--v2-muted);font-weight:400}
+
+/* ── Botones ──────────────────────────────────────────────────────── */
+html.ui-v2 .btn-vs,html.ui-v2 .fb,html.ui-v2 .empty-cta{border-radius:10px;font-weight:600;letter-spacing:-.005em;box-shadow:none}
+html.ui-v2 .btn-vs{font-size:13px;padding:8px 14px}
+html.ui-v2 .btn-vs:hover,html.ui-v2 .fb:hover{background:var(--v2-green-2)}
+html.ui-v2 .btn-sm{border-radius:9px;border:1px solid var(--v2-line);font-size:12.5px;padding:7px 12px;color:var(--v2-ink);background:#fff}
+html.ui-v2 .ui2-btn{display:inline-flex;align-items:center;gap:8px;font:600 13.5px var(--v2-font);padding:10px 14px;border-radius:10px;border:1px solid var(--v2-line);background:#fff;color:var(--v2-ink);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+html.ui-v2 .ui2-btn:hover{border-color:#cfcabd;background:#fbfaf7}
+html.ui-v2 .ui2-btn.p{background:var(--v2-green);border-color:var(--v2-green);color:#fff}
+html.ui-v2 .ui2-btn.p:hover{background:var(--v2-green-2)}
+html.ui-v2 .ui2-btn:focus-visible,html.ui-v2 .anl:focus-visible,html.ui-v2 .ui2-tab:focus-visible{outline:2px solid var(--v2-gold);outline-offset:2px}
+/* Botones de cabecera de módulo con estilo inline (Exportar, Comparar…) */
+html.ui-v2 .mod-header button[style]{border-radius:10px !important;padding:9px 14px !important;font-size:13px !important;font-weight:600 !important;box-shadow:none !important}
+html.ui-v2 .mod-header button[style*="background:#fff"]{border:1px solid var(--v2-line) !important;color:var(--v2-ink) !important}
+html.ui-v2 .mod-header button[style*="background:#fff"]:hover{border-color:#cfcabd !important;background:#fbfaf7 !important}
+
+/* ── Formularios y modales ────────────────────────────────────────── */
+html.ui-v2 .fi{border:1px solid var(--v2-line);border-radius:10px;font-size:15px}
+html.ui-v2 .fi:focus{border-color:var(--v2-green-2);box-shadow:0 0 0 3px rgba(45,110,71,.14)}
+html.ui-v2 .fl{font-size:13px;font-weight:600;color:var(--v2-ink)}
+html.ui-v2 .overlay{background:rgba(16,28,20,.45);backdrop-filter:blur(4px)}
+html.ui-v2 .modal{border-radius:18px;box-shadow:var(--sombra-lg)}
+html.ui-v2 .m-tit{font-size:20px}
+html.ui-v2 .m-close{background:var(--v2-line-2)}
+html.ui-v2 .tabs{background:var(--v2-line-2)}
+html.ui-v2 .toast{border-radius:12px;font-family:var(--v2-font)}
+
+/* ── NAV desktop: sidebar ─────────────────────────────────────────── */
+@media(min-width:901px){
+  html.ui-v2 #screen-app{padding-left:var(--v2-side)}
+  html.ui-v2 .app-nav{position:fixed;top:0;left:0;bottom:0;width:var(--v2-side);flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;padding:18px 14px 14px;border-bottom:none;border-right:1px solid var(--v2-line);box-shadow:none;z-index:120;overflow-y:auto}
+  html.ui-v2 .app-nav .logo-wrap{padding:2px 8px 16px}
+  html.ui-v2 .app-nav-links{flex-direction:column;gap:2px}
+  html.ui-v2 .anl{width:100%;justify-content:flex-start;gap:12px;padding:9px 12px;font-size:14px;font-weight:500;color:#52574f;border-radius:9px}
+  html.ui-v2 .anl:hover{background:var(--v2-line-2);color:var(--v2-ink)}
+  html.ui-v2 .anl.active{background:var(--v2-green-soft);color:var(--v2-green);font-weight:600}
+  html.ui-v2 .app-nav > div:last-child{margin-top:auto;flex-direction:row-reverse;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--v2-line-2)}
+  html.ui-v2 .user-chip{flex:1;min-width:0;border-radius:10px;padding:7px 10px;background:#fff;border:1px solid var(--v2-line)}
+  html.ui-v2 .u-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--v2-ink)}
+  html.ui-v2 .notif-btn{width:40px;height:40px;border-radius:10px;background:#fff;border:1px solid var(--v2-line);flex:none}
+  html.ui-v2 .user-dropdown{top:auto;bottom:calc(100% + 8px);left:0;right:auto;min-width:220px}
+  html.ui-v2 .notif-dropdown{position:fixed;top:auto;bottom:14px;left:calc(var(--v2-side) + 8px);right:auto}
+  html.ui-v2 .toast{right:1.75rem}
+}
+html.ui-v2 .anl > span:first-child{display:none}
+html.ui-v2 .anl::before{content:'';width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+html.ui-v2 .app-nav-links .anl:nth-child(1){--ic:var(--ic-home)}
+html.ui-v2 #nav-campos{--ic:var(--ic-campos)}
+html.ui-v2 #nav-rentabilidad{--ic:var(--ic-chart)}
+html.ui-v2 #nav-estructura{--ic:var(--ic-build)}
+html.ui-v2 #nav-insumos{--ic:var(--ic-flask)}
+html.ui-v2 #nav-pagos{--ic:var(--ic-wallet)}
+html.ui-v2 #nav-tareas{--ic:var(--ic-check)}
+html.ui-v2 #nav-mapa{--ic:var(--ic-map)}
+
+/* ── NAV mobile: header compacto + barra inferior ─────────────────── */
+#ui2-tabbar,#ui2-sheet-ov{display:none}
+@media(max-width:900px){
+  html.ui-v2 .app-nav{padding:10px 16px;box-shadow:none;border-bottom:1px solid var(--v2-line)}
+  html.ui-v2 .app-nav-links{display:none}
+  html.ui-v2 .app-nav .logo-wrap img{height:32px !important}
+  html.ui-v2 .user-chip{padding:3px;border-radius:999px;background:#fff}
+  html.ui-v2 .user-chip > span{display:none}
+  html.ui-v2 .u-av{width:32px;height:32px;font-size:13px}
+  html.ui-v2 .notif-btn{width:38px;height:38px;border-radius:11px;background:#fff}
+  html.ui-v2 #screen-app.active{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  html.ui-v2 #screen-app.active #ui2-tabbar{display:grid}
+  html.ui-v2 .modulo{padding:20px 16px 32px}
+  html.ui-v2 .mod-titulo{font-size:24px !important}
+  html.ui-v2 .mod-header{align-items:stretch}
+  html.ui-v2 #rt-mets{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px}
+  html.ui-v2 #rt-mets .met-v{font-size:16px !important;white-space:nowrap}
+  html.ui-v2 #rt-mets .met{padding:12px 12px;min-width:0}
+  html.ui-v2 .toast{left:16px;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:none}
+}
+#ui2-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:150;grid-template-columns:repeat(5,1fr);align-items:end;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--v2-line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px))}
+.ui2-tab{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:6px 0;min-height:48px;font:600 10.5px var(--v2-font);color:var(--v2-faint);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ui2-tab .ui2-ic{width:22px;height:22px}
+.ui2-tab.on{color:var(--v2-green)}
+.ui2-tab[hidden]{display:none}
+.ui2-fab{width:54px;height:54px;border-radius:18px;background:var(--v2-green);color:var(--v2-gold);display:grid;place-items:center;margin-top:-24px;box-shadow:0 8px 18px -6px rgba(26,74,46,.6)}
+.ui2-fab .ui2-ic{width:26px;height:26px}
+
+/* Hoja inferior (acciones rápidas y "Más") */
+#ui2-sheet-ov{position:fixed;inset:0;z-index:300;background:rgba(16,28,20,.45);align-items:flex-end;justify-content:center}
+#ui2-sheet-ov.open{display:flex}
+.ui2-sheet{background:#fff;width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow-y:auto;animation:ui2Up .22s ease}
+@keyframes ui2Up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.ui2-sheet{animation:none}}
+.ui2-grab{width:40px;height:5px;border-radius:9px;background:var(--v2-line);margin:0 auto 14px}
+.ui2-sheet h3{font:700 17px var(--v2-font);color:var(--v2-ink);margin:0 4px 12px}
+.ui2-qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ui2-qa button{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:none;padding:6px 0;font:600 12px var(--v2-font);color:#3f433d;cursor:pointer}
+.ui2-qa .bx{width:54px;height:54px;border-radius:16px;display:grid;place-items:center}
+.ui2-qa .bx .ui2-ic{width:24px;height:24px}
+.ui2-list{display:flex;flex-direction:column}
+.ui2-list button{display:flex;align-items:center;gap:14px;padding:13px 6px;background:none;border:none;border-bottom:1px solid var(--v2-line-2);font:500 15px var(--v2-font);color:var(--v2-ink);cursor:pointer;text-align:left;min-height:48px}
+.ui2-list button:last-child{border-bottom:none}
+.ui2-list button .ui2-ic{color:var(--v2-muted)}
+.ui2-list button .tail{margin-left:auto;font-size:12.5px;color:var(--v2-muted)}
+.ui2-list button.danger{color:var(--v2-red)}
+.ui2-sep{height:8px}
+
+/* Modales como hoja inferior en mobile */
+@media(max-width:780px){
+  html.ui-v2 .overlay{align-items:flex-end !important;padding:0 !important}
+  html.ui-v2 .modal{margin:0 !important;max-width:100% !important;width:100% !important;border-radius:22px 22px 0 0 !important;max-height:94vh !important;transform:translateY(40px)}
+  html.ui-v2 .overlay.open .modal{transform:none}
+  html.ui-v2 .modal-header,html.ui-v2 .modal-body,html.ui-v2 .modal-footer{padding-left:8px;padding-right:8px}
+  html.ui-v2 .modal-header{padding-top:12px}
+  html.ui-v2 .modal *:has(> .rubro-chip-btn){grid-template-columns:repeat(4,minmax(0,1fr)) !important}
+  html.ui-v2 .rubro-chip-btn{min-width:0}
+  html.ui-v2 .modal-footer{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ── Interruptor en el menú de usuario ────────────────────────────── */
+.ui2-switch{margin-left:auto;width:32px;height:18px;border-radius:99px;background:#d4d4d0;position:relative;flex:none;transition:background .15s}
+.ui2-switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+html.ui-v2 .ui2-switch{background:var(--v2-green-2)}
+html.ui-v2 .ui2-switch::after{transform:translateX(14px)}
+
+/* ══ DASHBOARD ════════════════════════════════════════════════════ */
+html.ui-v2 #mod-dashboard > .mod-header > div:has(> #d-hora-actual){display:none !important}
+html.ui-v2 .ui2-dash-actions{display:flex;gap:8px;flex-wrap:wrap}
+/* Pizarra: tira blanca en grilla, sin degradé */
+html.ui-v2 .precio-strip{background:#fff;border:1px solid var(--v2-line);box-shadow:none;border-radius:14px;padding:0;margin-bottom:16px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));overflow:hidden}
+@media(max-width:1180px){html.ui-v2 .precio-strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
+html.ui-v2 .precio-strip .pi{padding:12px 14px;margin:0;border-right:1px solid var(--v2-line-2);min-width:0}
+html.ui-v2 .precio-strip .pi-l{font-size:11.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--v2-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ui-v2 .precio-strip .pi-v{font-size:17px;font-weight:600;color:var(--v2-ink);margin-top:2px;white-space:nowrap}
+html.ui-v2 .precio-strip .pi-d{color:var(--v2-faint) !important;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ui-v2 .precio-strip > div:last-child{grid-column:1/-1;margin:0 !important;padding:8px 14px;flex-direction:row-reverse !important;justify-content:space-between;align-items:center !important;gap:10px;border-top:1px solid var(--v2-line-2);background:#fbfaf7}
+html.ui-v2 .precio-strip button{background:var(--v2-green-soft) !important;color:var(--v2-green) !important;border:1px solid transparent !important;border-radius:8px !important;font-weight:600 !important}
+html.ui-v2 #ps-hora{color:var(--v2-faint) !important;white-space:nowrap}
+@media(max-width:600px){
+  html.ui-v2 .precio-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  html.ui-v2 .precio-strip .pi{flex:0 0 auto;min-width:112px;scroll-snap-align:start}
+  html.ui-v2 .precio-strip > div:last-child{flex:0 0 auto;border-top:none;flex-direction:column !important}
+}
+/* Alerta agrupada de vencidos + KPIs */
+.ui2-alert{display:flex;gap:12px;align-items:center;background:#fffaeb;border:1px solid #fedf89;color:#93370d;border-radius:12px;padding:11px 14px;font-size:13.5px;margin-bottom:16px;flex-wrap:wrap}
+.ui2-alert.crit{background:var(--v2-red-soft);border-color:#f9c5c0;color:var(--v2-red)}
+.ui2-alert b{font-weight:700}
+.ui2-alert .ui2-btn{margin-left:auto;padding:7px 12px;font-size:12.5px}
+.ui2-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.ui2-kpi{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:16px 18px;cursor:pointer;text-align:left;font-family:var(--v2-font);transition:box-shadow .15s}
+.ui2-kpi:hover{box-shadow:var(--sombra-md)}
+.ui2-kpi small{display:block;font-size:12.5px;color:var(--v2-muted);font-weight:500}
+.ui2-kpi strong{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--v2-ink)}
+.ui2-kpi span{display:block;font-size:12px;color:var(--v2-muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.ui2-pos{color:var(--v2-ok) !important}.ui2-neg{color:var(--v2-red) !important}
+@media(max-width:900px){.ui2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ui2-kpi{padding:14px}.ui2-kpi strong{font-size:20px}}
+/* Onboarding más sobrio */
+html.ui-v2 #dash-onboarding > div{background:#fff !important;border:1px solid var(--v2-line) !important;box-shadow:none !important;border-radius:14px !important}
+/* Filas de lista compactas (tareas y pagos del inicio) */
+html.ui-v2 #dash-tareas .notif-item{padding:11px 0;border-bottom:1px solid var(--v2-line-2);align-items:center}
+html.ui-v2 #dash-tareas .notif-ico{width:32px;height:32px;border-radius:9px;font-size:14px}
+html.ui-v2 #dash-tareas .notif-tit{font-size:14px;font-weight:600}
+.ui2-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--v2-line-2);cursor:pointer}
+.ui2-row:last-child{border-bottom:none}
+.ui2-row .t{flex:1;min-width:0}
+.ui2-row .t b{display:block;font-size:14px;font-weight:600;color:var(--v2-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui2-row .t small{display:block;font-size:12px;color:var(--v2-muted);margin-top:1px}
+.ui2-row .v{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ui2-chip.r{background:var(--v2-red-soft);color:var(--v2-red)}
+.ui2-chip.a{background:var(--v2-amber-soft);color:var(--v2-amber)}
+.ui2-chip.g{background:var(--v2-green-soft);color:var(--v2-green)}
+.ui2-chip.n{background:#f2f2ef;color:#71756e}
+
+/* ══ MIS CAMPOS ═══════════════════════════════════════════════════ */
+.ui2-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.ui2-campo{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:16px 18px;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:box-shadow .15s,border-color .15s;position:relative}
+.ui2-campo:hover{box-shadow:var(--sombra-md);border-color:#d9d5c9}
+.ui2-campo:focus-visible{outline:2px solid var(--v2-gold);outline-offset:2px}
+.ui2-campo .hd{display:flex;align-items:center;gap:10px}
+.ui2-campo .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.ui2-campo .nm{font:600 17px var(--v2-font);letter-spacing:-.01em;color:var(--v2-ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui2-campo .del{width:32px;height:32px;border-radius:9px;border:1px solid transparent;background:none;color:var(--v2-faint);display:grid;place-items:center;cursor:pointer;flex:none}
+.ui2-campo .del:hover{color:var(--v2-red);background:var(--v2-red-soft)}
+.ui2-campo .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ui2-campo .warn{display:flex;align-items:center;gap:8px;background:var(--v2-amber-soft);color:var(--v2-amber);border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:600}
+.ui2-campo .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ui2-campo .stats div small{display:block;font-size:11.5px;color:var(--v2-muted)}
+.ui2-campo .stats div b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.ui2-campo .ft{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid var(--v2-line-2)}
+.ui2-campo .mg{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ui2-campo .mg small{font-size:12px;font-weight:500;color:var(--v2-muted);margin-left:4px;letter-spacing:0}
+.ui2-campo .meta{font-size:12px;color:var(--v2-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:600px){.ui2-campos{grid-template-columns:1fr;gap:10px}}
+html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:flex-end}
+@media(max-width:780px){html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:stretch !important}}
+/* Detalle del campo: cabecera verde más plana y tabs con scroll */
+html.ui-v2 #mod-campo-detalle > div:first-child{background:var(--v2-green) !important;border-radius:16px !important}
+html.ui-v2 .campo-tab{font-size:13.5px;padding:9px 14px;border-radius:9px}
+html.ui-v2 .campo-tab.active{box-shadow:none;transform:none}
+html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:10px"]{overflow-x:auto;flex-wrap:nowrap !important;scrollbar-width:none}
+html.ui-v2 #rent-pdf-banner{background:#fff !important;border:1px solid var(--v2-line) !important;flex-wrap:wrap;gap:10px}
+html.ui-v2 #rent-pdf-banner [id^="rent-pdf-"]{color:var(--v2-ink) !important}
+html.ui-v2 #mod-campo-detalle .campo-seccion button[style*="background:#fff"]{border:1px solid var(--v2-line) !important;color:var(--v2-ink) !important;border-radius:10px !important;font-weight:600 !important}
+
+/* ══ RENTABILIDAD TOTAL ═══════════════════════════════════════════ */
+html.ui-v2 #rt-campana-sel{border:1px solid var(--v2-line) !important;background:#fff !important;color:var(--v2-ink) !important;border-radius:10px !important;font-weight:600 !important}
+html.ui-v2 #mod-rentabilidad-total > div:nth-child(2) > span:first-child{text-transform:none !important;letter-spacing:0 !important;font-weight:600 !important;color:var(--v2-muted) !important;font-size:13px !important}
+html.ui-v2 #rt-cascada .card{border-radius:14px !important;border-color:var(--v2-line) !important;box-shadow:none !important}
+html.ui-v2 #rt-cascada [style*="background:#fafbfc"]{background:#fbfaf7 !important}
+html.ui-v2 #rt-campos .card{border-radius:14px;transition:box-shadow .15s}
+html.ui-v2 #rt-campos .card:hover{box-shadow:var(--sombra-md)}
+html.ui-v2 #rt-resumen-rubro tr:last-child{background:var(--v2-line-2) !important}
+@media(max-width:700px){
+  /* P&L: en el celu quedan 2 columnas (concepto | total), USD/ha va abajo del total */
+  html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"]{grid-template-columns:1fr auto !important;gap:2px 12px !important;padding:14px 16px !important}
+  html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"] > div:nth-child(2){order:3;grid-column:2;font-size:11.5px !important;color:var(--v2-muted) !important}
+  html.ui-v2 #rt-cascada [style*="grid-template-columns:1.6fr"] > div:nth-child(4){display:none}
+  html.ui-v2 #rt-cascada [style*="justify-content:space-between;align-items:center;padding:18px 24px"]{padding:14px 16px !important}
+  html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important}
+  html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child button:first-child{grid-column:1/-1}
+  html.ui-v2 #mod-rentabilidad-total .mod-header > div:last-child button{justify-content:center}
+  html.ui-v2 #rt-resumen-rubro table{font-size:12.5px}
+}
+</style>
 </head>
 <body>
 
@@ -752,12 +1063,26 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
           <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();showModulo('mi-plan')">⭐ Mi plan</button>
           <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();openModalCambiarPassword()">🔒 Cambiar contraseña</button>
           <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();openModalAyuda()">💬 Ayuda / Contacto</button>
+          <button class="user-dropdown-item" onclick="event.stopPropagation();_closeUserDropdown();_ui2Toggle()">🎨 Estilo nuevo <span class="ui2-switch" aria-hidden="true"></span></button>
           <div class="user-dropdown-sep"></div>
           <button class="user-dropdown-item danger" onclick="event.stopPropagation();_closeUserDropdown();cerrarSesion()">🚪 Cerrar sesión</button>
         </div>
       </div>
     </div>
   </nav>
+  <!-- Estilo nuevo (v2) — barra inferior mobile. Solo visible con html.ui-v2
+       y ancho ≤900px. NO usa la clase .anl: showModulo marca activo por
+       índice de .anl y se rompería. -->
+  <nav id="ui2-tabbar" aria-label="Navegación principal">
+    <button class="ui2-tab" data-mod="dashboard" onclick="showModulo('dashboard')"><span class="ui2-ic" style="--ic:var(--ic-home)"></span>Inicio</button>
+    <button class="ui2-tab" data-mod="campos" data-nav="nav-campos" onclick="showModulo('campos')"><span class="ui2-ic" style="--ic:var(--ic-campos)"></span>Campos</button>
+    <button class="ui2-tab" aria-label="Cargar" onclick="_ui2Sheet('cargar')"><span class="ui2-fab"><span class="ui2-ic" style="--ic:var(--ic-plus)"></span></span></button>
+    <button class="ui2-tab" data-mod="rentabilidad-total" data-nav="nav-rentabilidad" onclick="showModulo('rentabilidad-total')"><span class="ui2-ic" style="--ic:var(--ic-chart)"></span>Números</button>
+    <button class="ui2-tab" data-mod="mas" onclick="_ui2Sheet('mas')"><span class="ui2-ic" style="--ic:var(--ic-more)"></span>Más</button>
+  </nav>
+  <div id="ui2-sheet-ov" onclick="if(event.target===this)_ui2SheetClose()">
+    <div class="ui2-sheet" role="dialog" aria-modal="true" id="ui2-sheet"></div>
+  </div>
   <!-- Banner colaborador -->
   <div id="banner-colaborador" style="display:none;background:#EAF3DE;border-bottom:.5px solid #97C459;padding:6px 24px;font-size:12px;color:#3B6D11;align-items:center;gap:8px;flex-wrap:wrap">
     <span>Estás colaborando en la cuenta de <strong id="banner-col-nombre"></strong></span>
@@ -778,6 +1103,10 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
   <div class="modulo active" id="mod-dashboard">
     <div class="mod-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
       <div><div class="mod-titulo" id="d-saludo">Bienvenido 👋</div><div class="mod-sub" id="d-fecha">...</div></div>
+      <div class="ui2-only ui2-dash-actions">
+        <button class="ui2-btn" onclick="abrirModalTarea()"><span class="ui2-ic" style="--ic:var(--ic-check)"></span>Nueva tarea</button>
+        <button class="ui2-btn p" onclick="openModalGasto()"><span class="ui2-ic" style="--ic:var(--ic-plus)"></span>Nuevo gasto</button>
+      </div>
       <div style="text-align:right;min-width:0">
         <div id="d-hora-actual" style="font-size:34px;font-weight:800;font-family:'DM Mono',monospace;color:var(--verde);letter-spacing:.02em;line-height:1">—</div>
         <div style="font-size:10px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-top:4px">Buenos Aires · Argentina</div>
@@ -802,6 +1131,7 @@ select.fi:disabled{opacity:.55;cursor:not-allowed}
     <!-- Onboarding: checklist de primeros pasos. Se muestra al inicio del
          dashboard mientras el user no complete los 3 pasos y no haya dado
          "no mostrar mas". Auto-detecta el progreso via campos/gastos. -->
+    <div id="ui2-dash-top" class="ui2-only"></div>
     <div id="dash-onboarding" style="display:none"></div>
     <!-- Layout Inicio: 2 columnas con Tareas / Cuentas por vencer, y Mi equipo
          full-width abajo. Antes tenia 'Mis campos' pero se saco porque duplicaba
@@ -4148,6 +4478,179 @@ window.showModulo = function(mod) {
   }
 }
 
+// ══ ESTILO NUEVO (v2) — interruptor, barra inferior y hojas ══════════════
+// El estado vive en localStorage['ra_ui'] ('2' = nuevo) y en la clase
+// html.ui-v2 (la pone el script del <head> antes del primer paint).
+window._uiV2 = function() { return document.documentElement.classList.contains('ui-v2') }
+window._ui2Toggle = function() {
+  var on = !window._uiV2()
+  document.documentElement.classList.toggle('ui-v2', on)
+  try { localStorage.setItem('ra_ui', on ? '2' : '1') } catch(e) {}
+  // Re-render de lo que tiene markup distinto según el estilo
+  try { renderDashboard() } catch(e) {}
+  try { if (document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista() } catch(e) {}
+  try { if (document.getElementById('mod-rentabilidad-total')?.classList.contains('active')) renderRentabilidadTotal() } catch(e) {}
+  _ui2SheetClose()
+  _ui2SyncTabbar()
+  showToast(on ? 'Estilo nuevo activado' : 'Volviste al estilo de siempre', 'ok')
+}
+
+// Envuelve los emojis del principio de títulos estáticos para poder ocultarlos
+// en v2 (ahí usamos íconos de línea). En v1 se siguen viendo igual.
+function _ui2WrapEmojis() {
+  var re = /^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}][\u{FE0F}\u{200D}\u{1F300}-\u{1FAFF}]*\s*)/u
+  document.querySelectorAll('#screen-app .mod-titulo, #screen-app .card-tit').forEach(function(el) {
+    if (el.dataset.ui2e) return
+    var n = el.firstChild
+    if (!n || n.nodeType !== 3) return
+    var m = n.nodeValue.match(re)
+    if (!m) return
+    el.dataset.ui2e = '1'
+    n.nodeValue = n.nodeValue.slice(m[1].length)
+    var sp = document.createElement('span'); sp.className = 'v1-emoji'; sp.textContent = m[1]
+    el.insertBefore(sp, n)
+  })
+}
+try { _ui2WrapEmojis() } catch(e) {}
+
+// Marca el tab activo de la barra inferior y oculta los que el rol no puede ver
+// (copiamos la visibilidad de los botones del nav de desktop).
+function _ui2SyncTabbar(mod) {
+  var bar = document.getElementById('ui2-tabbar')
+  if (!bar) return
+  if (!mod) {
+    var act = document.querySelector('.modulo.active')
+    mod = act ? act.id.replace(/^mod-/, '') : 'dashboard'
+  }
+  if (mod === 'campo-detalle') mod = 'campos'
+  var principales = ['dashboard','campos','rentabilidad-total']
+  bar.querySelectorAll('.ui2-tab').forEach(function(t) {
+    var nav = t.dataset.nav && document.getElementById(t.dataset.nav)
+    t.hidden = !!(nav && nav.style.display === 'none')
+    var on = t.dataset.mod === mod || (t.dataset.mod === 'mas' && principales.indexOf(mod) < 0)
+    t.classList.toggle('on', on)
+    if (t.dataset.mod) t.setAttribute('aria-current', on ? 'page' : 'false')
+  })
+}
+var _ui2ShowModuloOrig = window.showModulo
+window.showModulo = function(mod) {
+  _ui2SheetClose()
+  var r = _ui2ShowModuloOrig.apply(this, arguments)
+  try { _ui2SyncTabbar(mod) } catch(e) {}
+  return r
+}
+
+window._ui2SheetClose = function() {
+  var ov = document.getElementById('ui2-sheet-ov')
+  if (ov) ov.classList.remove('open')
+}
+// Hoja inferior: 'cargar' (acciones rápidas del botón +) o 'mas' (resto del menú)
+window._ui2Sheet = function(tipo) {
+  var ov = document.getElementById('ui2-sheet-ov'), sh = document.getElementById('ui2-sheet')
+  if (!ov || !sh) return
+  function ic(n) { return '<span class="ui2-ic" style="--ic:var(--ic-'+n+')"></span>' }
+  var html = '<div class="ui2-grab"></div>'
+  if (tipo === 'cargar') {
+    var acc = [
+      {t:'Gasto',  i:'receipt', bg:'#edf5ef', c:'#1a4a2e', fn:'openModalGasto()'},
+      {t:'Lluvia', i:'drop',    bg:'#e8f0fb', c:'#1a5fa8', fn:'openModalLluvia()'},
+      {t:'Tarea',  i:'check',   bg:'#fdf8ec', c:'#a15c07', fn:'abrirModalTarea()'},
+      {t:'Campo',  i:'campos',  bg:'#f3eefb', c:'#6b3fa0', fn:'openModalCampo()'}
+    ]
+    html += '<h3>¿Qué querés cargar?</h3><div class="ui2-qa">'
+      + acc.map(function(a){ return '<button onclick="_ui2SheetClose();'+a.fn+'"><span class="bx" style="background:'+a.bg+';color:'+a.c+'">'+ic(a.i)+'</span>'+a.t+'</button>' }).join('')
+      + '</div>'
+  } else {
+    var mapIc = {'estructura':'build','stock-insumos':'flask','pagos':'wallet','tareas':'check','mapa':'map'}
+    var items = ''
+    document.querySelectorAll('.app-nav-links .anl').forEach(function(b) {
+      var m = (b.getAttribute('onclick')||'').match(/showModulo\('([^']+)'\)/)
+      if (!m || !mapIc[m[1]] || b.style.display === 'none') return
+      var lbl = (b.querySelector('span:last-child')||b).textContent.trim()
+      items += '<button onclick="showModulo(\''+m[1]+'\')">'+ic(mapIc[m[1]])+lbl+'</button>'
+    })
+    var esColab = window.CONTEXTO && window.CONTEXTO.esColaborador
+    html += '<h3>Más</h3><div class="ui2-list">' + items + '</div><div class="ui2-sep"></div><div class="ui2-list">'
+      + (esColab ? '' : '<button onclick="_ui2SheetClose();openModalMiEquipo()">'+ic('campos')+'Mi equipo</button>')
+      + '<button onclick="showModulo(\'mi-plan\')">'+ic('chart')+'Mi plan</button>'
+      + '<button onclick="_ui2SheetClose();openModalAyuda()">'+ic('alert')+'Ayuda / Contacto</button>'
+      + '<button onclick="_ui2Toggle()">'+ic('more')+'Estilo nuevo<span class="tail">'+(window._uiV2()?'Activado':'Apagado')+'</span><span class="ui2-switch"></span></button>'
+      + '<button class="danger" onclick="_ui2SheetClose();cerrarSesion()">'+ic('chev')+'Cerrar sesión</button>'
+      + '</div>'
+  }
+  sh.innerHTML = html
+  ov.classList.add('open')
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') _ui2SheetClose() })
+
+// Inicio v2: alerta agrupada de pagos vencidos + KPIs de la campaña.
+// Mismos cálculos que Rentabilidad total (ingresos reales, gastos de la
+// campaña activa y estructura prorrateada) para que los números cuadren.
+function _ui2RenderDashTop() {
+  var el = document.getElementById('ui2-dash-top')
+  if (!el) return
+  if (!window._uiV2()) { el.innerHTML = ''; return }
+  function fUsd(v) {
+    var a = Math.abs(v), s = v < 0 ? '−' : ''
+    if (a >= 1e6) return s + 'USD ' + (a/1e6).toLocaleString('es-AR',{maximumFractionDigits:2}) + ' M'
+    if (a >= 1e4) return s + 'USD ' + Math.round(a/1e3).toLocaleString('es-AR') + ' k'
+    return s + 'USD ' + Math.round(a).toLocaleString('es-AR')
+  }
+  var html = ''
+  // Alerta de vencidos
+  try {
+    var venc = (pagos||[]).filter(function(p){ return p.estado === 'pendiente' && _pagoDiasRestantes(p.fecha_cobro) < 0 })
+    if (venc.length) {
+      var usd = 0, ars = 0, maxD = 0
+      venc.forEach(function(p){
+        var imp = parseFloat(p.importe)||0
+        if (p.moneda === 'USD') usd += imp; else ars += imp
+        maxD = Math.max(maxD, Math.abs(_pagoDiasRestantes(p.fecha_cobro)))
+      })
+      var montos = [usd ? 'USD ' + Math.round(usd).toLocaleString('es-AR') : '', ars ? '$ ' + Math.round(ars).toLocaleString('es-AR') : ''].filter(Boolean).join(' + ')
+      html += '<div class="ui2-alert crit" role="status"><span class="ui2-ic" style="--ic:var(--ic-alert)"></span>'
+        + '<span><b>' + venc.length + ' pago' + (venc.length!==1?'s':'') + ' vencido' + (venc.length!==1?'s':'') + '</b> por ' + montos + ' · el más viejo hace ' + maxD + ' día' + (maxD!==1?'s':'') + '</span>'
+        + '<button class="ui2-btn" onclick="showModulo(\'pagos\')">Revisar pagos</button></div>'
+    }
+  } catch(e) {}
+  // KPIs (solo quien puede ver rentabilidad)
+  var puede = true
+  try { puede = puedeVerRentabilidad() } catch(e) {}
+  if (puede && Array.isArray(campos) && campos.length) {
+    var r = getCampanaRange(campanaActivaId || 'actual')
+    var ha = 0, ing = 0, cost = 0, mm = 0, nLl = 0
+    campos.forEach(function(c) {
+      ha += c.hectareas || 0
+      ing += _ingRealParaCampo(c)
+    })
+    ;(gastos||[]).forEach(function(g) {
+      if (!g.fecha) return
+      var d = new Date(String(g.fecha).length===10 ? g.fecha+'T00:00:00' : g.fecha)
+      if (d >= r.start && d <= r.end && campos.some(function(c){return c.id===g.campo_id})) cost += (g.total_de_usd||0)
+    })
+    var estr = 0
+    try { estr = _estructuraTotalEnRango(r.start, r.end) } catch(e) {}
+    var costT = cost + estr, mg = ing - costT
+    // Lluvia del mes calendario, promedio entre campos con registros
+    var hoy = new Date(), porCampo = {}
+    ;(lluvias||[]).forEach(function(l) {
+      if (!l.fecha) return
+      var d = new Date(l.fecha + 'T00:00:00')
+      if (d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()) porCampo[l.campo_id] = (porCampo[l.campo_id]||0) + (parseFloat(l.mm)||0)
+    })
+    var ids = Object.keys(porCampo); nLl = ids.length
+    mm = nLl ? ids.reduce(function(a,k){return a+porCampo[k]},0) / nLl : 0
+    var mes = hoy.toLocaleDateString('es-AR',{month:'long'})
+    html += '<div class="ui2-kpis">'
+      + '<button class="ui2-kpi" onclick="showModulo(\'rentabilidad-total\')"><small>Ingresos estimados</small><strong>' + fUsd(ing) + '</strong><span>' + (ha ? Math.round(ing/ha).toLocaleString('es-AR') : 0) + ' USD/ha · ' + Math.round(ha).toLocaleString('es-AR') + ' ha</span></button>'
+      + '<button class="ui2-kpi" onclick="showModulo(\'rentabilidad-total\')"><small>Costos totales</small><strong>' + fUsd(costT) + '</strong><span>' + (estr > 0 ? 'incluye ' + fUsd(estr) + ' de estructura' : (ha ? Math.round(costT/ha).toLocaleString('es-AR') + ' USD/ha' : '')) + '</span></button>'
+      + '<button class="ui2-kpi" onclick="showModulo(\'rentabilidad-total\')"><small>Margen neto</small><strong class="' + (mg>=0?'ui2-pos':'ui2-neg') + '">' + (mg>=0?'+':'') + fUsd(mg) + '</strong><span>' + (mg>=0?'+':'') + (ha ? Math.round(mg/ha).toLocaleString('es-AR') : 0) + ' USD/ha' + (ing > 0 ? ' · ' + (mg/ing*100).toFixed(1).replace('.',',') + '%' : '') + '</span></button>'
+      + '<button class="ui2-kpi" onclick="showModulo(\'campos\')"><small>Lluvia de ' + mes + '</small><strong>' + Math.round(mm) + ' mm</strong><span>' + (nLl ? 'promedio de ' + nLl + ' campo' + (nLl!==1?'s':'') : 'sin registros este mes') + '</span></button>'
+      + '</div>'
+  }
+  el.innerHTML = html
+}
+
 window.openModalPrecios = function() {
   document.getElementById('ep-soja').value       = precios.soja || ''
   document.getElementById('ep-maiz').value       = precios.maiz || ''
@@ -4396,6 +4899,8 @@ function renderDashboard() {
   try { _renderDashTareas() } catch(e) { console.error('dash tareas:', e) }
   try { _renderDashEquipo() } catch(e) { console.error('dash equipo:', e) }
   try { _renderDashPagos() } catch(e) { console.error('dash pagos:', e) }
+  try { _ui2RenderDashTop() } catch(e) { console.error('ui2 dash top:', e) }
+  try { _ui2SyncTabbar() } catch(e) {}
   try { _actualizarHoraArg() } catch(e) {}
 }
 
@@ -4505,6 +5010,22 @@ function _renderDashPagos() {
     return
   }
   card.style.display = ''
+
+  if (window._uiV2 && window._uiV2()) {
+    el.innerHTML = urgentes.map(function(p){
+      var dias = _pagoDiasRestantes(p.fecha_cobro)
+      var chip = dias < 0 ? '<span class="ui2-chip r">Vencido hace '+Math.abs(dias)+'d</span>'
+               : dias === 0 ? '<span class="ui2-chip a">Vence hoy</span>'
+               : dias <= 7 ? '<span class="ui2-chip a">En '+dias+' día'+(dias!==1?'s':'')+'</span>'
+               : '<span class="ui2-chip n">En '+dias+' días</span>'
+      var tipo = p.tipo === 'cheque' ? 'Cheque' : ('Cuota' + (p.numero_cuota ? ' '+p.numero_cuota+(p.total_cuotas?'/'+p.total_cuotas:'') : ''))
+      return '<div class="ui2-row" role="button" tabindex="0" onclick="showModulo(\'pagos\')" onkeydown="if(event.key===\'Enter\')showModulo(\'pagos\')">'
+        + '<div class="t"><b>'+(p.beneficiario||p.descripcion||'(sin beneficiario)')+'</b><small>'+tipo+(p.banco?' · '+p.banco:'')+'</small></div>'
+        + '<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="v">'+_pagoFmtMoney(p)+'</span>'+chip+'</div>'
+        + '</div>'
+    }).join('')
+    return
+  }
 
   el.innerHTML = urgentes.map(function(p){
     var dias = _pagoDiasRestantes(p.fecha_cobro)
@@ -16059,7 +16580,8 @@ window.renderCamposLista = function() {
     return
   }
   var COLS = ['#1a4a2e','#c9a84c','#1a5fa8','#c97a14','#534AB7','#0F6E56']
-  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
+  var _v2 = window._uiV2 && window._uiV2()
+  var html = _v2 ? '<div class="ui2-campos">' : '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
   var camposOrdenados = campos.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"","es") })
   camposOrdenados.forEach(function(c,i) {
     var ha = c.hectareas||0
@@ -16093,6 +16615,26 @@ window.renderCamposLista = function() {
     var nG = gastosCampo.length
     var nA = analisisS.filter(function(a){return a.campo_id===c.id}).length
     var col = COLS[i%COLS.length]
+    if (_v2) {
+      // Estilo nuevo: eliminar pasa a un ícono discreto (antes era el botón
+      // más llamativo de la tarjeta), stats en grilla y margen como dato principal.
+      var nomSafe = String(c.nombre||'').replace(/"/g,'')
+      var conGastos = gastos.some(function(g){return g.campo_id===c.id})
+      var est = faltaCultivo ? '' : (conGastos && ingTotal>0 ? '<span class="ui2-chip g">Con datos</span>' : conGastos ? '<span class="ui2-chip a">Sin ingresos</span>' : '<span class="ui2-chip n">Sin gastos</span>')
+      var cultChips = faltaCultivo ? '' : String(cult).split(',').map(function(x){x=x.trim();var k=x.toLowerCase();var cl=k.indexOf('soja')>=0?'g':(k.indexOf('ma')===0||k.indexOf('gira')>=0||k.indexOf('trigo')>=0)?'a':'n';return '<span class="ui2-chip '+cl+'">'+x+'</span>'}).join('')
+      var mgCl = ingTotal>0 || gc>0 ? (mg>=0?'ui2-pos':'ui2-neg') : ''
+      html += '<div class="ui2-campo" role="button" tabindex="0" aria-label="Abrir '+nomSafe+'" onclick="abrirCampo(\''+c.id+'\')" onkeydown="if(event.key===\'Enter\'&&event.target===this)abrirCampo(\''+c.id+'\')">'
+        + '<div class="hd"><span class="dot" style="background:'+col+'"></span><span class="nm">'+c.nombre+'</span>'
+        +   '<button class="del" title="Eliminar campo" aria-label="Eliminar '+nomSafe+'" data-id="'+c.id+'" data-nom="'+nomSafe+'" onclick="event.stopPropagation();eliminarCampo(this.dataset.id,this.dataset.nom)"><span class="ui2-ic" style="--ic:var(--ic-trash)"></span></button></div>'
+        + (faltaCultivo
+            ? '<div class="warn"><span class="ui2-ic" style="--ic:var(--ic-alert)"></span>Falta cargar el cultivo de esta campaña</div>'
+            : '<div class="tags">'+cultChips+est+'</div>')
+        + '<div class="stats"><div><small>Hectáreas</small><b>'+ha.toLocaleString('es-AR')+'</b></div><div><small>Tenencia</small><b style="text-transform:capitalize">'+(c.tenencia||'propio')+'</b></div><div><small>Lluvia camp.</small><b>'+llMm.toFixed(0)+' mm</b></div></div>'
+        + '<div class="ft"><span class="mg '+mgCl+'">'+(mg>=0?'+':'−')+Math.abs(Math.round(mg)).toLocaleString('es-AR')+'<small>USD/ha</small><span class="ra-help" data-tip="Ganancia por hectárea de la campaña activa: ingresos brutos menos gastos. Verde si estás ganando, rojo si estás perdiendo." tabindex="0" onclick="event.stopPropagation()">i</span></span>'
+        +   '<span class="meta">'+nG+' gasto'+(nG!==1?'s':'')+' · '+nA+' análisis</span></div>'
+        + '</div>'
+      return
+    }
     var borderExtra = faltaCultivo ? ';border:2px solid var(--dorado);box-shadow:0 4px 14px rgba(201,168,76,.15)' : ''
     html += '<div class="campo-card" onclick="abrirCampo(\''+c.id+'\')" style="border-radius:12px'+borderExtra+'">'
     html += '<div style="height:5px;background:'+(faltaCultivo?'var(--dorado)':col)+'"></div>'

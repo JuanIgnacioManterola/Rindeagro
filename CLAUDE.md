@@ -215,6 +215,22 @@ webhooks); la lógica conversacional está en `main.py`.
 **Kapso es un proxy de la Cloud API oficial de Meta**, no un proveedor con reglas
 propias. Todo lo que limita al bot son reglas de Meta.
 
+### Cuenta y número de producción
+
+- Cuenta de Kapso: **`rindeagro.contacto@gmail.com`**, proyecto **Rinde Agro**
+  (plan Free). El proyecto viejo con el sandbox está en una cuenta personal de
+  Agustina y ya no se usa.
+- Número: **+1 208-473-7478** (Instant setup, número pre-verificado de Kapso).
+  `phone_number_id` `1411051475429851`, WABA `4926282657695091`. El display
+  name "Rinde Agro" se pidió a Meta el 2026-11-20.
+- Railway (proyecto `gregarious-stillness`, servicio `rindeagro-server`):
+  `KAPSO_API_KEY`, `KAPSO_PHONE_NUMBER_ID`, `KAPSO_WABA_ID`, `KAPSO_WEBHOOK_SECRET`.
+- **Cargos de Meta: "pagados directo a Meta", sin medio de pago cargado.** Las
+  respuestas funcionan, pero los avisos que arranca el bot (plantillas) quedan
+  bloqueados hasta cargar una tarjeta en Meta. A propósito NO se pasó a
+  "créditos de Kapso": ese cambio no tiene vuelta atrás para la WABA.
+- Un número que no manda mensajes de producción en 30 días se libera solo.
+
 ### Sandbox vs producción
 
 La limitación de "el bot solo habla con ~5 números" es del **número de test de
@@ -271,11 +287,12 @@ Fuera de la ventana de 24 horas desde el último mensaje del usuario, Meta solo
 acepta **plantillas aprobadas**. Todo lo que el bot contesta *como respuesta* cae
 dentro de la ventana y no necesita plantilla.
 
-Los 3 jobs del scheduler (`_wa_recordatorio_operarios`, `_wa_recordatorio_admins`,
-`_wa_resumen_semanal`) sí las necesitan, y **siguen mandando por Twilio a
-propósito**: `kapso.enviar_plantilla()` ya existe, pero migrarlos antes de tener
-las plantillas aprobadas por Meta los rompería en silencio. El orden es aprobar
-plantillas → migrar los jobs → dar de baja Twilio.
+Los avisos automáticos (recordatorio operarios, recordatorio admins, resumen
+semanal, alerta de precio) salen **todos por Kapso** con las plantillas de
+`plantillas_wa.py` del server (Twilio se dio de baja). `crear_plantillas.py`
+las da de alta; se crearon el 2026-11-20 y quedaron PENDING de aprobación. Si
+una plantilla falla, `_wa_aviso` cae a texto con botones (solo llega dentro de
+la ventana de 24h). El estado se ve en `/whatsapp/kapso/estado?numeros=1`.
 
 ### Firma del webhook
 
@@ -311,7 +328,7 @@ número sin adivinar el `phone_number_id`.
 
 ## Cosas en curso
 
-- Bot de WhatsApp por **Kapso** (proxy de la Cloud API de Meta): ya recibe mensajes, reconoce números vinculados y maneja tareas, gastos, lluvias y OCR de facturas. Falta el salto a un número de producción — ver `WHATSAPP_PRODUCCION.md` en el repo del server. Los recordatorios programados con APScheduler siguen saliendo por Twilio hasta que estén aprobadas las plantillas de Meta.
+- Bot de WhatsApp por **Kapso** (proxy de la Cloud API de Meta): ya recibe mensajes, reconoce números vinculados y maneja tareas, gastos, lluvias y OCR de facturas. Ya está en el número de producción +1 208-473-7478. Pendiente: aprobación de plantillas y display name por Meta, y medio de pago en Meta para los avisos automáticos.
 - Integración de Mercado Pago para suscripciones (planes Semilla, Lote, Agrónomo, Corporativo en ARS atadas al dólar BNA).
 
 ## Convenciones de UI

@@ -793,6 +793,7 @@ html.ui-v2 #dash-tareas .notif-tit{font-size:14px;font-weight:600}
 .ui2-chip.a{background:var(--v2-amber-soft);color:var(--v2-amber)}
 .ui2-chip.g{background:var(--v2-green-soft);color:var(--v2-green)}
 .ui2-chip.n{background:#efefeb;color:#4a4f48}
+.ui2-chip.y{background:#fef3c0;color:#7a5200}
 
 /* ══ MIS CAMPOS ═══════════════════════════════════════════════════ */
 .ui2-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
@@ -915,7 +916,7 @@ html.ui-v2 .campo-tab.active{color:var(--v2-green)}
 .ui2-pago .vl{font-size:15px;font-weight:600;color:var(--v2-ink);font-variant-numeric:tabular-nums}
 .ui2-pago .imp{font-size:18px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--v2-ink);white-space:nowrap}
 .ui2-pago.crit .imp{color:var(--v2-red)}
-.ui2-pago.warn .imp{color:var(--v2-amber)}
+.ui2-pago.warn .imp{color:#8a5d00}
 .ui2-pago .lnk{background:none;border:none;padding:0;font:600 14px var(--v2-font);color:var(--v2-green-2);cursor:pointer}
 .ui2-pago .lnk:hover{text-decoration:underline}
 .ui2-pago .acc{display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end}
@@ -4567,6 +4568,15 @@ window.showModulo = function(mod) {
 // El estado vive en localStorage['ra_ui'] ('2' = nuevo) y en la clase
 // html.ui-v2 (la pone el script del <head> antes del primer paint).
 window._uiV2 = function() { return document.documentElement.classList.contains('ui-v2') }
+// Regla de urgencia de pagos (estilo nuevo): vencido o ≤15 días → rojo,
+// 16–45 días → amarillo, más de 45 → neutro. Devuelve la clase del chip.
+window._ui2UrgenciaPago = function(dias, pagado) {
+  if (pagado) return 'g'
+  if (dias == null) return 'n'
+  if (dias <= 15) return 'r'
+  if (dias <= 45) return 'y'
+  return 'n'
+}
 window._ui2Toggle = function() {
   var on = !window._uiV2()
   document.documentElement.classList.toggle('ui-v2', on)
@@ -5099,10 +5109,10 @@ function _renderDashPagos() {
   if (window._uiV2 && window._uiV2()) {
     el.innerHTML = urgentes.map(function(p){
       var dias = _pagoDiasRestantes(p.fecha_cobro)
-      var chip = dias < 0 ? '<span class="ui2-chip r">Vencido hace '+Math.abs(dias)+'d</span>'
-               : dias === 0 ? '<span class="ui2-chip a">Vence hoy</span>'
-               : dias <= 7 ? '<span class="ui2-chip a">En '+dias+' día'+(dias!==1?'s':'')+'</span>'
-               : '<span class="ui2-chip n">En '+dias+' días</span>'
+      var ucl = window._ui2UrgenciaPago(dias, false)
+      var chip = '<span class="ui2-chip '+ucl+'">'
+               + (dias < 0 ? 'Vencido hace '+Math.abs(dias)+'d' : dias === 0 ? 'Vence hoy' : 'En '+dias+' día'+(dias!==1?'s':''))
+               + '</span>'
       var tipo = p.tipo === 'cheque' ? 'Cheque' : ('Cuota' + (p.numero_cuota ? ' '+p.numero_cuota+(p.total_cuotas?'/'+p.total_cuotas:'') : ''))
       return '<div class="ui2-row" role="button" tabindex="0" onclick="showModulo(\'pagos\')" onkeydown="if(event.key===\'Enter\')showModulo(\'pagos\')">'
         + '<div class="t"><b>'+(p.beneficiario||p.descripcion||'(sin beneficiario)')+'</b><small>'+tipo+(p.banco?' · '+p.banco:'')+'</small></div>'
@@ -13710,13 +13720,13 @@ window.renderPagos = function() {
 
     if (window._uiV2 && window._uiV2()) {
       // Estilo nuevo: fila como las de Insumos. La urgencia va en el chip y el color del importe.
-      var est = esPagado ? 'ok' : esVencido ? 'crit' : esProximo ? 'warn' : 'n'
+      var chipCl = window._ui2UrgenciaPago(dias, esPagado)
+      var est = {g:'ok', r:'crit', y:'warn', n:'n'}[chipCl]
       var chipTxt = esPagado ? 'Pagado'
         : esVencido ? 'Vencido hace '+Math.abs(dias)+' día'+(Math.abs(dias)!==1?'s':'')
         : dias === 0 ? 'Vence hoy'
         : dias != null ? 'En '+dias+' día'+(dias!==1?'s':'')
         : 'Sin fecha'
-      var chipCl = {ok:'g', crit:'r', warn:'a', n:'n'}[est]
       var fd = p.fecha_cobro ? new Date(String(p.fecha_cobro).slice(0,10)+'T00:00:00') : null
       var titulo = p.tipo==='cuota_credito' ? (p.beneficiario || p.banco || p.descripcion || 'Crédito') : (p.beneficiario || p.descripcion || '(sin beneficiario)')
       var otraMon = p.moneda==='USD' ? 'ARS' : 'USD'

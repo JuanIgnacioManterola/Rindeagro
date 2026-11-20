@@ -903,6 +903,33 @@ html.ui-v2 .ps,html.ui-v2 .pfi,html.ui-v2 .pp-per{font-size:14px}
 html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.5"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.55"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.6"]{color:rgba(255,255,255,.85) !important}
 html.ui-v2 .campo-tab{color:rgba(255,255,255,.9);font-size:14px}
 html.ui-v2 .campo-tab.active{color:var(--v2-green)}
+/* Pagos v2 — filas con la misma estructura que Insumos */
+.ui2-pago{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(130px,1fr) minmax(170px,1fr) auto;gap:18px;align-items:center;box-shadow:inset 4px 0 0 transparent;font-family:var(--v2-font)}
+.ui2-pago.crit{box-shadow:inset 4px 0 0 var(--v2-red)}
+.ui2-pago.warn{box-shadow:inset 4px 0 0 #e0a24a}
+.ui2-pago.ok{opacity:.7}
+.ui2-pago .c-nom{min-width:0}
+.ui2-pago .tt{font-weight:700;font-size:15px;color:var(--v2-ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui2-pago .sb{font-size:14px;color:var(--v2-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui2-pago .nt{font-size:14px;color:var(--v2-muted);font-style:italic;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui2-pago .c{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.ui2-pago .lb{font-size:14px;color:var(--v2-muted);font-weight:500}
+.ui2-pago .vl{font-size:15px;font-weight:600;color:var(--v2-ink);font-variant-numeric:tabular-nums}
+.ui2-pago .imp{font-size:18px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--v2-ink);white-space:nowrap}
+.ui2-pago.crit .imp{color:var(--v2-red)}
+.ui2-pago.warn .imp{color:var(--v2-amber)}
+.ui2-pago .lnk{background:none;border:none;padding:0;font:600 14px var(--v2-font);color:var(--v2-green-2);cursor:pointer}
+.ui2-pago .lnk:hover{text-decoration:underline}
+.ui2-pago .acc{display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end}
+.ui2-btn.sm{padding:8px 12px;font-size:14px}
+.ui2-btn.ic{padding:8px 10px}
+.ui2-btn.del:hover{color:var(--v2-red);border-color:#f3c3be;background:var(--v2-red-soft)}
+@media(max-width:900px){
+  .ui2-pago{grid-template-columns:1fr 1fr;gap:12px}
+  .ui2-pago .c-nom,.ui2-pago .acc{grid-column:1/-1}
+  .ui2-pago .acc{justify-content:flex-start;flex-wrap:wrap}
+  .ui2-pago .tt,.ui2-pago .sb{white-space:normal}
+}
 </style>
 </head>
 <body>
@@ -13682,6 +13709,36 @@ window.renderPagos = function() {
     var infoExtra = p.tipo==='cheque'
       ? [p.banco, p.numero_cheque ? 'Nº '+p.numero_cheque : null].filter(Boolean).join(' · ')
       : ''
+
+    if (window._uiV2 && window._uiV2()) {
+      // Estilo nuevo: fila como las de Insumos, franja a la izquierda = urgencia.
+      var est = esPagado ? 'ok' : esVencido ? 'crit' : esProximo ? 'warn' : 'n'
+      var chipTxt = esPagado ? 'Pagado'
+        : esVencido ? 'Vencido hace '+Math.abs(dias)+' día'+(Math.abs(dias)!==1?'s':'')
+        : dias === 0 ? 'Vence hoy'
+        : dias != null ? 'En '+dias+' día'+(dias!==1?'s':'')
+        : 'Sin fecha'
+      var chipCl = {ok:'g', crit:'r', warn:'a', n:'n'}[est]
+      var fd = p.fecha_cobro ? new Date(String(p.fecha_cobro).slice(0,10)+'T00:00:00') : null
+      var titulo = p.tipo==='cuota_credito' ? (p.beneficiario || p.banco || p.descripcion || 'Crédito') : (p.beneficiario || p.descripcion || '(sin beneficiario)')
+      var otraMon = p.moneda==='USD' ? 'ARS' : 'USD'
+      var sub = [p.tipo==='cheque' ? 'Cheque' : 'Cuota'+(p.numero_cuota&&p.total_cuotas?' '+p.numero_cuota+'/'+p.total_cuotas:''), p.banco, p.numero_cheque ? 'Nº '+p.numero_cheque : null].filter(Boolean).join(' · ')
+      // Misma estructura que las filas de Insumos: nombre | columnas etiqueta/valor | acciones
+      return '<div class="ui2-pago '+est+'" data-pago-id="'+p.id+'">'
+        +   '<div class="c-nom"><div class="tt">'+titulo+'</div><div class="sb">'+sub+'</div>'+(p.notas ? '<div class="nt">'+p.notas+'</div>' : '')+'</div>'
+        +   '<div class="c"><div class="lb">Vence</div><div class="vl">'+(fd ? _pagoFmtFecha(p.fecha_cobro) : 'Sin fecha')+'</div><span class="ui2-chip '+chipCl+'">'+chipTxt+'</span></div>'
+        +   '<div class="c"><div class="lb">Emitido</div><div class="vl">'+(p.fecha_emision ? _pagoFmtFecha(p.fecha_emision) : '—')+'</div></div>'
+        +   '<div class="c"><div class="lb">Importe</div><div class="imp">'+_pagoFmtMoney(p,{toggle: window._pagosToggleUsdArs.has(p.id)})+'</div>'
+        +     '<button class="lnk" onclick="togglePagoMoneda(\''+p.id+'\')" title="Ver en '+otraMon+' al tipo de cambio actual">⇄ Ver en '+otraMon+'</button></div>'
+        +   '<div class="acc">'
+        +     (!esPagado
+              ? '<button class="ui2-btn p sm" onclick="marcarPagoPagado(\''+p.id+'\')">✓ Pagado</button>'
+              : '<button class="ui2-btn sm" onclick="marcarPagoPendiente(\''+p.id+'\')">↩ Reabrir</button>')
+        +     (p.tipo==='cheque' ? '<button class="ui2-btn sm" onclick="editarCheque(\''+p.id+'\')">Editar</button>' : '')
+        +     '<button class="ui2-btn sm ic del" onclick="eliminarCompromiso(\''+p.id+'\')" title="Eliminar" aria-label="Eliminar pago"><span class="ui2-ic" style="--ic:var(--ic-trash)"></span></button>'
+        +   '</div>'
+        + '</div>'
+    }
 
     var borderColor = esVencido ? '#c0392b' : esProximo ? '#c97a14' : 'var(--borde)'
     // Fondo blanco para todas las cards; el estado se comunica solo con el color

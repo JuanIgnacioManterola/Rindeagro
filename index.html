@@ -1086,6 +1086,15 @@ html.ui-v2 #cr-acordeon div[style*="border-top:2px solid"]{border-top:2px solid 
   html.ui-v2 #cr-acordeon [onclick^="toggleCrRubro"]{padding-left:30px !important}
   html.ui-v2 #cr-acordeon div[style*="background:#f7f7f5"]{padding-left:32px !important}
 }
+/* Panel "Campañas anteriores" (v2): debajo del botón, como los demás menús */
+html.ui-v2 #mod-campo-detalle > div:nth-child(2) > div:nth-child(2) > div:first-child{position:relative}
+html.ui-v2 #btn-camp-ant{display:inline-flex !important;align-items:center;gap:6px}
+html.ui-v2 #btn-camp-ant .car{width:16px;height:16px;transition:transform .15s}
+html.ui-v2 #btn-camp-ant .car.open{transform:rotate(180deg)}
+html.ui-v2 #panel-campanas-ant{margin-top:0 !important;border:1px solid var(--v2-line) !important;border-radius:14px !important;box-shadow:var(--sombra-md) !important;padding:6px !important;min-width:220px !important;z-index:160 !important}
+html.ui-v2 #panel-campanas-ant button{border-radius:10px !important;padding:10px 12px !important;font:500 14px var(--v2-font) !important;color:var(--v2-ink) !important}
+html.ui-v2 #panel-campanas-ant button:hover{background:var(--v2-line-2) !important}
+html.ui-v2 #panel-campanas-ant button[style*="var(--verde-pale)"]{background:var(--v2-green-soft) !important;color:var(--v2-green) !important;font-weight:600 !important}
 </style>
 </head>
 <body>
@@ -4923,6 +4932,7 @@ window._ui2RenderCampoHdr = function(c) {
                : String(c.cultivo).split(',').map(function(x){return ch(x.trim())}).join(''))
     + ch(((c.tenencia||'propio')+'').replace(/^./, function(m){return m.toUpperCase()}))
     + (c.provincia ? ch(c.provincia) : '')
+  try { _ui2FixCampBtn() } catch(e) {}
 }
 // Estado de resultados: encabezados de columna, chevron de Lucide en las
 // filas que se despliegan (en vez de ▼/▲ en la última columna) y sin "—".
@@ -4953,6 +4963,22 @@ window._ui2PulirPL = function(el) {
     th.innerHTML = '<div>Concepto</div><div>USD/ha</div><div>Total</div><div>%</div>'
     h.insertAdjacentElement('afterend', th)
   }
+}
+
+
+// Botón "Campañas anteriores" (v2): chevron de Lucide en vez de ▾ y el
+// panel se abre debajo del botón (antes quedaba arriba tapando el nombre).
+window._ui2FixCampBtn = function() {
+  if (!window._uiV2()) return
+  var b = document.getElementById('btn-camp-ant'); if (!b) return
+  var t = b.textContent.replace(/[▾📋📅]/gu, '').trim()
+  var abierto = (document.getElementById('panel-campanas-ant')||{}).style?.display === 'block'
+  b.innerHTML = '<span>' + t + '</span><span class="ui2-ic car' + (abierto ? ' open' : '') + '" style="--ic:var(--ic-chev-down)" aria-hidden="true"></span>'
+  b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', abierto)
+}
+function _ui2CampPanelCerrar() {
+  var p = document.getElementById('panel-campanas-ant')
+  if (p && p.style.display !== 'none') { p.style.display = 'none'; _ui2FixCampBtn() }
 }
 
 // Inicio v2: alerta agrupada de pagos vencidos + KPIs de la campaña.
@@ -10900,6 +10926,33 @@ window.toggleCampanasAnteriores = function() {
   }
   panel.style.display = 'block'
 }
+
+// Estilo nuevo: reubicar y limpiar el panel de campañas anteriores
+;(function(){
+  var _origToggle = window.toggleCampanasAnteriores, _origSet = window.setCampanaGlobal
+  window.toggleCampanasAnteriores = function() {
+    _origToggle.apply(this, arguments)
+    if (!window._uiV2 || !window._uiV2()) return
+    var p = document.getElementById('panel-campanas-ant'), b = document.getElementById('btn-camp-ant')
+    if (p && b && p.style.display === 'block') {
+      p.style.top = (b.offsetTop + b.offsetHeight + 6) + 'px'
+      p.style.left = b.offsetLeft + 'px'
+      p.querySelectorAll('button').forEach(function(x){ x.textContent = x.textContent.replace(/^[^\p{L}\p{N}]+/u, '') })
+    }
+    _ui2FixCampBtn()
+  }
+  window.setCampanaGlobal = function() {
+    var r = _origSet.apply(this, arguments)
+    try { _ui2FixCampBtn() } catch(e) {}
+    return r
+  }
+  document.addEventListener('click', function(e){
+    if (!window._uiV2 || !window._uiV2()) return
+    if (e.target.closest('#panel-campanas-ant') || e.target.closest('#btn-camp-ant')) return
+    _ui2CampPanelCerrar()
+  })
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && window._uiV2 && window._uiV2()) _ui2CampPanelCerrar() })
+})()
 
 window.setMonedaGlobal = function(mon) {
   monedaGlobal = mon

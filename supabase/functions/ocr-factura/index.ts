@@ -1,14 +1,6 @@
 // Supabase Edge Function: ocr-factura
 // Recibe imagen base64 + mime + tipo (factura/remito) y devuelve {items: [...]}
 // Usa Claude API (Anthropic) con vision para extraer renglones de insumos.
-//
-// Variables de entorno requeridas (Supabase secrets):
-//   ANTHROPIC_API_KEY  → key de console.anthropic.com
-//
-// Despliegue:
-//   supabase functions deploy ocr-factura --no-verify-jwt=false
-// O via MCP: mcp__supabase__deploy_edge_function
-
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || ""
@@ -20,20 +12,14 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-interface Item {
-  nombre: string
-  tipo: string
-  cantidad: number
-  unidad: string
-  precio_unitario: number | null
-}
-
 const SYSTEM_PROMPT = `Sos un asistente especializado en agricultura argentina. Tu trabajo es leer facturas y remitos de insumos agropecuarios (herbicidas, fungicidas, insecticidas, fertilizantes, semillas) y extraer los renglones en formato JSON.
 
 Reglas:
 - Devolvé SOLO JSON válido, sin texto antes ni después, sin bloque \`\`\`.
-- Si el documento es un REMITO, no incluyas precios (precio_unitario:null) aunque aparezcan.
+- Si el documento es un REMITO, no incluyas precios (precio_unitario:null, subtotal_usd:null) aunque aparezcan.
 - Si el documento es una FACTURA, incluí el precio unitario en USD si está, o convertí desde ARS al tipo de cambio si aparece. Si no hay precio, dejá null.
+- "cantidad" y "precio_unitario" tienen que estar en la MISMA unidad ("unidad"). Si la factura vende 2 bidones de 20 L a USD 60 el bidón, devolvé cantidad 40, unidad "litros", precio_unitario 3.00 (60/20). Nunca multipliques el precio por envase por los litros o kilos del envase.
+- "subtotal_usd" es el importe del renglón tal como figura impreso en la factura (cantidad x precio, sin impuestos). Si no está impreso, calculalo con cantidad x precio_unitario. Si no hay precio, null.
 - Reconocé marcas argentinas comunes: glifosato, atrazina, paraquat, 2,4-D, dicamba, mancozeb, metalaxil, cipermetrina, lambdacialotrina, lufenuron, urea, DAP, MAP, fosfato monoamónico, etc.
 - Clasificá cada insumo en uno de: herbicidas, fungicidas, insecticidas, fertilizantes, semillas, otros.
 - Unidades: litros (L), kg, dosis, bolsas.
@@ -41,14 +27,14 @@ Reglas:
 - Si no podés identificar nada, devolvé {"items":[]}.
 
 Formato:
-{"items":[{"nombre":"Glifosato 48%","tipo":"herbicidas","cantidad":100,"unidad":"litros","precio_unitario":3.20}, ...]}`
+{"items":[{"nombre":"Glifosato 48%","tipo":"herbicidas","cantidad":100,"unidad":"litros","precio_unitario":3.20,"subtotal_usd":320.00}, ...]}`
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
   if (req.method !== "POST") return jsonResp({ error: "Method not allowed" }, 405)
 
   if (!ANTHROPIC_API_KEY) {
-    return jsonResp({ error: "ANTHROPIC_API_KEY no configurada en el servidor" }, 500)
+    return jsonResp({ error: "ANTHROPIC_API_KEY no configurada. El admin tiene que setearla en Supabase Edge Functions secrets." }, 500)
   }
 
   let body: any = null
@@ -59,7 +45,6 @@ Deno.serve(async (req: Request) => {
   const tipo        = String(body?.tipo || "factura").toLowerCase()
   if (!image_base64) return jsonResp({ error: "Falta image_base64" }, 400)
 
-  // PDFs: Claude API ahora soporta PDFs nativos también
   const isImage = mime_type.startsWith("image/")
   const isPdf   = mime_type === "application/pdf"
   if (!isImage && !isPdf) return jsonResp({ error: "Tipo de archivo no soportado: " + mime_type }, 400)
@@ -91,7 +76,7 @@ Deno.serve(async (req: Request) => {
     })
     if (!r.ok) {
       const errTxt = await r.text().catch(() => "")
-      return jsonResp({ error: "Claude API " + r.status, detail: errTxt }, 502)
+      return jsonResp({ error: "Claude API " + r.status, detail: errTxt.slice(0, 400) }, 502)
     }
     const data = await r.json() as any
     const text: string = (data?.content || [])
@@ -100,7 +85,6 @@ Deno.serve(async (req: Request) => {
       .join("")
       .trim()
 
-    // Extraer JSON (Claude debería devolverlo limpio, pero por las dudas)
     let jsonStr = text
     const m = text.match(/\{[\s\S]*\}/)
     if (m) jsonStr = m[0]
@@ -108,7 +92,7 @@ Deno.serve(async (req: Request) => {
     try { parsed = JSON.parse(jsonStr) } catch {
       return jsonResp({ error: "Respuesta de Claude no es JSON válido", raw: text.slice(0, 500) }, 502)
     }
-    const items: Item[] = Array.isArray(parsed?.items) ? parsed.items : []
+    const items = Array.isArray(parsed?.items) ? parsed.items : []
     return jsonResp({ items, model: CLAUDE_MODEL, tipo, count: items.length })
   } catch (e) {
     return jsonResp({ error: String((e as Error)?.message || e) }, 500)

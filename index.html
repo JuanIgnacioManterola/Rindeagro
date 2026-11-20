@@ -601,6 +601,15 @@ html.ui-v2{
   --ic-file:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/><path d='M14 2v5h6M16 13H8M16 17H8M10 9H8'/></svg>");
   /* chevrons-up-down de Lucide (menú de usuario, como el sidebar de shadcn/ui) */
   --ic-chev-ud:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m7 15 5 5 5-5'/><path d='m7 9 5-5 5 5'/></svg>");
+  /* Lucide: ellipsis, flag, git-compare, download y los de las pestañas del campo */
+  --ic-dots:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='1'/><circle cx='19' cy='12' r='1'/><circle cx='5' cy='12' r='1'/></svg>");
+  --ic-flag:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7'/></svg>");
+  --ic-compare:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='18' cy='18' r='3'/><circle cx='6' cy='6' r='3'/><path d='M13 6h3a2 2 0 0 1 2 2v7M11 18H8a2 2 0 0 1-2-2V9'/></svg>");
+  --ic-download:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3'/></svg>");
+  --ic-banknote:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='6' width='20' height='12' rx='2'/><circle cx='12' cy='12' r='2.5'/><path d='M6 12h.01M18 12h.01'/></svg>");
+  --ic-sprout:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M7 20h10M10 20c5.5-2.5.8-6.4 3-10'/><path d='M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z'/><path d='M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z'/></svg>");
+  --ic-rain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2'/><path d='M16 14v6M8 14v6M12 16v6'/></svg>");
+  --ic-truck:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14'/><circle cx='17' cy='18' r='2'/><circle cx='7' cy='18' r='2'/></svg>");
   --ic-chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m9 6 6 6-6 6'/></svg>");
 }
 html.ui-v2 .ui2-ic{display:inline-block;width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
@@ -824,9 +833,6 @@ html.ui-v2 #dash-tareas .notif-tit{font-size:14px;font-weight:600}
 html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:flex-end}
 @media(max-width:780px){html.ui-v2 #mod-campos .mod-header > div:last-child{align-items:stretch !important}}
 /* Detalle del campo: cabecera verde más plana y tabs con scroll */
-html.ui-v2 #mod-campo-detalle > div:first-child{background:var(--v2-green) !important;border-radius:16px !important}
-html.ui-v2 .campo-tab{font-size:14px;padding:9px 14px;border-radius:9px}
-html.ui-v2 .campo-tab.active{box-shadow:none;transform:none}
 html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:10px"]{overflow-x:auto;flex-wrap:nowrap !important;scrollbar-width:none}
 html.ui-v2 #rent-pdf-banner{background:#fff !important;border:1px solid var(--v2-line) !important;flex-wrap:wrap;gap:10px}
 html.ui-v2 #rent-pdf-banner [id^="rent-pdf-"]{color:var(--v2-ink) !important}
@@ -906,10 +912,6 @@ html.ui-v2 .plan{border:1px solid var(--v2-line);border-radius:14px}
 html.ui-v2 .plan:hover{transform:none}
 html.ui-v2 .pp,html.ui-v2 .pn{font-family:var(--v2-font)}
 html.ui-v2 .ps,html.ui-v2 .pfi,html.ui-v2 .pp-per{font-size:14px}
-/* Detalle del campo: textos de la cabecera verde con más contraste */
-html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.5"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.55"],html.ui-v2 #mod-campo-detalle > div:first-child [style*="rgba(250,247,240,.6"]{color:rgba(255,255,255,.85) !important}
-html.ui-v2 .campo-tab{color:rgba(255,255,255,.9);font-size:14px}
-html.ui-v2 .campo-tab.active{color:var(--v2-green)}
 /* Pagos v2 — filas con la misma estructura que Insumos */
 .ui2-pago{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1.4fr) minmax(130px,1fr) minmax(170px,1fr) auto;gap:18px;align-items:center;font-family:var(--v2-font)}
 .ui2-pago.ok{opacity:.7}
@@ -994,6 +996,94 @@ html.ui-v2 #tareas-filtros-avz{background:#fff !important;border:1px solid var(-
 html.ui-v2 #rt-mets{grid-template-columns:repeat(auto-fit,minmax(200px,1fr)) !important}
 html.ui-v2 :is(#cr-mets,#rent-mets,#det-lluvia-mets){grid-template-columns:repeat(auto-fit,minmax(195px,1fr)) !important}
 html.ui-v2 .met-v{white-space:nowrap}
+/* ══ DETALLE DE CAMPO (v2): ruta, cabecera clara, pestañas reales,
+   métrica protagonista y estado de resultados como tabla ══ */
+html.ui-v2 .ui2-crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--v2-muted);margin-bottom:12px}
+html.ui-v2 .ui2-crumb a{color:var(--v2-green-2);font-weight:600;text-decoration:none}
+html.ui-v2 .ui2-crumb a:hover{text-decoration:underline}
+html.ui-v2 .ui2-crumb .ui2-ic{width:14px;height:14px;color:var(--v2-faint)}
+html.ui-v2 #mod-campo-detalle > div:nth-child(2){background:#fff !important;border:1px solid var(--v2-line);border-radius:16px !important;padding:20px 22px 0 !important;box-shadow:none !important}
+html.ui-v2 #det-campo-nombre{color:var(--v2-green) !important;font-size:30px !important;font-weight:800 !important}
+html.ui-v2 .ui2-det-chips{display:flex !important;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ui2-dchip{display:inline-flex;align-items:center;gap:6px;font:500 14px var(--v2-font);padding:4px 10px;border-radius:999px;background:var(--v2-line-2);color:var(--v2-muted);border:0}
+.ui2-dchip.warn{background:#fef3c0;color:#7a5200;font-weight:600;cursor:pointer}
+.ui2-dchip.warn:hover{filter:brightness(.97)}
+.ui2-dchip .ui2-ic{width:16px;height:16px}
+/* Botón Editar (inline dorado) → neutro */
+html.ui-v2 #mod-campo-detalle > div:nth-child(2) button[onclick="editarCampoActual()"]:not(.ui2-dchip){background:#fff !important;border:1px solid var(--v2-line) !important;color:var(--v2-ink) !important;border-radius:10px !important;padding:9px 14px !important;font-size:14px !important;font-weight:600 !important}
+html.ui-v2 #mod-campo-detalle > div:nth-child(2) > div:first-child > div:last-child{align-items:center}
+/* Fila campaña + moneda */
+html.ui-v2 #mod-campo-detalle > div:nth-child(2) > div:nth-child(2){margin:16px 0 0 !important;padding-top:14px;border-top:1px solid var(--v2-line-2)}
+html.ui-v2 #mod-campo-detalle > div:nth-child(2) > div:nth-child(2) span[style*="uppercase"]{color:var(--v2-muted) !important;font-size:14px !important;font-weight:500 !important}
+html.ui-v2 :is(#btn-camp-actual,#btn-camp-ant){background:#fff !important;color:var(--v2-ink) !important;border:1px solid var(--v2-line) !important;border-radius:10px !important;padding:7px 12px !important;font-size:14px !important;font-weight:600 !important}
+html.ui-v2 :is(#btn-camp-actual,#btn-camp-ant):is([style*="background:var(--dorado)"],[style*="background: var(--dorado)"]){background:var(--v2-green-soft) !important;color:var(--v2-green) !important;border-color:var(--v2-green-2) !important}
+html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:20px"]{background:var(--v2-line-2) !important;border-radius:10px !important}
+html.ui-v2 :is(#btn-mon-usd,#btn-mon-ars){color:var(--v2-muted) !important;border-radius:8px !important;font-family:var(--v2-font) !important;font-size:14px !important;padding:6px 14px !important}
+html.ui-v2 :is(#btn-mon-usd,#btn-mon-ars):is([style*="rgba(255,255,255,.9)"],[style*="rgba(255, 255, 255, 0.9)"]){background:#fff !important;color:var(--v2-ink) !important;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* Pestañas con subrayado */
+html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:10px"]{background:transparent !important;border-radius:0 !important;padding:0 !important;margin:14px -22px 0;padding-inline:14px !important;gap:2px !important;border-top:1px solid var(--v2-line-2);overflow-x:auto;flex-wrap:nowrap !important;scrollbar-width:none}
+html.ui-v2 .campo-tab{display:inline-flex;align-items:center;gap:8px;background:none;color:var(--v2-muted);font-size:15px;font-weight:600;padding:13px 12px 12px;border-radius:9px 9px 0 0;border-bottom:2px solid transparent;white-space:nowrap;flex:none}
+html.ui-v2 .campo-tab:hover:not(.active){background:rgba(0,0,0,.035);color:var(--v2-ink);transform:none}
+html.ui-v2 .campo-tab.active{background:none;color:var(--v2-green);border-bottom-color:var(--v2-green);box-shadow:none;transform:none;font-weight:700}
+html.ui-v2 .campo-tab:focus-visible{outline:2px solid var(--v2-gold);outline-offset:-2px}
+html.ui-v2 .campo-tab::before{content:'';width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+html.ui-v2 #tab-rentabilidad-campo{--ic:var(--ic-chart)}
+html.ui-v2 #tab-ingresos-campo{--ic:var(--ic-banknote)}
+html.ui-v2 #tab-gastos-campo{--ic:var(--ic-receipt)}
+html.ui-v2 #tab-cultivo-campo{--ic:var(--ic-sprout)}
+html.ui-v2 #tab-lluvias-campo{--ic:var(--ic-rain)}
+html.ui-v2 #tab-suelo-campo{--ic:var(--ic-flask)}
+html.ui-v2 #tab-fletes-campo{--ic:var(--ic-truck)}
+/* Barra de acciones de la pestaña Rentabilidad (sin tarjeta) */
+html.ui-v2 #rent-pdf-banner{background:transparent !important;border:0 !important;padding:0 !important;justify-content:flex-end !important}
+/* Métrica protagonista */
+html.ui-v2 #cr-mets.ui2-hero-wrap{display:flex !important;flex-direction:column;gap:14px}
+.ui2-hero{background:#fff;border:1px solid var(--v2-line);border-radius:16px;padding:20px 22px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center;font-family:var(--v2-font)}
+.ui2-hero .k{font-size:14px;font-weight:600;color:var(--v2-muted)}
+.ui2-hero .big{font-size:44px;font-weight:800;letter-spacing:-.035em;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-hero .big small{font-size:18px;font-weight:600;color:var(--v2-muted);letter-spacing:0;margin-left:6px}
+.ui2-hero .sub{font-size:15px;color:var(--v2-muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.ui2-hero .sub b{font-weight:700}
+.ui2-bars{display:flex;flex-direction:column;gap:10px;font-variant-numeric:tabular-nums}
+.ui2-bar{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;font-size:14px}
+.ui2-bar .t{height:10px;border-radius:6px;background:var(--v2-line-2);overflow:hidden}
+.ui2-bar .t i{display:block;height:100%;border-radius:6px}
+.ui2-bar .v{text-align:right;font-weight:600;white-space:nowrap}
+.ui2-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ui2-mini{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:14px 16px;font-variant-numeric:tabular-nums}
+.ui2-mini small{display:block;font-size:14px;color:var(--v2-muted)}
+.ui2-mini b{display:block;font-size:20px;font-weight:700;letter-spacing:-.015em;margin-top:4px;white-space:nowrap}
+.ui2-mini span{display:block;font-size:14px;color:var(--v2-faint);margin-top:2px}
+@media(max-width:780px){
+  .ui2-hero{grid-template-columns:1fr;padding:16px;gap:16px}
+  .ui2-hero .big{font-size:36px}
+  .ui2-minis{gap:8px}.ui2-mini{padding:12px}.ui2-mini b{font-size:16px}.ui2-mini span{display:none}
+  html.ui-v2 #mod-campo-detalle > div:nth-child(2){padding:16px 16px 0 !important}
+  html.ui-v2 #det-campo-nombre{font-size:26px !important}
+  html.ui-v2 #mod-campo-detalle [style*="background:rgba(0,0,0,.2);border-radius:10px"]{margin-inline:-16px;padding-inline:8px !important}
+}
+/* Estado de resultados como tabla */
+html.ui-v2 #cr-acordeon .ra-help{display:none}
+html.ui-v2 #cr-acordeon > .card{border-radius:16px !important;border-color:var(--v2-line) !important;box-shadow:none !important}
+html.ui-v2 #cr-acordeon > .card > div:first-child{background:#fff !important}
+.ui2-pl-th{padding:10px 20px;font:600 14px var(--v2-font);color:var(--v2-muted);background:#fbfaf7;border-bottom:1px solid var(--v2-line-2)}
+.ui2-pl-th > div:not(:first-child){text-align:right}
+html.ui-v2 #cr-acordeon [onclick^="toggleCr"]:hover{background:#fbfaf7 !important}
+.ui2-pl-chev{width:16px !important;height:16px !important;color:var(--v2-faint);margin-right:6px;vertical-align:-3px;transition:transform .15s}
+.ui2-pl-chev.open{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.ui2-pl-chev{transition:none}}
+html.ui-v2 #cr-acordeon [onclick^="toggleCrRubro"]{padding-left:44px !important;background:#fcfbf8 !important}
+html.ui-v2 #cr-acordeon [onclick^="toggleCrRubro"] > div:first-child > div:first-child{font-weight:600 !important}
+html.ui-v2 #cr-acordeon div[style*="background:#f7f7f5"]{background:transparent !important;border-radius:0 !important;padding:7px 0 7px 46px !important;margin:0 !important;border-top:1px dashed var(--v2-line-2)}
+html.ui-v2 #cr-acordeon div[style*="border-top:2px solid"]{border-top:2px solid var(--v2-ink) !important}
+@media(max-width:700px){
+  .ui2-pl-th{display:none}
+  html.ui-v2 #cr-acordeon [style*="grid-template-columns:1.8fr"]{grid-template-columns:1fr auto !important;gap:2px 12px !important;padding:12px 14px !important}
+  html.ui-v2 #cr-acordeon [style*="grid-template-columns:1.8fr"] > div:nth-child(2){order:3;grid-column:2;font-size:14px !important;color:var(--v2-muted) !important}
+  html.ui-v2 #cr-acordeon [style*="grid-template-columns:1.8fr"] > div:nth-child(4){display:none}
+  html.ui-v2 #cr-acordeon [onclick^="toggleCrRubro"]{padding-left:30px !important}
+  html.ui-v2 #cr-acordeon div[style*="background:#f7f7f5"]{padding-left:32px !important}
+}
 </style>
 </head>
 <body>
@@ -1426,17 +1516,26 @@ html.ui-v2 .met-v{white-space:nowrap}
 
   <!-- ── DETALLE CAMPO ── -->
   <div class="modulo" id="mod-campo-detalle">
+    <!-- Estilo nuevo: ruta Campos / nombre (reemplaza al botón Volver) -->
+    <nav class="ui2-only ui2-crumb" aria-label="Ruta"><a href="javascript:void(0)" onclick="volverACampos()">Campos</a><span class="ui2-ic" style="--ic:var(--ic-chev)" aria-hidden="true"></span><span id="ui2-crumb-nom"></span></nav>
     <!-- Header del campo -->
     <div style="background:linear-gradient(135deg,var(--verde),var(--verde-mid));border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:12px;color:rgba(250,247,240,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600">Campo seleccionado</div>
+          <div class="v1-only" style="font-size:12px;color:rgba(250,247,240,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600">Campo seleccionado</div>
           <div style="font-size:32px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;line-height:1.1" id="det-campo-nombre">—</div>
-          <div style="font-size:14px;color:rgba(250,247,240,.75);margin-top:6px;font-weight:500" id="det-campo-meta">—</div>
+          <div class="v1-only" style="font-size:14px;color:rgba(250,247,240,.75);margin-top:6px;font-weight:500" id="det-campo-meta">—</div>
+          <div class="ui2-only ui2-det-chips" id="ui2-det-chips"></div>
         </div>
         <div style="display:flex;gap:6px">
         <button onclick="editarCampoActual()" style="padding:7px 14px;border-radius:8px;border:.5px solid rgba(201,168,76,.5);background:rgba(201,168,76,.15);color:var(--dorado-light);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">✏️ Editar</button>
-        <button onclick="volverACampos()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
+        <button class="v1-only" onclick="volverACampos()" style="padding:7px 16px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(250,247,240,.8);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">← Volver</button>
+        <div class="ui2-only ui2-dd">
+          <button class="ui2-btn ic" aria-label="Más acciones" aria-haspopup="menu" aria-expanded="false" onclick="_ui2DdToggle(this,event)"><span class="ui2-ic" style="--ic:var(--ic-dots)"></span></button>
+          <div class="ui2-dd-menu" role="menu">
+            <button role="menuitem" onclick="_ui2DdCerrar();abrirModalCampanaCampo()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-flag)"></span></span><span><b>Cerrar campaña de este campo</b><small>Los demás campos siguen abiertos</small></span></button>
+          </div>
+        </div>
       </div>
       </div>
       <!-- Barra global: campaña + moneda -->
@@ -1447,7 +1546,7 @@ html.ui-v2 .met-v{white-space:nowrap}
           <button id="btn-camp-actual" onclick="setCampanaGlobal('actual',this)" style="padding:5px 13px;border-radius:20px;border:1.5px solid var(--dorado);background:var(--dorado);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campaña actual</button>
           <button id="btn-camp-ant" onclick="toggleCampanasAnteriores()" style="padding:5px 13px;border-radius:20px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(250,247,240,.7);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">Campañas anteriores ▾</button>
           <div id="panel-campanas-ant" style="display:none;position:absolute;z-index:50;margin-top:36px;background:#fff;border:.5px solid var(--borde);border-radius:10px;box-shadow:var(--sombra-md);padding:6px;min-width:160px"></div>
-          <button onclick="abrirModalCampanaCampo()" style="padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.55);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" title="Cerrar la campaña de este campo (los demás campos siguen abiertos)">⚑ Cerrar campaña de este campo</button>
+          <button class="v1-only" onclick="abrirModalCampanaCampo()" style="padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(250,247,240,.55);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" title="Cerrar la campaña de este campo (los demás campos siguen abiertos)">⚑ Cerrar campaña de este campo</button>
         </div>
         <!-- Toggle moneda -->
         <div style="display:flex;gap:3px;background:rgba(0,0,0,.2);border-radius:20px;padding:3px">
@@ -1522,11 +1621,21 @@ html.ui-v2 .met-v{white-space:nowrap}
     <div class="campo-seccion active" id="sec-rentabilidad">
       <!-- Banner exportar PDF -->
       <div id="rent-pdf-banner" style="background:#EAF3DE;border:.5px solid #97C459;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div>
+        <div class="ui2-only ui2-hdr-acc">
+          <button class="ui2-btn" onclick="openModalExportCampanas('campo')"><span class="ui2-ic" style="--ic:var(--ic-compare)"></span>Comparar campañas</button>
+          <div class="ui2-dd">
+            <button class="ui2-btn" aria-haspopup="menu" aria-expanded="false" onclick="_ui2DdToggle(this,event)"><span class="ui2-ic" style="--ic:var(--ic-download)"></span>Exportar<span class="ui2-ic car" style="--ic:var(--ic-chev-down)" aria-hidden="true"></span></button>
+            <div class="ui2-dd-menu" role="menu">
+              <button role="menuitem" onclick="_ui2DdCerrar();exportarPDF()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-file)"></span></span><span><b>PDF</b><small>Para imprimir o mandar</small></span></button>
+              <button role="menuitem" onclick="_ui2DdCerrar();exportarCSVCampo()"><span class="ico"><span class="ui2-ic" style="--ic:var(--ic-chart)"></span></span><span><b>CSV</b><small>Para abrir en Excel o Google Sheets</small></span></button>
+            </div>
+          </div>
+        </div>
+        <div class="v1-only">
           <div style="font-size:13px;font-weight:600;color:#3B6D11" id="rent-pdf-titulo">Rentabilidad del campo</div>
           <div style="font-size:11px;color:#3B6D11;opacity:.8" id="rent-pdf-resumen">—</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="v1-only" style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="openModalExportCampanas('campo')" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px" title="Comparar las campañas de este campo">📈 Comparar campañas</button>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button onclick="exportarCSVCampo()" style="background:#fff;color:var(--verde);border:1.5px solid var(--verde);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">📊 Exportar CSV</button>
@@ -4679,6 +4788,7 @@ window._ui2Toggle = function() {
   try { renderDashboard() } catch(e) {}
   try { if (document.getElementById('mod-campos')?.classList.contains('active')) renderCamposLista() } catch(e) {}
   try { if (document.getElementById('mod-rentabilidad-total')?.classList.contains('active')) renderRentabilidadTotal() } catch(e) {}
+  try { if (campoDet) { renderTodosLosTabsCampo(); var _cc = campos.find(function(f){return f.id===campoDet}); if (_cc) _ui2RenderCampoHdr(_cc) } } catch(e) {}
   _ui2SheetClose()
   _ui2SyncTabbar()
   showToast(on ? 'Estilo nuevo activado' : 'Volviste al estilo de siempre', 'ok')
@@ -4688,7 +4798,7 @@ window._ui2Toggle = function() {
 // en v2 (ahí usamos íconos de línea). En v1 se siguen viendo igual.
 function _ui2WrapEmojis() {
   var re = /^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}][\u{FE0F}\u{200D}\u{1F300}-\u{1FAFF}]*\s*)/u
-  document.querySelectorAll('#screen-app .mod-titulo, #screen-app .card-tit').forEach(function(el) {
+  document.querySelectorAll('#screen-app .mod-titulo, #screen-app .card-tit, #screen-app .campo-tab').forEach(function(el) {
     if (el.dataset.ui2e) return
     var n = el.firstChild
     if (!n || n.nodeType !== 3) return
@@ -4797,6 +4907,51 @@ window._ui2Sheet = function(tipo) {
   ov.classList.add('open')
 }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') _ui2SheetClose() })
+
+
+// ── Detalle de campo (v2) ──
+// Ruta + chips de la cabecera. "Sin cultivo" es un chip accionable.
+window._ui2RenderCampoHdr = function(c) {
+  var n = document.getElementById('ui2-crumb-nom'); if (n) n.textContent = c.nombre || ''
+  var el = document.getElementById('ui2-det-chips'); if (!el) return
+  function ch(t){ return '<span class="ui2-dchip">'+t+'</span>' }
+  var sinCult = !c.cultivo || !String(c.cultivo).trim()
+  el.innerHTML = ch((c.hectareas||0).toLocaleString('es-AR')+' ha')
+    + (sinCult ? '<button class="ui2-dchip warn" onclick="editarCampoActual()"><span class="ui2-ic" style="--ic:var(--ic-alert)"></span>Sin cultivo · Cargar</button>'
+               : String(c.cultivo).split(',').map(function(x){return ch(x.trim())}).join(''))
+    + ch(((c.tenencia||'propio')+'').replace(/^./, function(m){return m.toUpperCase()}))
+    + (c.provincia ? ch(c.provincia) : '')
+}
+// Estado de resultados: encabezados de columna, chevron de Lucide en las
+// filas que se despliegan (en vez de ▼/▲ en la última columna) y sin "—".
+window._ui2PulirPL = function(el) {
+  var COLS = 'display:grid;grid-template-columns:1.8fr 0.9fr 1fr 0.5fr;gap:12px'
+  el.querySelectorAll('[style*="grid-template-columns:1.8fr"]').forEach(function(row) {
+    var cells = row.children; if (cells.length < 4) return
+    var last = cells[3], txt = last.textContent.trim()
+    var arrow = txt.charAt(0)
+    if (arrow === '▼' || arrow === '▲') {
+      last.textContent = txt.slice(1).trim()
+      var lbl = cells[0].firstElementChild || cells[0]
+      var sp = document.createElement('span')
+      sp.className = 'ui2-ic ui2-pl-chev' + (arrow === '▲' ? ' open' : '')
+      sp.style.setProperty('--ic', 'var(--ic-chev)')
+      sp.setAttribute('aria-hidden', 'true')
+      lbl.insertBefore(sp, lbl.firstChild)
+      row.setAttribute('aria-expanded', arrow === '▲')
+    }
+    for (var k = 1; k < 4; k++) if (cells[k].textContent.trim() === '—') cells[k].textContent = ''
+  })
+  var card = el.querySelector(':scope > .card')
+  if (card && card.firstElementChild) {
+    var h = card.firstElementChild
+    var hint = h.lastElementChild; if (hint && /desglosar/.test(hint.textContent)) hint.textContent = 'USD'
+    var th = document.createElement('div')
+    th.className = 'ui2-pl-th'; th.setAttribute('style', COLS)
+    th.innerHTML = '<div>Concepto</div><div>USD/ha</div><div>Total</div><div>%</div>'
+    h.insertAdjacentElement('afterend', th)
+  }
+}
 
 // Inicio v2: alerta agrupada de pagos vencidos + KPIs de la campaña.
 // Mismos cálculos que Rentabilidad total (ingresos reales, gastos de la
@@ -16935,6 +17090,7 @@ window.abrirCampo = function(id) {
   if (!c) return
   document.getElementById('det-campo-nombre').textContent = c.nombre
   document.getElementById('det-campo-meta').textContent = (c.hectareas||0).toLocaleString('es-AR') + ' ha · ' + (c.cultivo||'Sin cultivo') + ' · ' + (c.tenencia||'propio') + (c.provincia?' · '+c.provincia:'')
+  try { _ui2RenderCampoHdr(c) } catch(e) {}
   document.querySelectorAll('.modulo').forEach(function(m){m.classList.remove('active')})
   document.getElementById('mod-campo-detalle').classList.add('active')
   document.querySelectorAll('.anl').forEach(function(b){b.classList.remove('active')})
@@ -19592,6 +19748,7 @@ function _refreshCrAcordeon() {
   }
 
   el.innerHTML = html
+  if (window._uiV2 && window._uiV2()) { try { _ui2PulirPL(el) } catch(e) { console.error('ui2 P&L:', e) } }
 }
 
 function renderCampoRent() {
@@ -19683,7 +19840,34 @@ function renderCampoRent() {
     {l:'Margen total',v:_fmtM(mgHaReal*ha,{sign:true}),s:ha.toLocaleString('es-AR')+' ha',c:mcReal},
     {l:'En quintales/ha',v:(mgHaReal>=0?'+':'−')+(pr>0?Math.abs(mgHaReal/pr*10).toFixed(1):'0')+' qq',s:'Equiv. soja',c:'#c9a84c'}
   )
-  if(mEl) mEl.innerHTML = metricas.map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
+  var _v2rc = window._uiV2 && window._uiV2()
+  if (mEl) mEl.classList.toggle('ui2-hero-wrap', !!_v2rc)
+  if (mEl && _v2rc) {
+    // Estilo nuevo: el margen neto es el protagonista; el resto, datos chicos.
+    var mgTot = mgHaReal*ha, pos = mgHaReal >= 0, colMg = pos ? 'var(--v2-ok)' : 'var(--v2-red)'
+    var maxB = Math.max(ingHaReal, costoHa, 1)
+    var qq = pr>0 ? Math.abs(mgHaReal/pr*10).toFixed(1).replace('.',',') : '0'
+    var hv = ''
+    if (totalIngUSD <= 0) {
+      hv += '<div class="ui2-alert" role="status"><span class="ui2-ic" style="--ic:var(--ic-alert)"></span>'
+        + '<span><b>Todavía no cargaste ingresos.</b> Por eso el margen da negativo: solo están sumando los costos.</span>'
+        + '<button class="ui2-btn" onclick="switchCampoTab(\'ingresos\',document.getElementById(\'tab-ingresos-campo\'))">Cargar ingresos</button></div>'
+    }
+    hv += '<section class="ui2-hero">'
+      + '<div><div class="k">Margen neto de la campaña</div>'
+      +   '<div class="big" style="color:'+colMg+'">'+_fmtM(mgHaReal,{sign:true}).replace(/^(USD |\$ )/,'')+'<small>'+(_enARSrc?'$/ha':'USD/ha')+'</small></div>'
+      +   '<div class="sub">Total <b style="color:'+colMg+'">'+_fmtM(mgTot,{sign:true})+'</b> en '+ha.toLocaleString('es-AR')+' ha · equivale a '+(pos?'+':'−')+qq+' qq de soja por ha</div></div>'
+      + '<div class="ui2-bars">'
+      +   '<div class="ui2-bar"><span>Ingresos</span><div class="t"><i style="width:'+Math.round(ingHaReal/maxB*100)+'%;background:var(--v2-ok)"></i></div><span class="v">'+_fmtM(ingHaReal)+'/ha</span></div>'
+      +   '<div class="ui2-bar"><span>Costos</span><div class="t"><i style="width:'+Math.round(costoHa/maxB*100)+'%;background:var(--v2-red)"></i></div><span class="v">'+_fmtM(costoHa)+'/ha</span></div>'
+      + '</div></section>'
+      + '<div class="ui2-minis">'
+      +   '<div class="ui2-mini"><small>Ingreso bruto</small><b>'+_fmtM(ingHaReal)+'/ha</b><span>'+(totalIngUSD>0?_fmtM(totalIngUSD)+' total':'sin ventas cargadas')+'</span></div>'
+      +   '<div class="ui2-mini"><small>Costo operativo</small><b>'+_fmtM(ha>0?costoOperativo/ha:0)+'/ha</b><span>'+_fmtM(costoOperativo)+' total</span></div>'
+      +   (hayEstructura ? '<div class="ui2-mini"><small>Estructura</small><b>'+_fmtM(ha>0?costoEstr/ha:0)+'/ha</b><span>'+_fmtM(costoEstr)+' prorrateado</span></div>' : '')
+      + '</div>'
+    mEl.innerHTML = hv
+  } else if(mEl) mEl.innerHTML = metricas.map(function(m){return '<div class="met"><div class="met-acc" style="background:'+m.c+'"></div><div class="met-l">'+m.l+'</div><div class="met-v" style="color:'+m.c+'">'+m.v+'</div><div class="met-s">'+m.s+'</div></div>'}).join('')
 
   // ── Gastos por rubro ──
   var porRubroMap={}

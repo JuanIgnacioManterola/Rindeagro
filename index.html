@@ -599,6 +599,8 @@ html.ui-v2{
   --ic-chev-down:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
   /* file-text de Lucide */
   --ic-file:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/><path d='M14 2v5h6M16 13H8M16 17H8M10 9H8'/></svg>");
+  /* chevrons-up-down de Lucide (menú de usuario, como el sidebar de shadcn/ui) */
+  --ic-chev-ud:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m7 15 5 5 5-5'/><path d='m7 9 5-5 5 5'/></svg>");
   --ic-chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m9 6 6 6-6 6'/></svg>");
 }
 html.ui-v2 .ui2-ic{display:inline-block;width:18px;height:18px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
@@ -972,6 +974,20 @@ html.ui-v2 #mod-pagos .mod-header,html.ui-v2 #mod-stock-insumos .mod-header{alig
   html.ui-v2 .ui2-hdr-acc .ui2-btn,html.ui-v2 .ui2-dd > .ui2-btn{width:100%;justify-content:center}
   .ui2-dd-menu{left:auto;right:0;min-width:min(300px,calc(100vw - 32px))}
 }
+/* Chip de usuario: avatar circular fijo + chevron de Lucide */
+html.ui-v2 .u-av{flex:none;width:32px;height:32px;min-width:32px;aspect-ratio:1;border-radius:50%;font-size:14px;font-weight:600;line-height:1;background:var(--v2-green)}
+html.ui-v2 .user-chip{gap:10px}
+html.ui-v2 .user-chip > span:not(.u-nm){flex:none;width:16px;height:16px;margin-left:auto !important;font-size:0 !important;color:var(--v2-muted) !important;background:currentColor;-webkit-mask:var(--ic-chev-ud) center/contain no-repeat;mask:var(--ic-chev-ud) center/contain no-repeat}
+html.ui-v2 .u-nm{flex:1 1 auto;min-width:0;font-size:14px}
+@media(min-width:901px){
+  html.ui-v2 .user-chip{padding:8px 10px 8px 8px}
+  /* Pie del sidebar: [estilo][campanita] arriba, usuario a todo el ancho abajo */
+  html.ui-v2 .app-nav > div:last-child{display:grid !important;grid-template-columns:1fr auto;gap:8px}
+  html.ui-v2 .app-nav > div:last-child > .ui2-style-btn{grid-column:1;grid-row:1;flex:none;height:40px}
+  html.ui-v2 .app-nav > div:last-child > .notif-btn{grid-column:2;grid-row:1}
+  html.ui-v2 .app-nav > div:last-child > .user-chip{grid-column:1/-1;grid-row:2}
+}
+@media(max-width:900px){html.ui-v2 .user-chip > span:not(.u-nm){display:none}}
 </style>
 </head>
 <body>

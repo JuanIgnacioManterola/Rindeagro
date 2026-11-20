@@ -947,6 +947,13 @@ html.ui-v2 #pagos-filtros{display:none !important}
 /* Acciones de cabecera arriba a la derecha + menú desplegable */
 html.ui-v2 .ui2-hdr-acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 html.ui-v2 #mod-pagos .mod-header,html.ui-v2 #mod-stock-insumos .mod-header{align-items:flex-start}
+/* Botones de cabecera siempre a la derecha (como Rentabilidad): el título
+   se achica y el subtítulo hace wrap, los botones no bajan de renglón. */
+@media(min-width:781px){
+  html.ui-v2 .mod-header:has(> .ui2-hdr-acc){flex-wrap:nowrap}
+  html.ui-v2 .mod-header:has(> .ui2-hdr-acc) > div:first-child{flex:1 1 auto;min-width:0}
+  html.ui-v2 .ui2-hdr-acc{flex:none;flex-wrap:nowrap;justify-content:flex-end}
+}
 .ui2-dd{position:relative}
 .ui2-dd .car{width:16px;height:16px;margin-left:-2px;margin-right:-4px;opacity:.9;transition:transform .15s}
 .ui2-dd.open .car{transform:rotate(180deg)}

@@ -341,6 +341,21 @@ número sin adivinar el `phone_number_id`.
 - **Mapa**: campos sin polígono tienen botón "✏️ Dibujar polígono" en la tarjeta sidebar y en el popup del marcador. Usa `L.Draw.Polygon` de leaflet-draw. Al cerrar el polígono, calcula hectáreas por shoelace + radio terrestre y guarda en `campos.poligono` + `campos.hectareas`.
 - **Refresh garantizado al abrir tab**: `showModulo('stock-insumos')` y `showModulo('tareas')` disparan un fetch REST extra que garantiza ver datos frescos incluso si `cargarTodo` no terminó.
 
+## Estilo nuevo (v2) — detrás de un interruptor
+
+Rediseño de toda la app logueada (no la landing). El estilo clásico sigue intacto: todo lo nuevo está scopeado bajo la clase `html.ui-v2`.
+
+- **Interruptor**: `?ui=2` / `?ui=1` en la URL, el botón "✨ Probar estilo nuevo / ↩ Volver al clásico" al lado de la campanita, o "Estilo nuevo" en el menú de usuario. Se guarda en `localStorage['ra_ui']` (`'2'` = nuevo). Un `<script>` en el `<head>` pone la clase antes del primer paint (si no, se ve el clásico un instante).
+- **CSS**: bloque `<style id="ui-v2-css">`. Todas las reglas empiezan con `html.ui-v2`. Muchas pisan estilos inline con selectores de atributo (`[style*="..."]`) + `!important`: si cambiás un inline style viejo, revisá que la regla v2 siga matcheando.
+- **Markup solo de un estilo**: `.ui2-only` (solo v2) y `.v1-only` (solo clásico). Los emojis de títulos/pestañas se envuelven en `.v1-emoji` (`_ui2WrapEmojis`) y en v2 se reemplazan por íconos de **Lucide** pintados con `mask` (`--ic-*` en `:root`, clase `.ui2-ic`).
+- **Renders con rama v2** (chequean `window._uiV2()`): `_renderDashPagos`, `renderCamposLista`, `renderPagos`, `renderCampoRent` (métrica protagonista). `_ui2RenderDashTop` arma KPIs + alerta de vencidos del Inicio con los mismos cálculos que Rentabilidad total. `_refreshCrAcordeon` NO cambia su lógica: en v2 se pule el DOM después (`_ui2PulirPL`).
+- **Navegación**: desktop = sidebar fija (`--v2-side: 236px`); ≤900px = header compacto + barra inferior `#ui2-tabbar` + hojas inferiores (`_ui2Sheet('cargar'|'mas')`). La barra NO usa `.anl` porque `showModulo` marca el activo por índice de `.anl`.
+- **Menús desplegables**: componente genérico `.ui2-dd` (`_ui2DdToggle` / `_ui2DdCerrar`), se cierra con clic afuera o Escape y se reubica si se sale del contenido.
+- **Urgencia de pagos**: `window._ui2UrgenciaPago(dias, pagado)` → ≤15 días o vencido rojo, 16–45 amarillo, >45 neutro.
+- **Reglas de diseño acordadas**: textos de 14px mínimo (excepciones: etiquetas de la barra inferior 12px, chips de estado 13px); títulos en Inter, no serif; nada de franjas de color en el borde izquierdo de las cards; tarjetas que filtran usan `.met-filtro` con estado `.sel` y no se duplican con botones.
+
+**No reusar**: la clase `ui-v2`, el prefijo `ui2-`, la key `ra_ui`.
+
 ## Dev tools — Copy Tools widget (PR #42, #44 de Agustina)
 
 Widget flotante para devs que permite copiar contexto rápido (HTML/CSS/JS de un elemento) para pegarlo en un chat de asistente. No afecta producción para usuarios finales.

@@ -19720,15 +19720,21 @@ function _refreshCrAcordeon() {
   // un desglose con cada activo amortizable y cada gasto de estructura,
   // con el prorrateo aplicado a ESTE campo.
   function _filaEstructura(monto, denomIng, haRef) {
-    if (!(monto > 0)) return ''
     denomIng = denomIng || totalIngUSD
     haRef = haRef || ha
-    var pct = denomIng>0 ? Math.round(monto/denomIng*100)+'%' : '—'
-    var haCos = haRef>0 ? Math.round(monto/haRef) : 0
 
     // Prorrateo del campo: misma fracción que usa _estructuraCostoPorCampo.
+    // Ojo: _estructuraCostoPorCampo usa `campos`, `activosAmort` y
+    // `gastosEstructura` del scope global (no window.). Si referenciamos
+    // window.* desde acá, en algunos navegadores el closure no refleja
+    // reasignaciones hechas tras el load inicial y nos queda la fila sin
+    // detalle. Usamos las vars directas, que son las mismas que lee la
+    // función global.
     var campR = D.campR
-    var totHa = (campos||[]).reduce(function(a,cc){ return a + (parseFloat(cc.hectareas)||0) }, 0)
+    var _campos = (typeof campos !== 'undefined' ? campos : null) || []
+    var _activos = (typeof activosAmort !== 'undefined' ? activosAmort : null) || []
+    var _gastosE = (typeof gastosEstructura !== 'undefined' ? gastosEstructura : null) || []
+    var totHa = _campos.reduce(function(a,cc){ return a + (parseFloat(cc.hectareas)||0) }, 0)
     var haCampo = parseFloat(D.c.hectareas)||0
     var frac = (totHa > 0 && haCampo > 0) ? (haCampo / totHa) : 0
 
@@ -19737,9 +19743,11 @@ function _refreshCrAcordeon() {
     var items = []
     var TIPOS_ACT = {vehiculo:'Vehículo', herramienta:'Herramienta', maquinaria:'Maquinaria', construccion:'Construcción', otros:'Otros'}
     var TIPOS_GE  = {sueldo:'Sueldo', honorarios:'Honorarios', seguro:'Seguro', oficina:'Oficina', combustible:'Combustible', otros:'Otros'}
-    if (campR && typeof window._estCostoActivoEnRango === 'function') {
-      (window.activosAmort||[]).forEach(function(a) {
-        var raw = window._estCostoActivoEnRango(a, campR.start, campR.end)
+    var fnCalcAct = typeof _estCostoActivoEnRango === 'function' ? _estCostoActivoEnRango : window._estCostoActivoEnRango
+    var fnCalcGas = typeof _estCostoGastoEnRango === 'function' ? _estCostoGastoEnRango : window._estCostoGastoEnRango
+    if (campR && typeof fnCalcAct === 'function') {
+      _activos.forEach(function(a) {
+        var raw = fnCalcAct(a, campR.start, campR.end)
         var imp = raw * frac
         if (!(imp > 0)) return
         items.push({
@@ -19751,9 +19759,9 @@ function _refreshCrAcordeon() {
         })
       })
     }
-    if (campR && typeof window._estCostoGastoEnRango === 'function') {
-      (window.gastosEstructura||[]).forEach(function(g) {
-        var raw = window._estCostoGastoEnRango(g, campR.start, campR.end)
+    if (campR && typeof fnCalcGas === 'function') {
+      _gastosE.forEach(function(g) {
+        var raw = fnCalcGas(g, campR.start, campR.end)
         var imp = raw * frac
         if (!(imp > 0)) return
         var frecLbl = g.frecuencia === 'unico' ? 'único'
@@ -19768,6 +19776,18 @@ function _refreshCrAcordeon() {
       })
     }
     items.sort(function(a,b){ return b.monto - a.monto })
+
+    // Monto efectivo: el que pasó renderCampoRent (costoEstr) suele ser
+    // exacto, pero si llegó 0 por desfase de scope (ver nota más arriba) y
+    // en cambio nuestros items sí dan >0, usamos el total de items para
+    // que la fila y el detalle cuadren. Si no hay ni monto ni items, no hay
+    // estructura que mostrar.
+    var itemsTotal = items.reduce(function(a,it){ return a + it.monto }, 0)
+    if (!(monto > 0) && !(itemsTotal > 0)) return ''
+    if (!(monto > 0) && itemsTotal > 0) monto = itemsTotal
+
+    var pct = denomIng>0 ? Math.round(monto/denomIng*100)+'%' : '—'
+    var haCos = haRef>0 ? Math.round(monto/haRef) : 0
 
     var hayDetalle = items.length > 0
     var chevron = hayDetalle ? (_crAcSt.estrOpen ? '▲' : '▼') : ''

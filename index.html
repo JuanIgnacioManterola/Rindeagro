@@ -2229,7 +2229,7 @@ html.ui-v2 .notif-empty{font-size:14px;padding:36px 20px}
     <div class="modal-header">
       <button class="m-close" onclick="closeModalGastoEstructura()">✕</button>
       <div class="m-tit" id="gest-modal-tit">💼 Nuevo gasto de estructura</div>
-      <div class="m-sub" style="margin-bottom:0">Se prorratea entre todos los campos automáticamente.</div>
+      <div class="m-sub" style="margin-bottom:0">Elegí si se prorratea entre todos los campos o solo entre los que vos quieras.</div>
     </div>
     <div class="modal-body">
       <input type="hidden" id="ge-edit-id" value=""/>
@@ -2267,6 +2267,18 @@ html.ui-v2 .notif-empty{font-size:14px;padding:36px 20px}
           <option value="por_hectareas">Por hectáreas (recomendado)</option>
           <option value="igualitario">Igualitario entre todos los campos</option>
         </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Aplica a</label>
+        <select class="fi" id="ge-scope" style="cursor:pointer" onchange="_geScopeToggle()">
+          <option value="todos">🌍 Todos los campos</option>
+          <option value="algunos">📍 Solo los campos que elija</option>
+        </select>
+      </div>
+      <div class="fg" id="ge-scope-campos-wrap" style="display:none">
+        <label class="fl">Elegí los campos</label>
+        <div id="ge-scope-campos-lista" style="display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow-y:auto;border:1px solid var(--borde);border-radius:8px;padding:10px;background:#fafafa"></div>
+        <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">El gasto se prorratea solo entre los campos tildados.</div>
       </div>
       <div class="fg"><label class="fl">Notas</label><textarea class="fi" id="ge-notas" placeholder="Cualquier detalle..." rows="2" style="font-family:'DM Sans',sans-serif;resize:vertical"></textarea></div>
     </div>
@@ -15213,9 +15225,53 @@ window.openModalGastoEstructura = function(id) {
   document.getElementById('ge-fecha-fin').value = g ? (g.fecha_fin||'') : ''
   document.getElementById('ge-dist-modo').value = g ? (g.distribuir_modo||'por_hectareas') : 'por_hectareas'
   document.getElementById('ge-notas').value = g ? (g.notas||'') : ''
+  // Scope de campos: si distribuir_config trae {campos:[ids]} → "algunos"
+  // con esos tildados. Sino → "todos" (default).
+  var _scopeIds = []
+  if (g && g.distribuir_config) {
+    try {
+      var _cfg = (typeof g.distribuir_config === 'string') ? JSON.parse(g.distribuir_config) : g.distribuir_config
+      if (_cfg && Array.isArray(_cfg.campos)) _scopeIds = _cfg.campos
+    } catch(e) {}
+  }
+  document.getElementById('ge-scope').value = _scopeIds.length ? 'algunos' : 'todos'
+  _geRenderCamposScope(_scopeIds)
+  _geScopeToggle()
   _geUpdateFrecuencia()
   document.getElementById('ov-gasto-estr').classList.add('open')
   try { window._reformatearInputsNum && window._reformatearInputsNum(document.querySelector('.overlay.open .modal')) } catch(e){}
+}
+
+window._geScopeToggle = function() {
+  var scope = document.getElementById('ge-scope').value
+  document.getElementById('ge-scope-campos-wrap').style.display = scope === 'algunos' ? '' : 'none'
+}
+
+window._geRenderCamposScope = function(idsTildados) {
+  var cont = document.getElementById('ge-scope-campos-lista')
+  if (!cont) return
+  idsTildados = idsTildados || []
+  var lista = (campos||[]).slice().sort(function(a,b){
+    return (parseFloat(b.hectareas)||0) - (parseFloat(a.hectareas)||0)
+  })
+  if (!lista.length) {
+    cont.innerHTML = '<div style="color:var(--texto-suave);font-size:12px">No tenés campos cargados todavía.</div>'
+    return
+  }
+  cont.innerHTML = lista.map(function(c){
+    var ha = parseFloat(c.hectareas)||0
+    var checked = idsTildados.indexOf(c.id) !== -1 ? 'checked' : ''
+    var cid = String(c.id).replace(/'/g,"\\'")
+    return '<label style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--borde);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-mid)">'
+      +'<input type="checkbox" class="ge-scope-cb" value="'+cid+'" '+checked+' style="margin:0;cursor:pointer"/>'
+      +(c.nombre||'(sin nombre)')+(ha?' <span style="color:var(--texto-suave);font-weight:400">· '+ha.toLocaleString('es-AR')+' ha</span>':'')
+      +'</label>'
+  }).join('')
+}
+
+window._geLeerCamposScope = function() {
+  return Array.from(document.querySelectorAll('#ge-scope-campos-lista .ge-scope-cb:checked'))
+    .map(function(cb){ return cb.value })
 }
 window.closeModalGastoEstructura = function() { document.getElementById('ov-gasto-estr').classList.remove('open') }
 window._geUpdateFrecuencia = function() {
@@ -15240,18 +15296,23 @@ window.guardarGastoEstructura = async function() {
   var fFin = document.getElementById('ge-fecha-fin').value||null
   var dist = document.getElementById('ge-dist-modo').value||'por_hectareas'
   var notas = document.getElementById('ge-notas').value.trim()||null
+  var scope = document.getElementById('ge-scope').value||'todos'
+  var scopeIds = scope === 'algunos' ? _geLeerCamposScope() : []
   if(!desc){showToast('⚠️ Poné una descripción','err');return}
   if(!tipo){showToast('⚠️ Elegí el tipo','err');return}
   if(!imp||imp<=0){showToast('⚠️ Ingresá el importe','err');return}
   if(!fIni){showToast('⚠️ Ingresá la fecha','err');return}
   if(!usuario){showToast('⚠️ Sesión expirada','err');return}
+  if(scope==='algunos' && !scopeIds.length){showToast('⚠️ Tildá al menos un campo','err');return}
   if(freq==='unico') fFin = null  // los únicos no tienen fin
   var btn = document.getElementById('btn-guardar-gest')
   btn.disabled = true; btn.textContent = 'Guardando...'
   var editId = document.getElementById('ge-edit-id').value
+  var distCfg = scope === 'algunos' ? JSON.stringify({campos: scopeIds}) : null
   var payload = {
     descripcion: desc, tipo: tipo, importe_usd: imp, frecuencia: freq,
-    fecha_inicio: fIni, fecha_fin: fFin, distribuir_modo: dist, notas: notas
+    fecha_inicio: fIni, fecha_fin: fFin, distribuir_modo: dist,
+    distribuir_config: distCfg, notas: notas
   }
   try {
     if (editId) {

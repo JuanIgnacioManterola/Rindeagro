@@ -4783,6 +4783,24 @@ async function _refrescarRentabilidadVistaActual(opts) {
 }
 window._refrescarRentabilidadVistaActual = _refrescarRentabilidadVistaActual
 
+// Al volver el foco a la pestaña (típicamente desde WhatsApp al browser),
+// refetch de gastos/estructura para que lo recién cargado por WA se vea
+// sin que el user tenga que tocar nada.
+try {
+  if (!window._raFocusRefetchInstalled) {
+    window._raFocusRefetchInstalled = true
+    var _raLastRefetchTs = 0
+    document.addEventListener('visibilitychange', function(){
+      if (document.visibilityState !== 'visible') return
+      if (!window.usuario || !window.usuario.id) return
+      var now = Date.now()
+      if (now - _raLastRefetchTs < 5000) return  // throttle: máximo 1 cada 5s
+      _raLastRefetchTs = now
+      try { _refrescarRentabilidadVistaActual({renderCampoRent:false}) } catch(e) {}
+    })
+  }
+} catch(e) {}
+
 window.showModulo = function(mod) {
   document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
@@ -14798,17 +14816,53 @@ window._estructuraTotalEnRango = function(dStart, dEnd) {
   return tot
 }
 
-// Prorrateo entre campos: por hectáreas por default.
+// Helper: devuelve las hectáreas totales entre las que se reparte este item.
+// Si `distribuir_config` trae {campos:[ids]}, prorratea solo entre esos campos.
+// Si no tiene config, prorratea entre TODOS los campos del user (comportamiento
+// clásico). Devuelve 0 cuando el campo activo NO está en el scope → el gasto
+// no aplica a ese campo.
+window._estruScopeHa = function(item, campoId) {
+  var allHa = (campos||[]).reduce(function(a,c){ return a + (parseFloat(c.hectareas)||0) }, 0)
+  if (!item) return {haScope: allHa, aplica: true}
+  var raw = item.distribuir_config
+  if (!raw) return {haScope: allHa, aplica: true}
+  var cfg = null
+  try { cfg = (typeof raw === 'string') ? JSON.parse(raw) : raw } catch(e) { cfg = null }
+  if (!cfg || !Array.isArray(cfg.campos) || !cfg.campos.length) {
+    return {haScope: allHa, aplica: true}
+  }
+  if (cfg.campos.indexOf(campoId) === -1) return {haScope: 0, aplica: false}
+  var haScope = cfg.campos.reduce(function(a, cid){
+    var c = (campos||[]).find(function(x){ return x.id === cid })
+    return a + (parseFloat(c && c.hectareas)||0)
+  }, 0)
+  return {haScope: haScope, aplica: true}
+}
+
+// Prorrateo entre campos respetando distribuir_config de cada item.
 // Devuelve el costo asignado a UN campo específico durante el rango.
 window._estructuraCostoPorCampo = function(campoId, dStart, dEnd) {
   if (!campoId || !dStart || !dEnd) return 0
-  var total = window._estructuraTotalEnRango(dStart, dEnd)
-  if (total === 0) return 0
-  var totHa = (campos||[]).reduce(function(a,c){ return a + (parseFloat(c.hectareas)||0) }, 0)
-  var camp  = (campos||[]).find(function(c){ return c.id === campoId })
-  if (!camp || !totHa) return 0
+  var camp = (campos||[]).find(function(c){ return c.id === campoId })
+  if (!camp) return 0
   var ha = parseFloat(camp.hectareas)||0
-  return total * (ha / totHa)
+  if (!ha) return 0
+  var total = 0
+  ;(activosAmort||[]).forEach(function(a){
+    var costo = _estCostoActivoEnRango(a, dStart, dEnd)
+    if (costo <= 0) return
+    var s = window._estruScopeHa(a, campoId)
+    if (!s.aplica || s.haScope <= 0) return
+    total += costo * (ha / s.haScope)
+  })
+  ;(gastosEstructura||[]).forEach(function(g){
+    var costo = _estCostoGastoEnRango(g, dStart, dEnd)
+    if (costo <= 0) return
+    var s = window._estruScopeHa(g, campoId)
+    if (!s.aplica || s.haScope <= 0) return
+    total += costo * (ha / s.haScope)
+  })
+  return total
 }
 
 // ── RENDER ──
@@ -19762,32 +19816,29 @@ function _refreshCrAcordeon() {
     denomIng = denomIng || totalIngUSD
     haRef = haRef || ha
 
-    // Prorrateo del campo: misma fracción que usa _estructuraCostoPorCampo.
-    // Ojo: _estructuraCostoPorCampo usa `campos`, `activosAmort` y
-    // `gastosEstructura` del scope global (no window.). Si referenciamos
-    // window.* desde acá, en algunos navegadores el closure no refleja
-    // reasignaciones hechas tras el load inicial y nos queda la fila sin
-    // detalle. Usamos las vars directas, que son las mismas que lee la
-    // función global.
+    // Prorrateo por campo, respetando `distribuir_config` de cada item (si
+    // trae `{campos:[ids]}` solo se reparte entre esos; si no, entre todos).
+    // Usamos _estruScopeHa para que detalle y total cuadren con el cálculo
+    // global. Si un item no aplica al campo actual, no se muestra.
     var campR = D.campR
-    var _campos = (typeof campos !== 'undefined' ? campos : null) || []
     var _activos = (typeof activosAmort !== 'undefined' ? activosAmort : null) || []
     var _gastosE = (typeof gastosEstructura !== 'undefined' ? gastosEstructura : null) || []
-    var totHa = _campos.reduce(function(a,cc){ return a + (parseFloat(cc.hectareas)||0) }, 0)
     var haCampo = parseFloat(D.c.hectareas)||0
-    var frac = (totHa > 0 && haCampo > 0) ? (haCampo / totHa) : 0
 
-    // Items detalle: activos amortizables + gastos de estructura, cada uno
-    // con su costo en el rango * frac (prorrateo). Filtramos los que suman 0.
     var items = []
     var TIPOS_ACT = {vehiculo:'Vehículo', herramienta:'Herramienta', maquinaria:'Maquinaria', construccion:'Construcción', otros:'Otros'}
     var TIPOS_GE  = {sueldo:'Sueldo', honorarios:'Honorarios', seguro:'Seguro', oficina:'Oficina', combustible:'Combustible', otros:'Otros'}
     var fnCalcAct = typeof _estCostoActivoEnRango === 'function' ? _estCostoActivoEnRango : window._estCostoActivoEnRango
     var fnCalcGas = typeof _estCostoGastoEnRango === 'function' ? _estCostoGastoEnRango : window._estCostoGastoEnRango
+    function _impForCampo(item, raw) {
+      if (!(raw > 0) || !(haCampo > 0)) return 0
+      var s = window._estruScopeHa ? window._estruScopeHa(item, D.c.id) : {haScope:0, aplica:false}
+      if (!s.aplica || !(s.haScope > 0)) return 0
+      return raw * (haCampo / s.haScope)
+    }
     if (campR && typeof fnCalcAct === 'function') {
       _activos.forEach(function(a) {
-        var raw = fnCalcAct(a, campR.start, campR.end)
-        var imp = raw * frac
+        var imp = _impForCampo(a, fnCalcAct(a, campR.start, campR.end))
         if (!(imp > 0)) return
         items.push({
           kind:'activo',
@@ -19800,8 +19851,7 @@ function _refreshCrAcordeon() {
     }
     if (campR && typeof fnCalcGas === 'function') {
       _gastosE.forEach(function(g) {
-        var raw = fnCalcGas(g, campR.start, campR.end)
-        var imp = raw * frac
+        var imp = _impForCampo(g, fnCalcGas(g, campR.start, campR.end))
         if (!(imp > 0)) return
         var frecLbl = g.frecuencia === 'unico' ? 'único'
                    : g.frecuencia === 'anual' ? 'anual' : 'mensual'

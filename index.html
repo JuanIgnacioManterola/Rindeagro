@@ -4752,6 +4752,37 @@ async function _refrescarPagosVistaActual() {
   } catch(e) { console.warn('[Pagos] refresh REST falló:', e.message) }
 }
 
+// Refetch gastos + gastos_estructura + activos_amortizables + fletes desde REST.
+// Lo que carga el bot de WhatsApp (sueldos, gastos, fletes) impacta a Rentabilidad,
+// así que cada vez que el user entra a esa vista refrescamos para que los datos
+// cargados "desde el celular" se vean sin tener que apretar F5.
+async function _refrescarRentabilidadVistaActual(opts) {
+  opts = opts || {}
+  if (!usuario || !usuario.id || typeof _restGet !== 'function') return
+  var uid = window.CONTEXTO ? window.CONTEXTO.ownerIdActivo : usuario.id
+  try {
+    var qs = encodeURIComponent(uid)
+    var results = await Promise.allSettled([
+      _restGet('/gastos?usuario_id=eq.'+qs+'&order=fecha.desc&select=*'),
+      _restGet('/gastos_estructura?owner_id=eq.'+qs+'&order=created_at.desc&select=*'),
+      _restGet('/activos_amortizables?owner_id=eq.'+qs+'&order=created_at.desc&select=*'),
+      _restGet('/fletes?owner_id=eq.'+qs+'&order=fecha.desc&select=*'),
+    ])
+    if (results[0].status==='fulfilled' && Array.isArray(results[0].value)) gastos = results[0].value
+    if (results[1].status==='fulfilled' && Array.isArray(results[1].value)) gastosEstructura = results[1].value
+    if (results[2].status==='fulfilled' && Array.isArray(results[2].value)) activosAmort = results[2].value
+    if (results[3].status==='fulfilled' && Array.isArray(results[3].value)) fletes = results[3].value
+    try { _guardarCache() } catch(e) {}
+    // Re-render de lo que esté visible
+    if (opts.renderCampoRent !== false) {
+      try { if (typeof renderCampoRent==='function' && document.getElementById('sec-rentabilidad')?.classList.contains('active')) renderCampoRent() } catch(e) {}
+    }
+    try { if (typeof renderRentabilidadTotal==='function' && document.getElementById('mod-rentabilidad')?.classList.contains('active')) renderRentabilidadTotal() } catch(e) {}
+    try { if (typeof renderEstructura==='function' && document.getElementById('mod-estructura')?.classList.contains('active')) renderEstructura() } catch(e) {}
+  } catch(e) { console.warn('[Rentabilidad] refresh REST falló:', e.message) }
+}
+window._refrescarRentabilidadVistaActual = _refrescarRentabilidadVistaActual
+
 window.showModulo = function(mod) {
   document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'))
   document.querySelectorAll('.anl').forEach(b => b.classList.remove('active'))
@@ -4778,6 +4809,7 @@ window.showModulo = function(mod) {
       if (rm) rm.innerHTML = '<div style="text-align:center;padding:60px 20px"><p style="color:var(--verde);font-size:22px;font-weight:600;margin-bottom:.75rem;font-family:\'Playfair Display\',serif">Acceso restringido</p><p style="color:#888;font-size:15px">El análisis de rentabilidad es visible solo para el administrador de la cuenta.</p></div>'
     } else {
       renderRentabilidadTotal()
+      try { _refrescarRentabilidadVistaActual({renderCampoRent:false}) } catch(e) {}
     }
   }
   if (mod === 'mapa') initMapa()
@@ -4797,6 +4829,13 @@ window.showModulo = function(mod) {
   if (mod === 'estructura') {
     renderEstructura()
     _estSwitchTab(_estTabActivo)
+    try { _refrescarRentabilidadVistaActual({renderCampoRent:false}) } catch(e) {}
+  }
+  // Si el user abre un campo (sec-rentabilidad visible) y vuelve a Campos,
+  // también vale la pena traer datos frescos para que al reabrir el campo
+  // se vea lo cargado por WhatsApp sin tocar F5.
+  if (mod === 'campos') {
+    try { _refrescarRentabilidadVistaActual({renderCampoRent:false}) } catch(e) {}
   }
 }
 
@@ -18384,8 +18423,8 @@ window.switchCampoTab = function(tab, btn) {
   if(sec) sec.classList.add('active')
   if(btn) btn.classList.add('active')
   if(tab==='ingresos') renderIngresosTab()
-  if(tab==='gastos') { gastosCultivoActivo = null; renderDetGastos() }
-  if(tab==='rentabilidad') renderCampoRent()
+  if(tab==='gastos') { gastosCultivoActivo = null; renderDetGastos(); try { _refrescarRentabilidadVistaActual({renderCampoRent:false}) } catch(e) {} }
+  if(tab==='rentabilidad') { renderCampoRent(); try { _refrescarRentabilidadVistaActual() } catch(e) {} }
   if(tab==='cultivo') renderCultivoTimeline()
   if(tab==='lluvias') renderDetLluvias()
   if(tab==='suelo') renderDetSuelo()

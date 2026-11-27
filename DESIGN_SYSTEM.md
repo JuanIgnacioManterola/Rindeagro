@@ -1,6 +1,6 @@
-# RindeAgro — Design System
+# Rinde Agro — Design System
 
-> **Propósito:** Este documento es la fuente única de verdad para el sistema de diseño de RindeAgro. Cualquier IA o desarrollador que modifique `index.html` debe leerlo antes de agregar o cambiar componentes visuales.
+> **Propósito:** Este documento es la fuente única de verdad para el sistema de diseño de Rinde Agro. Cualquier IA o desarrollador que modifique `index.html` debe leerlo antes de agregar o cambiar componentes visuales.
 
 ---
 
@@ -735,7 +735,7 @@ Completar esta tabla a medida que se agregan nuevos componentes:
 
 ## Cómo usar este documento
 
-Cada vez que se agregue una feature nueva a RindeAgro:
+Cada vez que se agregue una feature nueva a Rinde Agro:
 
 1. **Verificar** si el componente necesario ya existe en este documento
 2. **Si existe:** usar exactamente las mismas clases y estructura HTML

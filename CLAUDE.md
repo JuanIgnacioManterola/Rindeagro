@@ -1,6 +1,8 @@
-# Rinde.Agro
+# Rinde Agro
 
 App para gestión agropecuaria. Frontend single-file HTML + backend FastAPI + Supabase.
+
+**Nombre de la marca: "Rinde Agro"** — con espacio, sin punto y sin pegar, igual que el logo (`assets/logo.jpg`). No usar "Rinde.Agro" ni "RindeAgro" en ningún texto visible: web, PDFs, mensajes del bot, Mercado Pago. Además de ser la marca, Meta exige que el nombre de la línea de WhatsApp coincida con cómo aparece en la web. Lo que **no** cambia: el dominio `rindeagro.app`, el mail `rindeagro.contacto@gmail.com` y el nombre del repo `Rindeagro`.
 
 ## Stack
 
@@ -204,6 +206,112 @@ Las 4 categorías predefinidas:
 - **Insecticidas** (~33): piretroides (Cipermetrina, Lambdacialotrina, Bifentrin, Deltametrina, Zeta-cipermetrina, Gamma-cialotrina, Permetrina), neonicotinoides (Imidacloprid, Tiametoxam, Acetamiprid, Clotianidina), diamidas (Clorantraniliprole/Coragen, Flubendiamide/Belt, Ciantraniliprole), espinosinas (Spinosad, Spinetoram), reguladores (Metoxifenocide, Lufenuron), organofosforados (Clorpirifos, Dimetoato).
 - **Fertilizantes** (~32): nitrogenados (Urea 46% en variantes, UAN 32, Solmix, ATS, Sulfato/Nitrato de amonio), fosfatados (MAP, DAP, MAP azufrado, SFS, SFT), potásicos (KCl, K2SO4, Sulpomag), azufrados, mezclas físicas NPS/NPK, micros (Boro, Zinc), starter líquido.
 
+## Módulo WhatsApp (bot vía Kapso)
+
+El bot vive en el server de Railway (`/Users/juanignaciomanterola/rindeagro-server`),
+no en `index.html`. `kapso.py` es solo transporte (enviar, validar firma, parsear
+webhooks); la lógica conversacional está en `main.py`.
+
+**Kapso es un proxy de la Cloud API oficial de Meta**, no un proveedor con reglas
+propias. Todo lo que limita al bot son reglas de Meta.
+
+### Cuenta y número de producción
+
+- Cuenta de Kapso: **`rindeagro.contacto@gmail.com`**, proyecto **Rinde Agro**
+  (plan Free). El proyecto viejo con el sandbox está en una cuenta personal de
+  Agustina y ya no se usa.
+- Número: **+1 208-473-7478** (Instant setup, número pre-verificado de Kapso).
+  `phone_number_id` `1411051475429851`, WABA `4926282657695091`. El display
+  name "Rinde Agro" se pidió a Meta el 2026-11-20.
+- Railway (proyecto `gregarious-stillness`, servicio `rindeagro-server`):
+  `KAPSO_API_KEY`, `KAPSO_PHONE_NUMBER_ID`, `KAPSO_WABA_ID`, `KAPSO_WEBHOOK_SECRET`.
+- **Cargos de Meta: "pagados directo a Meta", sin medio de pago cargado.** Las
+  respuestas funcionan, pero los avisos que arranca el bot (plantillas) quedan
+  bloqueados hasta cargar una tarjeta en Meta. A propósito NO se pasó a
+  "créditos de Kapso": ese cambio no tiene vuelta atrás para la WABA.
+- Un número que no manda mensajes de producción en 30 días se libera solo.
+
+### Sandbox vs producción
+
+La limitación de "el bot solo habla con ~5 números" es del **número de test de
+Meta**, no de Kapso ni del código. **No hay ninguna allowlist en el repo.** Un
+número de producción en una WABA verificada habla con cualquiera.
+
+Checklist completo de los pasos manuales (Meta Business Manager, verificación de
+empresa, display name, método de pago, provisionar el número, plantillas) en
+**`WHATSAPP_PRODUCCION.md` del repo del server**.
+
+Lo que más fácil se olvida: **los webhooks de Kapso son POR NÚMERO de teléfono,
+no por proyecto**. Cambiar `KAPSO_PHONE_NUMBER_ID` sin crear el webhook del
+número nuevo (`POST /platform/v1/whatsapp/phone_numbers/{id}/webhooks`) deja al
+server sordo, sin error visible en ningún lado. El `secret_key` lo elegís vos al
+crear el webhook, así que se puede reusar el `KAPSO_WEBHOOK_SECRET` que ya está.
+
+### Identificación de quién escribe — no volver al escaneo por mensaje
+
+`perfiles.telefono` y `equipo.whatsapp` los tipea el usuario, así que están
+guardados en cualquier formato (`+54 9 2944 56-5308`, `02944565308`). No se puede
+filtrar por número en la query de Supabase: hay que normalizar y comparar.
+
+Eso se resolvía trayendo hasta 2000 perfiles y 2000 filas de equipo **en cada
+mensaje entrante**. Con el sandbox daba igual; con un número abierto son dos
+consultas enormes por mensaje y, peor, el que se registra pasada la fila 2000 no
+es reconocido nunca. Ahora hay un índice normalizado en memoria:
+
+- `_wa_construir_directorio()` arma `{número normalizado → perfil o miembro}`.
+- `_wa_buscar_en_directorio()` cachea con TTL de 5 min y rearma ante un miss con
+  un piso de 20s (para que un desconocido que insiste no escanee la base).
+- `_wa_dir_invalidar()` fuerza el rearmado — se llama al verificar un número.
+- `_sb_get_todo()` pagina de a 1000: **PostgREST trunca en 1000 filas sin
+  avisar**, así que cualquier lectura "traeme todo" tiene que usarlo.
+
+Ojo con el orden dentro de `_wa_construir_directorio`: el equipo se indexa
+primero y los perfiles después, a propósito, para que si alguien está en las dos
+tablas gane su perfil (que es de donde sale el contexto de dueño).
+
+### Número desconocido
+
+Con un número de producción escribe cualquiera: equivocados, curiosos, spam. A
+un número que no reconocemos se le contesta **una sola vez cada 6 horas**
+(`_wa_corresponde_avisar`), con un mensaje que cubre los tres casos: no tiene
+cuenta, tiene cuenta pero no cargó el número, o lo sumaron a un equipo.
+
+Detalle no obvio: el diccionario usa `None` como sentinela, **no `0.0`**.
+`time.monotonic()` arranca cerca de cero en un contenedor recién levantado, así
+que con default `0.0` nadie nuevo recibiría respuesta durante las primeras 6
+horas de cada deploy.
+
+### Ventana de 24h y plantillas
+
+Fuera de la ventana de 24 horas desde el último mensaje del usuario, Meta solo
+acepta **plantillas aprobadas**. Todo lo que el bot contesta *como respuesta* cae
+dentro de la ventana y no necesita plantilla.
+
+Los avisos automáticos (recordatorio operarios, recordatorio admins, resumen
+semanal, alerta de precio) salen **todos por Kapso** con las plantillas de
+`plantillas_wa.py` del server (Twilio se dio de baja). `crear_plantillas.py`
+las da de alta; se crearon el 2026-11-20 y quedaron PENDING de aprobación. Si
+una plantilla falla, `_wa_aviso` cae a texto con botones (solo llega dentro de
+la ventana de 24h). El estado se ve en `/whatsapp/kapso/estado?numeros=1`.
+
+### Firma del webhook
+
+`KAPSO_WEBHOOK_SECRET` es **obligatorio en producción**: sin secret el webhook
+acepta cualquier POST y la URL de un número de producción es pública. El código
+mantiene el fail-open para no romper el entorno de prueba, pero avisa al
+arrancar, en cada request y con un campo `alerta` en el endpoint de estado.
+
+Se aceptan las dos formas de firma: `X-Webhook-Signature` en hexadecimal
+(webhook tipo `kapso`, el default) y `X-Hub-Signature-256` con prefijo `sha256=`
+(webhook tipo `meta`).
+
+### Diagnóstico
+
+`GET /whatsapp/kapso/estado` → qué está configurado + tamaño del índice de
+números. Con `?numeros=1` además lista los números conectados al proyecto vía la
+Platform API de Kapso y marca cuál está `en_uso`, para verificar el cambio de
+número sin adivinar el `phone_number_id`.
+
 ## Pendientes (roadmap corto)
 
 - [x] ~~Dominio `rindeagro.lat`~~ — Reemplazado por **rindeagro.app** (PR #39). El CNAME apunta ahí. Los redirects auth ahora son dinámicos (`window.location.origin + pathname`), funcionan en cualquier dominio sin hardcodear.
@@ -214,13 +322,13 @@ Las 4 categorías predefinidas:
 - [ ] **Verificación de WhatsApp con código de 6 dígitos** — hoy es vinculación directa. A futuro: bot manda código, usuario lo ingresa en la web, recién ahí se vincula.
 - [ ] **Panel de notificaciones por WhatsApp en "Mi Plan"** — toggles para resumen semanal, alertas de precio, recordatorios de operarios y admins.
 - [ ] **OCR de facturas, pagos, activos y gastos de estructura — activar `ANTHROPIC_API_KEY`** en Supabase Edge Functions secrets. Las 4 edge functions (`ocr-factura`, `ocr-pago`, `ocr-activo`, `ocr-gasto-estr`) están desplegadas pero devuelven 500 hasta que se setee el secret. Con el secret: foto/PDF → Claude API vision → JSON → pre-llenado del modal correspondiente.
-- [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde.Agro. Requiere teléfono para la 2FA (esperando).
+- [ ] **SMTP custom para emails de auth** — hoy los mails de "olvidé contraseña" y magic link salen desde `noreply@mail.app.supabase.com`. Se puede configurar SMTP custom en Supabase → Auth → Emails con las credenciales de Gmail (`rindeagro.contacto@gmail.com` con App Password de 2FA) para que salgan desde el mail de Rinde Agro. Requiere teléfono para la 2FA (esperando).
 - [ ] **Bot de WhatsApp insertando pagos**: cuando el bot esté listo, implementar el parser de comandos "cheque NNN a X vence DD/MM" y "crédito X N cuotas de NNN desde DD/MM" según el contrato documentado en "Módulo Pagos → Contrato WhatsApp → Pagos".
 - [ ] **Mercado Pago para suscripciones**: cuando alguien alcanza el límite de plan, hoy lo mandamos a Mi Plan pero no hay flujo de pago. Es el bloqueador comercial más grande para monetizar.
 
 ## Cosas en curso
 
-- Bot de WhatsApp (Twilio Sandbox, ya recibe mensajes y reconoce números vinculados, falta terminar los flujos de carga de gastos/lluvias y los recordatorios programados con APScheduler).
+- Bot de WhatsApp por **Kapso** (proxy de la Cloud API de Meta): ya recibe mensajes, reconoce números vinculados y maneja tareas, gastos, lluvias y OCR de facturas. Ya está en el número de producción +1 208-473-7478. Pendiente: aprobación de plantillas y display name por Meta, y medio de pago en Meta para los avisos automáticos.
 - Integración de Mercado Pago para suscripciones (planes Semilla, Lote, Agrónomo, Corporativo en ARS atadas al dólar BNA).
 
 ## Convenciones de UI
@@ -232,6 +340,21 @@ Las 4 categorías predefinidas:
 - **Tareas**: 4 botones (Completar / Iniciar / Editar / Eliminar) del mismo ancho (110px) y mismo estilo visual. Eliminar siempre visible para admin.
 - **Mapa**: campos sin polígono tienen botón "✏️ Dibujar polígono" en la tarjeta sidebar y en el popup del marcador. Usa `L.Draw.Polygon` de leaflet-draw. Al cerrar el polígono, calcula hectáreas por shoelace + radio terrestre y guarda en `campos.poligono` + `campos.hectareas`.
 - **Refresh garantizado al abrir tab**: `showModulo('stock-insumos')` y `showModulo('tareas')` disparan un fetch REST extra que garantiza ver datos frescos incluso si `cargarTodo` no terminó.
+
+## Estilo nuevo (v2) — detrás de un interruptor
+
+Rediseño de toda la app logueada (no la landing). El estilo clásico sigue intacto: todo lo nuevo está scopeado bajo la clase `html.ui-v2`.
+
+- **Interruptor**: `?ui=2` / `?ui=1` en la URL, el botón "✨ Probar estilo nuevo / ↩ Volver al clásico" al lado de la campanita, o "Estilo nuevo" en el menú de usuario. Se guarda en `localStorage['ra_ui']` (`'2'` = nuevo). Un `<script>` en el `<head>` pone la clase antes del primer paint (si no, se ve el clásico un instante).
+- **CSS**: bloque `<style id="ui-v2-css">`. Todas las reglas empiezan con `html.ui-v2`. Muchas pisan estilos inline con selectores de atributo (`[style*="..."]`) + `!important`: si cambiás un inline style viejo, revisá que la regla v2 siga matcheando.
+- **Markup solo de un estilo**: `.ui2-only` (solo v2) y `.v1-only` (solo clásico). Los emojis de títulos/pestañas se envuelven en `.v1-emoji` (`_ui2WrapEmojis`) y en v2 se reemplazan por íconos de **Lucide** pintados con `mask` (`--ic-*` en `:root`, clase `.ui2-ic`).
+- **Renders con rama v2** (chequean `window._uiV2()`): `_renderDashPagos`, `renderCamposLista`, `renderPagos`, `renderCampoRent` (métrica protagonista). `_ui2RenderDashTop` arma KPIs + alerta de vencidos del Inicio con los mismos cálculos que Rentabilidad total. `_refreshCrAcordeon` NO cambia su lógica: en v2 se pule el DOM después (`_ui2PulirPL`).
+- **Navegación**: desktop = sidebar fija (`--v2-side: 236px`); ≤900px = header compacto + barra inferior `#ui2-tabbar` + hojas inferiores (`_ui2Sheet('cargar'|'mas')`). La barra NO usa `.anl` porque `showModulo` marca el activo por índice de `.anl`.
+- **Menús desplegables**: componente genérico `.ui2-dd` (`_ui2DdToggle` / `_ui2DdCerrar`), se cierra con clic afuera o Escape y se reubica si se sale del contenido.
+- **Urgencia de pagos**: `window._ui2UrgenciaPago(dias, pagado)` → ≤15 días o vencido rojo, 16–45 amarillo, >45 neutro.
+- **Reglas de diseño acordadas**: textos de 14px mínimo (excepciones: etiquetas de la barra inferior 12px, chips de estado 13px); títulos en Inter, no serif; nada de franjas de color en el borde izquierdo de las cards; tarjetas que filtran usan `.met-filtro` con estado `.sel` y no se duplican con botones.
+
+**No reusar**: la clase `ui-v2`, el prefijo `ui2-`, la key `ra_ui`.
 
 ## Dev tools — Copy Tools widget (PR #42, #44 de Agustina)
 
@@ -263,3 +386,4 @@ Todas en `SQL/`. Aplicadas en producción via MCP de Supabase.
 11. `estructura_activos_y_gastos_generales.sql` — nuevas tablas `activos_amortizables` (vehículos/maquinaria/herramientas/construcción con vida útil) y `gastos_estructura` (sueldos/honorarios/seguros/oficina con frecuencia mensual/anual/único). 4 RLS policies owner-only en cada una. Ver sección "Módulo Estructura" abajo.
 12. `fks_on_delete_cascade_cleanup.sql` — migra los `*.usuario_id → perfiles(id)` a `CASCADE` en gastos/lluvias/eventos/analisis_suelo/campanas/mensajes_wa (antes eran NO ACTION, rompía el borrado limpio de un `auth.users`). Además pone en `SET NULL`: `gastos.campana_id`, `mensajes_wa.evento_creado`, `precios_pizarra.actualizado_por` y `perfiles.agronomo_id` para preservar registros históricos cuando se elimina la referencia.
 13. `gastos_momento_pulverizacion.sql` — agrega `gastos.momento_pulverizacion` (text nullable con CHECK `barbecho|presiembra|postemergente|aplicacion`). Alimenta la nueva tab **Cultivo** en la vista del campo, que arma una timeline con siembra, pulverizaciones, fertilizaciones y cosecha derivada de los gastos ya cargados. El dropdown aparece en el modal de gasto solo cuando el rubro es `herbicidas`/`fungicidas`/`insecticidas`.
+.

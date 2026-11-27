@@ -1,6 +1,6 @@
 {
-  "name": "Rinde.Agro",
-  "short_name": "Rinde.Agro",
+  "name": "Rinde Agro",
+  "short_name": "Rinde Agro",
   "description": "Plataforma agropecuaria argentina. Rentabilidad, análisis de suelo, precios de la Bolsa de Rosario, gestión de campos y campañas desde el celular.",
   "start_url": "/?source=pwa",
   "scope": "/",

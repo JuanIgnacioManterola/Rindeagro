@@ -1,7 +1,7 @@
-// Service Worker mínimo para que Rinde.Agro califique como PWA instalable.
+// Service Worker mínimo para que Rinde Agro califique como PWA instalable.
 // Estrategia: network-first sin caché — la app depende de datos frescos de
 // Supabase/precios, no queremos servir HTML viejo. El SW solo existe para
-// que Chrome ofrezca "Instalar Rinde.Agro" en el celular.
+// que Chrome ofrezca "Instalar Rinde Agro" en el celular.
 //
 // Si en el futuro querés cache offline, agregá aquí la lógica de cache.match
 // / caches.open.
